@@ -4,10 +4,6 @@ pub fn add(a: u32, b: u32) -> u32 {
 	a + b
 }
 
-pub fn test() -> Vec<u32> {
-	vec![1]
-}
-
 #[cfg(test)]
 mod tests {
 	use super::*;

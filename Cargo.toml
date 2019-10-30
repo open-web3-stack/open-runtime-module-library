@@ -22,11 +22,3 @@ std = [
 	"traits/std",
 	"utilities/std",
 ]
-
-[workspace]
-members = [
-	"oracle",
-	"tokens",
-	"traits",
-	"utilities",
-]

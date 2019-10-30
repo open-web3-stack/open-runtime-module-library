@@ -5,7 +5,7 @@ check-tests: githooks
 	cargo check --all --tests
 
 test: githooks
-	cargo test
+	cargo test --all
 
 GITHOOKS_SRC = $(wildcard githooks/*)
 GITHOOKS_DEST = $(patsubst githooks/%, .git/hooks/%, $(GITHOOKS_SRC))
