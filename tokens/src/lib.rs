@@ -3,11 +3,13 @@
 use codec::Codec;
 use rstd::{fmt::Debug, result};
 use srml_support::{decl_event, decl_module, decl_storage, ensure, Parameter};
-use sr_primitives::traits::{CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, SimpleArithmetic};
+use sr_primitives::traits::{
+	CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, SimpleArithmetic, StaticLookup,
+};
 // FIXME: `srml-` prefix should be used for all srml modules, but currently `srml_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3296 https://github.com/paritytech/substrate/issues/3295
-use srml_system as system;
+use srml_system::{self as system, ensure_signed};
 
 use traits::MultiCurrency;
 
@@ -47,6 +49,17 @@ decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
 		fn deposit_event() = default;
 
+		/// Transfer some balance to another account.
+		pub fn transfer(
+			origin,
+			dest: <T::Lookup as StaticLookup>::Source,
+			#[compact] currency_id: T::CurrencyId,
+			#[compact] amount: T::Balance,
+		) {
+			let from = ensure_signed(origin)?;
+			let to = T::Lookup::lookup(dest)?;
+			<Self as MultiCurrency<_>>::transfer(&currency_id, &from, &to, amount)?;
+		}
 	}
 }
 
