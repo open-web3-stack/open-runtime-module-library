@@ -8,7 +8,7 @@ use sr_primitives::traits::{
 };
 // FIXME: `srml-` prefix should be used for all srml modules, but currently `srml_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
-// #3296 https://github.com/paritytech/substrate/issues/3295
+// #3295 https://github.com/paritytech/substrate/issues/3295
 use srml_system::{self as system, ensure_signed};
 
 use traits::MultiCurrency;
