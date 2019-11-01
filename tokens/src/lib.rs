@@ -39,9 +39,12 @@ decl_storage! {
 
 decl_event!(
 	pub enum Event<T> where
-		<T as srml_system::Trait>::AccountId
+		<T as srml_system::Trait>::AccountId,
+		<T as Trait>::CurrencyId,
+		<T as Trait>::Balance
 	{
-		Dummy(AccountId),
+		/// Token transfer success (currency_id, from, to, amount)
+		Transferred(CurrencyId, AccountId, AccountId, Balance),
 	}
 );
 
@@ -59,6 +62,8 @@ decl_module! {
 			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
 			<Self as MultiCurrency<_>>::transfer(&currency_id, &from, &to, amount)?;
+
+			Self::deposit_event(RawEvent::Transferred(currency_id, from, to, amount));
 		}
 	}
 }
