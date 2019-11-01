@@ -2,10 +2,10 @@
 
 use codec::Codec;
 use rstd::{fmt::Debug, result};
-use srml_support::{decl_event, decl_module, decl_storage, ensure, Parameter};
 use sr_primitives::traits::{
 	CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, SimpleArithmetic, StaticLookup,
 };
+use srml_support::{decl_event, decl_module, decl_storage, ensure, Parameter};
 // FIXME: `srml-` prefix should be used for all srml modules, but currently `srml_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
@@ -83,7 +83,10 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		to: &T::AccountId,
 		amount: Self::Balance,
 	) -> result::Result<(), &'static str> {
-		ensure!(Self::balance(currency_id, from) >= amount, "balance too low to send amount");
+		ensure!(
+			Self::balance(currency_id, from) >= amount,
+			"balance too low to send amount",
+		);
 
 		if from != to {
 			<Balance<T>>::mutate(currency_id, from, |balance| *balance -= amount);
@@ -125,11 +128,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		Ok(())
 	}
 
-	fn slash(
-		currency_id: &Self::CurrencyId,
-		who: &T::AccountId,
-		amount: Self::Balance,
-	) -> Self::Balance {
+	fn slash(currency_id: &Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> Self::Balance {
 		let actual_amount = Self::balance(currency_id, who).max(amount);
 		<Balance<T>>::mutate(currency_id, who, |v| *v -= actual_amount);
 		actual_amount
