@@ -69,9 +69,15 @@ decl_module! {
 
 impl<T: Trait> Module<T> {}
 
+mod imbalances;
+
 impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	type Balance = T::Balance;
 	type CurrencyId = T::CurrencyId;
+	type PositiveImbalance = imbalances::PositiveImbalance<T>;
+	type NegativeImbalance = imbalances::NegativeImbalance<T>;
+	type RebalancePositive = imbalances::RebalancePositive<T>;
+	type RebalanceNegative = imbalances::RebalanceNegative<T>;
 
 	fn total_inssuance(currency_id: Self::CurrencyId) -> Self::Balance {
 		<TotalIssuance<T>>::get(currency_id)

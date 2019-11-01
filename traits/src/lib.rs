@@ -4,6 +4,28 @@ use codec::FullCodec;
 use rstd::{fmt::Debug, result};
 use sr_primitives::traits::{MaybeSerializeDeserialize, SimpleArithmetic};
 
+pub trait Rebalance<CurrencyId, Balance> {
+	/// This is infallible, but doesn't guarantee to rebalance the entire `amount`, for example in the case of
+	/// total issuance overflow or underflow.
+	fn rebalance(currency_id: CurrencyId, amount: Balance);
+}
+
+pub trait Imbalance {
+	type Balance;
+	type CurrencyId;
+	type Opposite: Imbalance;
+	type Rebalance: Rebalance<Self::CurrencyId, Self::Balance>;
+
+	fn currency_id(self: &Self) -> Self::CurrencyId;
+	fn amount(self: &Self) -> Self::Balance;
+
+	fn rebalance(self: &Self) {
+		Self::Rebalance::rebalance(self.currency_id(), self.amount());
+	}
+
+	// TODO: add imbalance merge/subsume/split etc.
+}
+
 /// Abstraction over a fungible multi-currency system.
 pub trait MultiCurrency<AccountId> {
 	/// The currency identifier.
@@ -11,6 +33,27 @@ pub trait MultiCurrency<AccountId> {
 
 	/// The balance of an account.
 	type Balance: SimpleArithmetic + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default;
+
+	/// The opaque token type for an imbalance. This is returned by unbalanced operations
+	/// and must be dealt with. It may be dropped but cannot be cloned.
+	type PositiveImbalance: Imbalance<
+		Balance = Self::Balance,
+		CurrencyId = Self::CurrencyId,
+		Opposite = Self::NegativeImbalance,
+		Rebalance = Self::RebalancePositive,
+	>;
+
+	/// The opaque token type for an imbalance. This is returned by unbalanced operations
+	/// and must be dealt with. It may be dropped but cannot be cloned.
+	type NegativeImbalance: Imbalance<
+		Balance = Self::Balance,
+		CurrencyId = Self::CurrencyId,
+		Opposite = Self::PositiveImbalance,
+		Rebalance = Self::RebalanceNegative,
+	>;
+
+	type RebalancePositive: Rebalance<Self::CurrencyId, Self::Balance>;
+	type RebalanceNegative: Rebalance<Self::CurrencyId, Self::Balance>;
 
 	// Public immutables
 
