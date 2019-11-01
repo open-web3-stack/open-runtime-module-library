@@ -1,7 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::Codec;
-use rstd::{fmt::Debug, result};
+use rstd::result;
 use sr_primitives::traits::{
 	CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, SimpleArithmetic, StaticLookup,
 };
@@ -61,7 +60,7 @@ decl_module! {
 		) {
 			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
-			<Self as MultiCurrency<_>>::transfer(&currency_id, &from, &to, amount)?;
+			<Self as MultiCurrency<_>>::transfer(currency_id, &from, &to, amount)?;
 
 			Self::deposit_event(RawEvent::Transferred(currency_id, from, to, amount));
 		}
@@ -74,16 +73,16 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	type Balance = T::Balance;
 	type CurrencyId = T::CurrencyId;
 
-	fn total_inssuance(currency_id: &Self::CurrencyId) -> Self::Balance {
+	fn total_inssuance(currency_id: Self::CurrencyId) -> Self::Balance {
 		<TotalIssuance<T>>::get(currency_id)
 	}
 
-	fn balance(currency_id: &Self::CurrencyId, who: &T::AccountId) -> Self::Balance {
+	fn balance(currency_id: Self::CurrencyId, who: &T::AccountId) -> Self::Balance {
 		<Balance<T>>::get(currency_id, who)
 	}
 
 	fn transfer(
-		currency_id: &Self::CurrencyId,
+		currency_id: Self::CurrencyId,
 		from: &T::AccountId,
 		to: &T::AccountId,
 		amount: Self::Balance,
@@ -102,7 +101,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	}
 
 	fn mint(
-		currency_id: &Self::CurrencyId,
+		currency_id: Self::CurrencyId,
 		who: &T::AccountId,
 		amount: Self::Balance,
 	) -> result::Result<(), &'static str> {
@@ -118,7 +117,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	}
 
 	fn burn(
-		currency_id: &Self::CurrencyId,
+		currency_id: Self::CurrencyId,
 		who: &T::AccountId,
 		amount: Self::Balance,
 	) -> result::Result<(), &'static str> {
@@ -133,7 +132,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		Ok(())
 	}
 
-	fn slash(currency_id: &Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> Self::Balance {
+	fn slash(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> Self::Balance {
 		let actual_amount = Self::balance(currency_id, who).min(amount);
 		<Balance<T>>::mutate(currency_id, who, |v| *v -= actual_amount);
 		actual_amount

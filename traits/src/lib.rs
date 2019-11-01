@@ -15,31 +15,31 @@ pub trait MultiCurrency<AccountId> {
 	// Public immutables
 
 	/// The total amount of issuance of `currency_id`.
-	fn total_inssuance(currency_id: &Self::CurrencyId) -> Self::Balance;
+	fn total_inssuance(currency_id: Self::CurrencyId) -> Self::Balance;
 
 	/// The combined balance of `who` under `currency_id`.
-	fn balance(currency_id: &Self::CurrencyId, who: &AccountId) -> Self::Balance;
+	fn balance(currency_id: Self::CurrencyId, who: &AccountId) -> Self::Balance;
 
 	// Public mutables
 
 	/// Transfer some amount from one account to another.
 	fn transfer(
-		currency_id: &Self::CurrencyId,
+		currency_id: Self::CurrencyId,
 		from: &AccountId,
 		to: &AccountId,
 		amount: Self::Balance,
 	) -> result::Result<(), &'static str>;
 
 	/// Mint and increase the total inssuance of `currency_id` by adding `amount` to `who`.
-	fn mint(currency_id: &Self::CurrencyId, who: &AccountId, amount: Self::Balance)
+	fn mint(currency_id: Self::CurrencyId, who: &AccountId, amount: Self::Balance)
 		-> result::Result<(), &'static str>;
 
 	/// Burn and reduce the total inssuance of `currency_id` by moving `amount` from `who`.
-	fn burn(currency_id: &Self::CurrencyId, who: &AccountId, amount: Self::Balance)
+	fn burn(currency_id: Self::CurrencyId, who: &AccountId, amount: Self::Balance)
 		-> result::Result<(), &'static str>;
 
 	/// Deduct the balance of `who` by up to `amount`.
 	///
 	/// As much funds up to `amount` will be deducted as possible, the actual slashed amount will be returned.
-	fn slash(currency_id: &Self::CurrencyId, who: &AccountId, amount: Self::Balance) -> Self::Balance;
+	fn slash(currency_id: Self::CurrencyId, who: &AccountId, amount: Self::Balance) -> Self::Balance;
 }
