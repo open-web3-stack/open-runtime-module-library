@@ -15,7 +15,7 @@ use traits::MultiCurrency;
 
 pub trait Trait: srml_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as srml_system::Trait>::Event>;
-	type Balance: Parameter + Member + SimpleArithmetic + Codec + Default + Copy + MaybeSerializeDeserialize + Debug;
+	type Balance: Parameter + Member + SimpleArithmetic + Default + Copy + MaybeSerializeDeserialize;
 	type CurrencyId: Parameter + Member + SimpleArithmetic + Default + Copy + MaybeSerializeDeserialize;
 }
 
@@ -28,7 +28,7 @@ decl_storage! {
 		}): map T::CurrencyId => T::Balance;
 
 		/// The balance of a token type under an account.
-		pub Balance get(fn balance): double_map T::CurrencyId, twox_128(T::AccountId) => T::Balance;
+		pub Balance get(fn balance): double_map T::CurrencyId, blake2_256(T::AccountId) => T::Balance;
 	}
 	add_extra_genesis {
 		config(tokens): Vec<T::CurrencyId>;
@@ -134,7 +134,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	}
 
 	fn slash(currency_id: &Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> Self::Balance {
-		let actual_amount = Self::balance(currency_id, who).max(amount);
+		let actual_amount = Self::balance(currency_id, who).min(amount);
 		<Balance<T>>::mutate(currency_id, who, |v| *v -= actual_amount);
 		actual_amount
 	}
