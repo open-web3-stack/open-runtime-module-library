@@ -4,9 +4,6 @@ use srml_support::StorageMap;
 use super::{TotalIssuance, Trait};
 use traits::{Imbalance, Rebalance};
 
-pub struct PositiveImbalance<T: Trait>(T::CurrencyId, T::Balance);
-pub struct NegativeImbalance<T: Trait>(T::CurrencyId, T::Balance);
-
 pub struct RebalancePositive<T>(rstd::marker::PhantomData<T>);
 pub struct RebalanceNegative<T>(rstd::marker::PhantomData<T>);
 
@@ -22,6 +19,11 @@ impl<T: Trait> Rebalance<T::CurrencyId, T::Balance> for RebalanceNegative<T> {
 	}
 }
 
+pub struct PositiveImbalance<T: Trait> {
+	currency_id: T::CurrencyId,
+	amount: T::Balance,
+}
+
 impl<T: Trait> Imbalance for PositiveImbalance<T> {
 	type Balance = T::Balance;
 	type CurrencyId = T::CurrencyId;
@@ -29,12 +31,17 @@ impl<T: Trait> Imbalance for PositiveImbalance<T> {
 	type Rebalance = RebalancePositive<T>;
 
 	fn currency_id(self: &Self) -> Self::CurrencyId {
-		self.0
+		self.currency_id
 	}
 
 	fn amount(self: &Self) -> Self::Balance {
-		self.1
+		self.amount
 	}
+}
+
+pub struct NegativeImbalance<T: Trait> {
+	currency_id: T::CurrencyId,
+	amount: T::Balance,
 }
 
 impl<T: Trait> Imbalance for NegativeImbalance<T> {
@@ -44,11 +51,11 @@ impl<T: Trait> Imbalance for NegativeImbalance<T> {
 	type Rebalance = RebalanceNegative<T>;
 
 	fn currency_id(self: &Self) -> Self::CurrencyId {
-		self.0
+		self.currency_id
 	}
 
 	fn amount(self: &Self) -> Self::Balance {
-		self.1
+		self.amount
 	}
 }
 
