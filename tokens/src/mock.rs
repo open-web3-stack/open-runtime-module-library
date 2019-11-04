@@ -42,7 +42,7 @@ impl system::Trait for Runtime {
 }
 
 type CurrencyId = u32;
-type Balance = u64;
+pub type Balance = u64;
 impl Trait for Runtime {
 	type Event = ();
 	type Balance = Balance;

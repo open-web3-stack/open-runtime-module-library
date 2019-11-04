@@ -118,41 +118,39 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		Ok(())
 	}
 
-	fn mint(
+	fn deposit(
 		currency_id: Self::CurrencyId,
 		who: &T::AccountId,
 		amount: Self::Balance,
-	) -> result::Result<(), &'static str> {
+	) -> result::Result<Self::PositiveImbalance, &'static str> {
 		ensure!(
 			Self::total_inssuance(currency_id).checked_add(&amount).is_some(),
-			"total issuance overflow",
+			"total issuance overflow if deposit",
 		);
 
-		<TotalIssuance<T>>::mutate(currency_id, |v| *v += amount);
 		<Balance<T>>::mutate(currency_id, who, |v| *v += amount);
 
-		Ok(())
+		Ok(<PositiveImbalance<T>>::new(currency_id, amount))
 	}
 
-	fn burn(
+	fn withdraw(
 		currency_id: Self::CurrencyId,
 		who: &T::AccountId,
 		amount: Self::Balance,
-	) -> result::Result<(), &'static str> {
+	) -> result::Result<Self::NegativeImbalance, &'static str> {
 		ensure!(
 			Self::balance(currency_id, who).checked_sub(&amount).is_some(),
-			"insufficient balance to burn",
+			"insufficient balance to withdraw",
 		);
 
-		<TotalIssuance<T>>::mutate(currency_id, |v| *v -= amount);
 		<Balance<T>>::mutate(currency_id, who, |v| *v -= amount);
 
-		Ok(())
+		Ok(<NegativeImbalance<T>>::new(currency_id, amount))
 	}
 
-	fn slash(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> Self::Balance {
+	fn slash(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> Self::NegativeImbalance {
 		let actual_amount = Self::balance(currency_id, who).min(amount);
 		<Balance<T>>::mutate(currency_id, who, |v| *v -= actual_amount);
-		actual_amount
+		<NegativeImbalance<T>>::new(currency_id, amount)
 	}
 }
