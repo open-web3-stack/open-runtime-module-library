@@ -30,12 +30,18 @@ impl<T: Trait> Imbalance for PositiveImbalance<T> {
 	type Opposite = NegativeImbalance<T>;
 	type Rebalance = RebalancePositive<T>;
 
-	fn currency_id(self: &Self) -> Self::CurrencyId {
+	fn currency_id(&self) -> Self::CurrencyId {
 		self.currency_id
 	}
 
-	fn amount(self: &Self) -> Self::Balance {
+	fn amount(&self) -> Self::Balance {
 		self.amount
+	}
+}
+
+impl<T: Trait> Drop for PositiveImbalance<T> {
+	fn drop(&mut self) {
+		<Self as Imbalance>::Rebalance::rebalance(self.currency_id, self.amount);
 	}
 }
 
@@ -50,13 +56,17 @@ impl<T: Trait> Imbalance for NegativeImbalance<T> {
 	type Opposite = PositiveImbalance<T>;
 	type Rebalance = RebalanceNegative<T>;
 
-	fn currency_id(self: &Self) -> Self::CurrencyId {
+	fn currency_id(&self) -> Self::CurrencyId {
 		self.currency_id
 	}
 
-	fn amount(self: &Self) -> Self::Balance {
+	fn amount(&self) -> Self::Balance {
 		self.amount
 	}
 }
 
-// TODO: impl `Drop`
+impl<T: Trait> Drop for NegativeImbalance<T> {
+	fn drop(&mut self) {
+		<Self as Imbalance>::Rebalance::rebalance(self.currency_id, self.amount);
+	}
+}

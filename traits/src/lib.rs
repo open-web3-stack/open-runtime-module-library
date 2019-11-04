@@ -16,10 +16,10 @@ pub trait Imbalance {
 	type Opposite: Imbalance;
 	type Rebalance: Rebalance<Self::CurrencyId, Self::Balance>;
 
-	fn currency_id(self: &Self) -> Self::CurrencyId;
-	fn amount(self: &Self) -> Self::Balance;
+	fn currency_id(&self) -> Self::CurrencyId;
+	fn amount(&self) -> Self::Balance;
 
-	fn rebalance(self: &Self) {
+	fn rebalance(&self) {
 		Self::Rebalance::rebalance(self.currency_id(), self.amount());
 	}
 
