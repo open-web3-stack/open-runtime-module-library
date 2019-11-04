@@ -3,11 +3,7 @@
 #![cfg(test)]
 
 use primitives::H256;
-use sr_primitives::{
-	testing::Header,
-	traits::IdentityLookup,
-	Perbill,
-};
+use sr_primitives::{testing::Header, traits::IdentityLookup, Perbill};
 use srml_support::{impl_outer_origin, parameter_types};
 
 use super::*;
