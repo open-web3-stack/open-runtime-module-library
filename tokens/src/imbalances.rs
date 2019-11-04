@@ -24,6 +24,12 @@ pub struct PositiveImbalance<T: Trait> {
 	amount: T::Balance,
 }
 
+impl<T: Trait> PositiveImbalance<T> {
+	pub fn new(currency_id: T::CurrencyId, amount: T::Balance) -> Self {
+		PositiveImbalance { currency_id, amount }
+	}
+}
+
 impl<T: Trait> Imbalance for PositiveImbalance<T> {
 	type Balance = T::Balance;
 	type CurrencyId = T::CurrencyId;
@@ -48,6 +54,12 @@ impl<T: Trait> Drop for PositiveImbalance<T> {
 pub struct NegativeImbalance<T: Trait> {
 	currency_id: T::CurrencyId,
 	amount: T::Balance,
+}
+
+impl<T: Trait> NegativeImbalance<T> {
+	pub fn new(currency_id: T::CurrencyId, amount: T::Balance) -> Self {
+		NegativeImbalance { currency_id, amount }
+	}
 }
 
 impl<T: Trait> Imbalance for NegativeImbalance<T> {

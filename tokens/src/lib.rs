@@ -12,6 +12,12 @@ use srml_system::{self as system, ensure_signed};
 
 use traits::MultiCurrency;
 
+mod imbalances;
+pub use imbalances::{NegativeImbalance, PositiveImbalance};
+
+mod mock;
+mod tests;
+
 pub trait Trait: srml_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as srml_system::Trait>::Event>;
 	type Balance: Parameter + Member + SimpleArithmetic + Default + Copy + MaybeSerializeDeserialize;
@@ -33,6 +39,14 @@ decl_storage! {
 		config(tokens): Vec<T::CurrencyId>;
 		config(initial_balance): T::Balance;
 		config(endowed_accounts): Vec<T::AccountId>;
+
+		build(|config: &GenesisConfig<T>| {
+			config.tokens.iter().for_each(|currency_id| {
+				config.endowed_accounts.iter().for_each(|account_id| {
+					<Balance<T>>::insert(currency_id, account_id, &config.initial_balance);
+				})
+			})
+		})
 	}
 }
 
@@ -68,8 +82,6 @@ decl_module! {
 }
 
 impl<T: Trait> Module<T> {}
-
-mod imbalances;
 
 impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	type Balance = T::Balance;
