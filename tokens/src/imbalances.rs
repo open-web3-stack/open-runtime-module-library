@@ -19,6 +19,7 @@ impl<T: Trait> Rebalance<T::CurrencyId, T::Balance> for RebalanceNegative<T> {
 	}
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct PositiveImbalance<T: Trait> {
 	currency_id: T::CurrencyId,
 	amount: T::Balance,
@@ -51,6 +52,7 @@ impl<T: Trait> Drop for PositiveImbalance<T> {
 	}
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct NegativeImbalance<T: Trait> {
 	currency_id: T::CurrencyId,
 	amount: T::Balance,

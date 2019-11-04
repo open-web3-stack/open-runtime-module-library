@@ -105,10 +105,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		to: &T::AccountId,
 		amount: Self::Balance,
 	) -> result::Result<(), &'static str> {
-		ensure!(
-			Self::balance(currency_id, from) >= amount,
-			"balance too low to send amount",
-		);
+		ensure!(Self::balance(currency_id, from) >= amount, "balance too low",);
 
 		if from != to {
 			<Balance<T>>::mutate(currency_id, from, |balance| *balance -= amount);
@@ -124,8 +121,8 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		amount: Self::Balance,
 	) -> result::Result<Self::PositiveImbalance, &'static str> {
 		ensure!(
-			Self::total_inssuance(currency_id).checked_add(&amount).is_some(),
-			"total issuance overflow if deposit",
+			Self::total_issuance(currency_id).checked_add(&amount).is_some(),
+			"total issuance overflow after deposit",
 		);
 
 		<Balance<T>>::mutate(currency_id, who, |v| *v += amount);
@@ -140,7 +137,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	) -> result::Result<Self::NegativeImbalance, &'static str> {
 		ensure!(
 			Self::balance(currency_id, who).checked_sub(&amount).is_some(),
-			"insufficient balance to withdraw",
+			"balance too low to withdraw",
 		);
 
 		<Balance<T>>::mutate(currency_id, who, |v| *v -= amount);
