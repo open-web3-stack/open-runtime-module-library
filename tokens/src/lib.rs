@@ -23,7 +23,7 @@ pub trait Trait: srml_system::Trait {
 
 decl_storage! {
 	trait Store for Module<T: Trait> as Tokens {
-		/// The total issuance of a token type;
+		/// The total issuance of a token type.
 		pub TotalIssuance get(fn total_issuance) build(|config: &GenesisConfig<T>| {
 			let issuance = config.initial_balance * (config.endowed_accounts.len() as u32).into();
 			config.tokens.iter().map(|id| (id.clone(), issuance)).collect::<Vec<_>>()
@@ -60,8 +60,6 @@ decl_event!(
 
 decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
-		type Error = Error;
-
 		fn deposit_event() = default;
 
 		/// Transfer some balance to another account.
@@ -71,7 +69,7 @@ decl_module! {
 			#[compact] currency_id: T::CurrencyId,
 			#[compact] amount: T::Balance,
 		) {
-			let from = ensure_signed(origin).map_err(|_| Error::RequireSignedOrigin)?;
+			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
 			<Self as MultiCurrency<_>>::transfer(currency_id, &from, &to, amount)?;
 
@@ -83,7 +81,6 @@ decl_module! {
 decl_error! {
 	/// Error for token module.
 	pub enum Error {
-		RequireSignedOrigin,
 		BalanceTooLow,
 		TotalIssuanceOverflow,
 	}
