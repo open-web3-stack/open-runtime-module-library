@@ -24,7 +24,7 @@ jobs:
     - name: Check format
       run: cargo +stable fmt --all -- --check
     - name: Check with no_std
-      run: make check
+      run: make check-no-std
     - name: Build
       run: cargo build --locked
     - name: Run tests
