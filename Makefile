@@ -1,5 +1,5 @@
-check-no-std: githooks
-	cd example && cargo check --no-default-features && cd ..
+check: githooks
+	cd example && cargo check --no-default-features
 
 check-tests: githooks
 	cargo check --all --tests

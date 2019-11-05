@@ -84,22 +84,14 @@ impl Default for ExtBuilder {
 
 impl ExtBuilder {
 	#[allow(dead_code)]
-	pub fn currency_id(mut self, currency_id: CurrencyId) -> Self {
-		self.currency_id = currency_id;
-		self
-	}
-
-	#[allow(dead_code)]
 	pub fn balances(mut self, account_ids: Vec<AccountId>, initial_balance: Balance) -> Self {
 		self.endowed_accounts = account_ids;
 		self.initial_balance = initial_balance;
 		self
 	}
 
-	pub fn one_hundred_for_alice_n_bob(mut self) -> Self {
-		self.endowed_accounts = vec![ALICE, BOB];
-		self.initial_balance = 100;
-		self
+	pub fn one_hundred_for_alice_n_bob(self) -> Self {
+		self.balances(vec![ALICE, BOB], 100)
 	}
 
 	pub fn build(self) -> runtime_io::TestExternalities {
