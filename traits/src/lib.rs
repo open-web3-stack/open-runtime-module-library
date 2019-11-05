@@ -30,11 +30,19 @@ pub trait MultiCurrency<AccountId> {
 		amount: Self::Balance,
 	) -> result::Result<(), &'static str>;
 
-	/// Mint and increase the total inssuance of `currency_id` by adding `amount` to `who`.
-	fn mint(currency_id: Self::CurrencyId, who: &AccountId, amount: Self::Balance) -> result::Result<(), &'static str>;
+	/// Add `amount` to the balance of `who` under `currency_id` and increase total issuance.
+	fn deposit(
+		currency_id: Self::CurrencyId,
+		who: &AccountId,
+		amount: Self::Balance,
+	) -> result::Result<(), &'static str>;
 
-	/// Burn and reduce the total inssuance of `currency_id` by moving `amount` from `who`.
-	fn burn(currency_id: Self::CurrencyId, who: &AccountId, amount: Self::Balance) -> result::Result<(), &'static str>;
+	/// Remove `amount` from the balance of `who` under `currency_id` and recude total issuance.
+	fn withdraw(
+		currency_id: Self::CurrencyId,
+		who: &AccountId,
+		amount: Self::Balance,
+	) -> result::Result<(), &'static str>;
 
 	/// Deduct the balance of `who` by up to `amount`.
 	///

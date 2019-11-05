@@ -12,6 +12,9 @@ use srml_system::{self as system, ensure_signed};
 
 use traits::MultiCurrency;
 
+mod mock;
+mod tests;
+
 pub trait Trait: srml_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as srml_system::Trait>::Event>;
 	type Balance: Parameter + Member + SimpleArithmetic + Default + Copy + MaybeSerializeDeserialize;
@@ -33,6 +36,14 @@ decl_storage! {
 		config(tokens): Vec<T::CurrencyId>;
 		config(initial_balance): T::Balance;
 		config(endowed_accounts): Vec<T::AccountId>;
+
+		build(|config: &GenesisConfig<T>| {
+			config.tokens.iter().for_each(|currency_id| {
+				config.endowed_accounts.iter().for_each(|account_id| {
+					<Balance<T>>::insert(currency_id, account_id, &config.initial_balance);
+				})
+			})
+		})
 	}
 }
 
@@ -89,7 +100,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	) -> result::Result<(), &'static str> {
 		ensure!(
 			Self::balance(currency_id, from) >= amount,
-			"balance too low to send amount",
+			"balance too low to transfer",
 		);
 
 		if from != to {
@@ -100,14 +111,14 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		Ok(())
 	}
 
-	fn mint(
+	fn deposit(
 		currency_id: Self::CurrencyId,
 		who: &T::AccountId,
 		amount: Self::Balance,
 	) -> result::Result<(), &'static str> {
 		ensure!(
 			Self::total_inssuance(currency_id).checked_add(&amount).is_some(),
-			"total issuance overflow",
+			"total issuance overflow after deposit",
 		);
 
 		<TotalIssuance<T>>::mutate(currency_id, |v| *v += amount);
@@ -116,14 +127,14 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		Ok(())
 	}
 
-	fn burn(
+	fn withdraw(
 		currency_id: Self::CurrencyId,
 		who: &T::AccountId,
 		amount: Self::Balance,
 	) -> result::Result<(), &'static str> {
 		ensure!(
 			Self::balance(currency_id, who).checked_sub(&amount).is_some(),
-			"insufficient balance to burn",
+			"balance too low to withdraw",
 		);
 
 		<TotalIssuance<T>>::mutate(currency_id, |v| *v -= amount);
@@ -134,6 +145,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 
 	fn slash(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> Self::Balance {
 		let actual_amount = Self::balance(currency_id, who).min(amount);
+		<TotalIssuance<T>>::mutate(currency_id, |v| *v -= actual_amount);
 		<Balance<T>>::mutate(currency_id, who, |v| *v -= actual_amount);
 		actual_amount
 	}

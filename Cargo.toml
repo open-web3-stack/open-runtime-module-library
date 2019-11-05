@@ -1,24 +1,8 @@
-[package]
-name = "orml"
-version = "0.0.1"
-authors = ["Laminar Developers <hello@laminar.one>"]
-edition = "2018"
-
-[[bin]]
-name = "orml"
-path = "src/main.rs"
-
-[dependencies]
-oracle = { package = "orml-oracle", path = "oracle", default-features = false }
-tokens = { package = "orml-tokens", path = "tokens", default-features = false }
-traits = { package = "orml-traits", path = "traits", default-features = false }
-utilities = { package = "orml-utilities", path = "utilities", default-features = false }
-
-[features]
-default = ["std"]
-std = [
-	"oracle/std",
-	"tokens/std",
-	"traits/std",
-	"utilities/std",
+[workspace]
+members = [
+	"example",
+	"oracle",
+	"tokens",
+	"traits",
+	"utilities",
 ]
