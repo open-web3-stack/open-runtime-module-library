@@ -110,7 +110,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		to: &T::AccountId,
 		amount: Self::Balance,
 	) -> result::Result<(), Self::Error> {
-		ensure!(Self::balance(currency_id, from) >= amount, Error::BalanceTooLow,);
+		ensure!(Self::balance(currency_id, from) >= amount, Error::BalanceTooLow);
 
 		if from != to {
 			<Balance<T>>::mutate(currency_id, from, |balance| *balance -= amount);
