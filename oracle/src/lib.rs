@@ -10,7 +10,7 @@ pub use operator_protocol::OperatorProtocol;
 use rstd::prelude::Vec;
 use rstd::*;
 use sr_primitives::traits::Member;
-use support::{decl_module, decl_storage, decl_event, Parameter, traits::Time, ensure, dispatch::Result};
+use support::{decl_event, decl_module, decl_storage, dispatch::Result, ensure, traits::Time, Parameter};
 use system::ensure_signed;
 pub use timestamped_value::TimestampedValue;
 

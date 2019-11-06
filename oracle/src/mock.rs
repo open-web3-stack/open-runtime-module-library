@@ -3,7 +3,12 @@
 use super::*;
 
 use primitives::H256;
-use sr_primitives::{testing::Header, traits::{BlakeTwo256, IdentityLookup}, weights::Weight, Perbill};
+use sr_primitives::{
+	testing::Header,
+	traits::{BlakeTwo256, IdentityLookup},
+	weights::Weight,
+	Perbill,
+};
 use support::{impl_outer_origin, parameter_types, traits::Time};
 
 impl_outer_origin! {
@@ -62,8 +67,7 @@ pub struct MockOperatorProtocol;
 
 impl OperatorProtocol<u64> for MockOperatorProtocol {
 	fn can_feed_data(who: &u64) -> bool {
-		let _ = who;
-		true
+		Self::operators().contains(who)
 	}
 
 	fn operators() -> Vec<u64> {
