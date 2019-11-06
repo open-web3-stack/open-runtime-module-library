@@ -1,8 +1,0 @@
-[workspace]
-members = [
-	"example",
-	"oracle",
-	"tokens",
-	"traits",
-	"utilities",
-]
