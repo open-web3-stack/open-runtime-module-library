@@ -1,21 +1,23 @@
 check: githooks
-	cd example && cargo check --no-default-features
+	./scripts/run.sh check --no-default-features
 
 check-tests: githooks
-	cargo check --all --tests
+	./scripts/run.sh check --tests
 
 test: githooks
-	cargo test --all
+	./scripts/run.sh test
 
 GITHOOKS_SRC = $(wildcard githooks/*)
-GITHOOKS_DEST = $(patsubst githooks/%, .git/hooks/%, $(GITHOOKS_SRC))
+GITHOOKS_DEST = $(patsubst githooks/%, $(GITHOOK)/%, $(GITHOOKS_SRC))
 
-.git/hooks:
-	mkdir .git/hooks
+GITHOOK := $(shell git rev-parse --git-path hooks)
 
-.git/hooks/%: githooks/%
-	cp $^ $@
+$(GITHOOK):
+	mkdir $(GITHOOK)
 
-githooks: .git/hooks $(GITHOOKS_DEST)
+$(GITHOOK)/%: githooks/%
+	cp "$^" "$(GITHOOK)"
+
+githooks: $(GITHOOK) $(GITHOOKS_DEST)
 
 init: githooks

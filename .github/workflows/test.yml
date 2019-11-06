@@ -22,10 +22,8 @@ jobs:
         target: wasm32-unknown-unknown
         default: true
     - name: Check format
-      run: cargo +stable fmt --all -- --check
+      run: ./scripts/run.sh "+stable fmt" -- --check
     - name: Check with no_std
       run: make check
-    - name: Build
-      run: cargo build --locked
     - name: Run tests
-      run: cargo test --all
+      run: make test
