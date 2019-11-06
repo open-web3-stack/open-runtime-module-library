@@ -12,6 +12,9 @@ pub trait MultiCurrency<AccountId> {
 	/// The balance of an account.
 	type Balance: SimpleArithmetic + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default;
 
+	/// The error type.
+	type Error: Into<&'static str>;
+
 	// Public immutables
 
 	/// The total amount of issuance of `currency_id`.
@@ -28,21 +31,21 @@ pub trait MultiCurrency<AccountId> {
 		from: &AccountId,
 		to: &AccountId,
 		amount: Self::Balance,
-	) -> result::Result<(), &'static str>;
+	) -> result::Result<(), Self::Error>;
 
 	/// Add `amount` to the balance of `who` under `currency_id` and increase total issuance.
 	fn deposit(
 		currency_id: Self::CurrencyId,
 		who: &AccountId,
 		amount: Self::Balance,
-	) -> result::Result<(), &'static str>;
+	) -> result::Result<(), Self::Error>;
 
 	/// Remove `amount` from the balance of `who` under `currency_id` and recude total issuance.
 	fn withdraw(
 		currency_id: Self::CurrencyId,
 		who: &AccountId,
 		amount: Self::Balance,
-	) -> result::Result<(), &'static str>;
+	) -> result::Result<(), Self::Error>;
 
 	/// Deduct the balance of `who` by up to `amount`.
 	///

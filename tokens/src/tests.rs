@@ -34,7 +34,7 @@ fn transfer_should_work() {
 
 			assert_noop!(
 				Tokens::transfer(Some(ALICE).into(), BOB, TEST_TOKEN_ID, 60),
-				"balance too low to transfer",
+				Error::BalanceTooLow.into(),
 			);
 		});
 }
@@ -51,7 +51,7 @@ fn deposit_should_work() {
 
 			assert_noop!(
 				Tokens::deposit(TEST_TOKEN_ID, &ALICE, Balance::max_value()),
-				"total issuance overflow after deposit",
+				Error::TotalIssuanceOverflow,
 			);
 		});
 }
@@ -66,9 +66,6 @@ fn withdraw_should_work() {
 			assert_eq!(Tokens::balance(TEST_TOKEN_ID, &ALICE), 50);
 			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 150);
 
-			assert_noop!(
-				Tokens::withdraw(TEST_TOKEN_ID, &ALICE, 60),
-				"balance too low to withdraw",
-			);
+			assert_noop!(Tokens::withdraw(TEST_TOKEN_ID, &ALICE, 60), Error::BalanceTooLow);
 		});
 }

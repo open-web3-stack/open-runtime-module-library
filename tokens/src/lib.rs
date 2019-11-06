@@ -4,7 +4,7 @@ use rstd::result;
 use sr_primitives::traits::{
 	CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, SimpleArithmetic, StaticLookup,
 };
-use srml_support::{decl_event, decl_module, decl_storage, ensure, Parameter};
+use srml_support::{decl_error, decl_event, decl_module, decl_storage, ensure, Parameter};
 // FIXME: `srml-` prefix should be used for all srml modules, but currently `srml_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
@@ -23,7 +23,7 @@ pub trait Trait: srml_system::Trait {
 
 decl_storage! {
 	trait Store for Module<T: Trait> as Tokens {
-		/// The total issuance of a token type;
+		/// The total issuance of a token type.
 		pub TotalIssuance get(fn total_issuance) build(|config: &GenesisConfig<T>| {
 			let issuance = config.initial_balance * (config.endowed_accounts.len() as u32).into();
 			config.tokens.iter().map(|id| (id.clone(), issuance)).collect::<Vec<_>>()
@@ -78,11 +78,20 @@ decl_module! {
 	}
 }
 
+decl_error! {
+	/// Error for token module.
+	pub enum Error {
+		BalanceTooLow,
+		TotalIssuanceOverflow,
+	}
+}
+
 impl<T: Trait> Module<T> {}
 
 impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	type Balance = T::Balance;
 	type CurrencyId = T::CurrencyId;
+	type Error = Error;
 
 	fn total_inssuance(currency_id: Self::CurrencyId) -> Self::Balance {
 		<TotalIssuance<T>>::get(currency_id)
@@ -97,11 +106,8 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		from: &T::AccountId,
 		to: &T::AccountId,
 		amount: Self::Balance,
-	) -> result::Result<(), &'static str> {
-		ensure!(
-			Self::balance(currency_id, from) >= amount,
-			"balance too low to transfer",
-		);
+	) -> result::Result<(), Self::Error> {
+		ensure!(Self::balance(currency_id, from) >= amount, Error::BalanceTooLow);
 
 		if from != to {
 			<Balance<T>>::mutate(currency_id, from, |balance| *balance -= amount);
@@ -115,10 +121,10 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		currency_id: Self::CurrencyId,
 		who: &T::AccountId,
 		amount: Self::Balance,
-	) -> result::Result<(), &'static str> {
+	) -> result::Result<(), Self::Error> {
 		ensure!(
 			Self::total_inssuance(currency_id).checked_add(&amount).is_some(),
-			"total issuance overflow after deposit",
+			Error::TotalIssuanceOverflow,
 		);
 
 		<TotalIssuance<T>>::mutate(currency_id, |v| *v += amount);
@@ -131,10 +137,10 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		currency_id: Self::CurrencyId,
 		who: &T::AccountId,
 		amount: Self::Balance,
-	) -> result::Result<(), &'static str> {
+	) -> result::Result<(), Self::Error> {
 		ensure!(
 			Self::balance(currency_id, who).checked_sub(&amount).is_some(),
-			"balance too low to withdraw",
+			Error::BalanceTooLow,
 		);
 
 		<TotalIssuance<T>>::mutate(currency_id, |v| *v -= amount);
