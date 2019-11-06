@@ -1,6 +1,6 @@
 use rstd::prelude::Vec;
 
-pub trait OperatorProtocol<AccountId> {
+pub trait OperatorProvider<AccountId> {
 	// Make sure `who` has permission to feed data
 	fn can_feed_data(who: &AccountId) -> bool;
 

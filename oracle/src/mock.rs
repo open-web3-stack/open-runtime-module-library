@@ -63,9 +63,9 @@ impl Time for MockTime {
 	}
 }
 
-pub struct MockOperatorProtocol;
+pub struct MockOperatorProvider;
 
-impl OperatorProtocol<u64> for MockOperatorProtocol {
+impl OperatorProvider<u64> for MockOperatorProvider {
 	fn can_feed_data(who: &u64) -> bool {
 		Self::operators().contains(who)
 	}
@@ -77,7 +77,7 @@ impl OperatorProtocol<u64> for MockOperatorProtocol {
 
 impl Trait for Test {
 	type Event = ();
-	type OperatorProtocol = MockOperatorProtocol;
+	type OperatorProvider = MockOperatorProvider;
 	type Key = u32;
 	type Value = u32;
 	type Time = MockTime;
