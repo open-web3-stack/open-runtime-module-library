@@ -34,7 +34,7 @@ fn transfer_should_work() {
 
 			assert_noop!(
 				Tokens::transfer(Some(ALICE).into(), BOB, TEST_TOKEN_ID, 60),
-				"BalanceTooLow",
+				Error::BalanceTooLow.into(),
 			);
 		});
 }
