@@ -81,6 +81,7 @@ impl Trait for Test {
 	type Key = u32;
 	type Value = u32;
 	type Time = MockTime;
+	type OnNewData = ();
 }
 pub type ModuleOracle = Module<Test>;
 

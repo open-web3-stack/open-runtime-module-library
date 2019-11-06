@@ -1,12 +1,13 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 mod mock;
+mod on_new_data;
 mod operator_provider;
 mod tests;
 mod timestamped_value;
 
+pub use on_new_data::OnNewData;
 pub use operator_provider::OperatorProvider;
-
 use rstd::prelude::Vec;
 use sr_primitives::traits::Member;
 use support::{decl_event, decl_module, decl_storage, dispatch::Result, ensure, traits::Time, Parameter};
@@ -19,6 +20,7 @@ pub trait Trait: system::Trait {
 	type Key: Parameter + Member + Copy;
 	type Value: Parameter + Member + Copy;
 	type Time: Time;
+	type OnNewData: OnNewData<Self::Key, Self::Value>;
 }
 
 type MomentOf<T> = <<T as Trait>::Time as Time>::Moment;
@@ -68,8 +70,10 @@ impl<T: Trait> Module<T> {
 			value,
 			timestamp: T::Time::now(),
 		};
-		<RawValues<T>>::insert((who.clone(), key.clone()), timestamp);
-		<HasUpdate<T>>::insert(key.clone(), true);
+		<RawValues<T>>::insert((&who, &key), timestamp);
+		<HasUpdate<T>>::insert(&key, true);
+
+		T::OnNewData::on_new_data(&key, &value);
 
 		Self::deposit_event(RawEvent::NewFeedData(who, key, value));
 		Ok(())
