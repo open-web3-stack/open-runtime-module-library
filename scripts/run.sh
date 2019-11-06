@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 
+set -e
+
 COMMAND=$1
 shift
-find . -name 'Cargo\.toml' -print -exec cargo $COMMAND --manifest-path {} $@ \;
+
+set -x
+
+for file in **/Cargo.toml; do
+	cargo $COMMAND --manifest-path $file $@;
+done
+
