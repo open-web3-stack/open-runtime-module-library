@@ -12,6 +12,7 @@ support = { package = "srml-support", git = "https://github.com/paritytech/subst
 system = { package = "srml-system", git = "https://github.com/paritytech/substrate.git", default-features = false }
 runtime_io = { package = "sr-io", git = "https://github.com/paritytech/substrate.git", default-features = false }
 rstd = { package = "sr-std", git = "https://github.com/paritytech/substrate.git", default-features = false }
+num-traits = { version = "0.2.8", default-features = false }
 
 [features]
 default = ["std"]
@@ -23,4 +24,5 @@ std = [
 	"system/std",
 	"runtime_io/std",
 	"rstd/std",
+	"num-traits/std",
 ]
