@@ -35,7 +35,7 @@ decl_storage! {
 
 decl_error! {
 	// Oracle module errors
-	pub enum OracleError {
+	pub enum Error {
 		NotSigned,
 		NoPermission,
 	}
@@ -43,10 +43,10 @@ decl_error! {
 
 decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
-		type Error = OracleError;
+		type Error = Error;
 		fn deposit_event() = default;
 
-		pub fn feed_data(origin, key: T::Key, value: T::Value) -> result::Result<(), OracleError> {
+		pub fn feed_data(origin, key: T::Key, value: T::Value) -> result::Result<(), Error> {
 			Self::_feed_data(origin, key, value)
 		}
 	}
@@ -72,9 +72,9 @@ impl<T: Trait> Module<T> {
 }
 
 impl<T: Trait> Module<T> {
-	fn _feed_data(origin: T::Origin, key: T::Key, value: T::Value) -> result::Result<(), OracleError> {
-		let who = ensure_signed(origin).map_err(|_| OracleError::NotSigned)?;
-		ensure!(T::OperatorProvider::can_feed_data(&who), OracleError::NoPermission);
+	fn _feed_data(origin: T::Origin, key: T::Key, value: T::Value) -> result::Result<(), Error> {
+		let who = ensure_signed(origin).map_err(|_| Error::NotSigned)?;
+		ensure!(T::OperatorProvider::can_feed_data(&who), Error::NoPermission);
 
 		let timestamp = TimestampedValue {
 			value,
