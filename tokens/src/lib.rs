@@ -13,7 +13,10 @@ use srml_support::{decl_error, decl_event, decl_module, decl_storage, ensure, Pa
 // #3295 https://github.com/paritytech/substrate/issues/3295
 use srml_system::{self as system, ensure_signed};
 
-use traits::{arithmetic, arithmetic::Signed, MultiCurrency, MultiCurrencyExtended};
+use traits::{
+	arithmetic::{self, Signed},
+	MultiCurrency, MultiCurrencyExtended,
+};
 
 mod mock;
 mod tests;
@@ -21,7 +24,7 @@ mod tests;
 pub trait Trait: srml_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as srml_system::Trait>::Event>;
 	type Balance: Parameter + Member + SimpleArithmetic + Default + Copy + MaybeSerializeDeserialize;
-	type Amount: arithmetic::Signed
+	type Amount: Signed
 		+ TryInto<Self::Balance>
 		+ TryFrom<Self::Balance>
 		+ Parameter
