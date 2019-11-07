@@ -69,3 +69,21 @@ fn withdraw_should_work() {
 			assert_noop!(Tokens::withdraw(TEST_TOKEN_ID, &ALICE, 60), Error::BalanceTooLow);
 		});
 }
+
+#[test]
+fn update_balance_should_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_ok!(Tokens::update_balance(TEST_TOKEN_ID, &ALICE, 50));
+			assert_eq!(Tokens::balance(TEST_TOKEN_ID, &ALICE), 150);
+			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 250);
+
+			assert_ok!(Tokens::update_balance(TEST_TOKEN_ID, &BOB, -50));
+			assert_eq!(Tokens::balance(TEST_TOKEN_ID, &BOB), 50);
+			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 200);
+
+			assert_noop!(Tokens::update_balance(TEST_TOKEN_ID, &BOB, -60), Error::BalanceTooLow);
+		});
+}
