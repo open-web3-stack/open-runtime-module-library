@@ -12,6 +12,7 @@ support = { package = "srml-support", git = "https://github.com/paritytech/subst
 system = { package = "srml-system", git = "https://github.com/paritytech/substrate.git", default-features = false }
 runtime_io = { package = "sr-io", git = "https://github.com/paritytech/substrate.git", default-features = false }
 rstd = { package = "sr-std", git = "https://github.com/paritytech/substrate.git", default-features = false }
+impl-trait-for-tuples = "0.1.3"
 
 [features]
 default = ["std"]

@@ -111,3 +111,10 @@ pub trait BasicCurrencyExtended<AccountId>: BasicCurrency<AccountId> {
 	/// Add or remove abs(`by_amount`) from the balance of `who`. If positive `by_amount`, do add, else do remove.
 	fn update_balance(who: AccountId, by_amount: Self::Amount) -> result::Result<(), Self::Error>;
 }
+
+/// Oracle feed data event
+#[impl_trait_for_tuples::impl_for_tuples(30)]
+pub trait OnNewData<Key: Clone, Value: Clone> {
+	/// New feed data is added
+	fn on_new_data(key: &Key, value: &Value);
+}

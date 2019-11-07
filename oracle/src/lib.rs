@@ -1,18 +1,17 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 mod mock;
-mod on_new_data;
 mod operator_provider;
 mod tests;
 mod timestamped_value;
 
-pub use on_new_data::OnNewData;
 pub use operator_provider::OperatorProvider;
 use rstd::prelude::Vec;
 use sr_primitives::traits::Member;
 use support::{decl_event, decl_module, decl_storage, dispatch::Result, ensure, traits::Time, Parameter};
 use system::ensure_signed;
 pub use timestamped_value::TimestampedValue;
+pub use traits::OnNewData;
 
 pub trait Trait: system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
