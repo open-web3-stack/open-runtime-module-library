@@ -111,3 +111,44 @@ pub trait BasicCurrencyExtended<AccountId>: BasicCurrency<AccountId> {
 	/// Add or remove abs(`by_amount`) from the balance of `who`. If positive `by_amount`, do add, else do remove.
 	fn update_balance(who: AccountId, by_amount: Self::Amount) -> result::Result<(), Self::Error>;
 }
+
+/********** Auction **********/
+/// Auction info. 
+#[derive(Encode, Decode)]
+pub struct AuctionInfo<AccountId, Balance, BlockNumber> {
+	/// Current bidder and bid price.
+	pub bid: Option<(AccountId, Balance)>,
+	/// Define which block this auction will be ended.
+	pub end: Option<BlockNumber>,
+}
+
+/// Abstraction over a simple auction system.
+pub trait Auction<AccountId, BlockNumber> {
+	/// The id of an AuctionInfo
+	type AuctionId: FullCodec + Copy + MaybeSerializeDeserialize + Debug;
+	/// The price to bid.
+	type Balance: SimpleArithmetic + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default;
+	
+	/// The auction info of `id`
+	fn auction_info(id: AuctionId) -> AuctionInfo<AccountId, Balance, BlockNumber>;
+	/// Update the auction info of `id` with `info`
+	fn update_auction(id: AuctionId, info: AuctionInfo<AccountId, Balance, BlockNumber>) -> result::Result<(), Self::Error>;
+	/// Create new auction with specific startblock and endblock, return the id of the auction
+	fn new_auction(start: BlockNumber, end: Option<BlockNumber>) -> AuctionId;
+}
+
+/// The result for auction to handle bid.
+pub struct OnNewBidResult<BlockNumber> {
+	/// Indicates if the bid was accepted
+	pub accept_bid: bool,
+	/// Indicates if the auction endtime was updated
+	pub auction_end: Option<Option<BlockNumber>>,
+}
+
+/// Hooks for auction to handle bids.
+pub trait AuctionHandler<AccountId, Balance, BlockNumber, AuctionId> {
+	/// Receive new bid, handle it and return the result
+	fn on_new_bid(now: BlockNumber, id: AuctionId, new_bid: (AccountId, Balance), last_bid: Option<(AccountId, Balance)>) -> OnNewBidResult<BlockNumber>;
+	/// End an auction with `winner`
+	fn on_aution_ended(id: AuctionId, winner: Option<(AccountId, Balance)>) -> result::Result<(), Self::Error>;
+}
