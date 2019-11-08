@@ -4,8 +4,7 @@ use rstd::result;
 use sr_primitives::traits::{MaybeSerializeDeserialize, Member, SimpleArithmetic};
 use srml_support::{decl_error, decl_event, decl_module, decl_storage, ensure, Parameter};
 use srml_system::{self as system, ensure_signed};
-
-use traits::{AuctionInfo, Auction, AuctionHandler, OnNewBidResult};
+use traits::{Auction, AuctionHandler, AuctionInfo, OnNewBidResult};
 
 pub trait Trait: system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
@@ -31,15 +30,13 @@ decl_storage! {
 	}
 }
 
-
-
 decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
 		fn deposit_event() = default;
 
 		pub fn bid(origin, id: AuctionId, value: Balance) -> Result {
 			let from = ensure_signed(origin)?;
-			
+
 			ensure!(
 				<Auctions<T>>::exists(id),
 				Error::AuctionNotExist,
@@ -59,8 +56,8 @@ decl_module! {
 			if let Some(new_end) = result.auction_end {
 				auction.end = new_end;
 			}
-			
-			<Auctions<T>>::insert(id, auction);		
+
+			<Auctions<T>>::insert(id, auction);
 			Ok(())
 		}
 	}
@@ -80,26 +77,24 @@ impl<T: Trait> Module<T> {}
 impl<T: Trait> Auction<T::AccountId, T::BlockNumber> for Module<T> {
 	type AuctionId = T::AuctionId;
 	type Balance = T::Balance;
-	
+	type Error = Error;
+
 	fn auction_info(id: Self::AuctionId) -> AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber> {
 		Self::auctions(id)
 	}
 
-	fn update_auction(id: Self::AuctionId, info: AuctionInfo<AccountId, Balance, BlockNumber>) -> result::Result<(), Self::Error> {
-		ensure!(
-			<Auctions<T>>::exists(id),
-			Error::AuctionNotExist,
-		);
+	fn update_auction(
+		id: Self::AuctionId,
+		info: AuctionInfo<AccountId, Balance, BlockNumber>,
+	) -> result::Result<(), Self::Error> {
+		ensure!(<Auctions<T>>::exists(id), Error::AuctionNotExist,);
 
 		<Auctions<T>>::insert(id, info);
 		Ok(())
 	}
 
 	fn new_auction(start: T::BlockNumber, end: Option<T::BlockNumber>) -> Self::AuctionId {
-		let auction = AuctionInfo{
-			bid: None,
-			end: end
-		};
+		let auction = AuctionInfo { bid: None, end: end };
 		let auction_id = T::AuctionId::from(<AuctionsCount<T>>::get());
 
 		<AuctionsCount<T>>::mutate(|n| *n += 1);

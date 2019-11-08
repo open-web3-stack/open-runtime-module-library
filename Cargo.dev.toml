@@ -4,4 +4,6 @@ members = [
 	"tokens",
 	"traits",
 	"utilities",
+	"auction",
+	"prices",
 ]
