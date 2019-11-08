@@ -1,6 +1,10 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::FullCodec;
+pub mod arithmetic;
+pub mod auction;
+
+pub use auction::{Auction, AuctionHandler, AuctionInfo, OnNewBidResult};
+use codec::{Codec, FullCodec};
 use rstd::{
 	convert::{TryFrom, TryInto},
 	fmt::Debug,
@@ -22,7 +26,7 @@ pub trait MultiCurrency<AccountId> {
 	// Public immutables
 
 	/// The total amount of issuance of `currency_id`.
-	fn total_inssuance(currency_id: Self::CurrencyId) -> Self::Balance;
+	fn total_issuance(currency_id: Self::CurrencyId) -> Self::Balance;
 
 	/// The combined balance of `who` under `currency_id`.
 	fn balance(currency_id: Self::CurrencyId, who: &AccountId) -> Self::Balance;
@@ -60,12 +64,20 @@ pub trait MultiCurrency<AccountId> {
 /// Extended `MultiCurrency` with additional helper types and methods.
 pub trait MultiCurrencyExtended<AccountId>: MultiCurrency<AccountId> {
 	/// The type for balance related operations, typically signed int.
-	type Amount: TryInto<Self::Balance> + TryFrom<Self::Balance>;
+	type Amount: arithmetic::Signed
+		+ TryInto<Self::Balance>
+		+ TryFrom<Self::Balance>
+		+ arithmetic::SimpleArithmetic
+		+ Codec
+		+ Copy
+		+ MaybeSerializeDeserialize
+		+ Debug
+		+ Default;
 
 	/// Add or remove abs(`by_amount`) from the balance of `who` under `currency_id`. If positive `by_amount`, do add, else do remove.
 	fn update_balance(
 		currency_id: Self::CurrencyId,
-		who: AccountId,
+		who: &AccountId,
 		by_amount: Self::Amount,
 	) -> result::Result<(), Self::Error>;
 }
@@ -81,7 +93,7 @@ pub trait BasicCurrency<AccountId> {
 	// Public immutables
 
 	/// The total amount of issuance.
-	fn total_inssuance() -> Self::Balance;
+	fn total_issuance() -> Self::Balance;
 
 	/// The balance of `who`.
 	fn balance(who: &AccountId) -> Self::Balance;
@@ -105,11 +117,32 @@ pub trait BasicCurrency<AccountId> {
 
 /// Extended `BasicCurrency` with additional helper types and methods.
 pub trait BasicCurrencyExtended<AccountId>: BasicCurrency<AccountId> {
-	/// The type for balance related operations, typically signed int.
-	type Amount: TryInto<Self::Balance> + TryFrom<Self::Balance>;
+	/// The signed type for balance related operations, typically signed int.
+	type Amount: arithmetic::Signed
+		+ TryInto<Self::Balance>
+		+ TryFrom<Self::Balance>
+		+ arithmetic::SimpleArithmetic
+		+ Codec
+		+ Copy
+		+ MaybeSerializeDeserialize
+		+ Debug
+		+ Default;
 
 	/// Add or remove abs(`by_amount`) from the balance of `who`. If positive `by_amount`, do add, else do remove.
-	fn update_balance(who: AccountId, by_amount: Self::Amount) -> result::Result<(), Self::Error>;
+	fn update_balance(who: &AccountId, by_amount: Self::Amount) -> result::Result<(), Self::Error>;
+}
+
+#[impl_trait_for_tuples::impl_for_tuples(30)]
+pub trait OnNewData<Key, Value> {
+	fn on_new_data(key: &Key, value: &Value);
+}
+
+pub trait DataProvider<Key, Value> {
+	fn get(key: &Key) -> Option<Value>;
+}
+
+pub trait PriceProvider<CurrencyId, Price> {
+	fn get_price(base: CurrencyId, quote: CurrencyId) -> Option<Price>;
 }
 
 /********** Auction **********/
