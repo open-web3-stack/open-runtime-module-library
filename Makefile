@@ -33,10 +33,10 @@ Cargo.toml: Cargo.dev.toml
 	cp Cargo.dev.toml Cargo.toml
 
 dev-format: Cargo.toml
-	cargo +stable fmt
+	cargo +stable fmt --all
 
 dev-format-check: Cargo.toml
-	cargo +stable fmt -- --check
+	cargo +stable fmt --all -- --check
 
 # needs to use run.sh to check individual projects because
 #   --no-default-features is not allowed in the root of a virtual workspace
