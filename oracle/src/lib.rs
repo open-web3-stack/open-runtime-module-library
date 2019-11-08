@@ -12,24 +12,25 @@ use sr_primitives::traits::Member;
 use support::{decl_error, decl_event, decl_module, decl_storage, ensure, traits::Time, Parameter};
 use system::ensure_signed;
 pub use timestamped_value::TimestampedValue;
-pub use traits::OnNewData;
+pub use traits::{CombineData, OnNewData};
+
+type MomentOf<T> = <<T as Trait>::Time as Time>::Moment;
 
 pub trait Trait: system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
+	type OnNewData: OnNewData<Self::Key, Self::Value>;
 	type OperatorProvider: OperatorProvider<Self::AccountId>;
+	type CombineData: CombineData<Self::Key, TimestampedValue<Self::Value, MomentOf<Self>>, MomentOf<Self>>;
+	type Time: Time;
 	type Key: Parameter + Member + Copy;
 	type Value: Parameter + Member + Copy;
-	type Time: Time;
-	type OnNewData: OnNewData<Self::Key, Self::Value>;
 }
-
-type MomentOf<T> = <<T as Trait>::Time as Time>::Moment;
 
 decl_storage! {
 	trait Store for Module<T: Trait> as Oracle {
 		pub RawValues get(raw_values): map (T::AccountId, T::Key) => Option<TimestampedValue<T::Value, MomentOf<T>>>;
 		pub HasUpdate get(has_update): map T::Key => bool;
-		pub Values get(values): map T::Key => Option<T::Value>;
+		pub Values get(values): map T::Key => Option<TimestampedValue<T::Value, MomentOf<T>>>;
 	}
 }
 
@@ -68,6 +69,31 @@ impl<T: Trait> Module<T> {
 			.iter()
 			.filter_map(|x| <RawValues<T>>::get((x, *key)))
 			.collect()
+	}
+
+	pub fn get(key: &T::Key) -> Option<TimestampedValue<T::Value, MomentOf<T>>> {
+		if <HasUpdate<T>>::exists(key) {
+			let values = Self::read_raw_values(key);
+			let result = T::CombineData::combine_data(key, values, None);
+			match result {
+				Some(timestamped) => {
+					<Values<T>>::insert(key, timestamped.clone());
+					<HasUpdate<T>>::insert(key, false);
+					return Some(timestamped);
+				}
+				None => return None,
+			}
+		}
+		let expires_in = T::CombineData::expires_in();
+		match <Values<T>>::get(key) {
+			Some(timestamped) => {
+				if timestamped.timestamp + expires_in > T::Time::now() {
+					return Some(timestamped);
+				}
+				None
+			}
+			None => None,
+		}
 	}
 }
 

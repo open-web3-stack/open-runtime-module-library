@@ -4,9 +4,11 @@ use codec::FullCodec;
 use rstd::{
 	convert::{TryFrom, TryInto},
 	fmt::Debug,
+	prelude::Vec,
 	result,
 };
 use sr_primitives::traits::{MaybeSerializeDeserialize, SimpleArithmetic};
+use support::traits::Get;
 
 /// Abstraction over a fungible multi-currency system.
 pub trait MultiCurrency<AccountId> {
@@ -117,4 +119,16 @@ pub trait BasicCurrencyExtended<AccountId>: BasicCurrency<AccountId> {
 pub trait OnNewData<Key: Clone, Value: Clone> {
 	/// New feed data is added
 	fn on_new_data(key: &Key, value: &Value);
+}
+
+pub trait CombineData<Key, TimestampedValue, Moment> {
+	type expiresIn: Get<Moment>;
+	type minimumCount: Get<u32>;
+	fn combine_data(
+		key: &Key,
+		values: Vec<TimestampedValue>,
+		prev_value: Option<TimestampedValue>,
+	) -> Option<TimestampedValue>;
+
+	fn expires_in() -> Moment;
 }
