@@ -22,8 +22,8 @@ jobs:
         target: wasm32-unknown-unknown
         default: true
     - name: Check format
-      run: ./scripts/run.sh "+stable fmt" -- --check
+      run: make dev-format-check
     - name: Check with no_std
-      run: make check
+      run: make dev-check
     - name: Run tests
-      run: make test
+      run: make dev-test

@@ -1,6 +1,9 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use rstd::result;
+use rstd::{
+	convert::{TryFrom, TryInto},
+	result,
+};
 use sr_primitives::traits::{
 	CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, SimpleArithmetic, StaticLookup,
 };
@@ -10,7 +13,10 @@ use srml_support::{decl_error, decl_event, decl_module, decl_storage, ensure, Pa
 // #3295 https://github.com/paritytech/substrate/issues/3295
 use srml_system::{self as system, ensure_signed};
 
-use traits::MultiCurrency;
+use traits::{
+	arithmetic::{self, Signed},
+	MultiCurrency, MultiCurrencyExtended,
+};
 
 mod mock;
 mod tests;
@@ -18,6 +24,15 @@ mod tests;
 pub trait Trait: srml_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as srml_system::Trait>::Event>;
 	type Balance: Parameter + Member + SimpleArithmetic + Default + Copy + MaybeSerializeDeserialize;
+	type Amount: Signed
+		+ TryInto<Self::Balance>
+		+ TryFrom<Self::Balance>
+		+ Parameter
+		+ Member
+		+ arithmetic::SimpleArithmetic
+		+ Default
+		+ Copy
+		+ MaybeSerializeDeserialize;
 	type CurrencyId: Parameter + Member + SimpleArithmetic + Default + Copy + MaybeSerializeDeserialize;
 }
 
@@ -83,6 +98,7 @@ decl_error! {
 	pub enum Error {
 		BalanceTooLow,
 		TotalIssuanceOverflow,
+		AmountIntoBalanceFailed,
 	}
 }
 
@@ -93,7 +109,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	type CurrencyId = T::CurrencyId;
 	type Error = Error;
 
-	fn total_inssuance(currency_id: Self::CurrencyId) -> Self::Balance {
+	fn total_issuance(currency_id: Self::CurrencyId) -> Self::Balance {
 		<TotalIssuance<T>>::get(currency_id)
 	}
 
@@ -123,7 +139,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		amount: Self::Balance,
 	) -> result::Result<(), Self::Error> {
 		ensure!(
-			Self::total_inssuance(currency_id).checked_add(&amount).is_some(),
+			Self::total_issuance(currency_id).checked_add(&amount).is_some(),
 			Error::TotalIssuanceOverflow,
 		);
 
@@ -154,5 +170,23 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		<TotalIssuance<T>>::mutate(currency_id, |v| *v -= actual_amount);
 		<Balance<T>>::mutate(currency_id, who, |v| *v -= actual_amount);
 		actual_amount
+	}
+}
+
+impl<T: Trait> MultiCurrencyExtended<T::AccountId> for Module<T> {
+	type Amount = T::Amount;
+
+	fn update_balance(
+		currency_id: Self::CurrencyId,
+		who: &T::AccountId,
+		by_amount: Self::Amount,
+	) -> Result<(), Self::Error> {
+		let by_balance =
+			TryInto::<Self::Balance>::try_into(by_amount.abs()).map_err(|_| Error::AmountIntoBalanceFailed)?;
+		if by_amount.is_positive() {
+			Self::deposit(currency_id, who, by_balance)
+		} else {
+			Self::withdraw(currency_id, who, by_balance)
+		}
 	}
 }

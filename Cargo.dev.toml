@@ -1,0 +1,7 @@
+[workspace]
+members = [
+	"oracle",
+	"tokens",
+	"traits",
+	"utilities",
+]

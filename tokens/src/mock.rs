@@ -57,6 +57,7 @@ pub type Balance = u64;
 impl Trait for Runtime {
 	type Event = TestEvent;
 	type Balance = Balance;
+	type Amount = i64;
 	type CurrencyId = CurrencyId;
 }
 
