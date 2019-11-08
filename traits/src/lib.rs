@@ -147,13 +147,6 @@ pub trait PriceProvider<CurrencyId, Price> {
 	fn get_price(base: CurrencyId, quote: CurrencyId) -> Option<Price>;
 }
 
-/// Oracle feed data event
-#[impl_trait_for_tuples::impl_for_tuples(30)]
-pub trait OnNewData<Key: Clone, Value: Clone> {
-	/// New feed data is added
-	fn on_new_data(key: &Key, value: &Value);
-}
-
 pub trait CombineData<Key, TimestampedValue, Moment> {
 	type expiresIn: Get<Moment>;
 	type minimumCount: Get<u32>;
