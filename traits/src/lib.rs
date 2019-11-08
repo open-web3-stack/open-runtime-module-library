@@ -1,5 +1,9 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+pub mod arithmetic;
+pub mod auction;
+
+pub use auction::{Auction, AuctionHandler, AuctionInfo, OnNewBidResult};
 use codec::{Codec, FullCodec};
 use rstd::{
 	convert::{TryFrom, TryInto},
@@ -7,8 +11,6 @@ use rstd::{
 	result,
 };
 use sr_primitives::traits::{MaybeSerializeDeserialize, SimpleArithmetic};
-
-pub mod arithmetic;
 
 /// Abstraction over a fungible multi-currency system.
 pub trait MultiCurrency<AccountId> {
@@ -128,4 +130,17 @@ pub trait BasicCurrencyExtended<AccountId>: BasicCurrency<AccountId> {
 
 	/// Add or remove abs(`by_amount`) from the balance of `who`. If positive `by_amount`, do add, else do remove.
 	fn update_balance(who: &AccountId, by_amount: Self::Amount) -> result::Result<(), Self::Error>;
+}
+
+#[impl_trait_for_tuples::impl_for_tuples(30)]
+pub trait OnNewData<Key, Value> {
+	fn on_new_data(key: &Key, value: &Value);
+}
+
+pub trait DataProvider<Key, Value> {
+	fn get(key: &Key) -> Option<Value>;
+}
+
+pub trait PriceProvider<CurrencyId, Price> {
+	fn get_price(base: CurrencyId, quote: CurrencyId) -> Option<Price>;
 }
