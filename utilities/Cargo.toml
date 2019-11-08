@@ -13,6 +13,9 @@ system = { package = "srml-system", git = "https://github.com/paritytech/substra
 runtime_io = { package = "sr-io", git = "https://github.com/paritytech/substrate.git", default-features = false }
 rstd = { package = "sr-std", git = "https://github.com/paritytech/substrate.git", default-features = false }
 
+[dev-dependencies]
+primitives = { package = "substrate-primitives",  git = "https://github.com/paritytech/substrate.git", default-features = false }
+
 [features]
 default = ["std"]
 std = [
