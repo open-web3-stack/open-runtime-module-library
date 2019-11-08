@@ -1,15 +1,5 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-pub fn add(a: u32, b: u32) -> u32 {
-	a + b
-}
+pub mod linked_item;
 
-#[cfg(test)]
-mod tests {
-	use super::*;
-
-	#[test]
-	fn it_works() {
-		assert_eq!(add(1, 1), 2);
-	}
-}
+pub use linked_item::{LinkedItem, LinkedList};
