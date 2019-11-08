@@ -21,3 +21,6 @@ $(GITHOOK)/%: githooks/%
 githooks: $(GITHOOK) $(GITHOOKS_DEST)
 
 init: githooks
+
+format:
+	./scripts/run.sh "+stable fmt"

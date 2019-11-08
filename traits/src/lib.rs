@@ -3,6 +3,7 @@
 pub mod arithmetic;
 pub mod auction;
 
+pub use auction::{Auction, AuctionHandler, AuctionInfo, OnNewBidResult};
 use codec::{Codec, FullCodec};
 use rstd::{
 	convert::{TryFrom, TryInto},
@@ -10,7 +11,6 @@ use rstd::{
 	result,
 };
 use sr_primitives::traits::{MaybeSerializeDeserialize, SimpleArithmetic};
-pub use auction::{Auction, AuctionHandler, AuctionInfo, OnNewBidResult};
 
 /// Abstraction over a fungible multi-currency system.
 pub trait MultiCurrency<AccountId> {
