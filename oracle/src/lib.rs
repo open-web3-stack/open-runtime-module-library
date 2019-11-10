@@ -1,10 +1,12 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+mod default_combine_data;
 mod mock;
 mod operator_provider;
 mod tests;
 mod timestamped_value;
 
+pub use default_combine_data::DefaultCombineData;
 pub use operator_provider::OperatorProvider;
 use rstd::prelude::Vec;
 use rstd::result;

@@ -69,7 +69,7 @@ fn should_get_combined_data() {
 	new_test_ext().execute_with(|| {
 		MockTime::set_time(12345);
 		let expected = Some(TimestampedValue {
-			value: 1000,
+			value: 1200,
 			timestamp: 12345,
 		});
 

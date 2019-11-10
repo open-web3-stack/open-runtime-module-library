@@ -80,31 +80,11 @@ impl OperatorProvider<AccountId> for MockOperatorProvider {
 	}
 }
 
-pub struct MockCombineData;
-
-/// This mock implementation will just return first valid value
-impl CombineData<Key, TimestampedValue<Value, Moment>> for MockCombineData {
-	fn combine_data(
-		_key: &Key,
-		values: Vec<TimestampedValue<Value, Moment>>,
-		_prev_value: Option<TimestampedValue<Value, Moment>>,
-	) -> Option<TimestampedValue<Value, Moment>> {
-		if values.len() == 0 {
-			return None;
-		}
-		let value = values[0].value;
-		Some(TimestampedValue {
-			value,
-			timestamp: MockTime::now(),
-		})
-	}
-}
-
 impl Trait for Test {
 	type Event = ();
 	type OnNewData = ();
 	type OperatorProvider = MockOperatorProvider;
-	type CombineData = MockCombineData;
+	type CombineData = DefaultCombineData<Test>;
 	type Time = MockTime;
 	type Key = Key;
 	type Value = Value;
