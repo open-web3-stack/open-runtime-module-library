@@ -24,8 +24,8 @@ pub trait Trait: system::Trait {
 	type OperatorProvider: OperatorProvider<Self::AccountId>;
 	type CombineData: CombineData<Self::Key, TimestampedValue<Self::Value, MomentOf<Self>>>;
 	type Time: Time;
-	type Key: Parameter + Member + Copy;
-	type Value: Parameter + Member + Copy;
+	type Key: Parameter + Member + Copy + Ord;
+	type Value: Parameter + Member + Copy + Ord;
 }
 
 decl_storage! {
