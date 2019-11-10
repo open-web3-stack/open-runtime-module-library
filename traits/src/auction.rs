@@ -1,8 +1,11 @@
 use codec::FullCodec;
+use codec::{Decode, Encode};
 use rstd::{fmt::Debug, result};
-use sr_primitives::traits::MaybeSerializeDeserialize;
+use sr_primitives::traits::{MaybeSerializeDeserialize, SimpleArithmetic};
 
 /// Auction info.
+#[cfg_attr(feature = "std", derive(Debug, PartialEq, Eq))]
+#[derive(Encode, Decode)]
 pub struct AuctionInfo<AccountId, Balance, BlockNumber> {
 	/// Current bidder and bid price.
 	pub bid: Option<(AccountId, Balance)>,
@@ -13,18 +16,18 @@ pub struct AuctionInfo<AccountId, Balance, BlockNumber> {
 /// Abstraction over a simple auction system.
 pub trait Auction<AccountId, BlockNumber> {
 	/// The id of an AuctionInfo
-	type AuctionId: FullCodec + Copy + MaybeSerializeDeserialize + Debug;
+	type AuctionId: FullCodec + Default + Copy + MaybeSerializeDeserialize + Debug;
 	/// The price to bid.
 	type Balance: SimpleArithmetic + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default;
 	/// The error type.
 	type Error: Into<&'static str>;
 
 	/// The auction info of `id`
-	fn auction_info(id: Self::AuctionId) -> Option<AuctionInfo<AccountId, Balance, BlockNumber>>;
+	fn auction_info(id: Self::AuctionId) -> Option<AuctionInfo<AccountId, Self::Balance, BlockNumber>>;
 	/// Update the auction info of `id` with `info`
 	fn update_auction(
 		id: Self::AuctionId,
-		info: AuctionInfo<AccountId, Balance, BlockNumber>,
+		info: AuctionInfo<AccountId, Self::Balance, BlockNumber>,
 	) -> result::Result<(), Self::Error>;
 	/// Create new auction with specific startblock and endblock, return the id of the auction
 	fn new_auction(start: BlockNumber, end: Option<BlockNumber>) -> Self::AuctionId;
