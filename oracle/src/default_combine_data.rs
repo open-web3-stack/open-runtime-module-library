@@ -1,6 +1,8 @@
-use crate::{MomentOf, TimestampedValue, Trait};
+use rstd::prelude::Vec;
 use support::{parameter_types, traits::Time};
 use traits::CombineData;
+
+use crate::{MomentOf, TimestampedValue, Trait};
 
 parameter_types! {
 	pub const MinimumCount: usize = 3;
