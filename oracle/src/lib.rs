@@ -20,7 +20,7 @@ pub trait Trait: system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
 	type OnNewData: OnNewData<Self::Key, Self::Value>;
 	type OperatorProvider: OperatorProvider<Self::AccountId>;
-	type CombineData: CombineData<Self::Key, TimestampedValue<Self::Value, MomentOf<Self>>, MomentOf<Self>>;
+	type CombineData: CombineData<Self::Key, TimestampedValue<Self::Value, MomentOf<Self>>>;
 	type Time: Time;
 	type Key: Parameter + Member + Copy;
 	type Value: Parameter + Member + Copy;
@@ -84,16 +84,7 @@ impl<T: Trait> Module<T> {
 				None => return None,
 			}
 		}
-		let expires_in = T::CombineData::expires_in();
-		match <Values<T>>::get(key) {
-			Some(timestamped) => {
-				if timestamped.timestamp + expires_in > T::Time::now() {
-					return Some(timestamped);
-				}
-				None
-			}
-			None => None,
-		}
+		<Values<T>>::get(key)
 	}
 }
 

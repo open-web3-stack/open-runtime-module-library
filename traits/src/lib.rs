@@ -12,7 +12,6 @@ use rstd::{
 	result,
 };
 use sr_primitives::traits::{MaybeSerializeDeserialize, SimpleArithmetic};
-use support::traits::Get;
 
 /// Abstraction over a fungible multi-currency system.
 pub trait MultiCurrency<AccountId> {
@@ -147,14 +146,10 @@ pub trait PriceProvider<CurrencyId, Price> {
 	fn get_price(base: CurrencyId, quote: CurrencyId) -> Option<Price>;
 }
 
-pub trait CombineData<Key, TimestampedValue, Moment> {
-	type expiresIn: Get<Moment>;
-	type minimumCount: Get<u32>;
+pub trait CombineData<Key, TimestampedValue> {
 	fn combine_data(
 		key: &Key,
 		values: Vec<TimestampedValue>,
 		prev_value: Option<TimestampedValue>,
 	) -> Option<TimestampedValue>;
-
-	fn expires_in() -> Moment;
 }

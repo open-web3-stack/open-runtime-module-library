@@ -82,40 +82,21 @@ impl OperatorProvider<AccountId> for MockOperatorProvider {
 
 pub struct MockCombineData;
 
-parameter_types! {
-	pub const ExpiresIn: Moment = 100;
-	pub const MinimumCount: u32 = 1;
-}
-
 /// This mock implementation will just return first valid value
-impl CombineData<Key, TimestampedValue<Value, Moment>, Moment> for MockCombineData {
-	type expiresIn = ExpiresIn;
-	type minimumCount = MinimumCount;
-
+impl CombineData<Key, TimestampedValue<Value, Moment>> for MockCombineData {
 	fn combine_data(
-		key: &Key,
+		_key: &Key,
 		values: Vec<TimestampedValue<Value, Moment>>,
-		prev_value: Option<TimestampedValue<Value, Moment>>,
+		_prev_value: Option<TimestampedValue<Value, Moment>>,
 	) -> Option<TimestampedValue<Value, Moment>> {
-		let _ = key;
-		let filtered: Vec<TimestampedValue<Value, Moment>> = values
-			.into_iter()
-			.filter(|x| x.timestamp + Self::expiresIn::get() > MockTime::now())
-			.collect();
-		let size = filtered.len() as u32;
-		if size < Self::minimumCount::get() {
+		if values.len() == 0 {
 			return None;
 		}
-		let _ = prev_value;
-		let value = filtered[0].value;
+		let value = values[0].value;
 		Some(TimestampedValue {
 			value,
 			timestamp: MockTime::now(),
 		})
-	}
-
-	fn expires_in() -> Moment {
-		Self::expiresIn::get()
 	}
 }
 
