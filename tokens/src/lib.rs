@@ -2,12 +2,12 @@
 
 use rstd::{
 	convert::{TryFrom, TryInto},
-	result,
+	marker, result,
 };
 use sr_primitives::traits::{
 	CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, SimpleArithmetic, StaticLookup,
 };
-use srml_support::{decl_error, decl_event, decl_module, decl_storage, ensure, Parameter};
+use srml_support::{decl_error, decl_event, decl_module, decl_storage, ensure, traits::Get, Parameter};
 // FIXME: `srml-` prefix should be used for all srml modules, but currently `srml_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
@@ -15,7 +15,7 @@ use srml_system::{self as system, ensure_signed};
 
 use traits::{
 	arithmetic::{self, Signed},
-	MultiCurrency, MultiCurrencyExtended,
+	BasicCurrency, BasicCurrencyExtended, MultiCurrency, MultiCurrencyExtended,
 };
 
 mod mock;
@@ -188,5 +188,44 @@ impl<T: Trait> MultiCurrencyExtended<T::AccountId> for Module<T> {
 		} else {
 			Self::withdraw(currency_id, who, by_balance)
 		}
+	}
+}
+
+pub struct Token<T, GetCurrencyId>(marker::PhantomData<T>, marker::PhantomData<GetCurrencyId>);
+
+impl<T: Trait, GetCurrencyId: Get<T::CurrencyId>> BasicCurrency<T::AccountId> for Token<T, GetCurrencyId> {
+	type Balance = T::Balance;
+	type Error = Error;
+
+	fn total_issuance() -> Self::Balance {
+		<Module<T>>::total_issuance(GetCurrencyId::get())
+	}
+
+	fn balance(who: &T::AccountId) -> Self::Balance {
+		<Module<T>>::balance(GetCurrencyId::get(), who)
+	}
+
+	fn transfer(from: &T::AccountId, to: &T::AccountId, amount: Self::Balance) -> result::Result<(), Self::Error> {
+		<Module<T> as MultiCurrency<T::AccountId>>::transfer(GetCurrencyId::get(), from, to, amount)
+	}
+
+	fn deposit(who: &T::AccountId, amount: Self::Balance) -> result::Result<(), Self::Error> {
+		<Module<T>>::deposit(GetCurrencyId::get(), who, amount)
+	}
+
+	fn withdraw(who: &T::AccountId, amount: Self::Balance) -> result::Result<(), Self::Error> {
+		<Module<T>>::withdraw(GetCurrencyId::get(), who, amount)
+	}
+
+	fn slash(who: &T::AccountId, amount: Self::Balance) -> Self::Balance {
+		<Module<T>>::slash(GetCurrencyId::get(), who, amount)
+	}
+}
+
+impl<T: Trait, GetCurrencyId: Get<T::CurrencyId>> BasicCurrencyExtended<T::AccountId> for Token<T, GetCurrencyId> {
+	type Amount = T::Amount;
+
+	fn update_balance(who: &T::AccountId, by_amount: Self::Amount) -> result::Result<(), Self::Error> {
+		<Module<T>>::update_balance(GetCurrencyId::get(), who, by_amount)
 	}
 }
