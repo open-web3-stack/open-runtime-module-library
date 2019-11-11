@@ -1,11 +1,14 @@
 use codec::FullCodec;
 use codec::{Decode, Encode};
 use rstd::{fmt::Debug, result};
-use sr_primitives::traits::{MaybeSerializeDeserialize, SimpleArithmetic};
+use sr_primitives::{
+	traits::{MaybeSerializeDeserialize, SimpleArithmetic},
+	RuntimeDebug,
+};
 
 /// Auction info.
-#[cfg_attr(feature = "std", derive(Debug, PartialEq, Eq))]
-#[derive(Encode, Decode)]
+#[cfg_attr(feature = "std", derive(PartialEq, Eq))]
+#[derive(Encode, Decode, RuntimeDebug)]
 pub struct AuctionInfo<AccountId, Balance, BlockNumber> {
 	/// Current bidder and bid price.
 	pub bid: Option<(AccountId, Balance)>,

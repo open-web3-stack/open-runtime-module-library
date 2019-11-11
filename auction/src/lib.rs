@@ -36,7 +36,7 @@ decl_event!(
 decl_storage! {
 	trait Store for Module<T: Trait> as Auction {
 		pub Auctions get(fn auctions): map T::AuctionId => Option<AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>>;
-		pub AuctionsCount get(fn auctions_count) build(|_| 0.into()): T::AuctionId;
+		pub AuctionsCount get(fn auctions_count): T::AuctionId;
 		pub AuctionEndTime get(fn auction_end_time): map(T::BlockNumber, Option<T::AuctionId>) => Option<LinkedItem<T::AuctionId>>;
 	}
 }
@@ -49,6 +49,11 @@ decl_module! {
 			let from = ensure_signed(origin)?;
 
 			if let Some(mut auction) = <Auctions<T>>::get(id) {
+				if let Some(current_bid) = auction.bid.clone() {
+					ensure!(value > current_bid.1, Error::InvalidBidPrice.into());
+				} else {
+					ensure!(value > 0.into(), Error::InvalidBidPrice.into());
+				}
 				let bid_result = T::Handler::on_new_bid(
 					<srml_system::Module<T>>::block_number(),
 					id,
@@ -56,7 +61,7 @@ decl_module! {
 					auction.bid.clone(),
 				);
 
-				ensure!(bid_result.accept_bid, "Bid not excepted");
+				ensure!(bid_result.accept_bid, Error::BidNotAccepted.into());
 				if let Some(new_end) = bid_result.auction_end {
 					if let Some(old_end_block) = auction.end {
 						<AuctionEndTimeList<T>>::remove(&old_end_block, id);
@@ -70,7 +75,7 @@ decl_module! {
 				<Auctions<T>>::insert(id, auction);
 				Self::deposit_event(RawEvent::Bid(id, from, value));
 			} else {
-				return Err("Auction not exists")
+				return Err(Error::AuctionNotExist.into())
 			}
 
 			Ok(())
@@ -101,8 +106,8 @@ decl_error! {
 	/// Error for auction module.
 	pub enum Error {
 		AuctionNotExist,
-		AuctionEnded,
 		BidNotAccepted,
+		InvalidBidPrice,
 	}
 }
 
