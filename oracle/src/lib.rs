@@ -30,7 +30,7 @@ pub trait Trait: system::Trait {
 
 decl_storage! {
 	trait Store for Module<T: Trait> as Oracle {
-		pub RawValues get(raw_values): map (T::AccountId, T::Key) => Option<TimestampedValue<T::Value, MomentOf<T>>>;
+		pub RawValues get(raw_values): double_map T::Key, blake2_256(T::AccountId) => Option<TimestampedValue<T::Value, MomentOf<T>>>;
 		pub HasUpdate get(has_update): map T::Key => bool;
 		pub Values get(values): map T::Key => Option<TimestampedValue<T::Value, MomentOf<T>>>;
 	}
@@ -39,7 +39,6 @@ decl_storage! {
 decl_error! {
 	// Oracle module errors
 	pub enum Error {
-		NotSigned,
 		NoPermission,
 	}
 }
@@ -69,7 +68,7 @@ impl<T: Trait> Module<T> {
 	pub fn read_raw_values(key: &T::Key) -> Vec<TimestampedValue<T::Value, MomentOf<T>>> {
 		T::OperatorProvider::operators()
 			.iter()
-			.filter_map(|x| <RawValues<T>>::get((x, *key)))
+			.filter_map(|x| <RawValues<T>>::get(key, x))
 			.collect()
 	}
 
@@ -98,7 +97,7 @@ impl<T: Trait> Module<T> {
 			value,
 			timestamp: T::Time::now(),
 		};
-		<RawValues<T>>::insert((&who, &key), timestamp);
+		<RawValues<T>>::insert(&key, &who, timestamp);
 		<HasUpdate<T>>::insert(&key, true);
 
 		T::OnNewData::on_new_data(&key, &value);

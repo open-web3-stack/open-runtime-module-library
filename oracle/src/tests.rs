@@ -20,7 +20,7 @@ fn should_feed_data() {
 
 		assert_ok!(ModuleOracle::feed_data(Origin::signed(account_id), key, 1000));
 
-		let feed_data = ModuleOracle::raw_values((account_id, key)).unwrap();
+		let feed_data = ModuleOracle::raw_values(&key, &account_id).unwrap();
 		assert_eq!(feed_data, expected);
 	});
 }
