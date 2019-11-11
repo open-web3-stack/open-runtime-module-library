@@ -49,7 +49,8 @@ decl_module! {
 		fn deposit_event() = default;
 
 		pub fn feed_data(origin, key: T::Key, value: T::Value) -> Result {
-			Self::_feed_data(origin, key, value).map_err(|e| e.into())
+			let who = ensure_signed(origin)?;
+			Self::_feed_data(who, key, value).map_err(|e| e.into())
 		}
 	}
 }
@@ -90,8 +91,7 @@ impl<T: Trait> Module<T> {
 }
 
 impl<T: Trait> Module<T> {
-	fn _feed_data(origin: T::Origin, key: T::Key, value: T::Value) -> result::Result<(), Error> {
-		let who = ensure_signed(origin).map_err(|_| Error::NotSigned)?;
+	fn _feed_data(who: T::AccountId, key: T::Key, value: T::Value) -> result::Result<(), Error> {
 		ensure!(T::OperatorProvider::can_feed_data(&who), Error::NoPermission);
 
 		let timestamp = TimestampedValue {
