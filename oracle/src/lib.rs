@@ -11,7 +11,7 @@ pub use operator_provider::OperatorProvider;
 use rstd::prelude::Vec;
 use rstd::result;
 use sr_primitives::traits::Member;
-use support::{decl_error, decl_event, decl_module, decl_storage, ensure, traits::Time, Parameter};
+use support::{decl_error, decl_event, decl_module, decl_storage, dispatch::Result, ensure, traits::Time, Parameter};
 use system::ensure_signed;
 pub use timestamped_value::TimestampedValue;
 pub use traits::{CombineData, OnNewData};
@@ -46,11 +46,10 @@ decl_error! {
 
 decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
-		type Error = Error;
 		fn deposit_event() = default;
 
-		pub fn feed_data(origin, key: T::Key, value: T::Value) -> result::Result<(), Error> {
-			Self::_feed_data(origin, key, value)
+		pub fn feed_data(origin, key: T::Key, value: T::Value) -> Result {
+			Self::_feed_data(origin, key, value).map_err(|e| e.into())
 		}
 	}
 }

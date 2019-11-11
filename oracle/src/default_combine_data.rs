@@ -34,7 +34,7 @@ impl<T: Trait> CombineData<T::Key, TimestampedValue<T::Value, MomentOf<T>>> for 
 		let index = count / 2;
 
 		Some(TimestampedValue {
-			value: &valid_values[index],
+			value: valid_values[index].clone(),
 			timestamp: T::Time::now(),
 		})
 	}
