@@ -1,7 +1,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use rstd::{marker, result};
-use srml_support::{decl_error, decl_event, decl_module, decl_storage, ensure, traits::Get, Parameter};
+use sr_primitives::traits::StaticLookup;
+use srml_support::{decl_event, decl_module, decl_storage, traits::Get};
 // FIXME: `srml-` prefix should be used for all srml modules, but currently `srml_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
@@ -29,9 +30,12 @@ decl_storage! {
 
 decl_event!(
 	pub enum Event<T> where
-		<T as system::Trait>::AccountId
+		<T as system::Trait>::AccountId,
+		Balance = BalanceOf<T>,
+		CurrencyId = CurrencyIdOf<T>
 	{
-		Dummy(AccountId),
+		/// Currency transfer success (currency_id, from, to, amount)
+		Transferred(CurrencyId, AccountId, AccountId, Balance),
 	}
 );
 
@@ -39,6 +43,33 @@ decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
 		fn deposit_event() = default;
 
+		/// Transfer some balance to another account.
+		pub fn transfer(
+			origin,
+			dest: <T::Lookup as StaticLookup>::Source,
+			#[compact] currency_id: CurrencyIdOf<T>,
+			#[compact] amount: BalanceOf<T>,
+		) {
+			let from = ensure_signed(origin)?;
+			let to = T::Lookup::lookup(dest)?;
+			<Self as MultiCurrency<_>>::transfer(currency_id, &from, &to, amount).map_err(Into::into)?;
+
+			Self::deposit_event(RawEvent::Transferred(currency_id, from, to, amount));
+		}
+
+		/// Transfer native currency balance from one account to another.
+		pub fn transfer_native_currency(
+			origin,
+			dest: <T::Lookup as StaticLookup>::Source,
+			#[compact] amount: BalanceOf<T>,
+		) {
+			let from = ensure_signed(origin)?;
+			let to = T::Lookup::lookup(dest)?;
+			let currency_id = T::GetNativeCurrencyId::get();
+			<Self as MultiCurrency<_>>::transfer(currency_id, &from, &to, amount).map_err(Into::into)?;
+
+			Self::deposit_event(RawEvent::Transferred(currency_id, from, to, amount));
+		}
 	}
 }
 
@@ -132,6 +163,6 @@ where
 	}
 }
 
-pub type NativeCurrencyOf<T> = Currency<T, <T as Trait>::GetNativeCurrencyId>;
+pub type NativeCurrency<T> = Currency<T, <T as Trait>::GetNativeCurrencyId>;
 
 impl<T: Trait> Module<T> {}
