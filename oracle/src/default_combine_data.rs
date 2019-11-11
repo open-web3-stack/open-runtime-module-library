@@ -14,7 +14,7 @@ impl<T: Trait> CombineData<T::Key, TimestampedValue<T::Value, MomentOf<T>>> for 
 	fn combine_data(
 		_key: &T::Key,
 		values: Vec<TimestampedValue<T::Value, MomentOf<T>>>,
-		_prev_value: Option<TimestampedValue<T::Value, MomentOf<T>>>,
+		prev_value: Option<TimestampedValue<T::Value, MomentOf<T>>>,
 	) -> Option<TimestampedValue<T::Value, MomentOf<T>>> {
 		let mut valid_values = values
 			.into_iter()
@@ -28,13 +28,13 @@ impl<T: Trait> CombineData<T::Key, TimestampedValue<T::Value, MomentOf<T>>> for 
 
 		let count = valid_values.len();
 		if count < MinimumCount::get() {
-			return None;
+			return prev_value;
 		}
 
 		let index = count / 2;
 
 		Some(TimestampedValue {
-			value: valid_values[index],
+			value: &valid_values[index],
 			timestamp: T::Time::now(),
 		})
 	}
