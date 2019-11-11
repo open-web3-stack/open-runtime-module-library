@@ -33,3 +33,17 @@ fn native_currency_should_work() {
 			assert_eq!(NativeCurrency::balance(&BOB), 160);
 		});
 }
+
+#[test]
+fn currency_extended_should_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_ok!(Currencies::update_balance(X_TOKEN_ID, &ALICE, 50));
+			assert_eq!(Currencies::balance(X_TOKEN_ID, &ALICE), 150);
+
+			assert_ok!(NativeCurrency::update_balance(&ALICE, 10));
+			assert_eq!(NativeCurrency::balance(&ALICE), 110);
+		});
+}
