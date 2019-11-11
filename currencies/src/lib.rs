@@ -8,7 +8,7 @@ use srml_support::{decl_event, decl_module, decl_storage, traits::Get};
 // #3295 https://github.com/paritytech/substrate/issues/3295
 use srml_system::{self as system, ensure_signed};
 
-use traits::{BasicCurrency, MultiCurrency, MultiCurrencyExtended};
+use traits::{BasicCurrency, BasicCurrencyExtended, MultiCurrency, MultiCurrencyExtended};
 
 type BalanceOf<T> = <<T as Trait>::MultiCurrency as MultiCurrency<<T as srml_system::Trait>::AccountId>>::Balance;
 type CurrencyIdOf<T> = <<T as Trait>::MultiCurrency as MultiCurrency<<T as srml_system::Trait>::AccountId>>::CurrencyId;
@@ -160,6 +160,18 @@ where
 
 	fn slash(who: &T::AccountId, amount: Self::Balance) -> Self::Balance {
 		T::MultiCurrency::slash(GetCurrencyId::get(), who, amount)
+	}
+}
+
+impl<T, GetCurrencyId> BasicCurrencyExtended<T::AccountId> for Currency<T, GetCurrencyId>
+where
+	T: Trait,
+	GetCurrencyId: Get<CurrencyIdOf<T>>,
+{
+	type Amount = AmountOf<T>;
+
+	fn update_balance(who: &T::AccountId, by_amount: Self::Amount) -> result::Result<(), Self::Error> {
+		T::MultiCurrency::update_balance(GetCurrencyId::get(), who, by_amount)
 	}
 }
 
