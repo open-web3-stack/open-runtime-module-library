@@ -10,6 +10,9 @@ use srml_system::{self as system, ensure_signed};
 
 use traits::{BasicCurrency, BasicCurrencyExtended, MultiCurrency, MultiCurrencyExtended};
 
+mod mock;
+mod tests;
+
 type BalanceOf<T> = <<T as Trait>::MultiCurrency as MultiCurrency<<T as srml_system::Trait>::AccountId>>::Balance;
 type CurrencyIdOf<T> = <<T as Trait>::MultiCurrency as MultiCurrency<<T as srml_system::Trait>::AccountId>>::CurrencyId;
 type ErrorOf<T> = <<T as Trait>::MultiCurrency as MultiCurrency<<T as srml_system::Trait>::AccountId>>::Error;
@@ -175,6 +178,6 @@ where
 	}
 }
 
-pub type NativeCurrency<T> = Currency<T, <T as Trait>::GetNativeCurrencyId>;
+pub type NativeCurrencyOf<T> = Currency<T, <T as Trait>::GetNativeCurrencyId>;
 
 impl<T: Trait> Module<T> {}

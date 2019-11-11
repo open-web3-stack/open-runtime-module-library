@@ -15,6 +15,10 @@ rstd = { package = "sr-std", git = "https://github.com/paritytech/substrate.git"
 
 traits = { package = "orml-traits", path = "../traits", default-features = false }
 
+[dev-dependencies]
+primitives = { package = "substrate-primitives",  git = "https://github.com/paritytech/substrate.git", default-features = false }
+tokens = { package = "orml-tokens", path = "../tokens" }
+
 [features]
 default = ["std"]
 std = [
