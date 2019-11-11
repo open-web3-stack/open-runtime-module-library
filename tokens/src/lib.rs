@@ -2,12 +2,12 @@
 
 use rstd::{
 	convert::{TryFrom, TryInto},
-	marker, result,
+	result,
 };
 use sr_primitives::traits::{
 	CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, SimpleArithmetic, StaticLookup,
 };
-use srml_support::{decl_error, decl_event, decl_module, decl_storage, ensure, traits::Get, Parameter};
+use srml_support::{decl_error, decl_event, decl_module, decl_storage, ensure, Parameter};
 // FIXME: `srml-` prefix should be used for all srml modules, but currently `srml_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
@@ -15,7 +15,7 @@ use srml_system::{self as system, ensure_signed};
 
 use traits::{
 	arithmetic::{self, Signed},
-	BasicCurrency, BasicCurrencyExtended, MultiCurrency, MultiCurrencyExtended,
+	MultiCurrency, MultiCurrencyExtended,
 };
 
 mod mock;
