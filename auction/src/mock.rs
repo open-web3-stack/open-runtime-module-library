@@ -5,6 +5,7 @@
 use primitives::H256;
 use sr_primitives::{testing::Header, traits::IdentityLookup, Perbill};
 use srml_support::{impl_outer_event, impl_outer_origin, parameter_types};
+use traits::OnNewBidResult;
 
 use super::*;
 
@@ -54,16 +55,17 @@ impl system::Trait for Runtime {
 	type AvailableBlockRatio = AvailableBlockRatio;
 	type Version = ();
 }
+
 pub type System = system::Module<Runtime>;
 
 pub struct Handler;
 
 impl AuctionHandler<AccountId, Balance, BlockNumber, AuctionId> for Handler {
 	fn on_new_bid(
-		now: BlockNumber,
-		id: AuctionId,
-		new_bid: (AccountId, Balance),
-		last_bid: Option<(AccountId, Balance)>,
+		_now: BlockNumber,
+		_id: AuctionId,
+		_new_bid: (AccountId, Balance),
+		_last_bid: Option<(AccountId, Balance)>,
 	) -> OnNewBidResult<BlockNumber> {
 		OnNewBidResult {
 			accept_bid: true,
@@ -71,7 +73,7 @@ impl AuctionHandler<AccountId, Balance, BlockNumber, AuctionId> for Handler {
 		}
 	}
 
-	fn on_auction_ended(id: AuctionId, winner: Option<(AccountId, Balance)>) {}
+	fn on_auction_ended(_id: AuctionId, _winner: Option<(AccountId, Balance)>) {}
 }
 
 impl Trait for Runtime {
@@ -83,7 +85,6 @@ impl Trait for Runtime {
 pub type AuctionModule = Module<Runtime>;
 
 pub const ALICE: AccountId = 1;
-pub const BOB: AccountId = 2;
 
 pub struct ExtBuilder;
 
@@ -95,7 +96,7 @@ impl Default for ExtBuilder {
 
 impl ExtBuilder {
 	pub fn build(self) -> runtime_io::TestExternalities {
-		let mut t = system::GenesisConfig::default().build_storage::<Runtime>().unwrap();
+		let t = system::GenesisConfig::default().build_storage::<Runtime>().unwrap();
 
 		t.into()
 	}

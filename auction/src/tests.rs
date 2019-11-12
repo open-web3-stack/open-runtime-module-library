@@ -3,8 +3,8 @@
 #![cfg(test)]
 
 use super::*;
-use mock::{AccountId, AuctionId, AuctionModule, Balance, BlockNumber, ExtBuilder, System, TestEvent, ALICE, BOB};
-use srml_support::{assert_noop, assert_ok};
+use mock::{AuctionModule, ExtBuilder, ALICE};
+use srml_support::assert_ok;
 
 #[test]
 fn new_auction_should_work() {

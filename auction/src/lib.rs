@@ -8,7 +8,7 @@ use srml_support::{
 use srml_system::{self as system, ensure_signed};
 use utilities::{LinkedItem, LinkedList};
 
-use traits::{Auction, AuctionHandler, AuctionInfo, OnNewBidResult};
+use traits::{Auction, AuctionHandler, AuctionInfo};
 
 mod mock;
 mod tests;
@@ -48,36 +48,32 @@ decl_module! {
 		pub fn bid(origin, id: T::AuctionId, value: T::Balance) -> Result {
 			let from = ensure_signed(origin)?;
 
-			if let Some(mut auction) = <Auctions<T>>::get(id) {
-				if let Some(ref current_bid) = auction.bid {
-					ensure!(value > current_bid.1, Error::InvalidBidPrice.into());
-				} else {
-					ensure!(value > 0.into(), Error::InvalidBidPrice.into());
-				}
-				let bid_result = T::Handler::on_new_bid(
-					<srml_system::Module<T>>::block_number(),
-					id,
-					(from.clone(), value),
-					auction.bid.clone(),
-				);
-
-				ensure!(bid_result.accept_bid, Error::BidNotAccepted.into());
-				if let Some(new_end) = bid_result.auction_end {
-					if let Some(old_end_block) = auction.end {
-						<AuctionEndTimeList<T>>::remove(&old_end_block, id);
-					}
-					if let Some(new_end_block) = new_end {
-						<AuctionEndTimeList<T>>::append(&new_end_block, id);
-					}
-					auction.end = new_end;
-				}
-				auction.bid = Some((from.clone(), value));
-				<Auctions<T>>::insert(id, auction);
-				Self::deposit_event(RawEvent::Bid(id, from, value));
+			let mut auction = <Auctions<T>>::get(id).ok_or(Error::AuctionNotExist)?;
+			if let Some(ref current_bid) = auction.bid {
+				ensure!(value > current_bid.1, Error::InvalidBidPrice.into());
 			} else {
-				return Err(Error::AuctionNotExist.into())
+				ensure!(value > 0.into(), Error::InvalidBidPrice.into());
 			}
+			let bid_result = T::Handler::on_new_bid(
+				<srml_system::Module<T>>::block_number(),
+				id,
+				(from.clone(), value),
+				auction.bid.clone(),
+			);
 
+			ensure!(bid_result.accept_bid, Error::BidNotAccepted.into());
+			if let Some(new_end) = bid_result.auction_end {
+				if let Some(old_end_block) = auction.end {
+					<AuctionEndTimeList<T>>::remove(&old_end_block, id);
+				}
+				if let Some(new_end_block) = new_end {
+					<AuctionEndTimeList<T>>::append(&new_end_block, id);
+				}
+				auction.end = new_end;
+			}
+			auction.bid = Some((from.clone(), value));
+			<Auctions<T>>::insert(id, auction);
+			Self::deposit_event(RawEvent::Bid(id, from, value));
 			Ok(())
 		}
 
@@ -126,21 +122,18 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber> for Module<T> {
 		id: Self::AuctionId,
 		info: AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber>,
 	) -> result::Result<(), Self::Error> {
-		if let Some(auction) = <Auctions<T>>::get(id) {
-			if let Some(old_end) = auction.end {
-				<AuctionEndTimeList<T>>::remove(&old_end, id);
-			}
-			if let Some(new_end) = info.end {
-				<AuctionEndTimeList<T>>::append(&new_end, id);
-			}
-			<Auctions<T>>::insert(id, info);
-		} else {
-			return Err(Error::AuctionNotExist);
+		let auction = <Auctions<T>>::get(id).ok_or(Error::AuctionNotExist)?;
+		if let Some(old_end) = auction.end {
+			<AuctionEndTimeList<T>>::remove(&old_end, id);
 		}
+		if let Some(new_end) = info.end {
+			<AuctionEndTimeList<T>>::append(&new_end, id);
+		}
+		<Auctions<T>>::insert(id, info);
 		Ok(())
 	}
 
-	fn new_auction(start: T::BlockNumber, end: Option<T::BlockNumber>) -> Self::AuctionId {
+	fn new_auction(_start: T::BlockNumber, end: Option<T::BlockNumber>) -> Self::AuctionId {
 		let auction = AuctionInfo { bid: None, end: end };
 		let auction_id = Self::auctions_count();
 		<AuctionsCount<T>>::mutate(|n| *n += Self::AuctionId::from(1));
