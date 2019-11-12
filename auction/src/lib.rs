@@ -49,7 +49,7 @@ decl_module! {
 			let from = ensure_signed(origin)?;
 
 			if let Some(mut auction) = <Auctions<T>>::get(id) {
-				if let Some(current_bid) = auction.bid.clone() {
+				if let Some(ref current_bid) = auction.bid {
 					ensure!(value > current_bid.1, Error::InvalidBidPrice.into());
 				} else {
 					ensure!(value > 0.into(), Error::InvalidBidPrice.into());
