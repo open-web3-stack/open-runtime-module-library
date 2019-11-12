@@ -1,4 +1,4 @@
-//! Unit tests for the tokens module.
+//! Unit tests for the currencies module.
 
 #![cfg(test)]
 
