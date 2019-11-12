@@ -17,6 +17,7 @@ traits = { package = "orml-traits", path = "../traits", default-features = false
 
 [dev-dependencies]
 primitives = { package = "substrate-primitives",  git = "https://github.com/paritytech/substrate.git", default-features = false }
+srml-balances = { package = "srml-balances", git = "https://github.com/paritytech/substrate.git" }
 tokens = { package = "orml-tokens", path = "../tokens" }
 
 [features]

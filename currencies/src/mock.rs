@@ -4,7 +4,9 @@
 
 use primitives::H256;
 use sr_primitives::{testing::Header, traits::IdentityLookup, Perbill};
+use srml_balances;
 use srml_support::{impl_outer_origin, parameter_types};
+
 use tokens;
 
 use super::*;
@@ -45,6 +47,26 @@ impl system::Trait for Runtime {
 type CurrencyId = u32;
 type Balance = u64;
 
+parameter_types! {
+	pub const ExistentialDeposit: u64 = 0;
+	pub const TransferFee: u64 = 0;
+	pub const CreationFee: u64 = 2;
+}
+
+impl srml_balances::Trait for Runtime {
+	type Balance = Balance;
+	type OnFreeBalanceZero = ();
+	type OnNewAccount = ();
+	type Event = ();
+	type DustRemoval = ();
+	type TransferPayment = ();
+	type ExistentialDeposit = ExistentialDeposit;
+	type TransferFee = TransferFee;
+	type CreationFee = CreationFee;
+}
+
+pub type SrmlBalances = srml_balances::Module<Runtime>;
+
 impl tokens::Trait for Runtime {
 	type Event = ();
 	type Balance = Balance;
@@ -70,11 +92,14 @@ pub type NativeCurrency = NativeCurrencyOf<Runtime>;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
+pub const EVA: AccountId = 5;
 
 pub struct ExtBuilder {
 	currency_ids: Vec<CurrencyId>,
 	endowed_accounts: Vec<AccountId>,
 	initial_balance: Balance,
+	// whether the configs are for `srml_balances` or not
+	is_for_srml_balances: bool,
 }
 
 impl Default for ExtBuilder {
@@ -83,6 +108,7 @@ impl Default for ExtBuilder {
 			currency_ids: vec![NATIVE_CURRENCY_ID, X_TOKEN_ID],
 			endowed_accounts: vec![0],
 			initial_balance: 0,
+			is_for_srml_balances: false,
 		}
 	}
 }
@@ -98,16 +124,34 @@ impl ExtBuilder {
 		self.balances(vec![ALICE, BOB], 100)
 	}
 
+	pub fn make_for_srml_balances(mut self) -> Self {
+		self.is_for_srml_balances = true;
+		self
+	}
+
 	pub fn build(self) -> runtime_io::TestExternalities {
 		let mut t = system::GenesisConfig::default().build_storage::<Runtime>().unwrap();
 
-		tokens::GenesisConfig::<Runtime> {
-			tokens: self.currency_ids,
-			initial_balance: self.initial_balance,
-			endowed_accounts: self.endowed_accounts,
+		if self.is_for_srml_balances {
+			srml_balances::GenesisConfig::<Runtime> {
+				balances: self
+					.endowed_accounts
+					.iter()
+					.map(|acc| (acc.clone(), self.initial_balance))
+					.collect(),
+				vesting: vec![],
+			}
+			.assimilate_storage(&mut t)
+			.unwrap();
+		} else {
+			tokens::GenesisConfig::<Runtime> {
+				tokens: self.currency_ids,
+				initial_balance: self.initial_balance,
+				endowed_accounts: self.endowed_accounts,
+			}
+			.assimilate_storage(&mut t)
+			.unwrap();
 		}
-		.assimilate_storage(&mut t)
-		.unwrap();
 
 		t.into()
 	}
