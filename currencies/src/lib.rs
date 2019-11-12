@@ -22,6 +22,12 @@ type AmountOf<T> = <<T as Trait>::MultiCurrency as MultiCurrencyExtended<<T as s
 pub trait Trait: system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
 	type MultiCurrency: MultiCurrencyExtended<Self::AccountId>;
+	type NativeCurrency: BasicCurrencyExtended<
+		Self::AccountId,
+		Balance = BalanceOf<Self>,
+		Error = ErrorOf<Self>,
+		Amount = AmountOf<Self>,
+	>;
 	type GetNativeCurrencyId: Get<CurrencyIdOf<Self>>;
 }
 
@@ -55,7 +61,11 @@ decl_module! {
 		) {
 			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
-			<Self as MultiCurrency<_>>::transfer(currency_id, &from, &to, amount).map_err(Into::into)?;
+			if currency_id == T::GetNativeCurrencyId::get() {
+				T::NativeCurrency::transfer(&from, &to, amount).map_err(Into::into)?;
+			} else {
+				T::MultiCurrency::transfer(currency_id, &from, &to, amount).map_err(Into::into)?;
+			}
 
 			Self::deposit_event(RawEvent::Transferred(currency_id, from, to, amount));
 		}
@@ -82,11 +92,19 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	type Error = ErrorOf<T>;
 
 	fn total_issuance(currency_id: Self::CurrencyId) -> Self::Balance {
-		T::MultiCurrency::total_issuance(currency_id)
+		if currency_id == T::GetNativeCurrencyId::get() {
+			T::NativeCurrency::total_issuance()
+		} else {
+			T::MultiCurrency::total_issuance(currency_id)
+		}
 	}
 
 	fn balance(currency_id: Self::CurrencyId, who: &T::AccountId) -> Self::Balance {
-		T::MultiCurrency::balance(currency_id, who)
+		if currency_id == T::GetNativeCurrencyId::get() {
+			T::NativeCurrency::balance(who)
+		} else {
+			T::MultiCurrency::balance(currency_id, who)
+		}
 	}
 
 	fn transfer(
@@ -95,7 +113,11 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		to: &T::AccountId,
 		amount: Self::Balance,
 	) -> result::Result<(), Self::Error> {
-		T::MultiCurrency::transfer(currency_id, from, to, amount)
+		if currency_id == T::GetNativeCurrencyId::get() {
+			T::NativeCurrency::transfer(from, to, amount)
+		} else {
+			T::MultiCurrency::transfer(currency_id, from, to, amount)
+		}
 	}
 
 	fn deposit(
@@ -103,7 +125,11 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		who: &T::AccountId,
 		amount: Self::Balance,
 	) -> result::Result<(), Self::Error> {
-		T::MultiCurrency::deposit(currency_id, who, amount)
+		if currency_id == T::GetNativeCurrencyId::get() {
+			T::NativeCurrency::deposit(who, amount)
+		} else {
+			T::MultiCurrency::deposit(currency_id, who, amount)
+		}
 	}
 
 	fn withdraw(
@@ -111,11 +137,19 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		who: &T::AccountId,
 		amount: Self::Balance,
 	) -> result::Result<(), Self::Error> {
-		T::MultiCurrency::withdraw(currency_id, who, amount)
+		if currency_id == T::GetNativeCurrencyId::get() {
+			T::NativeCurrency::withdraw(who, amount)
+		} else {
+			T::MultiCurrency::withdraw(currency_id, who, amount)
+		}
 	}
 
 	fn slash(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> Self::Balance {
-		T::MultiCurrency::slash(currency_id, who, amount)
+		if currency_id == T::GetNativeCurrencyId::get() {
+			T::NativeCurrency::slash(who, amount)
+		} else {
+			T::MultiCurrency::slash(currency_id, who, amount)
+		}
 	}
 }
 
@@ -127,7 +161,11 @@ impl<T: Trait> MultiCurrencyExtended<T::AccountId> for Module<T> {
 		who: &T::AccountId,
 		by_amount: Self::Amount,
 	) -> result::Result<(), Self::Error> {
-		T::MultiCurrency::update_balance(currency_id, who, by_amount)
+		if currency_id == T::GetNativeCurrencyId::get() {
+			T::NativeCurrency::update_balance(who, by_amount)
+		} else {
+			T::MultiCurrency::update_balance(currency_id, who, by_amount)
+		}
 	}
 }
 
