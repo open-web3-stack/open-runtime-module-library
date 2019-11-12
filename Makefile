@@ -1,5 +1,5 @@
 check: githooks
-	./scripts/run.sh "+nightly check" --no-default-features --target=wasm32-unknown-unknown
+	./scripts/run.sh check --no-default-features --target=wasm32-unknown-unknown
 
 check-tests: githooks
 	./scripts/run.sh check --tests
@@ -47,3 +47,6 @@ dev-check-tests: Cargo.toml
 
 dev-test: Cargo.toml
 	cargo test --all
+
+dev-build: Cargo.toml
+	./scripts/run.sh build --no-default-features --target=wasm32-unknown-unknown

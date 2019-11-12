@@ -23,7 +23,7 @@ jobs:
         default: true
     - name: Check format
       run: make dev-format-check
-    - name: Check with no_std
-      run: make dev-check
+    - name: Build Wasm
+      run: make dev-build
     - name: Run tests
       run: make dev-test
