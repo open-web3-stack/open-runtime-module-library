@@ -50,6 +50,7 @@ pub struct MockDataProvider;
 impl DataProvider<CurrencyId, Price> for MockDataProvider {
 	fn get(currency: &CurrencyId) -> Option<Price> {
 		match currency {
+			0 => Some(0),
 			1 => Some(1),
 			2 => Some(2),
 			_ => None,
