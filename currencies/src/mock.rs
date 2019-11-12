@@ -52,7 +52,7 @@ impl tokens::Trait for Runtime {
 	type CurrencyId = CurrencyId;
 }
 
-const NATIVE_CURRENCY_ID: CurrencyId = 1;
+pub const NATIVE_CURRENCY_ID: CurrencyId = 1;
 pub const X_TOKEN_ID: CurrencyId = 2;
 
 parameter_types! {
@@ -63,6 +63,7 @@ impl Trait for Runtime {
 	type Event = ();
 	type MultiCurrency = tokens::Module<Runtime>;
 	type GetNativeCurrencyId = GetNativeCurrencyId;
+	type NativeCurrency = NativeCurrency;
 }
 pub type Currencies = Module<Runtime>;
 pub type NativeCurrency = NativeCurrencyOf<Runtime>;

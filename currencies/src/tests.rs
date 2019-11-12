@@ -3,7 +3,7 @@
 #![cfg(test)]
 
 use super::*;
-use mock::{Currencies, ExtBuilder, NativeCurrency, ALICE, BOB, X_TOKEN_ID};
+use mock::{Currencies, ExtBuilder, NativeCurrency, ALICE, BOB, NATIVE_CURRENCY_ID, X_TOKEN_ID};
 use srml_support::assert_ok;
 
 #[test]
@@ -31,6 +31,10 @@ fn native_currency_should_work() {
 			assert_ok!(NativeCurrency::transfer(&ALICE, &BOB, 10));
 			assert_eq!(NativeCurrency::balance(&ALICE), 40);
 			assert_eq!(NativeCurrency::balance(&BOB), 160);
+
+			assert_eq!(Currencies::slash(NATIVE_CURRENCY_ID, &ALICE, 10), 10);
+			assert_eq!(NativeCurrency::balance(&ALICE), 30);
+			assert_eq!(NativeCurrency::total_issuance(), 190);
 		});
 }
 
@@ -45,5 +49,8 @@ fn currency_extended_should_work() {
 
 			assert_ok!(NativeCurrency::update_balance(&ALICE, 10));
 			assert_eq!(NativeCurrency::balance(&ALICE), 110);
+
+			assert_ok!(Currencies::update_balance(NATIVE_CURRENCY_ID, &ALICE, 10));
+			assert_eq!(NativeCurrency::balance(&ALICE), 120);
 		});
 }
