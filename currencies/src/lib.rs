@@ -2,7 +2,10 @@
 
 use rstd::{marker, result};
 use sr_primitives::traits::StaticLookup;
-use srml_support::{decl_event, decl_module, decl_storage, traits::Get};
+use srml_support::{
+	decl_event, decl_module, decl_storage,
+	traits::{Currency as SrmlCurrency, ExistenceRequirement, Get, WithdrawReason},
+};
 // FIXME: `srml-` prefix should be used for all srml modules, but currently `srml_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
@@ -85,6 +88,8 @@ decl_module! {
 		}
 	}
 }
+
+impl<T: Trait> Module<T> {}
 
 impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	type Balance = BalanceOf<T>;
@@ -218,4 +223,51 @@ where
 
 pub type NativeCurrencyOf<T> = Currency<T, <T as Trait>::GetNativeCurrencyId>;
 
-impl<T: Trait> Module<T> {}
+/// Adapt other currency traits implementation to `BasicCurrency`.
+pub struct BasicCurrencyAdapter<T>(marker::PhantomData<T>);
+
+// Adapat `srml_support::traits::Currency`
+impl<AccountId, T> BasicCurrency<AccountId> for BasicCurrencyAdapter<T>
+where
+	T: SrmlCurrency<AccountId>,
+{
+	type Balance = <T as SrmlCurrency<AccountId>>::Balance;
+	type Error = &'static str;
+
+	fn total_issuance() -> Self::Balance {
+		T::total_issuance()
+	}
+
+	fn balance(who: &AccountId) -> Self::Balance {
+		T::total_balance(who)
+	}
+
+	fn transfer(from: &AccountId, to: &AccountId, amount: Self::Balance) -> result::Result<(), Self::Error> {
+		T::transfer(from, to, amount, ExistenceRequirement::AllowDeath)
+	}
+
+	fn deposit(who: &AccountId, amount: Self::Balance) -> result::Result<(), Self::Error> {
+		let imbalance = T::deposit_creating(who, amount);
+		drop(imbalance);
+
+		Ok(())
+	}
+
+	fn withdraw(who: &AccountId, amount: Self::Balance) -> result::Result<(), Self::Error> {
+		T::withdraw(
+			who,
+			amount,
+			WithdrawReason::Transfer.into(),
+			ExistenceRequirement::AllowDeath,
+		)
+		.map(|imbalance| {
+			drop(imbalance);
+		})
+	}
+
+	fn slash(who: &AccountId, amount: Self::Balance) -> Self::Balance {
+		let (imbalance, slashed_amount) = T::slash(who, amount);
+		drop(imbalance);
+		slashed_amount
+	}
+}
