@@ -68,7 +68,7 @@ impl<T: Trait> Module<T> {
 	pub fn read_raw_values(key: &T::Key) -> Vec<TimestampedValue<T::Value, MomentOf<T>>> {
 		T::OperatorProvider::operators()
 			.iter()
-			.filter_map(|x| <RawValues<T>>::get(key, x))
+			.filter_map(|x| <RawValues<T>>::get(&key, x))
 			.collect()
 	}
 
@@ -78,14 +78,14 @@ impl<T: Trait> Module<T> {
 			let result = T::CombineData::combine_data(key, values, None);
 			match result {
 				Some(timestamped) => {
-					<Values<T>>::insert(key, timestamped.clone());
-					<HasUpdate<T>>::insert(key, false);
+					<Values<T>>::insert(&key, timestamped.clone());
+					<HasUpdate<T>>::insert(&key, false);
 					return Some(timestamped);
 				}
 				None => return None,
 			}
 		}
-		<Values<T>>::get(key)
+		<Values<T>>::get(&key)
 	}
 }
 
