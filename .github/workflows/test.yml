@@ -37,7 +37,7 @@ jobs:
         target: wasm32-unknown-unknown
         default: true
     - name: Install Wasm toolchain
-      run: rustup target add wasm32-unknown-unknown --toolchain nightly-2019-11-08
+      run: rustup target add wasm32-unknown-unknown
     - name: Check format
       run: make dev-format-check
     - name: Check for Wasm
