@@ -12,6 +12,10 @@ use rstd::{
 	result,
 };
 use sr_primitives::traits::{MaybeSerializeDeserialize, SimpleArithmetic};
+use srml_support::{
+	dispatch,
+	traits::{Currency as SrmlCurrency, ExistenceRequirement, WithdrawReason},
+};
 
 /// Abstraction over a fungible multi-currency system.
 pub trait MultiCurrency<AccountId> {
@@ -131,6 +135,51 @@ pub trait BasicCurrencyExtended<AccountId>: BasicCurrency<AccountId> {
 
 	/// Add or remove abs(`by_amount`) from the balance of `who`. If positive `by_amount`, do add, else do remove.
 	fn update_balance(who: &AccountId, by_amount: Self::Amount) -> result::Result<(), Self::Error>;
+}
+
+// Development notes: The `T: ModuleErrorMetadata` bound is to resolve the potential E0119 error
+// (https://doc.rust-lang.org/error-index.html#E0119), which occurs if another type (which is not a runtime `Module`)
+// implemented `BasicCurrency`.
+impl<AccountId, T: SrmlCurrency<AccountId> + dispatch::ModuleErrorMetadata> BasicCurrency<AccountId> for T {
+	type Balance = <T as SrmlCurrency<AccountId>>::Balance;
+	type Error = &'static str;
+
+	fn total_issuance() -> Self::Balance {
+		T::total_issuance()
+	}
+
+	fn balance(who: &AccountId) -> Self::Balance {
+		T::total_balance(who)
+	}
+
+	fn transfer(from: &AccountId, to: &AccountId, amount: Self::Balance) -> result::Result<(), Self::Error> {
+		T::transfer(from, to, amount, ExistenceRequirement::AllowDeath)
+	}
+
+	fn deposit(who: &AccountId, amount: Self::Balance) -> result::Result<(), Self::Error> {
+		let imbalance = T::deposit_creating(who, amount);
+		drop(imbalance);
+
+		Ok(())
+	}
+
+	fn withdraw(who: &AccountId, amount: Self::Balance) -> result::Result<(), Self::Error> {
+		T::withdraw(
+			who,
+			amount,
+			WithdrawReason::Transfer.into(),
+			ExistenceRequirement::AllowDeath,
+		)
+		.map(|imbalance| {
+			drop(imbalance);
+		})
+	}
+
+	fn slash(who: &AccountId, amount: Self::Balance) -> Self::Balance {
+		let (imbalance, slashed_amount) = T::slash(who, amount);
+		drop(imbalance);
+		slashed_amount
+	}
 }
 
 #[impl_trait_for_tuples::impl_for_tuples(30)]
