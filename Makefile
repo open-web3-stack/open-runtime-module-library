@@ -47,6 +47,3 @@ dev-check-tests: Cargo.toml
 
 dev-test: Cargo.toml
 	cargo test --all
-
-dev-build: Cargo.toml
-	./scripts/run.sh build --no-default-features --target=wasm32-unknown-unknown
