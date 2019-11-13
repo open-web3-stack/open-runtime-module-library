@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use crate::mock::{new_test_ext, MockTime, ModuleOracle, Origin};
+use crate::mock::{new_test_ext, ModuleOracle, Origin, Timestamp};
 
 use crate::TimestampedValue;
 use support::assert_ok;
@@ -11,7 +11,7 @@ fn should_feed_data() {
 		let key: u32 = 1;
 		let account_id: u64 = 1;
 
-		MockTime::set_time(12345);
+		Timestamp::set_timestamp(12345);
 
 		let expected = TimestampedValue {
 			value: 1000,
@@ -43,7 +43,7 @@ fn should_read_raw_values() {
 		let raw_values = ModuleOracle::read_raw_values(&key);
 		assert_eq!(raw_values, vec![]);
 
-		MockTime::set_time(12345);
+		Timestamp::set_timestamp(12345);
 
 		let expected = vec![
 			TimestampedValue {
@@ -65,19 +65,42 @@ fn should_read_raw_values() {
 }
 
 #[test]
-fn should_get_combined_data() {
+fn should_combined_data() {
 	new_test_ext().execute_with(|| {
-		MockTime::set_time(12345);
-		let expected = Some(TimestampedValue {
-			value: 1200,
-			timestamp: 12345,
-		});
+		Timestamp::set_timestamp(12345);
 
 		let key: u32 = 1;
 
 		assert_ok!(ModuleOracle::feed_data(Origin::signed(1), key, 1000));
 		assert_ok!(ModuleOracle::feed_data(Origin::signed(2), key, 1200));
 		assert_ok!(ModuleOracle::feed_data(Origin::signed(3), key, 1300));
-		assert_eq!(ModuleOracle::get(&key), expected);
+		assert_eq!(ModuleOracle::get(&key), Some(1200));
+	});
+}
+
+#[test]
+fn should_return_prev_value() {
+	new_test_ext().execute_with(|| {
+		Timestamp::set_timestamp(12345);
+
+		let key: u32 = 1;
+
+		assert_ok!(ModuleOracle::feed_data(Origin::signed(1), key, 1000));
+		assert_ok!(ModuleOracle::feed_data(Origin::signed(2), key, 1200));
+		assert_ok!(ModuleOracle::feed_data(Origin::signed(3), key, 1300));
+		assert_eq!(ModuleOracle::get(&key), Some(1200));
+
+		Timestamp::set_timestamp(23456);
+
+		// should return prev_value
+		assert_eq!(ModuleOracle::get(&key), Some(1200));
+	});
+}
+
+#[test]
+fn should_return_none() {
+	new_test_ext().execute_with(|| {
+		let key: u32 = 1;
+		assert_eq!(ModuleOracle::get(&key), None);
 	});
 }

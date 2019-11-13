@@ -9,7 +9,7 @@ use sr_primitives::{
 	weights::Weight,
 	Perbill,
 };
-use support::{impl_outer_origin, parameter_types, traits::Time};
+use support::{impl_outer_origin, parameter_types};
 
 impl_outer_origin! {
 	pub enum Origin for Test {}
@@ -45,27 +45,19 @@ impl system::Trait for Test {
 }
 
 type AccountId = u64;
-type Moment = u64;
 type Key = u32;
 type Value = u32;
 
-static mut TIMESTAMP: u64 = 0;
+pub type Timestamp = timestamp::Module<Test>;
 
-pub struct MockTime;
-
-impl MockTime {
-	pub fn set_time(sec: Moment) {
-		unsafe {
-			TIMESTAMP = sec;
-		}
-	}
+parameter_types! {
+	pub const MinimumPeriod: u64 = 5;
 }
 
-impl Time for MockTime {
-	type Moment = Moment;
-	fn now() -> Self::Moment {
-		unsafe { TIMESTAMP.clone() }
-	}
+impl timestamp::Trait for Test {
+	type Moment = u64;
+	type OnTimestampSet = ();
+	type MinimumPeriod = MinimumPeriod;
 }
 
 pub struct MockOperatorProvider;
@@ -84,8 +76,8 @@ impl Trait for Test {
 	type Event = ();
 	type OnNewData = ();
 	type OperatorProvider = MockOperatorProvider;
-	type CombineData = DefaultCombineData<Test>;
-	type Time = MockTime;
+	type CombineData = DefaultCombineData<Self>;
+	type Time = timestamp::Module<Self>;
 	type Key = Key;
 	type Value = Value;
 }

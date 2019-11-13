@@ -146,10 +146,6 @@ pub trait PriceProvider<CurrencyId, Price> {
 	fn get_price(base: CurrencyId, quote: CurrencyId) -> Option<Price>;
 }
 
-pub trait CombineData<Key, TimestampedValue> {
-	fn combine_data(
-		key: &Key,
-		values: Vec<TimestampedValue>,
-		prev_value: Option<TimestampedValue>,
-	) -> Option<TimestampedValue>;
+pub trait CombineData<Key, TimestampedValue, Value> {
+	fn combine_data(key: &Key, values: Vec<TimestampedValue>, prev_value: Option<Value>) -> Option<Value>;
 }
