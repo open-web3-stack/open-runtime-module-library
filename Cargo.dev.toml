@@ -3,6 +3,7 @@ members = [
 	"oracle",
 	"tokens",
 	"traits",
+	"prices",
 	"utilities",
 	"auction",
 ]
