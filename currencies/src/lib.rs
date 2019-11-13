@@ -262,8 +262,7 @@ where
 	}
 
 	fn slash(who: &AccountId, amount: Self::Balance) -> Self::Balance {
-		let (imbalance, gap) = T::slash(who, amount);
-		drop(imbalance);
+		let (_, gap) = T::slash(who, amount);
 		amount - gap
 	}
 }
