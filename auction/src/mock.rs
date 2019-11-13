@@ -1,0 +1,103 @@
+//! Mocks for the auction module.
+
+#![cfg(test)]
+
+use primitives::H256;
+use sr_primitives::{testing::Header, traits::IdentityLookup, Perbill};
+use srml_support::{impl_outer_event, impl_outer_origin, parameter_types};
+use traits::OnNewBidResult;
+
+use super::*;
+
+impl_outer_origin! {
+	pub enum Origin for Runtime {}
+}
+
+mod auction {
+	pub use crate::Event;
+}
+
+impl_outer_event! {
+	pub enum TestEvent for Runtime {
+		auction<T>,
+	}
+}
+
+// Workaround for https://github.com/rust-lang/rust/issues/26925 . Remove when sorted.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct Runtime;
+parameter_types! {
+	pub const BlockHashCount: u64 = 250;
+	pub const MaximumBlockWeight: u32 = 1024;
+	pub const MaximumBlockLength: u32 = 2 * 1024;
+	pub const AvailableBlockRatio: Perbill = Perbill::one();
+}
+
+pub type AccountId = u64;
+pub type Balance = u64;
+pub type BlockNumber = u64;
+pub type AuctionId = u64;
+
+impl system::Trait for Runtime {
+	type Origin = Origin;
+	type Index = u64;
+	type BlockNumber = BlockNumber;
+	type Call = ();
+	type Hash = H256;
+	type Hashing = ::sr_primitives::traits::BlakeTwo256;
+	type AccountId = AccountId;
+	type Lookup = IdentityLookup<Self::AccountId>;
+	type Header = Header;
+	type Event = TestEvent;
+	type BlockHashCount = BlockHashCount;
+	type MaximumBlockWeight = MaximumBlockWeight;
+	type MaximumBlockLength = MaximumBlockLength;
+	type AvailableBlockRatio = AvailableBlockRatio;
+	type Version = ();
+}
+
+pub type System = system::Module<Runtime>;
+
+pub struct Handler;
+
+impl AuctionHandler<AccountId, Balance, BlockNumber, AuctionId> for Handler {
+	fn on_new_bid(
+		_now: BlockNumber,
+		_id: AuctionId,
+		_new_bid: (AccountId, Balance),
+		_last_bid: Option<(AccountId, Balance)>,
+	) -> OnNewBidResult<BlockNumber> {
+		OnNewBidResult {
+			accept_bid: true,
+			auction_end: None,
+		}
+	}
+
+	fn on_auction_ended(_id: AuctionId, _winner: Option<(AccountId, Balance)>) {}
+}
+
+impl Trait for Runtime {
+	type Event = TestEvent;
+	type Balance = Balance;
+	type AuctionId = AccountId;
+	type Handler = Handler;
+}
+pub type AuctionModule = Module<Runtime>;
+
+pub const ALICE: AccountId = 1;
+
+pub struct ExtBuilder;
+
+impl Default for ExtBuilder {
+	fn default() -> Self {
+		ExtBuilder
+	}
+}
+
+impl ExtBuilder {
+	pub fn build(self) -> runtime_io::TestExternalities {
+		let t = system::GenesisConfig::default().build_storage::<Runtime>().unwrap();
+
+		t.into()
+	}
+}
