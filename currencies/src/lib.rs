@@ -247,9 +247,7 @@ where
 	}
 
 	fn deposit(who: &AccountId, amount: Self::Balance) -> result::Result<(), Self::Error> {
-		let imbalance = T::deposit_creating(who, amount);
-		drop(imbalance);
-
+		let _ = T::deposit_creating(who, amount);
 		Ok(())
 	}
 
@@ -260,9 +258,7 @@ where
 			WithdrawReason::Transfer.into(),
 			ExistenceRequirement::AllowDeath,
 		)
-		.map(|imbalance| {
-			drop(imbalance);
-		})
+		.map(|_| ())
 	}
 
 	fn slash(who: &AccountId, amount: Self::Balance) -> Self::Balance {
