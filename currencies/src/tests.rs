@@ -108,7 +108,7 @@ fn basic_currency_adapting_srml_balances_slash() {
 		.make_for_srml_balances()
 		.build()
 		.execute_with(|| {
-			assert_eq!(<BasicCurrencyAdapter<SrmlBalances>>::slash(&ALICE, 101), 100);
+			assert_eq!(<BasicCurrencyAdapter<SrmlBalances>>::slash(&ALICE, 101), 1);
 			assert_eq!(SrmlBalances::total_balance(&ALICE), 0);
 			assert_eq!(SrmlBalances::total_issuance(), 100);
 		});

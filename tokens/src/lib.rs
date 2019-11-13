@@ -166,10 +166,10 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	}
 
 	fn slash(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> Self::Balance {
-		let actual_amount = Self::balance(currency_id, who).min(amount);
-		<TotalIssuance<T>>::mutate(currency_id, |v| *v -= actual_amount);
-		<Balance<T>>::mutate(currency_id, who, |v| *v -= actual_amount);
-		actual_amount
+		let slashed_amount = Self::balance(currency_id, who).min(amount);
+		<TotalIssuance<T>>::mutate(currency_id, |v| *v -= slashed_amount);
+		<Balance<T>>::mutate(currency_id, who, |v| *v -= slashed_amount);
+		amount - slashed_amount
 	}
 }
 

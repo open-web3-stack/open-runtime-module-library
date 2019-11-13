@@ -58,7 +58,8 @@ pub trait MultiCurrency<AccountId> {
 
 	/// Deduct the balance of `who` by up to `amount`.
 	///
-	/// As much funds up to `amount` will be deducted as possible, the actual slashed amount will be returned.
+	/// As much funds up to `amount` will be deducted as possible.  If this is less than `amount`,then a non-zero
+	/// value will be returned.
 	fn slash(currency_id: Self::CurrencyId, who: &AccountId, amount: Self::Balance) -> Self::Balance;
 }
 
@@ -112,7 +113,8 @@ pub trait BasicCurrency<AccountId> {
 
 	/// Deduct the balance of `who` by up to `amount`.
 	///
-	/// As much funds up to `amount` will be deducted as possible, the actual slashed amount will be returned.
+	/// As much funds up to `amount` will be deducted as possible. If this is less than `amount`,then a non-zero
+	/// value will be returned.
 	fn slash(who: &AccountId, amount: Self::Balance) -> Self::Balance;
 }
 
