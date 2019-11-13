@@ -34,7 +34,7 @@ fn native_currency_should_work() {
 			assert_eq!(NativeCurrency::balance(&ALICE), 40);
 			assert_eq!(NativeCurrency::balance(&BOB), 160);
 
-			assert_eq!(Currencies::slash(NATIVE_CURRENCY_ID, &ALICE, 10), 10);
+			assert_eq!(Currencies::slash(NATIVE_CURRENCY_ID, &ALICE, 10), 0);
 			assert_eq!(NativeCurrency::balance(&ALICE), 30);
 			assert_eq!(NativeCurrency::total_issuance(), 190);
 		});
@@ -108,7 +108,7 @@ fn basic_currency_adapting_srml_balances_slash() {
 		.make_for_srml_balances()
 		.build()
 		.execute_with(|| {
-			assert_eq!(<BasicCurrencyAdapter<SrmlBalances>>::slash(&ALICE, 101), 100);
+			assert_eq!(<BasicCurrencyAdapter<SrmlBalances>>::slash(&ALICE, 101), 1);
 			assert_eq!(SrmlBalances::total_balance(&ALICE), 0);
 			assert_eq!(SrmlBalances::total_issuance(), 100);
 		});

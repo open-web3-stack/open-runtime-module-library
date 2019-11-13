@@ -71,6 +71,24 @@ fn withdraw_should_work() {
 }
 
 #[test]
+fn slash_should_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			// slashed_amount < amount
+			assert_eq!(Tokens::slash(TEST_TOKEN_ID, &ALICE, 50), 0);
+			assert_eq!(Tokens::balance(TEST_TOKEN_ID, &ALICE), 50);
+			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 150);
+
+			// slashed_amount == amount
+			assert_eq!(Tokens::slash(TEST_TOKEN_ID, &ALICE, 51), 1);
+			assert_eq!(Tokens::balance(TEST_TOKEN_ID, &ALICE), 0);
+			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 100);
+		});
+}
+
+#[test]
 fn update_balance_should_work() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
