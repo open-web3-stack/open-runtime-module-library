@@ -69,12 +69,17 @@ fn should_combined_data() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(12345);
 
+		let expected = Some(TimestampedValue {
+			value: 1200,
+			timestamp: 12345,
+		});
+
 		let key: u32 = 1;
 
-		assert_ok!(ModuleOracle::feed_data(Origin::signed(1), key, 1000));
-		assert_ok!(ModuleOracle::feed_data(Origin::signed(2), key, 1200));
-		assert_ok!(ModuleOracle::feed_data(Origin::signed(3), key, 1300));
-		assert_eq!(ModuleOracle::get(&key), Some(1200));
+		assert_ok!(ModuleOracle::feed_data(Origin::signed(1), key, 1300));
+		assert_ok!(ModuleOracle::feed_data(Origin::signed(2), key, 1000));
+		assert_ok!(ModuleOracle::feed_data(Origin::signed(3), key, 1200));
+		assert_eq!(ModuleOracle::get(&key), expected);
 	});
 }
 
@@ -83,17 +88,22 @@ fn should_return_prev_value() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(12345);
 
+		let expected = Some(TimestampedValue {
+			value: 1200,
+			timestamp: 12345,
+		});
+
 		let key: u32 = 1;
 
-		assert_ok!(ModuleOracle::feed_data(Origin::signed(1), key, 1000));
-		assert_ok!(ModuleOracle::feed_data(Origin::signed(2), key, 1200));
-		assert_ok!(ModuleOracle::feed_data(Origin::signed(3), key, 1300));
-		assert_eq!(ModuleOracle::get(&key), Some(1200));
+		assert_ok!(ModuleOracle::feed_data(Origin::signed(1), key, 1300));
+		assert_ok!(ModuleOracle::feed_data(Origin::signed(2), key, 1000));
+		assert_ok!(ModuleOracle::feed_data(Origin::signed(3), key, 1200));
+		assert_eq!(ModuleOracle::get(&key), expected);
 
 		Timestamp::set_timestamp(23456);
 
 		// should return prev_value
-		assert_eq!(ModuleOracle::get(&key), Some(1200));
+		assert_eq!(ModuleOracle::get(&key), expected);
 	});
 }
 

@@ -22,7 +22,7 @@ pub trait Trait: system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
 	type OnNewData: OnNewData<Self::Key, Self::Value>;
 	type OperatorProvider: OperatorProvider<Self::AccountId>;
-	type CombineData: CombineData<Self::Key, TimestampedValue<Self::Value, MomentOf<Self>>, Self::Value>;
+	type CombineData: CombineData<Self::Key, TimestampedValue<Self::Value, MomentOf<Self>>>;
 	type Time: Time;
 	type Key: Parameter + Member + Copy + Ord;
 	type Value: Parameter + Member + Copy + Ord;
@@ -32,7 +32,7 @@ decl_storage! {
 	trait Store for Module<T: Trait> as Oracle {
 		pub RawValues get(raw_values): double_map T::Key, blake2_256(T::AccountId) => Option<TimestampedValue<T::Value, MomentOf<T>>>;
 		pub HasUpdate get(has_update): map T::Key => bool;
-		pub Values get(values): map T::Key => Option<T::Value>;
+		pub Values get(values): map T::Key => Option<TimestampedValue<T::Value, MomentOf<T>>>;
 	}
 }
 
@@ -72,7 +72,7 @@ impl<T: Trait> Module<T> {
 			.collect()
 	}
 
-	pub fn get(key: &T::Key) -> Option<T::Value> {
+	pub fn get(key: &T::Key) -> Option<TimestampedValue<T::Value, MomentOf<T>>> {
 		if <HasUpdate<T>>::exists(key) {
 			let values = Self::read_raw_values(key);
 			let value = T::CombineData::combine_data(key, values, <Values<T>>::get(&key))?;
