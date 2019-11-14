@@ -17,7 +17,7 @@ utilities = { package = "orml-utilities", path = "../utilities", default-feature
 primitives = { git = "https://github.com/paritytech/substrate.git", package = "substrate-primitives", default-features = false }
 
 [dev-dependencies]
-timestamp = { package = "srml-timestamp",  git = "https://github.com/paritytech/substrate.git", default-features = false }
+timestamp = { package = "srml-timestamp",  git = "https://github.com/paritytech/substrate.git" }
 
 
 [features]
@@ -33,5 +33,4 @@ std = [
 	"traits/std",
 	"utilities/std",
 	"primitives/std",
-	"timestamp/std",
 ]
