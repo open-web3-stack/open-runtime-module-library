@@ -8,8 +8,7 @@ mod timestamped_value;
 
 pub use default_combine_data::DefaultCombineData;
 pub use operator_provider::OperatorProvider;
-use rstd::prelude::Vec;
-use rstd::result;
+use rstd::{prelude::Vec, result};
 use sr_primitives::traits::Member;
 use support::{decl_error, decl_event, decl_module, decl_storage, dispatch::Result, ensure, traits::Time, Parameter};
 use system::ensure_signed;
@@ -60,6 +59,7 @@ decl_event!(
 		<T as Trait>::Key,
 		<T as Trait>::Value,
 	{
+		/// New feed data is submitted (sender, key, value)
 		NewFeedData(AccountId, Key, Value),
 	}
 );
@@ -68,19 +68,18 @@ impl<T: Trait> Module<T> {
 	pub fn read_raw_values(key: &T::Key) -> Vec<TimestampedValue<T::Value, MomentOf<T>>> {
 		T::OperatorProvider::operators()
 			.iter()
-			.filter_map(|x| <RawValues<T>>::get(&key, x))
+			.filter_map(|x| <RawValues<T>>::get(key, x))
 			.collect()
 	}
 
 	pub fn get(key: &T::Key) -> Option<TimestampedValue<T::Value, MomentOf<T>>> {
-		if <HasUpdate<T>>::exists(key) {
+		if <HasUpdate<T>>::take(key) {
 			let values = Self::read_raw_values(key);
-			let value = T::CombineData::combine_data(key, values, <Values<T>>::get(&key))?;
-			<Values<T>>::insert(&key, value);
-			<HasUpdate<T>>::insert(&key, false);
-			return Some(value);
+			let timestamped = T::CombineData::combine_data(key, values, <Values<T>>::get(key))?;
+			<Values<T>>::insert(key, timestamped);
+			return Some(timestamped);
 		}
-		<Values<T>>::get(&key)
+		<Values<T>>::get(key)
 	}
 }
 

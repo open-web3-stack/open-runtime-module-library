@@ -146,7 +146,9 @@ pub trait PriceProvider<CurrencyId, Price> {
 	fn get_price(base: CurrencyId, quote: CurrencyId) -> Option<Price>;
 }
 
+/// Combine data provided by operators
 pub trait CombineData<Key, TimestampedValue> {
+	/// Combine data provided by operators
 	fn combine_data(
 		key: &Key,
 		values: Vec<TimestampedValue>,

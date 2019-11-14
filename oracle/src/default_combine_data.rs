@@ -7,6 +7,8 @@ use traits::CombineData;
 
 use crate::{MomentOf, TimestampedValue, Trait};
 
+/// Sort by value and returns median timestamped value.
+/// Returns prev_value if not enough valid values.
 pub struct DefaultCombineData<T: Trait>(rstd::marker::PhantomData<T>);
 
 impl<T: Trait> CombineData<T::Key, TimestampedValue<T::Value, MomentOf<T>>> for DefaultCombineData<T> {
