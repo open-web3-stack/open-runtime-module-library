@@ -29,13 +29,13 @@ impl<T: Trait> CombineData<T::Key, TimestampedValue<T::Value, MomentOf<T>>> for 
 			})
 			.collect::<Vec<TimestampedValue<T::Value, MomentOf<T>>>>();
 
-		valid_values.sort_by(|a, b| a.value.cmp(&b.value));
-
 		let count = valid_values.len();
 		let minimum_count = <Self as Parameters<MomentOf<T>>>::minimum_count::get();
 		if count < minimum_count {
 			return prev_value;
 		}
+
+		valid_values.sort_by(|a, b| a.value.cmp(&b.value));
 
 		let median_index = count / 2;
 		return Some(valid_values[median_index]);
