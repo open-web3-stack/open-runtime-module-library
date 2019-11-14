@@ -93,14 +93,16 @@ where
 	pub fn enumerate(key: &'a Key) -> Enumerator<'a, Key, Value, Self> {
 		Enumerator::<'a, Key, Value, Self> {
 			key,
+			should_take: false,
 			linkage: Self::read_head(key),
 			_phantom: Default::default(),
 		}
 	}
 
-	pub fn take_all(key: &'a Key) -> TakeableEnumerator<'a, Key, Value, Self> {
-		TakeableEnumerator::<'a, Key, Value, Self> {
+	pub fn take_all(key: &'a Key) -> Enumerator<'a, Key, Value, Self> {
+		Enumerator::<'a, Key, Value, Self> {
 			key,
+			should_take: true,
 			linkage: Self::take_head(key),
 			_phantom: Default::default(),
 		}
@@ -109,6 +111,7 @@ where
 
 pub struct Enumerator<'a, Key, Value, LinkedList> {
 	key: &'a Key,
+	should_take: bool,
 	linkage: LinkedItem<Value>,
 	_phantom: marker::PhantomData<LinkedList>,
 }
@@ -123,40 +126,27 @@ where
 
 	fn next(&mut self) -> Option<Self::Item> {
 		let next_value = self.linkage.next?;
-		self.linkage = <LinkedList<Storage, Key, Value>>::read(self.key, Some(next_value));
-		Some(next_value)
-	}
-}
-
-pub struct TakeableEnumerator<'a, Key, Value, LinkedList> {
-	key: &'a Key,
-	linkage: LinkedItem<Value>,
-	_phantom: marker::PhantomData<LinkedList>,
-}
-
-impl<'a, Key, Value, Storage> iter::Iterator for TakeableEnumerator<'a, Key, Value, LinkedList<Storage, Key, Value>>
-where
-	Key: Parameter,
-	Value: Parameter + Member + Copy,
-	Storage: StorageMap<(Key, Option<Value>), LinkedItem<Value>, Query = Option<LinkedItem<Value>>>,
-{
-	type Item = Value;
-
-	fn next(&mut self) -> Option<Self::Item> {
-		let next_value = self.linkage.next?;
-		self.linkage = <LinkedList<Storage, Key, Value>>::take(self.key, Some(next_value));
+		if self.should_take {
+			self.linkage = <LinkedList<Storage, Key, Value>>::take(self.key, Some(next_value));
+		} else {
+			self.linkage = <LinkedList<Storage, Key, Value>>::read(self.key, Some(next_value));
+		}
 		Some(next_value)
 	}
 }
 
 // FIXME: error[E0366]: Implementations of Drop cannot be specialized
-// impl<'a, Key, Value, Storage> Drop for TakeableEnumerator<'a, Key, Value, LinkedList<Storage, Key, Value>>
+// impl<'a, Key, Value, Storage> Drop for Enumerator<'a, Key, Value, LinkedList<Storage, Key, Value>>
 // where
 // 	Key: Parameter,
 // 	Value: Parameter + Member + Copy,
 // 	Storage: StorageMap<(Key, Option<Value>), LinkedItem<Value>, Query = Option<LinkedItem<Value>>>,
 // {
 // 	fn drop(&mut self) {
+// 		if !self.should_take {
+// 			return
+// 		}
+
 // 		while self.next() != None {}
 // 	}
 // }
