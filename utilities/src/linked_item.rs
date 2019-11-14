@@ -27,10 +27,6 @@ where
 		Self::read(key, None)
 	}
 
-	fn take_head(key: &Key) -> LinkedItem<Value> {
-		Self::take(key, None)
-	}
-
 	fn write_head(key: &Key, item: LinkedItem<Value>) {
 		Self::write(key, None, item);
 	}
@@ -39,8 +35,10 @@ where
 		Storage::get(&(key.clone(), value)).unwrap_or_else(|| Default::default())
 	}
 
-	fn take(key: &Key, value: Option<Value>) -> LinkedItem<Value> {
-		Storage::take(&(key.clone(), value)).unwrap_or_else(|| Default::default())
+	fn take(key: &Key, value: Value) -> LinkedItem<Value> {
+		let item = Self::read(key, Some(value));
+		Self::remove(key, value);
+		item
 	}
 
 	fn write(key: &Key, value: Option<Value>, item: LinkedItem<Value>) {
@@ -103,7 +101,7 @@ where
 		Enumerator::<'a, Key, Value, Self> {
 			key,
 			should_take: true,
-			linkage: Self::take_head(key),
+			linkage: Self::read_head(key),
 			_phantom: Default::default(),
 		}
 	}
@@ -127,7 +125,7 @@ where
 	fn next(&mut self) -> Option<Self::Item> {
 		let next_value = self.linkage.next?;
 		if self.should_take {
-			self.linkage = <LinkedList<Storage, Key, Value>>::take(self.key, Some(next_value));
+			self.linkage = <LinkedList<Storage, Key, Value>>::take(self.key, next_value);
 		} else {
 			self.linkage = <LinkedList<Storage, Key, Value>>::read(self.key, Some(next_value));
 		}
@@ -355,7 +353,7 @@ mod tests {
 	}
 
 	#[test]
-	fn linked_list_enumerate() {
+	fn linked_list_can_enumerate() {
 		new_test_ext().execute_with(|| {
 			assert_eq!(TestLinkedList::enumerate(&0).collect::<Vec<_>>(), []);
 
@@ -372,7 +370,7 @@ mod tests {
 	}
 
 	#[test]
-	fn linked_list_take_all() {
+	fn linked_list_can_take_all() {
 		new_test_ext().execute_with(|| {
 			assert_eq!(TestLinkedList::take_all(&0).collect::<Vec<_>>(), []);
 
