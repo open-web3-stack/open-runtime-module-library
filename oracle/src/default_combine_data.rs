@@ -5,18 +5,18 @@ use support::{
 };
 use traits::CombineData;
 
-use crate::{MomentOf, TimestampedValue, Trait};
+use crate::{MomentOf, TimestampedValueOf, Trait};
 
 /// Sort by value and returns median timestamped value.
 /// Returns prev_value if not enough valid values.
 pub struct DefaultCombineData<T: Trait>(rstd::marker::PhantomData<T>);
 
-impl<T: Trait> CombineData<T::Key, TimestampedValue<T::Value, MomentOf<T>>> for DefaultCombineData<T> {
+impl<T: Trait> CombineData<T::Key, TimestampedValueOf<T>> for DefaultCombineData<T> {
 	fn combine_data(
 		_key: &T::Key,
-		values: Vec<TimestampedValue<T::Value, MomentOf<T>>>,
-		prev_value: Option<TimestampedValue<T::Value, MomentOf<T>>>,
-	) -> Option<TimestampedValue<T::Value, MomentOf<T>>> {
+		values: Vec<TimestampedValueOf<T>>,
+		prev_value: Option<TimestampedValueOf<T>>,
+	) -> Option<TimestampedValueOf<T>> {
 		let expires_in: MomentOf<T> = <Self as Parameters<MomentOf<T>>>::expires_in::get().into();
 		let now = T::Time::now();
 		let mut valid_values = values
@@ -27,7 +27,7 @@ impl<T: Trait> CombineData<T::Key, TimestampedValue<T::Value, MomentOf<T>>> for 
 				}
 				None
 			})
-			.collect::<Vec<TimestampedValue<T::Value, MomentOf<T>>>>();
+			.collect::<Vec<TimestampedValueOf<T>>>();
 
 		let count = valid_values.len();
 		let minimum_count = <Self as Parameters<MomentOf<T>>>::minimum_count::get();
