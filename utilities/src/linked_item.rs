@@ -1,5 +1,5 @@
 use codec::{Decode, Encode};
-use rstd::{iter, marker};
+use rstd::{iter, marker, prelude::*};
 use sr_primitives::{traits::Member, RuntimeDebug};
 use support::{Parameter, StorageMap};
 
@@ -21,7 +21,7 @@ impl<'a, Storage, Key, Value> LinkedList<Storage, Key, Value>
 where
 	Value: Parameter + Member + Copy,
 	Key: Parameter,
-	Storage: StorageMap<(Key, Option<Value>), LinkedItem<Value>, Query = Option<LinkedItem<Value>>>,
+	Storage: 'static + StorageMap<(Key, Option<Value>), LinkedItem<Value>, Query = Option<LinkedItem<Value>>>,
 {
 	fn read_head(key: &Key) -> LinkedItem<Value> {
 		Self::read(key, None)
@@ -89,21 +89,11 @@ where
 	}
 
 	pub fn enumerate(key: &'a Key) -> Enumerator<'a, Key, Value, Self> {
-		Enumerator::<'a, Key, Value, Self> {
-			key,
-			should_take: false,
-			linkage: Self::read_head(key),
-			_phantom: Default::default(),
-		}
+		Enumerator::<'a, Key, Value, Self>::new(key, false, Self::read_head(key))
 	}
 
 	pub fn take_all(key: &'a Key) -> Enumerator<'a, Key, Value, Self> {
-		Enumerator::<'a, Key, Value, Self> {
-			key,
-			should_take: true,
-			linkage: Self::read_head(key),
-			_phantom: Default::default(),
-		}
+		Enumerator::<'a, Key, Value, Self>::new(key, true, Self::read_head(key))
 	}
 }
 
@@ -111,18 +101,26 @@ pub struct Enumerator<'a, Key, Value, LinkedList> {
 	key: &'a Key,
 	should_take: bool,
 	linkage: LinkedItem<Value>,
+	next_fn: Box<dyn Fn(&mut Enumerator<'a, Key, Value, LinkedList>) -> Option<Value>>,
 	_phantom: marker::PhantomData<LinkedList>,
 }
 
-impl<'a, Key, Value, Storage> iter::Iterator for Enumerator<'a, Key, Value, LinkedList<Storage, Key, Value>>
+impl<'a, Key, Value, Storage> Enumerator<'a, Key, Value, LinkedList<Storage, Key, Value>>
 where
 	Key: Parameter,
 	Value: Parameter + Member + Copy,
-	Storage: StorageMap<(Key, Option<Value>), LinkedItem<Value>, Query = Option<LinkedItem<Value>>>,
+	Storage: 'static + StorageMap<(Key, Option<Value>), LinkedItem<Value>, Query = Option<LinkedItem<Value>>>,
 {
-	type Item = Value;
-
-	fn next(&mut self) -> Option<Self::Item> {
+	fn new(key: &'a Key, should_take: bool, linkage: LinkedItem<Value>) -> Self {
+		Self {
+			key,
+			should_take,
+			linkage,
+			next_fn: Box::new(Self::next),
+			_phantom: Default::default(),
+		}
+	}
+	fn next(&mut self) -> Option<Value> {
 		let next_value = self.linkage.next?;
 		if self.should_take {
 			self.linkage = <LinkedList<Storage, Key, Value>>::take(self.key, next_value);
@@ -133,21 +131,28 @@ where
 	}
 }
 
-// FIXME: error[E0366]: Implementations of Drop cannot be specialized
-// impl<'a, Key, Value, Storage> Drop for Enumerator<'a, Key, Value, LinkedList<Storage, Key, Value>>
-// where
-// 	Key: Parameter,
-// 	Value: Parameter + Member + Copy,
-// 	Storage: StorageMap<(Key, Option<Value>), LinkedItem<Value>, Query = Option<LinkedItem<Value>>>,
-// {
-// 	fn drop(&mut self) {
-// 		if !self.should_take {
-// 			return
-// 		}
+impl<'a, Key, Value, Storage> iter::Iterator for Enumerator<'a, Key, Value, LinkedList<Storage, Key, Value>>
+where
+	Key: Parameter,
+	Value: Parameter + Member + Copy,
+	Storage: 'static + StorageMap<(Key, Option<Value>), LinkedItem<Value>, Query = Option<LinkedItem<Value>>>,
+{
+	type Item = Value;
 
-// 		while self.next() != None {}
-// 	}
-// }
+	fn next(&mut self) -> Option<Self::Item> {
+		(self.next_fn)(self)
+	}
+}
+
+impl<'a, Key, Value, LinkedList> Drop for Enumerator<'a, Key, Value, LinkedList> {
+	fn drop(&mut self) {
+		if !self.should_take {
+			return;
+		}
+
+		while (self.next_fn)(self).is_some() {}
+	}
+}
 
 #[cfg(test)]
 mod tests {
