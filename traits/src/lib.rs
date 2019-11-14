@@ -9,6 +9,7 @@ use rstd::{
 	cmp::{Eq, PartialEq},
 	convert::{TryFrom, TryInto},
 	fmt::Debug,
+	prelude::Vec,
 	result,
 };
 use sr_primitives::traits::{MaybeSerializeDeserialize, SimpleArithmetic};
@@ -146,4 +147,14 @@ pub trait DataProvider<Key, Value> {
 
 pub trait PriceProvider<CurrencyId, Price> {
 	fn get_price(base: CurrencyId, quote: CurrencyId) -> Option<Price>;
+}
+
+/// Combine data provided by operators
+pub trait CombineData<Key, TimestampedValue> {
+	/// Combine data provided by operators
+	fn combine_data(
+		key: &Key,
+		values: Vec<TimestampedValue>,
+		prev_value: Option<TimestampedValue>,
+	) -> Option<TimestampedValue>;
 }

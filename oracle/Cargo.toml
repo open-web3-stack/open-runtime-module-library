@@ -12,9 +12,13 @@ support = { package = "srml-support", git = "https://github.com/paritytech/subst
 system = { package = "srml-system", git = "https://github.com/paritytech/substrate.git", default-features = false }
 runtime_io = { package = "sr-io", git = "https://github.com/paritytech/substrate.git", default-features = false }
 rstd = { package = "sr-std", git = "https://github.com/paritytech/substrate.git", default-features = false }
-
 traits = { package = "orml-traits", path = "../traits", default-features = false }
 utilities = { package = "orml-utilities", path = "../utilities", default-features = false }
+primitives = { git = "https://github.com/paritytech/substrate.git", package = "substrate-primitives", default-features = false }
+
+[dev-dependencies]
+timestamp = { package = "srml-timestamp",  git = "https://github.com/paritytech/substrate.git", default-features = false }
+
 
 [features]
 default = ["std"]
@@ -28,4 +32,6 @@ std = [
 	"rstd/std",
 	"traits/std",
 	"utilities/std",
+	"primitives/std",
+	"timestamp/std",
 ]
