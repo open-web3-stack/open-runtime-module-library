@@ -1,4 +1,5 @@
 use codec::{Decode, Encode};
+use rstd::marker;
 use sr_primitives::{traits::Member, RuntimeDebug};
 use support::{Parameter, StorageMap};
 
@@ -10,7 +11,7 @@ pub struct LinkedItem<Item> {
 
 pub struct LinkedList<Storage, Key, Item>(rstd::marker::PhantomData<(Storage, Key, Item)>);
 
-impl<Storage, Key, Value> LinkedList<Storage, Key, Value>
+impl<'a, Storage, Key, Value> LinkedList<Storage, Key, Value>
 where
 	Value: Parameter + Member + Copy,
 	Key: Parameter,
@@ -73,6 +74,35 @@ where
 
 			Self::write(key, item.next, new_next);
 		}
+	}
+
+	pub fn enumerate(key: &'a Key) -> Enumerator<'a, Key, Value, Self> {
+		Enumerator::<'a, Key, Value, Self> {
+			key,
+			linkage: Self::read_head(key),
+			_phantom: Default::default(),
+		}
+	}
+}
+
+pub struct Enumerator<'a, Key, Value, LinkedList> {
+	key: &'a Key,
+	linkage: LinkedItem<Value>,
+	_phantom: marker::PhantomData<LinkedList>,
+}
+
+impl<'a, Key, Value, Storage> rstd::iter::Iterator for Enumerator<'a, Key, Value, LinkedList<Storage, Key, Value>>
+where
+	Key: Parameter,
+	Value: Parameter + Member + Copy,
+	Storage: StorageMap<(Key, Option<Value>), LinkedItem<Value>, Query = Option<LinkedItem<Value>>>,
+{
+	type Item = Value;
+
+	fn next(&mut self) -> Option<Self::Item> {
+		let next_value = self.linkage.next?;
+		self.linkage = <LinkedList<Storage, Key, Value>>::read(self.key, Some(next_value));
+		Some(next_value)
 	}
 }
 
@@ -285,6 +315,21 @@ mod tests {
 			assert_eq!(TestItem::get(&(0, Some(2))), None);
 
 			assert_eq!(TestItem::get(&(0, Some(2))), None);
+		});
+	}
+
+	#[test]
+	fn linked_list_enumerate() {
+		new_test_ext().execute_with(|| {
+			TestLinkedList::append(&0, 1);
+			TestLinkedList::append(&0, 2);
+			TestLinkedList::append(&0, 3);
+
+			// iteration
+			assert_eq!(TestLinkedList::enumerate(&0).collect::<Vec<_>>(), [1, 2, 3]);
+
+			// should not take
+			assert_eq!(TestLinkedList::enumerate(&0).collect::<Vec<_>>(), [1, 2, 3]);
 		});
 	}
 }
