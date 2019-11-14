@@ -21,8 +21,8 @@ where
 		Self::read(key, None)
 	}
 
-	fn write_head(account: &Key, item: LinkedItem<Value>) {
-		Self::write(account, None, item);
+	fn write_head(key: &Key, item: LinkedItem<Value>) {
+		Self::write(key, None, item);
 	}
 
 	fn read(key: &Key, value: Option<Value>) -> LinkedItem<Value> {
