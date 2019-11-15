@@ -2,10 +2,10 @@
 
 #![cfg(test)]
 
+use paint_balances;
+use paint_support::{impl_outer_origin, parameter_types};
 use primitives::H256;
 use sr_primitives::{testing::Header, traits::IdentityLookup, Perbill};
-use srml_balances;
-use srml_support::{impl_outer_origin, parameter_types};
 
 use tokens;
 
@@ -53,7 +53,7 @@ parameter_types! {
 	pub const CreationFee: u64 = 2;
 }
 
-impl srml_balances::Trait for Runtime {
+impl paint_balances::Trait for Runtime {
 	type Balance = Balance;
 	type OnFreeBalanceZero = ();
 	type OnNewAccount = ();
@@ -65,7 +65,7 @@ impl srml_balances::Trait for Runtime {
 	type CreationFee = CreationFee;
 }
 
-pub type SrmlBalances = srml_balances::Module<Runtime>;
+pub type PaintBalances = paint_balances::Module<Runtime>;
 
 impl tokens::Trait for Runtime {
 	type Event = ();
@@ -98,8 +98,8 @@ pub struct ExtBuilder {
 	currency_ids: Vec<CurrencyId>,
 	endowed_accounts: Vec<AccountId>,
 	initial_balance: Balance,
-	// whether the configs are for `srml_balances` or not
-	is_for_srml_balances: bool,
+	// whether the configs are for `paint_balances` or not
+	is_for_paint_balances: bool,
 }
 
 impl Default for ExtBuilder {
@@ -108,7 +108,7 @@ impl Default for ExtBuilder {
 			currency_ids: vec![NATIVE_CURRENCY_ID, X_TOKEN_ID],
 			endowed_accounts: vec![0],
 			initial_balance: 0,
-			is_for_srml_balances: false,
+			is_for_paint_balances: false,
 		}
 	}
 }
@@ -124,16 +124,16 @@ impl ExtBuilder {
 		self.balances(vec![ALICE, BOB], 100)
 	}
 
-	pub fn make_for_srml_balances(mut self) -> Self {
-		self.is_for_srml_balances = true;
+	pub fn make_for_paint_balances(mut self) -> Self {
+		self.is_for_paint_balances = true;
 		self
 	}
 
 	pub fn build(self) -> runtime_io::TestExternalities {
 		let mut t = system::GenesisConfig::default().build_storage::<Runtime>().unwrap();
 
-		if self.is_for_srml_balances {
-			srml_balances::GenesisConfig::<Runtime> {
+		if self.is_for_paint_balances {
+			paint_balances::GenesisConfig::<Runtime> {
 				balances: self
 					.endowed_accounts
 					.iter()

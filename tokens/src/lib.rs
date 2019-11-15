@@ -1,5 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use paint_support::{decl_error, decl_event, decl_module, decl_storage, ensure, Parameter};
 use rstd::{
 	convert::{TryFrom, TryInto},
 	result,
@@ -7,11 +8,10 @@ use rstd::{
 use sr_primitives::traits::{
 	CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, SimpleArithmetic, StaticLookup,
 };
-use srml_support::{decl_error, decl_event, decl_module, decl_storage, ensure, Parameter};
-// FIXME: `srml-` prefix should be used for all srml modules, but currently `srml_system`
+// FIXME: `paint-` prefix should be used for all paint modules, but currently `paint_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
-use srml_system::{self as system, ensure_signed};
+use paint_system::{self as system, ensure_signed};
 
 use traits::{
 	arithmetic::{self, Signed},
@@ -21,8 +21,8 @@ use traits::{
 mod mock;
 mod tests;
 
-pub trait Trait: srml_system::Trait {
-	type Event: From<Event<Self>> + Into<<Self as srml_system::Trait>::Event>;
+pub trait Trait: paint_system::Trait {
+	type Event: From<Event<Self>> + Into<<Self as paint_system::Trait>::Event>;
 	type Balance: Parameter + Member + SimpleArithmetic + Default + Copy + MaybeSerializeDeserialize;
 	type Amount: Signed
 		+ TryInto<Self::Balance>
@@ -64,7 +64,7 @@ decl_storage! {
 
 decl_event!(
 	pub enum Event<T> where
-		<T as srml_system::Trait>::AccountId,
+		<T as paint_system::Trait>::AccountId,
 		<T as Trait>::CurrencyId,
 		<T as Trait>::Balance
 	{

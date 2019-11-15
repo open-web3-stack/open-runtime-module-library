@@ -1,8 +1,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use paint_support::{decl_module, decl_storage, Parameter};
+use paint_system as system;
 use sr_primitives::traits::{MaybeSerializeDeserialize, Member, SimpleArithmetic, Zero};
-use srml_support::{decl_module, decl_storage, Parameter};
-use srml_system as system;
 use traits::{DataProvider, PriceProvider};
 
 pub trait Trait: system::Trait {

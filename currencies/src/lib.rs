@@ -1,26 +1,28 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use paint_support::{
+	decl_event, decl_module, decl_storage,
+	traits::{Currency as PaintCurrency, ExistenceRequirement, Get, WithdrawReason},
+};
 use rstd::{marker, result};
 use sr_primitives::traits::StaticLookup;
-use srml_support::{
-	decl_event, decl_module, decl_storage,
-	traits::{Currency as SrmlCurrency, ExistenceRequirement, Get, WithdrawReason},
-};
-// FIXME: `srml-` prefix should be used for all srml modules, but currently `srml_system`
+// FIXME: `paint-` prefix should be used for all paint modules, but currently `paint_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
-use srml_system::{self as system, ensure_signed};
+use paint_system::{self as system, ensure_signed};
 
 use traits::{BasicCurrency, BasicCurrencyExtended, MultiCurrency, MultiCurrencyExtended};
 
 mod mock;
 mod tests;
 
-type BalanceOf<T> = <<T as Trait>::MultiCurrency as MultiCurrency<<T as srml_system::Trait>::AccountId>>::Balance;
-type CurrencyIdOf<T> = <<T as Trait>::MultiCurrency as MultiCurrency<<T as srml_system::Trait>::AccountId>>::CurrencyId;
-type ErrorOf<T> = <<T as Trait>::MultiCurrency as MultiCurrency<<T as srml_system::Trait>::AccountId>>::Error;
+type BalanceOf<T> = <<T as Trait>::MultiCurrency as MultiCurrency<<T as paint_system::Trait>::AccountId>>::Balance;
+type CurrencyIdOf<T> =
+	<<T as Trait>::MultiCurrency as MultiCurrency<<T as paint_system::Trait>::AccountId>>::CurrencyId;
+type ErrorOf<T> = <<T as Trait>::MultiCurrency as MultiCurrency<<T as paint_system::Trait>::AccountId>>::Error;
 
-type AmountOf<T> = <<T as Trait>::MultiCurrency as MultiCurrencyExtended<<T as srml_system::Trait>::AccountId>>::Amount;
+type AmountOf<T> =
+	<<T as Trait>::MultiCurrency as MultiCurrencyExtended<<T as paint_system::Trait>::AccountId>>::Amount;
 
 pub trait Trait: system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
@@ -226,12 +228,12 @@ pub type NativeCurrencyOf<T> = Currency<T, <T as Trait>::GetNativeCurrencyId>;
 /// Adapt other currency traits implementation to `BasicCurrency`.
 pub struct BasicCurrencyAdapter<T>(marker::PhantomData<T>);
 
-// Adapat `srml_support::traits::Currency`
+// Adapat `paint_support::traits::Currency`
 impl<AccountId, T> BasicCurrency<AccountId> for BasicCurrencyAdapter<T>
 where
-	T: SrmlCurrency<AccountId>,
+	T: PaintCurrency<AccountId>,
 {
-	type Balance = <T as SrmlCurrency<AccountId>>::Balance;
+	type Balance = <T as PaintCurrency<AccountId>>::Balance;
 	type Error = &'static str;
 
 	fn total_issuance() -> Self::Balance {
