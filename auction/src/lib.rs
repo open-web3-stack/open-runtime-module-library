@@ -1,11 +1,11 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use rstd::result;
-use sr_primitives::traits::{MaybeSerializeDeserialize, Member, SimpleArithmetic};
-use srml_support::{
+use paint_support::{
 	decl_error, decl_event, decl_module, decl_storage, dispatch::Result, ensure, Parameter, StorageMap, StorageValue,
 };
-use srml_system::{self as system, ensure_signed};
+use paint_system::{self as system, ensure_signed};
+use rstd::result;
+use sr_primitives::traits::{MaybeSerializeDeserialize, Member, SimpleArithmetic};
 use utilities::{LinkedItem, LinkedList};
 
 use traits::{Auction, AuctionHandler, AuctionInfo};
@@ -13,19 +13,19 @@ use traits::{Auction, AuctionHandler, AuctionInfo};
 mod mock;
 mod tests;
 
-pub trait Trait: srml_system::Trait {
-	type Event: From<Event<Self>> + Into<<Self as srml_system::Trait>::Event>;
+pub trait Trait: paint_system::Trait {
+	type Event: From<Event<Self>> + Into<<Self as paint_system::Trait>::Event>;
 	type Balance: Parameter + Member + SimpleArithmetic + Default + Copy + MaybeSerializeDeserialize;
 	type AuctionId: Parameter + Member + SimpleArithmetic + Default + Copy + MaybeSerializeDeserialize;
 	type Handler: AuctionHandler<Self::AccountId, Self::Balance, Self::BlockNumber, Self::AuctionId>;
 }
 
 type AuctionEndTimeList<T> =
-	LinkedList<AuctionEndTime<T>, <T as srml_system::Trait>::BlockNumber, <T as Trait>::AuctionId>;
+	LinkedList<AuctionEndTime<T>, <T as paint_system::Trait>::BlockNumber, <T as Trait>::AuctionId>;
 
 decl_event!(
 	pub enum Event<T> where
-		<T as srml_system::Trait>::AccountId,
+		<T as paint_system::Trait>::AccountId,
 		<T as Trait>::Balance,
 		<T as Trait>::AuctionId,
 	{
@@ -55,7 +55,7 @@ decl_module! {
 				ensure!(value > 0.into(), Error::InvalidBidPrice.into());
 			}
 			let bid_result = T::Handler::on_new_bid(
-				<srml_system::Module<T>>::block_number(),
+				<paint_system::Module<T>>::block_number(),
 				id,
 				(from.clone(), value),
 				auction.bid.clone(),
