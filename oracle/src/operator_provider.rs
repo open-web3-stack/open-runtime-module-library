@@ -7,3 +7,13 @@ pub trait OperatorProvider<AccountId> {
 	// return a list of operators
 	fn operators() -> Vec<AccountId>;
 }
+
+impl<AccountId> OperatorProvider<AccountId> for () {
+	fn can_feed_data(_who: &AccountId) -> bool {
+		false
+	}
+
+	fn operators() -> Vec<AccountId> {
+		Vec::new()
+	}
+}

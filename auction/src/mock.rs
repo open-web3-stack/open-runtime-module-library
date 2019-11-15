@@ -56,8 +56,6 @@ impl system::Trait for Runtime {
 	type Version = ();
 }
 
-pub type System = system::Module<Runtime>;
-
 pub struct Handler;
 
 impl AuctionHandler<AccountId, Balance, BlockNumber, AuctionId> for Handler {
