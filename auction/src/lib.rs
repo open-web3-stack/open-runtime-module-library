@@ -49,13 +49,19 @@ decl_module! {
 			let from = ensure_signed(origin)?;
 
 			let mut auction = <Auctions<T>>::get(id).ok_or(Error::AuctionNotExist)?;
+
+			let block_number = <paint_system::Module<T>>::block_number();
+
+			// make sure auction is started
+			ensure!(block_number >= auction.start, Error::AuctionNotStarted.into());
+
 			if let Some(ref current_bid) = auction.bid {
 				ensure!(value > current_bid.1, Error::InvalidBidPrice.into());
 			} else {
 				ensure!(value > 0.into(), Error::InvalidBidPrice.into());
 			}
 			let bid_result = T::Handler::on_new_bid(
-				<paint_system::Module<T>>::block_number(),
+				block_number,
 				id,
 				(from.clone(), value),
 				auction.bid.clone(),
@@ -102,6 +108,7 @@ decl_error! {
 	/// Error for auction module.
 	pub enum Error {
 		AuctionNotExist,
+		AuctionNotStarted,
 		BidNotAccepted,
 		InvalidBidPrice,
 	}
@@ -133,8 +140,8 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber> for Module<T> {
 		Ok(())
 	}
 
-	fn new_auction(_start: T::BlockNumber, end: Option<T::BlockNumber>) -> Self::AuctionId {
-		let auction = AuctionInfo { bid: None, end: end };
+	fn new_auction(start: T::BlockNumber, end: Option<T::BlockNumber>) -> Self::AuctionId {
+		let auction = AuctionInfo { bid: None, start, end };
 		let auction_id = Self::auctions_count();
 		<AuctionsCount<T>>::mutate(|n| *n += Self::AuctionId::from(1));
 		<Auctions<T>>::insert(auction_id, auction);

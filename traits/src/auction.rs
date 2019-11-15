@@ -12,6 +12,8 @@ use sr_primitives::{
 pub struct AuctionInfo<AccountId, Balance, BlockNumber> {
 	/// Current bidder and bid price.
 	pub bid: Option<(AccountId, Balance)>,
+	/// Define which block this auction will be started.
+	pub start: BlockNumber,
 	/// Define which block this auction will be ended.
 	pub end: Option<BlockNumber>,
 }
