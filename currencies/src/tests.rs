@@ -4,7 +4,7 @@
 
 use super::*;
 use mock::{
-	paintBalances, CreationFee, Currencies, ExtBuilder, NativeCurrency, ALICE, BOB, EVA, NATIVE_CURRENCY_ID, X_TOKEN_ID,
+	CreationFee, Currencies, ExtBuilder, NativeCurrency, PaintBalances, ALICE, BOB, EVA, NATIVE_CURRENCY_ID, X_TOKEN_ID,
 };
 use paint_support::assert_ok;
 
@@ -64,14 +64,14 @@ fn basic_currency_adapting_paint_balances_transfer() {
 		.make_for_paint_balances()
 		.build()
 		.execute_with(|| {
-			assert_ok!(<BasicCurrencyAdapter<paintBalances>>::transfer(&ALICE, &BOB, 50));
-			assert_eq!(paintBalances::total_balance(&ALICE), 50);
-			assert_eq!(paintBalances::total_balance(&BOB), 150);
+			assert_ok!(<BasicCurrencyAdapter<PaintBalances>>::transfer(&ALICE, &BOB, 50));
+			assert_eq!(PaintBalances::total_balance(&ALICE), 50);
+			assert_eq!(PaintBalances::total_balance(&BOB), 150);
 
 			// creation fee
-			assert_ok!(<BasicCurrencyAdapter<paintBalances>>::transfer(&ALICE, &EVA, 10));
-			assert_eq!(paintBalances::total_balance(&ALICE), 40 - CreationFee::get());
-			assert_eq!(paintBalances::total_balance(&EVA), 10);
+			assert_ok!(<BasicCurrencyAdapter<PaintBalances>>::transfer(&ALICE, &EVA, 10));
+			assert_eq!(PaintBalances::total_balance(&ALICE), 40 - CreationFee::get());
+			assert_eq!(PaintBalances::total_balance(&EVA), 10);
 		});
 }
 
@@ -82,9 +82,9 @@ fn basic_currency_adapting_paint_balances_deposit() {
 		.make_for_paint_balances()
 		.build()
 		.execute_with(|| {
-			assert_ok!(<BasicCurrencyAdapter<paintBalances>>::deposit(&EVA, 50));
-			assert_eq!(paintBalances::total_balance(&EVA), 50);
-			assert_eq!(paintBalances::total_issuance(), 250);
+			assert_ok!(<BasicCurrencyAdapter<PaintBalances>>::deposit(&EVA, 50));
+			assert_eq!(PaintBalances::total_balance(&EVA), 50);
+			assert_eq!(PaintBalances::total_issuance(), 250);
 		});
 }
 
@@ -95,9 +95,9 @@ fn basic_currency_adapting_paint_balances_withdraw() {
 		.make_for_paint_balances()
 		.build()
 		.execute_with(|| {
-			assert_ok!(<BasicCurrencyAdapter<paintBalances>>::withdraw(&ALICE, 100));
-			assert_eq!(paintBalances::total_balance(&ALICE), 0);
-			assert_eq!(paintBalances::total_issuance(), 100);
+			assert_ok!(<BasicCurrencyAdapter<PaintBalances>>::withdraw(&ALICE, 100));
+			assert_eq!(PaintBalances::total_balance(&ALICE), 0);
+			assert_eq!(PaintBalances::total_issuance(), 100);
 		});
 }
 
@@ -108,8 +108,8 @@ fn basic_currency_adapting_paint_balances_slash() {
 		.make_for_paint_balances()
 		.build()
 		.execute_with(|| {
-			assert_eq!(<BasicCurrencyAdapter<paintBalances>>::slash(&ALICE, 101), 1);
-			assert_eq!(paintBalances::total_balance(&ALICE), 0);
-			assert_eq!(paintBalances::total_issuance(), 100);
+			assert_eq!(<BasicCurrencyAdapter<PaintBalances>>::slash(&ALICE, 101), 1);
+			assert_eq!(PaintBalances::total_balance(&ALICE), 0);
+			assert_eq!(PaintBalances::total_issuance(), 100);
 		});
 }

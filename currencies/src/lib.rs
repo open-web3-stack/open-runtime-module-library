@@ -2,7 +2,7 @@
 
 use paint_support::{
 	decl_event, decl_module, decl_storage,
-	traits::{Currency as paintCurrency, ExistenceRequirement, Get, WithdrawReason},
+	traits::{Currency as PaintCurrency, ExistenceRequirement, Get, WithdrawReason},
 };
 use rstd::{marker, result};
 use sr_primitives::traits::StaticLookup;
@@ -231,9 +231,9 @@ pub struct BasicCurrencyAdapter<T>(marker::PhantomData<T>);
 // Adapat `paint_support::traits::Currency`
 impl<AccountId, T> BasicCurrency<AccountId> for BasicCurrencyAdapter<T>
 where
-	T: paintCurrency<AccountId>,
+	T: PaintCurrency<AccountId>,
 {
-	type Balance = <T as paintCurrency<AccountId>>::Balance;
+	type Balance = <T as PaintCurrency<AccountId>>::Balance;
 	type Error = &'static str;
 
 	fn total_issuance() -> Self::Balance {

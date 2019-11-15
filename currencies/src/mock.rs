@@ -65,7 +65,7 @@ impl paint_balances::Trait for Runtime {
 	type CreationFee = CreationFee;
 }
 
-pub type paintBalances = paint_balances::Module<Runtime>;
+pub type PaintBalances = paint_balances::Module<Runtime>;
 
 impl tokens::Trait for Runtime {
 	type Event = ();
