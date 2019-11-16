@@ -17,7 +17,7 @@ impl<Item> Default for LinkedItem<Item> {
 
 pub struct LinkedList<Storage, Key, Item>(rstd::marker::PhantomData<(Storage, Key, Item)>);
 
-impl<'a, Storage, Key, Value> LinkedList<Storage, Key, Value>
+impl<Storage, Key, Value> LinkedList<Storage, Key, Value>
 where
 	Value: Parameter + Member + Copy,
 	Key: Parameter,
@@ -88,50 +88,50 @@ where
 		}
 	}
 
-	pub fn enumerate(key: &'a Key) -> Enumerator<'a, Key, Value, Self> {
-		Enumerator::<'a, Key, Value, Self>::new(key, false, Self::read_head(key))
+	pub fn enumerate(key: &Key) -> Enumerator<Key, Value, Self> {
+		Enumerator::<Key, Value, Self>::new(key, false, Self::read_head(key))
 	}
 
-	pub fn take_all(key: &'a Key) -> Enumerator<'a, Key, Value, Self> {
-		Enumerator::<'a, Key, Value, Self>::new(key, true, Self::read_head(key))
+	pub fn take_all(key: &Key) -> Enumerator<Key, Value, Self> {
+		Enumerator::<Key, Value, Self>::new(key, true, Self::read_head(key))
 	}
 }
 
-pub struct Enumerator<'a, Key, Value, LinkedList> {
-	key: &'a Key,
+pub struct Enumerator<Key, Value, LinkedList> {
+	key: Key,
 	should_take: bool,
 	linkage: LinkedItem<Value>,
-	next_fn: Box<dyn Fn(&mut Enumerator<'a, Key, Value, LinkedList>) -> Option<Value>>,
+	next_fn: fn(&mut Enumerator<Key, Value, LinkedList>) -> Option<Value>,
 	_phantom: marker::PhantomData<LinkedList>,
 }
 
-impl<'a, Key, Value, Storage> Enumerator<'a, Key, Value, LinkedList<Storage, Key, Value>>
+impl<Key, Value, Storage> Enumerator<Key, Value, LinkedList<Storage, Key, Value>>
 where
 	Key: Parameter,
 	Value: Parameter + Member + Copy,
 	Storage: 'static + StorageMap<(Key, Option<Value>), LinkedItem<Value>, Query = Option<LinkedItem<Value>>>,
 {
-	fn new(key: &'a Key, should_take: bool, linkage: LinkedItem<Value>) -> Self {
+	fn new(key: &Key, should_take: bool, linkage: LinkedItem<Value>) -> Self {
 		Self {
-			key,
+			key: key.clone(),
 			should_take,
 			linkage,
-			next_fn: Box::new(Self::next),
+			next_fn: Self::next,
 			_phantom: Default::default(),
 		}
 	}
 	fn next(&mut self) -> Option<Value> {
 		let next_value = self.linkage.next?;
 		if self.should_take {
-			self.linkage = <LinkedList<Storage, Key, Value>>::take(self.key, next_value);
+			self.linkage = <LinkedList<Storage, Key, Value>>::take(&self.key, next_value);
 		} else {
-			self.linkage = <LinkedList<Storage, Key, Value>>::read(self.key, Some(next_value));
+			self.linkage = <LinkedList<Storage, Key, Value>>::read(&self.key, Some(next_value));
 		}
 		Some(next_value)
 	}
 }
 
-impl<'a, Key, Value, Storage> iter::Iterator for Enumerator<'a, Key, Value, LinkedList<Storage, Key, Value>>
+impl<Key, Value, Storage> iter::Iterator for Enumerator<Key, Value, LinkedList<Storage, Key, Value>>
 where
 	Key: Parameter,
 	Value: Parameter + Member + Copy,
@@ -140,17 +140,19 @@ where
 	type Item = Value;
 
 	fn next(&mut self) -> Option<Self::Item> {
-		(self.next_fn)(self)
+		let next_fn = self.next_fn;
+		next_fn(self)
 	}
 }
 
-impl<'a, Key, Value, LinkedList> Drop for Enumerator<'a, Key, Value, LinkedList> {
+impl<Key, Value, LinkedList> Drop for Enumerator<Key, Value, LinkedList> {
 	fn drop(&mut self) {
 		if !self.should_take {
 			return;
 		}
 
-		while (self.next_fn)(self).is_some() {}
+		let next_fn = self.next_fn;
+		while next_fn(self).is_some() {}
 	}
 }
 
@@ -384,6 +386,24 @@ mod tests {
 			TestLinkedList::append(&0, 3);
 
 			assert_eq!(TestLinkedList::take_all(&0).collect::<Vec<_>>(), [1, 2, 3]);
+
+			assert_eq!(TestItem::get(&(0, Some(1))), None);
+			assert_eq!(TestItem::get(&(0, Some(2))), None);
+			assert_eq!(TestItem::get(&(0, Some(3))), None);
+			assert_eq!(TestLinkedList::enumerate(&0).collect::<Vec<_>>(), []);
+		});
+	}
+
+	#[test]
+	fn linked_list_take_all_is_safe() {
+		new_test_ext().execute_with(|| {
+			assert_eq!(TestLinkedList::take_all(&0).collect::<Vec<_>>(), []);
+
+			TestLinkedList::append(&0, 1);
+			TestLinkedList::append(&0, 2);
+			TestLinkedList::append(&0, 3);
+
+			let _ = TestLinkedList::take_all(&0);
 
 			assert_eq!(TestItem::get(&(0, Some(1))), None);
 			assert_eq!(TestItem::get(&(0, Some(2))), None);
