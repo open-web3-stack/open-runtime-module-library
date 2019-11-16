@@ -1,4 +1,5 @@
 use codec::{Decode, Encode};
+use rstd::{iter, marker};
 use sr_primitives::{traits::Member, RuntimeDebug};
 use support::{Parameter, StorageMap};
 
@@ -8,9 +9,15 @@ pub struct LinkedItem<Item> {
 	pub next: Option<Item>,
 }
 
+impl<Item> Default for LinkedItem<Item> {
+	fn default() -> Self {
+		LinkedItem { prev: None, next: None }
+	}
+}
+
 pub struct LinkedList<Storage, Key, Item>(rstd::marker::PhantomData<(Storage, Key, Item)>);
 
-impl<Storage, Key, Value> LinkedList<Storage, Key, Value>
+impl<'a, Storage, Key, Value> LinkedList<Storage, Key, Value>
 where
 	Value: Parameter + Member + Copy,
 	Key: Parameter,
@@ -20,12 +27,18 @@ where
 		Self::read(key, None)
 	}
 
-	fn write_head(account: &Key, item: LinkedItem<Value>) {
-		Self::write(account, None, item);
+	fn write_head(key: &Key, item: LinkedItem<Value>) {
+		Self::write(key, None, item);
 	}
 
 	fn read(key: &Key, value: Option<Value>) -> LinkedItem<Value> {
-		Storage::get(&(key.clone(), value)).unwrap_or_else(|| LinkedItem { prev: None, next: None })
+		Storage::get(&(key.clone(), value)).unwrap_or_else(|| Default::default())
+	}
+
+	fn take(key: &Key, value: Value) -> LinkedItem<Value> {
+		let item = Self::read(key, Some(value));
+		Self::remove(key, value);
+		item
 	}
 
 	fn write(key: &Key, value: Option<Value>, item: LinkedItem<Value>) {
@@ -74,7 +87,67 @@ where
 			Self::write(key, item.next, new_next);
 		}
 	}
+
+	pub fn enumerate(key: &'a Key) -> Enumerator<'a, Key, Value, Self> {
+		Enumerator::<'a, Key, Value, Self> {
+			key,
+			should_take: false,
+			linkage: Self::read_head(key),
+			_phantom: Default::default(),
+		}
+	}
+
+	pub fn take_all(key: &'a Key) -> Enumerator<'a, Key, Value, Self> {
+		Enumerator::<'a, Key, Value, Self> {
+			key,
+			should_take: true,
+			linkage: Self::read_head(key),
+			_phantom: Default::default(),
+		}
+	}
 }
+
+pub struct Enumerator<'a, Key, Value, LinkedList> {
+	key: &'a Key,
+	should_take: bool,
+	linkage: LinkedItem<Value>,
+	_phantom: marker::PhantomData<LinkedList>,
+}
+
+impl<'a, Key, Value, Storage> iter::Iterator for Enumerator<'a, Key, Value, LinkedList<Storage, Key, Value>>
+where
+	Key: Parameter,
+	Value: Parameter + Member + Copy,
+	Storage: StorageMap<(Key, Option<Value>), LinkedItem<Value>, Query = Option<LinkedItem<Value>>>,
+{
+	type Item = Value;
+
+	fn next(&mut self) -> Option<Self::Item> {
+		let next_value = self.linkage.next?;
+		if self.should_take {
+			self.linkage = <LinkedList<Storage, Key, Value>>::take(self.key, next_value);
+		} else {
+			self.linkage = <LinkedList<Storage, Key, Value>>::read(self.key, Some(next_value));
+		}
+		Some(next_value)
+	}
+}
+
+// FIXME: error[E0366]: Implementations of Drop cannot be specialized
+// impl<'a, Key, Value, Storage> Drop for Enumerator<'a, Key, Value, LinkedList<Storage, Key, Value>>
+// where
+// 	Key: Parameter,
+// 	Value: Parameter + Member + Copy,
+// 	Storage: StorageMap<(Key, Option<Value>), LinkedItem<Value>, Query = Option<LinkedItem<Value>>>,
+// {
+// 	fn drop(&mut self) {
+// 		if !self.should_take {
+// 			return
+// 		}
+
+// 		while self.next() != None {}
+// 	}
+// }
 
 #[cfg(test)]
 mod tests {
@@ -152,10 +225,7 @@ mod tests {
 				})
 			);
 
-			assert_eq!(
-				TestItem::get(&(0, Some(1))),
-				Some(TestLinkedItem { prev: None, next: None })
-			);
+			assert_eq!(TestItem::get(&(0, Some(1))), Some(Default::default()));
 
 			TestLinkedList::append(&0, 2);
 
@@ -268,23 +338,52 @@ mod tests {
 
 			assert_eq!(TestItem::get(&(0, Some(2))), None);
 
-			assert_eq!(
-				TestItem::get(&(0, Some(3))),
-				Some(TestLinkedItem { prev: None, next: None })
-			);
+			assert_eq!(TestItem::get(&(0, Some(3))), Some(Default::default()));
 
 			TestLinkedList::remove(&0, 3);
 
-			assert_eq!(
-				TestItem::get(&(0, None)),
-				Some(TestLinkedItem { prev: None, next: None })
-			);
+			assert_eq!(TestItem::get(&(0, None)), Some(Default::default()));
 
 			assert_eq!(TestItem::get(&(0, Some(1))), None);
 
 			assert_eq!(TestItem::get(&(0, Some(2))), None);
 
 			assert_eq!(TestItem::get(&(0, Some(2))), None);
+		});
+	}
+
+	#[test]
+	fn linked_list_can_enumerate() {
+		new_test_ext().execute_with(|| {
+			assert_eq!(TestLinkedList::enumerate(&0).collect::<Vec<_>>(), []);
+
+			TestLinkedList::append(&0, 1);
+			TestLinkedList::append(&0, 2);
+			TestLinkedList::append(&0, 3);
+
+			// iteration
+			assert_eq!(TestLinkedList::enumerate(&0).collect::<Vec<_>>(), [1, 2, 3]);
+
+			// should not take
+			assert_eq!(TestLinkedList::enumerate(&0).collect::<Vec<_>>(), [1, 2, 3]);
+		});
+	}
+
+	#[test]
+	fn linked_list_can_take_all() {
+		new_test_ext().execute_with(|| {
+			assert_eq!(TestLinkedList::take_all(&0).collect::<Vec<_>>(), []);
+
+			TestLinkedList::append(&0, 1);
+			TestLinkedList::append(&0, 2);
+			TestLinkedList::append(&0, 3);
+
+			assert_eq!(TestLinkedList::take_all(&0).collect::<Vec<_>>(), [1, 2, 3]);
+
+			assert_eq!(TestItem::get(&(0, Some(1))), None);
+			assert_eq!(TestItem::get(&(0, Some(2))), None);
+			assert_eq!(TestItem::get(&(0, Some(3))), None);
+			assert_eq!(TestLinkedList::enumerate(&0).collect::<Vec<_>>(), []);
 		});
 	}
 }
