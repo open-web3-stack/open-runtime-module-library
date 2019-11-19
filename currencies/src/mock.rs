@@ -89,6 +89,7 @@ impl Trait for Runtime {
 }
 pub type Currencies = Module<Runtime>;
 pub type NativeCurrency = NativeCurrencyOf<Runtime>;
+pub type AdaptedBasicCurrency = BasicCurrencyAdapter<Runtime, PaintBalances, Balance>;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;

@@ -1,5 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use codec::HasCompact;
 use paint_support::{decl_error, decl_event, decl_module, decl_storage, ensure, Parameter};
 use rstd::{
 	convert::{TryFrom, TryInto},
@@ -33,7 +34,7 @@ pub trait Trait: paint_system::Trait {
 		+ Default
 		+ Copy
 		+ MaybeSerializeDeserialize;
-	type CurrencyId: Parameter + Member + SimpleArithmetic + Default + Copy + MaybeSerializeDeserialize;
+	type CurrencyId: Parameter + Member + HasCompact + Copy + MaybeSerializeDeserialize;
 }
 
 decl_storage! {

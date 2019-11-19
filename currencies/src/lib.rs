@@ -1,17 +1,17 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use paint_support::{
-	decl_event, decl_module, decl_storage,
+	decl_error, decl_event, decl_module, decl_storage,
 	traits::{Currency as PaintCurrency, ExistenceRequirement, Get, WithdrawReason},
 };
-use rstd::{marker, result};
+use rstd::{convert::TryInto, marker, result};
 use sr_primitives::traits::StaticLookup;
 // FIXME: `paint-` prefix should be used for all paint modules, but currently `paint_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
 use paint_system::{self as system, ensure_signed};
 
-use traits::{BasicCurrency, BasicCurrencyExtended, MultiCurrency, MultiCurrencyExtended};
+use traits::{arithmetic::Signed, BasicCurrency, BasicCurrencyExtended, MultiCurrency, MultiCurrencyExtended};
 
 mod mock;
 mod tests;
@@ -52,6 +52,13 @@ decl_event!(
 		Transferred(CurrencyId, AccountId, AccountId, Balance),
 	}
 );
+
+decl_error! {
+	/// Error for currencies module.
+	pub enum Error {
+		AmountIntoBalanceFailed,
+	}
+}
 
 decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
@@ -226,37 +233,44 @@ where
 pub type NativeCurrencyOf<T> = Currency<T, <T as Trait>::GetNativeCurrencyId>;
 
 /// Adapt other currency traits implementation to `BasicCurrency`.
-pub struct BasicCurrencyAdapter<T>(marker::PhantomData<T>);
+pub struct BasicCurrencyAdapter<T, U, V>(marker::PhantomData<T>, marker::PhantomData<U>, marker::PhantomData<V>);
 
-// Adapat `paint_support::traits::Currency`
-impl<AccountId, T> BasicCurrency<AccountId> for BasicCurrencyAdapter<T>
+type PaintBalanceOf<A, U> = <U as PaintCurrency<A>>::Balance;
+
+// Adapt `paint_support::traits::Currency`
+impl<AccountId, T, U, V> BasicCurrency<AccountId> for BasicCurrencyAdapter<T, U, V>
 where
-	T: PaintCurrency<AccountId>,
+	T: Trait,
+	U: PaintCurrency<AccountId>,
+	V: From<PaintBalanceOf<AccountId, U>>
+		+ Into<PaintBalanceOf<AccountId, U>>
+		+ From<BalanceOf<T>>
+		+ Into<BalanceOf<T>>,
 {
-	type Balance = <T as PaintCurrency<AccountId>>::Balance;
+	type Balance = BalanceOf<T>;
 	type Error = &'static str;
 
 	fn total_issuance() -> Self::Balance {
-		T::total_issuance()
+		V::from(U::total_issuance()).into()
 	}
 
 	fn balance(who: &AccountId) -> Self::Balance {
-		T::total_balance(who)
+		V::from(U::total_balance(who)).into()
 	}
 
 	fn transfer(from: &AccountId, to: &AccountId, amount: Self::Balance) -> result::Result<(), Self::Error> {
-		T::transfer(from, to, amount, ExistenceRequirement::AllowDeath)
+		U::transfer(from, to, V::from(amount).into(), ExistenceRequirement::AllowDeath)
 	}
 
 	fn deposit(who: &AccountId, amount: Self::Balance) -> result::Result<(), Self::Error> {
-		let _ = T::deposit_creating(who, amount);
+		let _ = U::deposit_creating(who, V::from(amount).into());
 		Ok(())
 	}
 
 	fn withdraw(who: &AccountId, amount: Self::Balance) -> result::Result<(), Self::Error> {
-		T::withdraw(
+		U::withdraw(
 			who,
-			amount,
+			V::from(amount).into(),
 			WithdrawReason::Transfer.into(),
 			ExistenceRequirement::AllowDeath,
 		)
@@ -264,7 +278,32 @@ where
 	}
 
 	fn slash(who: &AccountId, amount: Self::Balance) -> Self::Balance {
-		let (_, gap) = T::slash(who, amount);
-		gap
+		let (_, gap) = U::slash(who, V::from(amount).into());
+		V::from(gap).into()
+	}
+}
+
+// Adapt `paint_support::traits::Currency`
+impl<AccountId, T, U, V> BasicCurrencyExtended<AccountId> for BasicCurrencyAdapter<T, U, V>
+where
+	T: Trait,
+	U: PaintCurrency<AccountId>,
+	V: From<PaintBalanceOf<AccountId, U>>
+		+ Into<PaintBalanceOf<AccountId, U>>
+		+ From<BalanceOf<T>>
+		+ Into<BalanceOf<T>>,
+{
+	type Amount = AmountOf<T>;
+
+	fn update_balance(who: &AccountId, by_amount: Self::Amount) -> Result<(), Self::Error> {
+		let by_balance = by_amount
+			.abs()
+			.try_into()
+			.map_err(|_| Into::<Self::Error>::into(Error::AmountIntoBalanceFailed))?;
+		if by_amount.is_positive() {
+			Self::deposit(who, by_balance)
+		} else {
+			Self::withdraw(who, by_balance)
+		}
 	}
 }
