@@ -37,9 +37,7 @@ pub trait Trait: system::Trait {
 }
 
 decl_storage! {
-	trait Store for Module<T: Trait> as Currencies {
-
-	}
+	trait Store for Module<T: Trait> as Currencies {}
 }
 
 decl_event!(
@@ -101,8 +99,8 @@ decl_module! {
 impl<T: Trait> Module<T> {}
 
 impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
-	type Balance = BalanceOf<T>;
 	type CurrencyId = CurrencyIdOf<T>;
+	type Balance = BalanceOf<T>;
 	type Error = ErrorOf<T>;
 
 	fn total_issuance(currency_id: Self::CurrencyId) -> Self::Balance {
@@ -233,65 +231,70 @@ where
 pub type NativeCurrencyOf<T> = Currency<T, <T as Trait>::GetNativeCurrencyId>;
 
 /// Adapt other currency traits implementation to `BasicCurrency`.
-pub struct BasicCurrencyAdapter<T, U, V>(marker::PhantomData<T>, marker::PhantomData<U>, marker::PhantomData<V>);
+pub struct BasicCurrencyAdapter<T, Currency, BalanceConvert, ErrorConvert>(marker::PhantomData<T>, marker::PhantomData<Currency>, marker::PhantomData<BalanceConvert>, marker::PhantomData<ErrorConvert>);
 
-type PaintBalanceOf<A, U> = <U as PaintCurrency<A>>::Balance;
+type PaintBalanceOf<A, Currency> = <Currency as PaintCurrency<A>>::Balance;
 
 // Adapt `paint_support::traits::Currency`
-impl<AccountId, T, U, V> BasicCurrency<AccountId> for BasicCurrencyAdapter<T, U, V>
+impl<AccountId, T, Currency, BalanceConvert, ErrorConvert> BasicCurrency<AccountId> for BasicCurrencyAdapter<T, Currency, BalanceConvert, ErrorConvert>
 where
 	T: Trait,
-	U: PaintCurrency<AccountId>,
-	V: From<PaintBalanceOf<AccountId, U>>
-		+ Into<PaintBalanceOf<AccountId, U>>
+	Currency: PaintCurrency<AccountId>,
+	BalanceConvert: From<PaintBalanceOf<AccountId, Currency>>
+		+ Into<PaintBalanceOf<AccountId, Currency>>
 		+ From<BalanceOf<T>>
 		+ Into<BalanceOf<T>>,
+	ErrorConvert: From<&'static str> + Into<ErrorOf<T>>,
 {
 	type Balance = BalanceOf<T>;
-	type Error = &'static str;
+	type Error = ErrorOf<T>;
 
 	fn total_issuance() -> Self::Balance {
-		V::from(U::total_issuance()).into()
+		BalanceConvert::from(Currency::total_issuance()).into()
 	}
 
 	fn balance(who: &AccountId) -> Self::Balance {
-		V::from(U::total_balance(who)).into()
+		BalanceConvert::from(Currency::total_balance(who)).into()
 	}
 
 	fn transfer(from: &AccountId, to: &AccountId, amount: Self::Balance) -> result::Result<(), Self::Error> {
-		U::transfer(from, to, V::from(amount).into(), ExistenceRequirement::AllowDeath)
+		let amount_paint = BalanceConvert::from(amount).into();
+		Currency::transfer(from, to, amount_paint, ExistenceRequirement::AllowDeath)
+			.map_err(|err| ErrorConvert::from(err).into())
 	}
 
 	fn deposit(who: &AccountId, amount: Self::Balance) -> result::Result<(), Self::Error> {
-		let _ = U::deposit_creating(who, V::from(amount).into());
+		let _ = Currency::deposit_creating(who, BalanceConvert::from(amount).into());
 		Ok(())
 	}
 
 	fn withdraw(who: &AccountId, amount: Self::Balance) -> result::Result<(), Self::Error> {
-		U::withdraw(
+		Currency::withdraw(
 			who,
-			V::from(amount).into(),
+			BalanceConvert::from(amount).into(),
 			WithdrawReason::Transfer.into(),
 			ExistenceRequirement::AllowDeath,
 		)
-		.map(|_| ())
+			.map(|_| ())
+			.map_err(|err| ErrorConvert::from(err).into())
 	}
 
 	fn slash(who: &AccountId, amount: Self::Balance) -> Self::Balance {
-		let (_, gap) = U::slash(who, V::from(amount).into());
-		V::from(gap).into()
+		let (_, gap) = Currency::slash(who, BalanceConvert::from(amount).into());
+		BalanceConvert::from(gap).into()
 	}
 }
 
 // Adapt `paint_support::traits::Currency`
-impl<AccountId, T, U, V> BasicCurrencyExtended<AccountId> for BasicCurrencyAdapter<T, U, V>
+impl<AccountId, T, Currency, BalanceConvert, ErrorConvert> BasicCurrencyExtended<AccountId> for BasicCurrencyAdapter<T, Currency, BalanceConvert, ErrorConvert>
 where
 	T: Trait,
-	U: PaintCurrency<AccountId>,
-	V: From<PaintBalanceOf<AccountId, U>>
-		+ Into<PaintBalanceOf<AccountId, U>>
+	Currency: PaintCurrency<AccountId>,
+	BalanceConvert: From<PaintBalanceOf<AccountId, Currency>>
+		+ Into<PaintBalanceOf<AccountId, Currency>>
 		+ From<BalanceOf<T>>
 		+ Into<BalanceOf<T>>,
+	ErrorConvert: From<&'static str> + Into<ErrorOf<T>>,
 {
 	type Amount = AmountOf<T>;
 
@@ -299,7 +302,7 @@ where
 		let by_balance = by_amount
 			.abs()
 			.try_into()
-			.map_err(|_| Into::<Self::Error>::into(Error::AmountIntoBalanceFailed))?;
+			.map_err(|_| ErrorConvert::from(Error::AmountIntoBalanceFailed.into()).into())?;
 		if by_amount.is_positive() {
 			Self::deposit(who, by_balance)
 		} else {
