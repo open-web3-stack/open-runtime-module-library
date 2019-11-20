@@ -22,9 +22,21 @@ fn multi_currency_should_work() {
 }
 
 #[test]
+fn multi_currency_extended_should_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_ok!(Currencies::update_balance(X_TOKEN_ID, &ALICE, 50));
+			assert_eq!(Currencies::balance(X_TOKEN_ID, &ALICE), 150);
+		});
+}
+
+#[test]
 fn native_currency_should_work() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
+		.make_for_paint_balances()
 		.build()
 		.execute_with(|| {
 			assert_ok!(Currencies::transfer_native_currency(Some(ALICE).into(), BOB, 50));
@@ -42,14 +54,12 @@ fn native_currency_should_work() {
 }
 
 #[test]
-fn currency_extended_should_work() {
+fn native_currency_extended_should_work() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
+		.make_for_paint_balances()
 		.build()
 		.execute_with(|| {
-			assert_ok!(Currencies::update_balance(X_TOKEN_ID, &ALICE, 50));
-			assert_eq!(Currencies::balance(X_TOKEN_ID, &ALICE), 150);
-
 			assert_ok!(NativeCurrency::update_balance(&ALICE, 10));
 			assert_eq!(NativeCurrency::balance(&ALICE), 110);
 
