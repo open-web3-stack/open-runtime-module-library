@@ -1,6 +1,5 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::HasCompact;
 use paint_support::{decl_error, decl_event, decl_module, decl_storage, ensure, Parameter};
 use rstd::{
 	convert::{TryFrom, TryInto},
@@ -34,7 +33,7 @@ pub trait Trait: paint_system::Trait {
 		+ Default
 		+ Copy
 		+ MaybeSerializeDeserialize;
-	type CurrencyId: Parameter + Member + HasCompact + Copy + MaybeSerializeDeserialize;
+	type CurrencyId: Parameter + Member + Copy + MaybeSerializeDeserialize;
 }
 
 decl_storage! {
@@ -82,7 +81,7 @@ decl_module! {
 		pub fn transfer(
 			origin,
 			dest: <T::Lookup as StaticLookup>::Source,
-			#[compact] currency_id: T::CurrencyId,
+			currency_id: T::CurrencyId,
 			#[compact] amount: T::Balance,
 		) {
 			let from = ensure_signed(origin)?;

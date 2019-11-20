@@ -4,7 +4,7 @@ pub mod arithmetic;
 pub mod auction;
 
 pub use auction::{Auction, AuctionHandler, AuctionInfo, OnNewBidResult};
-use codec::{Codec, FullCodec, HasCompact};
+use codec::{Codec, FullCodec};
 use rstd::{
 	cmp::{Eq, PartialEq},
 	convert::{TryFrom, TryInto},
@@ -17,7 +17,7 @@ use sr_primitives::traits::{MaybeSerializeDeserialize, SimpleArithmetic};
 /// Abstraction over a fungible multi-currency system.
 pub trait MultiCurrency<AccountId> {
 	/// The currency identifier.
-	type CurrencyId: FullCodec + HasCompact + Eq + PartialEq + Copy + MaybeSerializeDeserialize + Debug;
+	type CurrencyId: FullCodec + Eq + PartialEq + Copy + MaybeSerializeDeserialize + Debug;
 
 	/// The balance of an account.
 	type Balance: SimpleArithmetic + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default;

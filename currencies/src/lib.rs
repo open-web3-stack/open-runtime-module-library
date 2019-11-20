@@ -24,8 +24,8 @@ type ErrorOf<T> = <<T as Trait>::MultiCurrency as MultiCurrency<<T as paint_syst
 type AmountOf<T> =
 	<<T as Trait>::MultiCurrency as MultiCurrencyExtended<<T as paint_system::Trait>::AccountId>>::Amount;
 
-pub trait Trait: system::Trait {
-	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
+pub trait Trait: paint_system::Trait {
+	type Event: From<Event<Self>> + Into<<Self as paint_system::Trait>::Event>;
 	type MultiCurrency: MultiCurrencyExtended<Self::AccountId>;
 	type NativeCurrency: BasicCurrencyExtended<
 		Self::AccountId,
@@ -42,7 +42,7 @@ decl_storage! {
 
 decl_event!(
 	pub enum Event<T> where
-		<T as system::Trait>::AccountId,
+		<T as paint_system::Trait>::AccountId,
 		Balance = BalanceOf<T>,
 		CurrencyId = CurrencyIdOf<T>
 	{
@@ -66,7 +66,7 @@ decl_module! {
 		pub fn transfer(
 			origin,
 			dest: <T::Lookup as StaticLookup>::Source,
-			#[compact] currency_id: CurrencyIdOf<T>,
+			currency_id: CurrencyIdOf<T>,
 			#[compact] amount: BalanceOf<T>,
 		) {
 			let from = ensure_signed(origin)?;
