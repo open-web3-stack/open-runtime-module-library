@@ -28,9 +28,9 @@ parameter_types! {
 type AccountId = u64;
 impl system::Trait for Runtime {
 	type Origin = Origin;
+	type Call = ();
 	type Index = u64;
 	type BlockNumber = u64;
-	type Call = ();
 	type Hash = H256;
 	type Hashing = ::sr_primitives::traits::BlakeTwo256;
 	type AccountId = AccountId;
@@ -57,9 +57,9 @@ impl paint_balances::Trait for Runtime {
 	type Balance = Balance;
 	type OnFreeBalanceZero = ();
 	type OnNewAccount = ();
-	type Event = ();
-	type DustRemoval = ();
 	type TransferPayment = ();
+	type DustRemoval = ();
+	type Event = ();
 	type ExistentialDeposit = ExistentialDeposit;
 	type TransferFee = TransferFee;
 	type CreationFee = CreationFee;
@@ -84,11 +84,12 @@ parameter_types! {
 impl Trait for Runtime {
 	type Event = ();
 	type MultiCurrency = tokens::Module<Runtime>;
+	type NativeCurrency = AdaptedBasicCurrency;
 	type GetNativeCurrencyId = GetNativeCurrencyId;
-	type NativeCurrency = NativeCurrency;
 }
 pub type Currencies = Module<Runtime>;
 pub type NativeCurrency = NativeCurrencyOf<Runtime>;
+pub type AdaptedBasicCurrency = BasicCurrencyAdapter<Runtime, PaintBalances, Balance, tokens::Error>;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;

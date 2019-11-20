@@ -33,7 +33,7 @@ pub trait Trait: paint_system::Trait {
 		+ Default
 		+ Copy
 		+ MaybeSerializeDeserialize;
-	type CurrencyId: Parameter + Member + SimpleArithmetic + Default + Copy + MaybeSerializeDeserialize;
+	type CurrencyId: Parameter + Member + Copy + MaybeSerializeDeserialize;
 }
 
 decl_storage! {
@@ -81,7 +81,7 @@ decl_module! {
 		pub fn transfer(
 			origin,
 			dest: <T::Lookup as StaticLookup>::Source,
-			#[compact] currency_id: T::CurrencyId,
+			currency_id: T::CurrencyId,
 			#[compact] amount: T::Balance,
 		) {
 			let from = ensure_signed(origin)?;
