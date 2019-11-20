@@ -231,10 +231,7 @@ pub type NativeCurrencyOf<T> = Currency<T, <T as Trait>::GetNativeCurrencyId>;
 
 /// Adapt other currency traits implementation to `BasicCurrency`.
 pub struct BasicCurrencyAdapter<T, Currency, BalanceConvert, ErrorConvert>(
-	marker::PhantomData<T>,
-	marker::PhantomData<Currency>,
-	marker::PhantomData<BalanceConvert>,
-	marker::PhantomData<ErrorConvert>,
+	marker::PhantomData<(T, Currency, BalanceConvert, ErrorConvert)>,
 );
 
 type PaintBalanceOf<A, Currency> = <Currency as PaintCurrency<A>>::Balance;
