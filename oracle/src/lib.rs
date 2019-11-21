@@ -11,7 +11,7 @@ pub use operator_provider::OperatorProvider;
 use palette_support::{
 	decl_error, decl_event, decl_module, decl_storage, dispatch::Result, ensure, traits::Time, Parameter,
 };
-use rstd::{prelude::*, result};
+use rstd::{prelude::*, result, vec};
 use sr_primitives::traits::Member;
 // FIXME: `pallet/palette-` prefix should be used for all pallet modules, but currently `palette_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
