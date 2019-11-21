@@ -3,7 +3,7 @@
 use crate::mock::{new_test_ext, ModuleOracle, Origin, Timestamp};
 
 use crate::TimestampedValue;
-use support::assert_ok;
+use palette_support::assert_ok;
 
 #[test]
 fn should_feed_data() {

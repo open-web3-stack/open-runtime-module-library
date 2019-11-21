@@ -1,31 +1,31 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use paint_support::{
+use palette_support::{
 	decl_error, decl_event, decl_module, decl_storage,
-	traits::{Currency as PaintCurrency, ExistenceRequirement, Get, WithdrawReason},
+	traits::{Currency as PalletCurrency, ExistenceRequirement, Get, WithdrawReason},
 };
 use rstd::{convert::TryInto, marker, result};
 use sr_primitives::traits::StaticLookup;
-// FIXME: `paint-` prefix should be used for all paint modules, but currently `paint_system`
+// FIXME: `pallet/palette-` prefix should be used for all pallet modules, but currently `palette_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
-use paint_system::{self as system, ensure_signed};
+use palette_system::{self as system, ensure_signed};
 
-use traits::{arithmetic::Signed, BasicCurrency, BasicCurrencyExtended, MultiCurrency, MultiCurrencyExtended};
+use orml_traits::{arithmetic::Signed, BasicCurrency, BasicCurrencyExtended, MultiCurrency, MultiCurrencyExtended};
 
 mod mock;
 mod tests;
 
-type BalanceOf<T> = <<T as Trait>::MultiCurrency as MultiCurrency<<T as paint_system::Trait>::AccountId>>::Balance;
+type BalanceOf<T> = <<T as Trait>::MultiCurrency as MultiCurrency<<T as palette_system::Trait>::AccountId>>::Balance;
 type CurrencyIdOf<T> =
-	<<T as Trait>::MultiCurrency as MultiCurrency<<T as paint_system::Trait>::AccountId>>::CurrencyId;
-type ErrorOf<T> = <<T as Trait>::MultiCurrency as MultiCurrency<<T as paint_system::Trait>::AccountId>>::Error;
+	<<T as Trait>::MultiCurrency as MultiCurrency<<T as palette_system::Trait>::AccountId>>::CurrencyId;
+type ErrorOf<T> = <<T as Trait>::MultiCurrency as MultiCurrency<<T as palette_system::Trait>::AccountId>>::Error;
 
 type AmountOf<T> =
-	<<T as Trait>::MultiCurrency as MultiCurrencyExtended<<T as paint_system::Trait>::AccountId>>::Amount;
+	<<T as Trait>::MultiCurrency as MultiCurrencyExtended<<T as palette_system::Trait>::AccountId>>::Amount;
 
-pub trait Trait: paint_system::Trait {
-	type Event: From<Event<Self>> + Into<<Self as paint_system::Trait>::Event>;
+pub trait Trait: palette_system::Trait {
+	type Event: From<Event<Self>> + Into<<Self as palette_system::Trait>::Event>;
 	type MultiCurrency: MultiCurrencyExtended<Self::AccountId>;
 	type NativeCurrency: BasicCurrencyExtended<
 		Self::AccountId,
@@ -42,7 +42,7 @@ decl_storage! {
 
 decl_event!(
 	pub enum Event<T> where
-		<T as paint_system::Trait>::AccountId,
+		<T as palette_system::Trait>::AccountId,
 		Balance = BalanceOf<T>,
 		CurrencyId = CurrencyIdOf<T>
 	{
@@ -234,16 +234,16 @@ pub struct BasicCurrencyAdapter<T, Currency, BalanceConvert, ErrorConvert>(
 	marker::PhantomData<(T, Currency, BalanceConvert, ErrorConvert)>,
 );
 
-type PaintBalanceOf<A, Currency> = <Currency as PaintCurrency<A>>::Balance;
+type PalletBalanceOf<A, Currency> = <Currency as PalletCurrency<A>>::Balance;
 
-// Adapt `paint_support::traits::Currency`
+// Adapt `palette_support::traits::Currency`
 impl<AccountId, T, Currency, BalanceConvert, ErrorConvert> BasicCurrency<AccountId>
 	for BasicCurrencyAdapter<T, Currency, BalanceConvert, ErrorConvert>
 where
 	T: Trait,
-	Currency: PaintCurrency<AccountId>,
-	BalanceConvert: From<PaintBalanceOf<AccountId, Currency>>
-		+ Into<PaintBalanceOf<AccountId, Currency>>
+	Currency: PalletCurrency<AccountId>,
+	BalanceConvert: From<PalletBalanceOf<AccountId, Currency>>
+		+ Into<PalletBalanceOf<AccountId, Currency>>
 		+ From<BalanceOf<T>>
 		+ Into<BalanceOf<T>>,
 	ErrorConvert: From<&'static str> + Into<ErrorOf<T>>,
@@ -260,8 +260,8 @@ where
 	}
 
 	fn transfer(from: &AccountId, to: &AccountId, amount: Self::Balance) -> result::Result<(), Self::Error> {
-		let amount_paint = BalanceConvert::from(amount).into();
-		Currency::transfer(from, to, amount_paint, ExistenceRequirement::AllowDeath)
+		let amount_pallet = BalanceConvert::from(amount).into();
+		Currency::transfer(from, to, amount_pallet, ExistenceRequirement::AllowDeath)
 			.map_err(|err| ErrorConvert::from(err).into())
 	}
 
@@ -287,14 +287,14 @@ where
 	}
 }
 
-// Adapt `paint_support::traits::Currency`
+// Adapt `palette_support::traits::Currency`
 impl<AccountId, T, Currency, BalanceConvert, ErrorConvert> BasicCurrencyExtended<AccountId>
 	for BasicCurrencyAdapter<T, Currency, BalanceConvert, ErrorConvert>
 where
 	T: Trait,
-	Currency: PaintCurrency<AccountId>,
-	BalanceConvert: From<PaintBalanceOf<AccountId, Currency>>
-		+ Into<PaintBalanceOf<AccountId, Currency>>
+	Currency: PalletCurrency<AccountId>,
+	BalanceConvert: From<PalletBalanceOf<AccountId, Currency>>
+		+ Into<PalletBalanceOf<AccountId, Currency>>
 		+ From<BalanceOf<T>>
 		+ Into<BalanceOf<T>>,
 	ErrorConvert: From<&'static str> + Into<ErrorOf<T>>,

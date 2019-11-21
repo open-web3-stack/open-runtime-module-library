@@ -4,7 +4,7 @@
 
 use super::*;
 use mock::{Balance, ExtBuilder, System, TestEvent, Tokens, ALICE, BOB, TEST_TOKEN_ID};
-use paint_support::{assert_noop, assert_ok};
+use palette_support::{assert_noop, assert_ok};
 
 #[test]
 fn genesis_issuance_should_work() {

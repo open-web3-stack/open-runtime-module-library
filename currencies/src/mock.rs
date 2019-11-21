@@ -2,8 +2,8 @@
 
 #![cfg(test)]
 
-use paint_balances;
-use paint_support::{impl_outer_origin, parameter_types};
+use palette_support::{impl_outer_origin, parameter_types};
+use pallet_balances;
 use primitives::H256;
 use sr_primitives::{testing::Header, traits::IdentityLookup, Perbill};
 
@@ -26,7 +26,7 @@ parameter_types! {
 }
 
 type AccountId = u64;
-impl system::Trait for Runtime {
+impl palette_system::Trait for Runtime {
 	type Origin = Origin;
 	type Call = ();
 	type Index = u64;
@@ -53,7 +53,7 @@ parameter_types! {
 	pub const CreationFee: u64 = 2;
 }
 
-impl paint_balances::Trait for Runtime {
+impl pallet_balances::Trait for Runtime {
 	type Balance = Balance;
 	type OnFreeBalanceZero = ();
 	type OnNewAccount = ();
@@ -65,7 +65,7 @@ impl paint_balances::Trait for Runtime {
 	type CreationFee = CreationFee;
 }
 
-pub type PaintBalances = paint_balances::Module<Runtime>;
+pub type PalletBalances = pallet_balances::Module<Runtime>;
 
 impl tokens::Trait for Runtime {
 	type Event = ();
@@ -89,7 +89,7 @@ impl Trait for Runtime {
 }
 pub type Currencies = Module<Runtime>;
 pub type NativeCurrency = NativeCurrencyOf<Runtime>;
-pub type AdaptedBasicCurrency = BasicCurrencyAdapter<Runtime, PaintBalances, Balance, tokens::Error>;
+pub type AdaptedBasicCurrency = BasicCurrencyAdapter<Runtime, PalletBalances, Balance, tokens::Error>;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
@@ -99,8 +99,8 @@ pub struct ExtBuilder {
 	currency_ids: Vec<CurrencyId>,
 	endowed_accounts: Vec<AccountId>,
 	initial_balance: Balance,
-	// whether the configs are for `paint_balances` or not
-	is_for_paint_balances: bool,
+	// whether the configs are for `pallet_balances` or not
+	is_for_pallet_balances: bool,
 }
 
 impl Default for ExtBuilder {
@@ -109,7 +109,7 @@ impl Default for ExtBuilder {
 			currency_ids: vec![NATIVE_CURRENCY_ID, X_TOKEN_ID],
 			endowed_accounts: vec![0],
 			initial_balance: 0,
-			is_for_paint_balances: false,
+			is_for_pallet_balances: false,
 		}
 	}
 }
@@ -125,16 +125,18 @@ impl ExtBuilder {
 		self.balances(vec![ALICE, BOB], 100)
 	}
 
-	pub fn make_for_paint_balances(mut self) -> Self {
-		self.is_for_paint_balances = true;
+	pub fn make_for_pallet_balances(mut self) -> Self {
+		self.is_for_pallet_balances = true;
 		self
 	}
 
 	pub fn build(self) -> runtime_io::TestExternalities {
-		let mut t = system::GenesisConfig::default().build_storage::<Runtime>().unwrap();
+		let mut t = palette_system::GenesisConfig::default()
+			.build_storage::<Runtime>()
+			.unwrap();
 
-		if self.is_for_paint_balances {
-			paint_balances::GenesisConfig::<Runtime> {
+		if self.is_for_pallet_balances {
+			pallet_balances::GenesisConfig::<Runtime> {
 				balances: self
 					.endowed_accounts
 					.iter()
