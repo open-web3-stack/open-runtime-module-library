@@ -13,7 +13,7 @@ use palette_support::{
 };
 use rstd::{prelude::Vec, result};
 use sr_primitives::traits::Member;
-// FIXME: `pallet-` prefix should be used for all pallet modules, but currently `palette_system`
+// FIXME: `pallet/palette-` prefix should be used for all pallet modules, but currently `palette_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
 pub use orml_traits::{CombineData, OnNewData};

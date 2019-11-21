@@ -8,7 +8,7 @@ use rstd::{
 use sr_primitives::traits::{
 	CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, SimpleArithmetic, StaticLookup,
 };
-// FIXME: `pallet-` prefix should be used for all pallet modules, but currently `palette_system`
+// FIXME: `pallet/palette-` prefix should be used for all pallet modules, but currently `palette_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
 use palette_system::{self as system, ensure_signed};

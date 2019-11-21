@@ -6,7 +6,7 @@ use palette_support::{
 };
 use rstd::{convert::TryInto, marker, result};
 use sr_primitives::traits::StaticLookup;
-// FIXME: `pallet-` prefix should be used for all pallet modules, but currently `palette_system`
+// FIXME: `pallet/palette-` prefix should be used for all pallet modules, but currently `palette_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
 use palette_system::{self as system, ensure_signed};
