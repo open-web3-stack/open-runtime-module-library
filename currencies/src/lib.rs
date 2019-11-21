@@ -2,7 +2,7 @@
 
 use palette_support::{
 	decl_error, decl_event, decl_module, decl_storage,
-	traits::{Currency as palletCurrency, ExistenceRequirement, Get, WithdrawReason},
+	traits::{Currency as PalletCurrency, ExistenceRequirement, Get, WithdrawReason},
 };
 use rstd::{convert::TryInto, marker, result};
 use sr_primitives::traits::StaticLookup;
@@ -234,14 +234,14 @@ pub struct BasicCurrencyAdapter<T, Currency, BalanceConvert, ErrorConvert>(
 	marker::PhantomData<(T, Currency, BalanceConvert, ErrorConvert)>,
 );
 
-type PalletBalanceOf<A, Currency> = <Currency as palletCurrency<A>>::Balance;
+type PalletBalanceOf<A, Currency> = <Currency as PalletCurrency<A>>::Balance;
 
 // Adapt `palette_support::traits::Currency`
 impl<AccountId, T, Currency, BalanceConvert, ErrorConvert> BasicCurrency<AccountId>
 	for BasicCurrencyAdapter<T, Currency, BalanceConvert, ErrorConvert>
 where
 	T: Trait,
-	Currency: palletCurrency<AccountId>,
+	Currency: PalletCurrency<AccountId>,
 	BalanceConvert: From<PalletBalanceOf<AccountId, Currency>>
 		+ Into<PalletBalanceOf<AccountId, Currency>>
 		+ From<BalanceOf<T>>
@@ -292,7 +292,7 @@ impl<AccountId, T, Currency, BalanceConvert, ErrorConvert> BasicCurrencyExtended
 	for BasicCurrencyAdapter<T, Currency, BalanceConvert, ErrorConvert>
 where
 	T: Trait,
-	Currency: palletCurrency<AccountId>,
+	Currency: PalletCurrency<AccountId>,
 	BalanceConvert: From<PalletBalanceOf<AccountId, Currency>>
 		+ Into<PalletBalanceOf<AccountId, Currency>>
 		+ From<BalanceOf<T>>
