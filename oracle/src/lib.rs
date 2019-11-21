@@ -11,7 +11,7 @@ pub use operator_provider::OperatorProvider;
 use palette_support::{
 	decl_error, decl_event, decl_module, decl_storage, dispatch::Result, ensure, traits::Time, Parameter,
 };
-use rstd::{prelude::Vec, result};
+use rstd::{prelude::*, result, vec};
 use sr_primitives::traits::Member;
 // FIXME: `pallet/palette-` prefix should be used for all pallet modules, but currently `palette_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
@@ -29,8 +29,8 @@ pub trait Trait: palette_system::Trait {
 	type OperatorProvider: OperatorProvider<Self::AccountId>;
 	type CombineData: CombineData<Self::Key, TimestampedValueOf<Self>>;
 	type Time: Time;
-	type Key: Parameter + Member + Copy + Ord;
-	type Value: Parameter + Member + Copy + Ord;
+	type Key: Parameter + Member;
+	type Value: Parameter + Member + Ord;
 }
 
 decl_storage! {
@@ -52,9 +52,14 @@ decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
 		fn deposit_event() = default;
 
-		pub fn feed_data(origin, key: T::Key, value: T::Value) -> Result {
+		pub fn feed_value(origin, key: T::Key, value: T::Value) -> Result {
 			let who = ensure_signed(origin)?;
-			Self::_feed_data(who, key, value).map_err(|e| e.into())
+			Self::_feed_values(who, vec![(key, value)]).map_err(|e| e.into())
+		}
+
+		pub fn feed_values(origin, values: Vec<(T::Key, T::Value)>) -> Result {
+			let who = ensure_signed(origin)?;
+			Self::_feed_values(who, values).map_err(|e| e.into())
 		}
 	}
 }
@@ -65,8 +70,8 @@ decl_event!(
 		<T as Trait>::Key,
 		<T as Trait>::Value,
 	{
-		/// New feed data is submitted (sender, key, value)
-		NewFeedData(AccountId, Key, Value),
+		/// New feed data is submitted (sender, values)
+		NewFeedData(AccountId, Vec<(Key, Value)>),
 	}
 );
 
@@ -82,7 +87,7 @@ impl<T: Trait> Module<T> {
 		if <HasUpdate<T>>::take(key) {
 			let values = Self::read_raw_values(key);
 			let timestamped = T::CombineData::combine_data(key, values, <Values<T>>::get(key))?;
-			<Values<T>>::insert(key, timestamped);
+			<Values<T>>::insert(key, timestamped.clone());
 			return Some(timestamped);
 		}
 		<Values<T>>::get(key)
@@ -90,19 +95,24 @@ impl<T: Trait> Module<T> {
 }
 
 impl<T: Trait> Module<T> {
-	fn _feed_data(who: T::AccountId, key: T::Key, value: T::Value) -> result::Result<(), Error> {
+	fn _feed_values(who: T::AccountId, values: Vec<(T::Key, T::Value)>) -> result::Result<(), Error> {
 		ensure!(T::OperatorProvider::can_feed_data(&who), Error::NoPermission);
 
-		let timestamp = TimestampedValue {
-			value,
-			timestamp: T::Time::now(),
-		};
-		<RawValues<T>>::insert(&key, &who, timestamp);
-		<HasUpdate<T>>::insert(&key, true);
+		let now = T::Time::now();
 
-		T::OnNewData::on_new_data(&key, &value);
+		for (key, value) in &values {
+			let timestamped = TimestampedValue {
+				value: value.clone(),
+				timestamp: now,
+			};
+			<RawValues<T>>::insert(&key, &who, timestamped);
+			<HasUpdate<T>>::insert(&key, true);
 
-		Self::deposit_event(RawEvent::NewFeedData(who, key, value));
+			T::OnNewData::on_new_data(&key, &value);
+		}
+
+		Self::deposit_event(RawEvent::NewFeedData(who, values));
+
 		Ok(())
 	}
 }

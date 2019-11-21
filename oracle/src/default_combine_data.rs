@@ -38,7 +38,7 @@ impl<T: Trait> CombineData<T::Key, TimestampedValueOf<T>> for DefaultCombineData
 		valid_values.sort_by(|a, b| a.value.cmp(&b.value));
 
 		let median_index = count / 2;
-		return Some(valid_values[median_index]);
+		return Some(valid_values[median_index].clone());
 	}
 }
 

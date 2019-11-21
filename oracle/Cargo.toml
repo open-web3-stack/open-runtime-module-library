@@ -20,6 +20,7 @@ orml-utilities = { path = "../utilities", default-features = false }
 
 [dev-dependencies]
 pallet-timestamp = { git = "https://github.com/paritytech/substrate.git" }
+substrate-runtime-interface = { git = "https://github.com/paritytech/substrate.git", features = ['disable_target_static_assertions'] }
 
 [features]
 default = ["std"]
