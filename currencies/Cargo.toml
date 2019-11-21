@@ -17,9 +17,9 @@ palette-system = { git = "https://github.com/paritytech/substrate.git", default-
 orml-traits = { path = "../traits", default-features = false }
 
 [dev-dependencies]
-primitives = { package = "substrate-primitives",  git = "https://github.com/paritytech/substrate.git", default-features = false }
-pallet-balances = { package = "pallet-balances", git = "https://github.com/paritytech/substrate.git", default-features = false }
-tokens = { package = "orml-tokens", path = "../tokens", default-features = false }
+primitives = { package = "substrate-primitives",  git = "https://github.com/paritytech/substrate.git" }
+pallet-balances = { package = "pallet-balances", git = "https://github.com/paritytech/substrate.git" }
+tokens = { package = "orml-tokens", path = "../tokens" }
 
 [features]
 default = ["std"]
