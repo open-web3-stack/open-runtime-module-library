@@ -2,6 +2,7 @@
 
 use super::*;
 
+use palette_support::{impl_outer_origin, parameter_types};
 use primitives::H256;
 use sr_primitives::{
 	testing::Header,
@@ -9,7 +10,6 @@ use sr_primitives::{
 	weights::Weight,
 	Perbill,
 };
-use support::{impl_outer_origin, parameter_types};
 
 impl_outer_origin! {
 	pub enum Origin for Test {}
@@ -26,7 +26,7 @@ parameter_types! {
 	pub const MaximumBlockLength: u32 = 2 * 1024;
 	pub const AvailableBlockRatio: Perbill = Perbill::from_percent(75);
 }
-impl system::Trait for Test {
+impl palette_system::Trait for Test {
 	type Origin = Origin;
 	type Call = ();
 	type Index = u64;
@@ -48,13 +48,13 @@ type AccountId = u64;
 type Key = u32;
 type Value = u32;
 
-pub type Timestamp = timestamp::Module<Test>;
+pub type Timestamp = pallet_timestamp::Module<Test>;
 
 parameter_types! {
 	pub const MinimumPeriod: u64 = 5;
 }
 
-impl timestamp::Trait for Test {
+impl pallet_timestamp::Trait for Test {
 	type Moment = u64;
 	type OnTimestampSet = ();
 	type MinimumPeriod = MinimumPeriod;
@@ -77,7 +77,7 @@ impl Trait for Test {
 	type OnNewData = ();
 	type OperatorProvider = MockOperatorProvider;
 	type CombineData = DefaultCombineData<Self>;
-	type Time = timestamp::Module<Self>;
+	type Time = pallet_timestamp::Module<Self>;
 	type Key = Key;
 	type Value = Value;
 }
@@ -86,5 +86,8 @@ pub type ModuleOracle = Module<Test>;
 // This function basically just builds a genesis storage key/value store according to
 // our desired mockup.
 pub fn new_test_ext() -> runtime_io::TestExternalities {
-	system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
+	palette_system::GenesisConfig::default()
+		.build_storage::<Test>()
+		.unwrap()
+		.into()
 }

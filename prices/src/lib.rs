@@ -1,11 +1,10 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use paint_support::{decl_module, decl_storage, Parameter};
-use paint_system as system;
+use orml_traits::{DataProvider, PriceProvider};
+use palette_support::{decl_module, decl_storage, Parameter};
 use sr_primitives::traits::{MaybeSerializeDeserialize, Member, SimpleArithmetic, Zero};
-use traits::{DataProvider, PriceProvider};
 
-pub trait Trait: system::Trait {
+pub trait Trait: palette_system::Trait {
 	type CurrencyId: Parameter + Member + Default + Copy + MaybeSerializeDeserialize;
 	type Price: Parameter + Member + Zero + SimpleArithmetic + Copy + Ord;
 	type Source: DataProvider<Self::CurrencyId, Self::Price>;

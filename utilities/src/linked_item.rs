@@ -1,7 +1,7 @@
 use codec::{Decode, Encode};
+use palette_support::{Parameter, StorageMap};
 use rstd::{iter, marker, prelude::*};
 use sr_primitives::{traits::Member, RuntimeDebug};
-use support::{Parameter, StorageMap};
 
 #[derive(RuntimeDebug, PartialEq, Eq, Encode, Decode)]
 pub struct LinkedItem<Item> {
@@ -159,13 +159,14 @@ impl<Key, Value, LinkedList> Drop for Enumerator<Key, Value, LinkedList> {
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use palette_support::{decl_module, decl_storage, impl_outer_origin, parameter_types, StorageMap};
+	use palette_system as system;
 	use primitives::H256;
 	use sr_primitives::{testing::Header, traits::IdentityLookup, Perbill};
-	use support::{decl_module, decl_storage, impl_outer_origin, parameter_types, StorageMap};
 
 	type Key = u64;
 	type Value = u32;
-	pub trait Trait: system::Trait {}
+	pub trait Trait: palette_system::Trait {}
 
 	type TestLinkedItem = LinkedItem<Value>;
 
@@ -195,7 +196,7 @@ mod tests {
 		pub const MaximumBlockLength: u32 = 2 * 1024;
 		pub const AvailableBlockRatio: Perbill = Perbill::one();
 	}
-	impl system::Trait for Test {
+	impl palette_system::Trait for Test {
 		type Origin = Origin;
 		type Index = u64;
 		type BlockNumber = u64;
@@ -216,7 +217,10 @@ mod tests {
 	type TestLinkedList = LinkedList<TestItem, Key, Value>;
 
 	pub fn new_test_ext() -> runtime_io::TestExternalities {
-		system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
+		palette_system::GenesisConfig::default()
+			.build_storage::<Test>()
+			.unwrap()
+			.into()
 	}
 
 	#[test]
