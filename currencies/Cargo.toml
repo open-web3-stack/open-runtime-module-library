@@ -20,6 +20,7 @@ orml-traits = { path = "../traits", default-features = false }
 primitives = { package = "substrate-primitives",  git = "https://github.com/paritytech/substrate.git" }
 pallet-balances = { package = "pallet-balances", git = "https://github.com/paritytech/substrate.git" }
 tokens = { package = "orml-tokens", path = "../tokens" }
+substrate-runtime-interface = { git = "https://github.com/paritytech/substrate.git", features = ['disable_target_static_assertions'] }
 
 [features]
 default = ["std"]
