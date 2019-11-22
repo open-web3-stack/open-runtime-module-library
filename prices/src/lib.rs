@@ -5,7 +5,7 @@ use palette_support::{decl_module, decl_storage, Parameter};
 use sr_primitives::traits::{MaybeSerializeDeserialize, Member, SimpleArithmetic, Zero};
 
 pub trait Trait: palette_system::Trait {
-	type CurrencyId: Parameter + Member + Default + Copy + MaybeSerializeDeserialize;
+	type CurrencyId: Parameter + Member + Copy + MaybeSerializeDeserialize;
 	type Price: Parameter + Member + Zero + SimpleArithmetic + Copy + Ord;
 	type Source: DataProvider<Self::CurrencyId, Self::Price>;
 }
