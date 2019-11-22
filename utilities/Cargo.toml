@@ -16,7 +16,8 @@ palette-support = { git = "https://github.com/paritytech/substrate.git", default
 
 [dev-dependencies]
 primitives = { package = "substrate-primitives",  git = "https://github.com/paritytech/substrate.git", default-features = false }
-substrate-runtime-interface = { git = "https://github.com/paritytech/substrate.git", features = ['disable_target_static_assertions'], default-features = false }
+
+clear_on_drop = { version = "0.2.3", features = ["no_cc"] }	# https://github.com/paritytech/substrate/issues/4179
 
 [features]
 default = ["std"]
