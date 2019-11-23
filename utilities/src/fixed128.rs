@@ -1,5 +1,5 @@
 use codec::{Decode, Encode};
-use sr_primitives::U256;
+use primitives::U256;
 use rstd::{
 	convert::{Into, TryFrom, TryInto},
 	ops,
@@ -25,7 +25,7 @@ impl FixedU128 {
 		DIV
 	}
 
-	/// Raw constructor. Equal to `parts / DIV`.
+	/// raw constructor. Equal to `parts / DIV`.
 	pub fn from_parts(parts: u128) -> Self {
 		Self(parts)
 	}
@@ -41,7 +41,7 @@ impl FixedU128 {
 		)
 	}
 
-	/// Consume self and return the inner value.
+	/// consume self and return the inner value.
 	///
 	/// This should only be used for testing.
 	#[cfg(any(feature = "std", test))]
@@ -49,7 +49,17 @@ impl FixedU128 {
 		self.0
 	}
 
-	// TODO: multiply accumulate
+	/// checked div for type N
+	pub fn checked_div_other<N>(&self, other: &N) -> Option<N>
+	where
+		N: Copy + TryFrom<u128> + TryInto<u128> + Bounded + Zero,
+	{
+		if other.is_zero() {
+			return None;
+		}
+
+		Some(*self / *other)
+	}
 }
 
 impl Saturating for FixedU128 {
@@ -117,7 +127,7 @@ where
 	type Output = N;
 
 	fn mul(self, rhs: N) -> Self::Output {
-		let n: u128 = rhs.try_into().unwrap_or(0u128);
+		let n: u128 = rhs.try_into().unwrap_or(u128::max_value());
 		let r: Self = self.saturating_mul(Self(n));
 		r.0.try_into().unwrap_or(N::max_value())
 	}
@@ -143,17 +153,13 @@ impl ops::Div for FixedU128 {
 /// Note that this might be lossy
 impl<N> ops::Div<N> for FixedU128
 where
-	N: TryFrom<u128> + TryInto<u128> + Bounded + Zero,
+	N: Copy + TryFrom<u128> + TryInto<u128> + Bounded + Zero,
 {
 	type Output = N;
 
 	fn div(self, rhs: N) -> Self::Output {
-		let n: u128 = rhs.try_into().unwrap_or(0u128);
-		// return zero when try to divide zero
-		if n.is_zero() {
-			return N::zero();
-		}
-		// will divide DIV for geting a natural result
+		let n: u128 = rhs.try_into().unwrap_or(u128::max_value());
+		// will panic when n is zero
 		(self.0 / n / DIV).try_into().unwrap_or(N::max_value())
 	}
 }
@@ -169,9 +175,10 @@ impl CheckedSub for FixedU128 {
 		self.0.checked_sub(rhs.0).map(Self)
 	}
 }
+
 impl CheckedMul for FixedU128 {
 	fn checked_mul(&self, rhs: &Self) -> Option<Self> {
-		self.0.checked_mul(rhs.0).map(Self)
+		Some(*self * *rhs)
 	}
 }
 
@@ -180,7 +187,7 @@ impl CheckedDiv for FixedU128 {
 		if rhs.0 == 0 {
 			return None;
 		}
-		self.0.checked_div(rhs.0).map(Self)
+		Some(*self / *rhs)
 	}
 }
 
@@ -253,9 +260,45 @@ mod tests {
 		assert_eq!(a / 2u128, 0u128);
 
 		// overflow will not panic
-		let a = FixedU128::max_value();
+		let a = FixedU128::from_natural(2);
 		assert_eq!(a * u8::max_value(), u8::max_value());
 		assert_eq!(a * u32::max_value(), u32::max_value());
 		assert_eq!(a * u64::max_value(), u64::max_value());
+	}
+
+	#[test]
+	#[should_panic(expected = "attempt to divide by zero")]
+	fn divide_fixed_u128_0_should_panic() {
+		let a = FixedU128::from_natural(1);
+		let _r = a / FixedU128::from_natural(0);
+	}
+
+	#[test]
+	#[should_panic(expected = "attempt to divide by zero")]
+	fn divide_0_should_panic() {
+		let a = FixedU128::from_natural(1);
+		let _r = a / 0i128;
+	}
+
+	#[test]
+	fn checked_div_should_work() {
+		let a = FixedU128::from_rational(1, 2);
+		let b = FixedU128::from_natural(0);
+		assert_eq!(a.checked_div(&b), None);
+
+		let a = FixedU128::from_rational(1, 2);
+		let b = FixedU128::from_rational(2, 1);
+		assert_eq!(a.checked_div(&b), Some(FixedU128::from_rational(1, 4)));
+	}
+
+	#[test]
+	fn checked_div_other_should_work() {
+		let a = FixedU128::from_rational(1, 2);
+		let b = 0i32;
+		assert_eq!(a.checked_div_other::<i32>(&b), None);
+
+		let a = FixedU128::from_rational(2, 1);
+		let b = 1i32;
+		assert_eq!(a.checked_div_other::<i32>(&b), Some(2));
 	}
 }
