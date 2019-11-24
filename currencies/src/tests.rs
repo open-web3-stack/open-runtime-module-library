@@ -3,11 +3,11 @@
 #![cfg(test)]
 
 use super::*;
+use frame_support::assert_ok;
 use mock::{
 	AdaptedBasicCurrency, CreationFee, Currencies, ExtBuilder, NativeCurrency, PalletBalances, ALICE, BOB, EVA,
 	NATIVE_CURRENCY_ID, X_TOKEN_ID,
 };
-use palette_support::assert_ok;
 
 #[test]
 fn multi_currency_should_work() {

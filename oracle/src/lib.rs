@@ -7,24 +7,24 @@ mod tests;
 mod timestamped_value;
 
 pub use default_combine_data::DefaultCombineData;
-pub use operator_provider::OperatorProvider;
-use palette_support::{
+use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage, dispatch::Result, ensure, traits::Time, Parameter,
 };
+pub use operator_provider::OperatorProvider;
 use rstd::{prelude::*, result, vec};
 use sr_primitives::traits::Member;
-// FIXME: `pallet/palette-` prefix should be used for all pallet modules, but currently `palette_system`
+// FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
+use frame_system::{self as system, ensure_signed};
 pub use orml_traits::{CombineData, OnNewData};
-use palette_system::{self as system, ensure_signed};
 pub use timestamped_value::TimestampedValue;
 
 type MomentOf<T> = <<T as Trait>::Time as Time>::Moment;
 pub type TimestampedValueOf<T> = TimestampedValue<<T as Trait>::Value, MomentOf<T>>;
 
-pub trait Trait: palette_system::Trait {
-	type Event: From<Event<Self>> + Into<<Self as palette_system::Trait>::Event>;
+pub trait Trait: frame_system::Trait {
+	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
 	type OnNewData: OnNewData<Self::Key, Self::Value>;
 	type OperatorProvider: OperatorProvider<Self::AccountId>;
 	type CombineData: CombineData<Self::Key, TimestampedValueOf<Self>>;
@@ -66,7 +66,7 @@ decl_module! {
 
 decl_event!(
 	pub enum Event<T> where
-		<T as palette_system::Trait>::AccountId,
+		<T as frame_system::Trait>::AccountId,
 		<T as Trait>::Key,
 		<T as Trait>::Value,
 	{

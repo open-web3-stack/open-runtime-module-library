@@ -2,8 +2,8 @@
 
 #![cfg(test)]
 
+use frame_support::{impl_outer_event, impl_outer_origin, parameter_types};
 use orml_traits::OnNewBidResult;
-use palette_support::{impl_outer_event, impl_outer_origin, parameter_types};
 use primitives::H256;
 use sr_primitives::{testing::Header, traits::IdentityLookup, Perbill};
 
@@ -38,7 +38,7 @@ pub type Balance = u64;
 pub type BlockNumber = u64;
 pub type AuctionId = u64;
 
-impl palette_system::Trait for Runtime {
+impl frame_system::Trait for Runtime {
 	type Origin = Origin;
 	type Index = u64;
 	type BlockNumber = BlockNumber;
@@ -94,7 +94,7 @@ impl Default for ExtBuilder {
 
 impl ExtBuilder {
 	pub fn build(self) -> runtime_io::TestExternalities {
-		let t = palette_system::GenesisConfig::default()
+		let t = frame_system::GenesisConfig::default()
 			.build_storage::<Runtime>()
 			.unwrap();
 

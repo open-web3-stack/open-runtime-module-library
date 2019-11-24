@@ -1,8 +1,8 @@
-use orml_traits::CombineData;
-use palette_support::{
+use frame_support::{
 	parameter_types,
 	traits::{Get, Time},
 };
+use orml_traits::CombineData;
 use rstd::prelude::Vec;
 
 use crate::{MomentOf, TimestampedValueOf, Trait};

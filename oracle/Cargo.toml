@@ -12,8 +12,8 @@ runtime_io = { package = "sr-io", git = "https://github.com/paritytech/substrate
 rstd = { package = "sr-std", git = "https://github.com/paritytech/substrate.git", default-features = false }
 primitives = { git = "https://github.com/paritytech/substrate.git", package = "substrate-primitives", default-features = false }
 
-palette-support = { git = "https://github.com/paritytech/substrate.git", default-features = false }
-palette-system = { git = "https://github.com/paritytech/substrate.git", default-features = false }
+frame-support = { git = "https://github.com/paritytech/substrate.git", default-features = false }
+frame-system = { git = "https://github.com/paritytech/substrate.git", default-features = false }
 
 orml-traits = { path = "../traits", default-features = false }
 orml-utilities = { path = "../utilities", default-features = false }
@@ -32,8 +32,8 @@ std = [
 	"runtime_io/std",
 	"rstd/std",
 	"primitives/std",
-	"palette-support/std",
-	"palette-system/std",
+	"frame-support/std",
+	"frame-system/std",
 	"orml-utilities/std",
 	"orml-traits/std",
 ]

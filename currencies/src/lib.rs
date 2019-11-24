@@ -1,31 +1,31 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use palette_support::{
+use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage,
 	traits::{Currency as PalletCurrency, ExistenceRequirement, Get, WithdrawReason},
 };
 use rstd::{convert::TryInto, marker, result};
 use sr_primitives::traits::StaticLookup;
-// FIXME: `pallet/palette-` prefix should be used for all pallet modules, but currently `palette_system`
+// FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
-use palette_system::{self as system, ensure_signed};
+use frame_system::{self as system, ensure_signed};
 
 use orml_traits::{arithmetic::Signed, BasicCurrency, BasicCurrencyExtended, MultiCurrency, MultiCurrencyExtended};
 
 mod mock;
 mod tests;
 
-type BalanceOf<T> = <<T as Trait>::MultiCurrency as MultiCurrency<<T as palette_system::Trait>::AccountId>>::Balance;
+type BalanceOf<T> = <<T as Trait>::MultiCurrency as MultiCurrency<<T as frame_system::Trait>::AccountId>>::Balance;
 type CurrencyIdOf<T> =
-	<<T as Trait>::MultiCurrency as MultiCurrency<<T as palette_system::Trait>::AccountId>>::CurrencyId;
-type ErrorOf<T> = <<T as Trait>::MultiCurrency as MultiCurrency<<T as palette_system::Trait>::AccountId>>::Error;
+	<<T as Trait>::MultiCurrency as MultiCurrency<<T as frame_system::Trait>::AccountId>>::CurrencyId;
+type ErrorOf<T> = <<T as Trait>::MultiCurrency as MultiCurrency<<T as frame_system::Trait>::AccountId>>::Error;
 
 type AmountOf<T> =
-	<<T as Trait>::MultiCurrency as MultiCurrencyExtended<<T as palette_system::Trait>::AccountId>>::Amount;
+	<<T as Trait>::MultiCurrency as MultiCurrencyExtended<<T as frame_system::Trait>::AccountId>>::Amount;
 
-pub trait Trait: palette_system::Trait {
-	type Event: From<Event<Self>> + Into<<Self as palette_system::Trait>::Event>;
+pub trait Trait: frame_system::Trait {
+	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
 	type MultiCurrency: MultiCurrencyExtended<Self::AccountId>;
 	type NativeCurrency: BasicCurrencyExtended<
 		Self::AccountId,
@@ -42,7 +42,7 @@ decl_storage! {
 
 decl_event!(
 	pub enum Event<T> where
-		<T as palette_system::Trait>::AccountId,
+		<T as frame_system::Trait>::AccountId,
 		Balance = BalanceOf<T>,
 		CurrencyId = CurrencyIdOf<T>
 	{
@@ -236,7 +236,7 @@ pub struct BasicCurrencyAdapter<T, Currency, BalanceConvert, ErrorConvert>(
 
 type PalletBalanceOf<A, Currency> = <Currency as PalletCurrency<A>>::Balance;
 
-// Adapt `palette_support::traits::Currency`
+// Adapt `frame_support::traits::Currency`
 impl<AccountId, T, Currency, BalanceConvert, ErrorConvert> BasicCurrency<AccountId>
 	for BasicCurrencyAdapter<T, Currency, BalanceConvert, ErrorConvert>
 where
@@ -287,7 +287,7 @@ where
 	}
 }
 
-// Adapt `palette_support::traits::Currency`
+// Adapt `frame_support::traits::Currency`
 impl<AccountId, T, Currency, BalanceConvert, ErrorConvert> BasicCurrencyExtended<AccountId>
 	for BasicCurrencyAdapter<T, Currency, BalanceConvert, ErrorConvert>
 where

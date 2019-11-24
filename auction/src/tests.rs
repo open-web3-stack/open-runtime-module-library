@@ -3,8 +3,8 @@
 #![cfg(test)]
 
 use super::*;
+use frame_support::assert_ok;
 use mock::{AuctionModule, ExtBuilder, ALICE};
-use palette_support::assert_ok;
 
 #[test]
 fn new_auction_should_work() {

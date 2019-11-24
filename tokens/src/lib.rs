@@ -1,6 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use palette_support::{decl_error, decl_event, decl_module, decl_storage, ensure, Parameter};
+use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, Parameter};
 use rstd::{
 	convert::{TryFrom, TryInto},
 	result,
@@ -8,10 +8,10 @@ use rstd::{
 use sr_primitives::traits::{
 	CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, SimpleArithmetic, StaticLookup,
 };
-// FIXME: `pallet/palette-` prefix should be used for all pallet modules, but currently `palette_system`
+// FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
-use palette_system::{self as system, ensure_signed};
+use frame_system::{self as system, ensure_signed};
 
 use orml_traits::{
 	arithmetic::{self, Signed},
@@ -21,8 +21,8 @@ use orml_traits::{
 mod mock;
 mod tests;
 
-pub trait Trait: palette_system::Trait {
-	type Event: From<Event<Self>> + Into<<Self as palette_system::Trait>::Event>;
+pub trait Trait: frame_system::Trait {
+	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
 	type Balance: Parameter + Member + SimpleArithmetic + Default + Copy + MaybeSerializeDeserialize;
 	type Amount: Signed
 		+ TryInto<Self::Balance>
@@ -64,7 +64,7 @@ decl_storage! {
 
 decl_event!(
 	pub enum Event<T> where
-		<T as palette_system::Trait>::AccountId,
+		<T as frame_system::Trait>::AccountId,
 		<T as Trait>::CurrencyId,
 		<T as Trait>::Balance
 	{
