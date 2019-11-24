@@ -2,12 +2,11 @@
 
 use super::*;
 
-use frame_support::{impl_outer_origin, parameter_types};
+use frame_support::{impl_outer_origin, parameter_types, weights::Weight};
 use primitives::H256;
 use sr_primitives::{
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
-	weights::Weight,
 	Perbill,
 };
 
