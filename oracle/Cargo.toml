@@ -8,9 +8,8 @@ edition = "2018"
 serde = { version = "1.0", optional = true }
 codec = { package = "parity-scale-codec", version = "1.0.0", default-features = false }
 sr-primitives = { git = "https://github.com/paritytech/substrate.git", default-features = false }
-runtime_io = { package = "sr-io", git = "https://github.com/paritytech/substrate.git", default-features = false }
+runtime-io = { package = "sr-io", git = "https://github.com/paritytech/substrate.git", default-features = false }
 rstd = { package = "sr-std", git = "https://github.com/paritytech/substrate.git", default-features = false }
-primitives = { git = "https://github.com/paritytech/substrate.git", package = "substrate-primitives", default-features = false }
 
 frame-support = { git = "https://github.com/paritytech/substrate.git", default-features = false }
 frame-system = { git = "https://github.com/paritytech/substrate.git", default-features = false }
@@ -19,6 +18,7 @@ orml-traits = { path = "../traits", default-features = false }
 orml-utilities = { path = "../utilities", default-features = false }
 
 [dev-dependencies]
+primitives = { git = "https://github.com/paritytech/substrate.git", package = "substrate-primitives", default-features = false }
 pallet-timestamp = { git = "https://github.com/paritytech/substrate.git" }
 
 clear_on_drop = { version = "0.2.3", features = ["no_cc"] }	# https://github.com/paritytech/substrate/issues/4179
@@ -29,11 +29,10 @@ std = [
 	"serde",
 	"codec/std",
 	"sr-primitives/std",
-	"runtime_io/std",
+	"runtime-io/std",
 	"rstd/std",
-	"primitives/std",
 	"frame-support/std",
 	"frame-system/std",
-	"orml-utilities/std",
 	"orml-traits/std",
+	"orml-utilities/std",
 ]
