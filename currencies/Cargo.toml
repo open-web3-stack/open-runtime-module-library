@@ -17,7 +17,7 @@ frame-system = { git = "https://github.com/paritytech/substrate.git", default-fe
 orml-traits = { path = "../traits", default-features = false }
 
 [dev-dependencies]
-primitives = { package = "substrate-primitives",  git = "https://github.com/paritytech/substrate.git" }
+primitives = { package = "substrate-primitives",  git = "https://github.com/paritytech/substrate.git", default-features = false }
 pallet-balances = { package = "pallet-balances", git = "https://github.com/paritytech/substrate.git" }
 tokens = { package = "orml-tokens", path = "../tokens" }
 
