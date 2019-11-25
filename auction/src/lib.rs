@@ -1,8 +1,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use frame_support::{decl_error, decl_event, decl_module, decl_storage, dispatch::Result, ensure, Parameter};
+use frame_system::{self as system, ensure_signed};
 use orml_utilities::{LinkedItem, LinkedList};
-use palette_support::{decl_error, decl_event, decl_module, decl_storage, dispatch::Result, ensure, Parameter};
-use palette_system::{self as system, ensure_signed};
 use rstd::result;
 use sr_primitives::traits::{MaybeSerializeDeserialize, Member, SimpleArithmetic};
 
@@ -11,19 +11,19 @@ use orml_traits::{Auction, AuctionHandler, AuctionInfo};
 mod mock;
 mod tests;
 
-pub trait Trait: palette_system::Trait {
-	type Event: From<Event<Self>> + Into<<Self as palette_system::Trait>::Event>;
+pub trait Trait: frame_system::Trait {
+	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
 	type Balance: Parameter + Member + SimpleArithmetic + Default + Copy + MaybeSerializeDeserialize;
 	type AuctionId: Parameter + Member + SimpleArithmetic + Default + Copy + MaybeSerializeDeserialize;
 	type Handler: AuctionHandler<Self::AccountId, Self::Balance, Self::BlockNumber, Self::AuctionId>;
 }
 
 type AuctionEndTimeList<T> =
-	LinkedList<AuctionEndTime<T>, <T as palette_system::Trait>::BlockNumber, <T as Trait>::AuctionId>;
+	LinkedList<AuctionEndTime<T>, <T as frame_system::Trait>::BlockNumber, <T as Trait>::AuctionId>;
 
 decl_event!(
 	pub enum Event<T> where
-		<T as palette_system::Trait>::AccountId,
+		<T as frame_system::Trait>::AccountId,
 		<T as Trait>::Balance,
 		<T as Trait>::AuctionId,
 	{
@@ -48,7 +48,7 @@ decl_module! {
 
 			let mut auction = <Auctions<T>>::get(id).ok_or(Error::AuctionNotExist)?;
 
-			let block_number = <palette_system::Module<T>>::block_number();
+			let block_number = <frame_system::Module<T>>::block_number();
 
 			// make sure auction is started
 			ensure!(block_number >= auction.start, Error::AuctionNotStarted.into());

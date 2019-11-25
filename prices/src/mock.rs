@@ -2,8 +2,8 @@
 
 #![cfg(test)]
 
-use palette_support::{impl_outer_origin, parameter_types};
-use palette_system as system;
+use frame_support::{impl_outer_origin, parameter_types};
+use frame_system as system;
 use primitives::H256;
 use sr_primitives::{testing::Header, traits::IdentityLookup, Perbill};
 
@@ -26,7 +26,7 @@ parameter_types! {
 pub type AccountId = u64;
 pub type BlockNumber = u64;
 
-impl palette_system::Trait for Runtime {
+impl frame_system::Trait for Runtime {
 	type Origin = Origin;
 	type Index = u64;
 	type BlockNumber = BlockNumber;
@@ -77,7 +77,7 @@ impl Default for ExtBuilder {
 
 impl ExtBuilder {
 	pub fn build(self) -> runtime_io::TestExternalities {
-		let t = palette_system::GenesisConfig::default()
+		let t = frame_system::GenesisConfig::default()
 			.build_storage::<Runtime>()
 			.unwrap();
 

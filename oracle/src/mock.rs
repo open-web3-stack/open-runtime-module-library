@@ -2,12 +2,11 @@
 
 use super::*;
 
-use palette_support::{impl_outer_origin, parameter_types};
+use frame_support::{impl_outer_origin, parameter_types, weights::Weight};
 use primitives::H256;
 use sr_primitives::{
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
-	weights::Weight,
 	Perbill,
 };
 
@@ -26,7 +25,7 @@ parameter_types! {
 	pub const MaximumBlockLength: u32 = 2 * 1024;
 	pub const AvailableBlockRatio: Perbill = Perbill::from_percent(75);
 }
-impl palette_system::Trait for Test {
+impl frame_system::Trait for Test {
 	type Origin = Origin;
 	type Call = ();
 	type Index = u64;
@@ -86,7 +85,7 @@ pub type ModuleOracle = Module<Test>;
 // This function basically just builds a genesis storage key/value store according to
 // our desired mockup.
 pub fn new_test_ext() -> runtime_io::TestExternalities {
-	palette_system::GenesisConfig::default()
+	frame_system::GenesisConfig::default()
 		.build_storage::<Test>()
 		.unwrap()
 		.into()

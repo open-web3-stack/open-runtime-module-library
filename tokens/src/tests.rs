@@ -3,8 +3,8 @@
 #![cfg(test)]
 
 use super::*;
+use frame_support::{assert_noop, assert_ok};
 use mock::{Balance, ExtBuilder, System, TestEvent, Tokens, ALICE, BOB, TEST_TOKEN_ID};
-use palette_support::{assert_noop, assert_ok};
 
 #[test]
 fn genesis_issuance_should_work() {
