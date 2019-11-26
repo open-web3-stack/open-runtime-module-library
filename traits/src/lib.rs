@@ -23,7 +23,7 @@ pub trait MultiCurrency<AccountId> {
 	type Balance: SimpleArithmetic + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default;
 
 	/// The error type.
-	type Error: Into<&'static str>;
+	type Error: Into<&'static str> + Debug;
 
 	// Public immutables
 
