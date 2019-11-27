@@ -2,12 +2,14 @@
 
 use frame_support::{decl_module, decl_storage, Parameter};
 use orml_traits::{DataProvider, PriceProvider};
-use sr_primitives::traits::{MaybeSerializeDeserialize, Member, SimpleArithmetic, Zero};
+use orml_utilities::FixedU128;
+use sr_primitives::traits::{MaybeSerializeDeserialize, Member};
+
+pub type Price = FixedU128;
 
 pub trait Trait: frame_system::Trait {
 	type CurrencyId: Parameter + Member + Copy + MaybeSerializeDeserialize;
-	type Price: Parameter + Member + Zero + SimpleArithmetic + Copy + Ord;
-	type Source: DataProvider<Self::CurrencyId, Self::Price>;
+	type Source: DataProvider<Self::CurrencyId, Price>;
 }
 
 mod mock;
@@ -23,14 +25,11 @@ decl_module! {
 
 impl<T: Trait> Module<T> {}
 
-impl<T: Trait> PriceProvider<T::CurrencyId, T::Price> for Module<T> {
-	fn get_price(base: T::CurrencyId, quote: T::CurrencyId) -> Option<T::Price> {
-		if let (Some(base_price), Some(quote_price)) = (T::Source::get(&base), (T::Source::get(&quote))) {
-			if !base_price.is_zero() {
-				return Some(quote_price / base_price);
-			}
-		}
+impl<T: Trait> PriceProvider<T::CurrencyId, Price> for Module<T> {
+	fn get_price(base_currency_id: T::CurrencyId, quote_currency_id: T::CurrencyId) -> Option<Price> {
+		let base_price = T::Source::get(&base_currency_id)?;
+		let quote_price = T::Source::get(&quote_currency_id)?;
 
-		None
+		quote_price.checked_div(&base_price)
 	}
 }
