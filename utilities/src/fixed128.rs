@@ -2,7 +2,7 @@ use codec::{Decode, Encode};
 use primitives::U256;
 use rstd::convert::{Into, TryFrom, TryInto};
 use sr_primitives::{
-	traits::{Bounded, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, Saturating},
+	traits::{Bounded, Saturating},
 	Perbill, Percent, Permill, Perquintill,
 };
 
@@ -21,7 +21,7 @@ impl FixedU128 {
 		Self(int.saturating_mul(DIV))
 	}
 
-	pub fn accuracy() -> u128 {
+	pub const fn accuracy() -> u128 {
 		DIV
 	}
 
@@ -41,11 +41,8 @@ impl FixedU128 {
 		)
 	}
 
-	/// consume self and return the inner value.
-	///
-	/// This should only be used for testing.
-	#[cfg(any(feature = "std", test))]
-	pub fn into_inner(self) -> u128 {
+	/// consume self and return the u128 value.
+	pub fn deconstruct(self) -> u128 {
 		self.0
 	}
 
@@ -275,15 +272,15 @@ mod tests {
 	#[test]
 	fn perthing_into_fixed_u128() {
 		let ten_percent_percent: FixedU128 = Percent::from_percent(10).into();
-		assert_eq!(ten_percent_percent.into_inner(), DIV / 10);
+		assert_eq!(ten_percent_percent.deconstruct(), DIV / 10);
 
 		let ten_percent_permill: FixedU128 = Permill::from_percent(10).into();
-		assert_eq!(ten_percent_permill.into_inner(), DIV / 10);
+		assert_eq!(ten_percent_permill.deconstruct(), DIV / 10);
 
 		let ten_percent_perbill: FixedU128 = Perbill::from_percent(10).into();
-		assert_eq!(ten_percent_perbill.into_inner(), DIV / 10);
+		assert_eq!(ten_percent_perbill.deconstruct(), DIV / 10);
 
 		let ten_percent_perquintill: FixedU128 = Perquintill::from_percent(10).into();
-		assert_eq!(ten_percent_perquintill.into_inner(), DIV / 10);
+		assert_eq!(ten_percent_perquintill.deconstruct(), DIV / 10);
 	}
 }
