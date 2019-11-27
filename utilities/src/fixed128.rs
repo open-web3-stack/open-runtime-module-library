@@ -2,37 +2,38 @@ use codec::{Decode, Encode};
 use primitives::U256;
 use rstd::convert::{Into, TryFrom, TryInto};
 use sr_primitives::{
-	traits::{Bounded, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, Saturating},
+	traits::{Bounded, Saturating},
 	Perbill, Percent, Permill, Perquintill,
 };
 
 /// An unsigned fixed point number. Can hold any value in the range [0, 340_282_366_920_938_463_464]
-/// with fixed point accuracy of 10 ** 18
+/// with fixed point accuracy of 10 ** 18.
 #[derive(Encode, Decode, Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct FixedU128(u128);
 
 const DIV: u128 = 1_000_000_000_000_000_000;
 
 impl FixedU128 {
-	/// create self from a natural number
+	/// Create self from a natural number.
 	///
-	/// Note that this might be lossy
+	/// Note that this might be lossy.
 	pub fn from_natural(int: u128) -> Self {
 		Self(int.saturating_mul(DIV))
 	}
 
-	pub fn accuracy() -> u128 {
+	/// Accuracy of `FixedU128`.
+	pub const fn accuracy() -> u128 {
 		DIV
 	}
 
-	/// raw constructor. Equal to `parts / DIV`.
+	/// Raw constructor. Equal to `parts / DIV`.
 	pub fn from_parts(parts: u128) -> Self {
 		Self(parts)
 	}
 
-	/// creates self from a rational number. Equal to `n/d`
+	/// Creates self from a rational number. Equal to `n/d`.
 	///
-	/// Note that this might be lossy
+	/// Note that this might be lossy.
 	pub fn from_rational(n: u128, d: u128) -> Self {
 		Self(
 			(U256::from(n).saturating_mul(U256::from(DIV)) / U256::from(d).max(U256::one()))
@@ -41,25 +42,24 @@ impl FixedU128 {
 		)
 	}
 
-	/// consume self and return the inner value.
+	/// Consume self and return the inner raw `u128` value.
 	///
-	/// This should only be used for testing.
-	#[cfg(any(feature = "std", test))]
-	pub fn into_inner(self) -> u128 {
+	/// Note this is a low level function, as the returned value is represented with accuracy.
+	pub fn deconstruct(self) -> u128 {
 		self.0
 	}
 
-	// checked add for FixedU128
+	/// Checked add. Same semantic to `num_traits::CheckedAdd`.
 	pub fn checked_add(&self, rhs: &Self) -> Option<Self> {
 		self.0.checked_add(rhs.0).map(Self)
 	}
 
-	// checked sub for FixedU128
+	/// Checked sub. Same semantic to `num_traits::CheckedSub`.
 	pub fn checked_sub(&self, rhs: &Self) -> Option<Self> {
 		self.0.checked_sub(rhs.0).map(Self)
 	}
 
-	// checked mul for FixedU128
+	/// Checked mul. Same semantic to `num_traits::CheckedMul`.
 	pub fn checked_mul(&self, rhs: &Self) -> Option<Self> {
 		if let Some(r) = U256::from(self.0)
 			.checked_mul(U256::from(rhs.0))
@@ -73,7 +73,7 @@ impl FixedU128 {
 		None
 	}
 
-	// checked div for FixedU128
+	/// Checked div. Same semantic to `num_traits::CheckedDiv`.
 	pub fn checked_div(&self, rhs: &Self) -> Option<Self> {
 		if let Some(r) = U256::from(self.0)
 			.checked_mul(U256::from(DIV))
@@ -87,7 +87,7 @@ impl FixedU128 {
 		None
 	}
 
-	/// checked mul for type N
+	/// Checked mul for int type `N`.
 	pub fn checked_mul_int<N>(&self, other: &N) -> Option<N>
 	where
 		N: Copy + TryFrom<u128> + TryInto<u128>,
@@ -108,7 +108,7 @@ impl FixedU128 {
 		None
 	}
 
-	/// checked div for type N
+	/// Checked div for int type `N`.
 	pub fn checked_div_int<N>(&self, other: &N) -> Option<N>
 	where
 		N: Copy + TryFrom<u128> + TryInto<u128>,
@@ -275,15 +275,15 @@ mod tests {
 	#[test]
 	fn perthing_into_fixed_u128() {
 		let ten_percent_percent: FixedU128 = Percent::from_percent(10).into();
-		assert_eq!(ten_percent_percent.into_inner(), DIV / 10);
+		assert_eq!(ten_percent_percent.deconstruct(), DIV / 10);
 
 		let ten_percent_permill: FixedU128 = Permill::from_percent(10).into();
-		assert_eq!(ten_percent_permill.into_inner(), DIV / 10);
+		assert_eq!(ten_percent_permill.deconstruct(), DIV / 10);
 
 		let ten_percent_perbill: FixedU128 = Perbill::from_percent(10).into();
-		assert_eq!(ten_percent_perbill.into_inner(), DIV / 10);
+		assert_eq!(ten_percent_perbill.deconstruct(), DIV / 10);
 
 		let ten_percent_perquintill: FixedU128 = Perquintill::from_percent(10).into();
-		assert_eq!(ten_percent_perquintill.into_inner(), DIV / 10);
+		assert_eq!(ten_percent_perquintill.deconstruct(), DIV / 10);
 	}
 }
