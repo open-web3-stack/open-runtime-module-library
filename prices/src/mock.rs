@@ -44,16 +44,15 @@ impl frame_system::Trait for Runtime {
 	type Version = ();
 }
 
-type Price = u32;
 type CurrencyId = u32;
 
 pub struct MockDataProvider;
 impl DataProvider<CurrencyId, Price> for MockDataProvider {
 	fn get(currency: &CurrencyId) -> Option<Price> {
 		match currency {
-			0 => Some(0),
-			1 => Some(1),
-			2 => Some(2),
+			0 => Some(Price::from_parts(0)),
+			1 => Some(Price::from_parts(1)),
+			2 => Some(Price::from_parts(2)),
 			_ => None,
 		}
 	}
@@ -61,7 +60,6 @@ impl DataProvider<CurrencyId, Price> for MockDataProvider {
 
 impl Trait for Runtime {
 	type CurrencyId = CurrencyId;
-	type Price = Price;
 	type Source = MockDataProvider;
 }
 

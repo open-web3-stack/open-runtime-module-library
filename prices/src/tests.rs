@@ -8,7 +8,7 @@ use mock::{ExtBuilder, PricesModule};
 #[test]
 fn get_price_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_eq!(PricesModule::get_price(1, 2), Some(2));
+		assert_eq!(PricesModule::get_price(1, 2), Some(Price::from_rational(2, 1)));
 	});
 }
 
@@ -25,6 +25,6 @@ fn price_is_none_should_not_panic() {
 fn price_is_zero_should_not_panic() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_eq!(PricesModule::get_price(0, 0), None);
-		assert_eq!(PricesModule::get_price(1, 0), Some(0));
+		assert_eq!(PricesModule::get_price(1, 0), Some(Price::from_parts(0)));
 	});
 }
