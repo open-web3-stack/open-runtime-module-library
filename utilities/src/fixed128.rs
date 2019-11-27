@@ -1,7 +1,10 @@
 use codec::{Decode, Encode};
 use primitives::U256;
 use rstd::convert::{Into, TryFrom, TryInto};
-use sr_primitives::traits::{Bounded, Saturating};
+use sr_primitives::{
+	traits::{Bounded, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, Saturating},
+	Perbill, Percent, Permill, Perquintill,
+};
 
 /// An unsigned fixed point number. Can hold any value in the range [0, 340_282_366_920_938_463_464]
 /// with fixed point accuracy of 10 ** 18
@@ -162,6 +165,21 @@ impl rstd::fmt::Debug for FixedU128 {
 	}
 }
 
+macro_rules! impl_perthing_into_fixed_u128 {
+	($perthing:ty) => {
+		impl Into<FixedU128> for $perthing {
+			fn into(self) -> FixedU128 {
+				FixedU128::from_rational(self.deconstruct().into(), <$perthing>::accuracy().into())
+			}
+		}
+	};
+}
+
+impl_perthing_into_fixed_u128!(Percent);
+impl_perthing_into_fixed_u128!(Permill);
+impl_perthing_into_fixed_u128!(Perbill);
+impl_perthing_into_fixed_u128!(Perquintill);
+
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -252,5 +270,20 @@ mod tests {
 		let a = FixedU128::from_natural(256);
 		let b = 1u8;
 		assert_eq!(a.checked_div_int(&b), None);
+	}
+
+	#[test]
+	fn perthing_into_fixed_u128() {
+		let ten_percent_percent: FixedU128 = Percent::from_percent(10).into();
+		assert_eq!(ten_percent_percent.into_inner(), DIV / 10);
+
+		let ten_percent_permill: FixedU128 = Permill::from_percent(10).into();
+		assert_eq!(ten_percent_permill.into_inner(), DIV / 10);
+
+		let ten_percent_perbill: FixedU128 = Perbill::from_percent(10).into();
+		assert_eq!(ten_percent_perbill.into_inner(), DIV / 10);
+
+		let ten_percent_perquintill: FixedU128 = Perquintill::from_percent(10).into();
+		assert_eq!(ten_percent_perquintill.into_inner(), DIV / 10);
 	}
 }
