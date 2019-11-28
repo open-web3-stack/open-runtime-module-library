@@ -96,11 +96,7 @@ impl<T: Trait> Module<T> {
 
 impl<T: Trait> DataProvider<T::Key, T::Value> for Module<T> {
 	fn get(key: &T::Key) -> Option<T::Value> {
-		if let Some(timestamped_value) = Self::get(key) {
-			return Some(timestamped_value.value);
-		}
-
-		None
+		Self::get(key).map(|timestamped_value| timestamped_value.value)
 	}
 }
 
