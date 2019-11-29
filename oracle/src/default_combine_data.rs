@@ -11,9 +11,9 @@ use crate::{MomentOf, TimestampedValueOf, Trait};
 /// Returns prev_value if not enough valid values.
 pub struct DefaultCombineData<T: Trait>(rstd::marker::PhantomData<T>);
 
-impl<T: Trait> CombineData<T::Key, TimestampedValueOf<T>> for DefaultCombineData<T> {
+impl<T: Trait> CombineData<T::OracleKey, TimestampedValueOf<T>> for DefaultCombineData<T> {
 	fn combine_data(
-		_key: &T::Key,
+		_key: &T::OracleKey,
 		values: Vec<TimestampedValueOf<T>>,
 		prev_value: Option<TimestampedValueOf<T>>,
 	) -> Option<TimestampedValueOf<T>> {

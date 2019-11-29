@@ -21,23 +21,23 @@ pub use orml_traits::{CombineData, DataProvider, OnNewData};
 pub use timestamped_value::TimestampedValue;
 
 type MomentOf<T> = <<T as Trait>::Time as Time>::Moment;
-pub type TimestampedValueOf<T> = TimestampedValue<<T as Trait>::Value, MomentOf<T>>;
+pub type TimestampedValueOf<T> = TimestampedValue<<T as Trait>::OracleValue, MomentOf<T>>;
 
 pub trait Trait: frame_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
-	type OnNewData: OnNewData<Self::Key, Self::Value>;
+	type OnNewData: OnNewData<Self::OracleKey, Self::OracleValue>;
 	type OperatorProvider: OperatorProvider<Self::AccountId>;
-	type CombineData: CombineData<Self::Key, TimestampedValueOf<Self>>;
+	type CombineData: CombineData<Self::OracleKey, TimestampedValueOf<Self>>;
 	type Time: Time;
-	type Key: Parameter + Member;
-	type Value: Parameter + Member + Ord;
+	type OracleKey: Parameter + Member;
+	type OracleValue: Parameter + Member + Ord;
 }
 
 decl_storage! {
 	trait Store for Module<T: Trait> as Oracle {
-		pub RawValues get(raw_values): double_map T::Key, blake2_256(T::AccountId) => Option<TimestampedValueOf<T>>;
-		pub HasUpdate get(has_update): map T::Key => bool;
-		pub Values get(values): map T::Key => Option<TimestampedValueOf<T>>;
+		pub RawValues get(raw_values): double_map T::OracleKey, blake2_256(T::AccountId) => Option<TimestampedValueOf<T>>;
+		pub HasUpdate get(has_update): map T::OracleKey => bool;
+		pub Values get(values): map T::OracleKey => Option<TimestampedValueOf<T>>;
 	}
 }
 
@@ -52,12 +52,12 @@ decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
 		fn deposit_event() = default;
 
-		pub fn feed_value(origin, key: T::Key, value: T::Value) -> Result {
+		pub fn feed_value(origin, key: T::OracleKey, value: T::OracleValue) -> Result {
 			let who = ensure_signed(origin)?;
 			Self::_feed_values(who, vec![(key, value)]).map_err(|e| e.into())
 		}
 
-		pub fn feed_values(origin, values: Vec<(T::Key, T::Value)>) -> Result {
+		pub fn feed_values(origin, values: Vec<(T::OracleKey, T::OracleValue)>) -> Result {
 			let who = ensure_signed(origin)?;
 			Self::_feed_values(who, values).map_err(|e| e.into())
 		}
@@ -67,23 +67,23 @@ decl_module! {
 decl_event!(
 	pub enum Event<T> where
 		<T as frame_system::Trait>::AccountId,
-		<T as Trait>::Key,
-		<T as Trait>::Value,
+		<T as Trait>::OracleKey,
+		<T as Trait>::OracleValue,
 	{
 		/// New feed data is submitted (sender, values)
-		NewFeedData(AccountId, Vec<(Key, Value)>),
+		NewFeedData(AccountId, Vec<(OracleKey, OracleValue)>),
 	}
 );
 
 impl<T: Trait> Module<T> {
-	pub fn read_raw_values(key: &T::Key) -> Vec<TimestampedValueOf<T>> {
+	pub fn read_raw_values(key: &T::OracleKey) -> Vec<TimestampedValueOf<T>> {
 		T::OperatorProvider::operators()
 			.iter()
 			.filter_map(|x| <RawValues<T>>::get(key, x))
 			.collect()
 	}
 
-	pub fn get(key: &T::Key) -> Option<TimestampedValueOf<T>> {
+	pub fn get(key: &T::OracleKey) -> Option<TimestampedValueOf<T>> {
 		if <HasUpdate<T>>::take(key) {
 			let values = Self::read_raw_values(key);
 			let timestamped = T::CombineData::combine_data(key, values, <Values<T>>::get(key))?;
@@ -94,14 +94,14 @@ impl<T: Trait> Module<T> {
 	}
 }
 
-impl<T: Trait> DataProvider<T::Key, T::Value> for Module<T> {
-	fn get(key: &T::Key) -> Option<T::Value> {
+impl<T: Trait> DataProvider<T::OracleKey, T::OracleValue> for Module<T> {
+	fn get(key: &T::OracleKey) -> Option<T::OracleValue> {
 		Self::get(key).map(|timestamped_value| timestamped_value.value)
 	}
 }
 
 impl<T: Trait> Module<T> {
-	fn _feed_values(who: T::AccountId, values: Vec<(T::Key, T::Value)>) -> result::Result<(), Error> {
+	fn _feed_values(who: T::AccountId, values: Vec<(T::OracleKey, T::OracleValue)>) -> result::Result<(), Error> {
 		ensure!(T::OperatorProvider::can_feed_data(&who), Error::NoPermission);
 
 		let now = T::Time::now();

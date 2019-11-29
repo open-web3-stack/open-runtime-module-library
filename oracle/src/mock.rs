@@ -77,8 +77,8 @@ impl Trait for Test {
 	type OperatorProvider = MockOperatorProvider;
 	type CombineData = DefaultCombineData<Self>;
 	type Time = pallet_timestamp::Module<Self>;
-	type Key = Key;
-	type Value = Value;
+	type OracleKey = Key;
+	type OracleValue = Value;
 }
 pub type ModuleOracle = Module<Test>;
 
