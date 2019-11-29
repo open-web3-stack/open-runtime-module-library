@@ -17,7 +17,7 @@ use sr_primitives::traits::Member;
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
 use frame_system::{self as system, ensure_signed};
-pub use orml_traits::{CombineData, OnNewData};
+pub use orml_traits::{CombineData, DataProvider, OnNewData};
 pub use timestamped_value::TimestampedValue;
 
 type MomentOf<T> = <<T as Trait>::Time as Time>::Moment;
@@ -91,6 +91,12 @@ impl<T: Trait> Module<T> {
 			return Some(timestamped);
 		}
 		<Values<T>>::get(key)
+	}
+}
+
+impl<T: Trait> DataProvider<T::Key, T::Value> for Module<T> {
+	fn get(key: &T::Key) -> Option<T::Value> {
+		Self::get(key).map(|timestamped_value| timestamped_value.value)
 	}
 }
 
