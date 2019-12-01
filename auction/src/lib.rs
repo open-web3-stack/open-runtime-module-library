@@ -31,11 +31,13 @@ decl_event!(
 	}
 );
 
+type AuctionIdLinkedItem<T> = LinkedItem<<T as Trait>::AuctionId>;
+
 decl_storage! {
 	trait Store for Module<T: Trait> as Auction {
 		pub Auctions get(fn auctions): map T::AuctionId => Option<AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>>;
 		pub AuctionsCount get(fn auctions_count): T::AuctionId;
-		pub AuctionEndTime get(fn auction_end_time): map(T::BlockNumber, Option<T::AuctionId>) => Option<LinkedItem<T::AuctionId>>;
+		pub AuctionEndTime get(fn auction_end_time): map(T::BlockNumber, Option<T::AuctionId>) => Option<AuctionIdLinkedItem<T>>;
 	}
 }
 
