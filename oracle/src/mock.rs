@@ -71,11 +71,16 @@ impl OperatorProvider<AccountId> for MockOperatorProvider {
 	}
 }
 
+parameter_types! {
+	pub const MinimumCount: u32 = 3;
+	pub const ExpiresIn: u32 = 600;
+}
+
 impl Trait for Test {
 	type Event = ();
 	type OnNewData = ();
 	type OperatorProvider = MockOperatorProvider;
-	type CombineData = DefaultCombineData<Self>;
+	type CombineData = DefaultCombineData<Self, MinimumCount, ExpiresIn>;
 	type Time = pallet_timestamp::Module<Self>;
 	type OracleKey = Key;
 	type OracleValue = Value;
