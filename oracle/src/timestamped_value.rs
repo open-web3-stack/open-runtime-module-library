@@ -1,5 +1,5 @@
 use codec::{Decode, Encode};
-use sr_primitives::RuntimeDebug;
+use sp_runtime::RuntimeDebug;
 
 #[derive(Encode, Decode, RuntimeDebug, Eq, PartialEq, Clone, Copy)]
 pub struct TimestampedValue<Value, Moment> {

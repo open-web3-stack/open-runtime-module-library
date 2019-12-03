@@ -12,7 +12,7 @@ use frame_support::{
 };
 pub use operator_provider::OperatorProvider;
 use rstd::{prelude::*, result, vec};
-use sr_primitives::traits::Member;
+use sp_runtime::traits::Member;
 // FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295

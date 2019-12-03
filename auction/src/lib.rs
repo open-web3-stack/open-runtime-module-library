@@ -4,7 +4,7 @@ use frame_support::{decl_error, decl_event, decl_module, decl_storage, dispatch:
 use frame_system::{self as system, ensure_signed};
 use orml_utilities::{LinkedItem, LinkedList};
 use rstd::result;
-use sr_primitives::traits::{MaybeSerializeDeserialize, Member, SimpleArithmetic};
+use sp_runtime::traits::{MaybeSerializeDeserialize, Member, SimpleArithmetic};
 
 use orml_traits::{Auction, AuctionHandler, AuctionInfo};
 

@@ -1,7 +1,7 @@
 use codec::{Decode, Encode};
 use frame_support::{Parameter, StorageMap};
 use rstd::{iter, marker, prelude::*};
-use sr_primitives::{traits::Member, RuntimeDebug};
+use sp_runtime::{traits::Member, RuntimeDebug};
 
 #[derive(RuntimeDebug, PartialEq, Eq, Encode, Decode)]
 pub struct LinkedItem<Item> {
@@ -162,7 +162,7 @@ mod tests {
 	use frame_support::{decl_module, decl_storage, impl_outer_origin, parameter_types, StorageMap};
 	use frame_system as system;
 	use primitives::H256;
-	use sr_primitives::{testing::Header, traits::IdentityLookup, Perbill};
+	use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
 	type Key = u64;
 	type Value = u32;
@@ -202,7 +202,7 @@ mod tests {
 		type BlockNumber = u64;
 		type Call = ();
 		type Hash = H256;
-		type Hashing = ::sr_primitives::traits::BlakeTwo256;
+		type Hashing = ::sp_runtime::traits::BlakeTwo256;
 		type AccountId = u64;
 		type Lookup = IdentityLookup<Self::AccountId>;
 		type Header = Header;
