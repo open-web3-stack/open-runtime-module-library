@@ -5,7 +5,7 @@ use frame_support::{
 	traits::{Currency as PalletCurrency, ExistenceRequirement, Get, WithdrawReason},
 };
 use rstd::{convert::TryInto, marker, result};
-use sr_primitives::traits::StaticLookup;
+use sp_runtime::traits::StaticLookup;
 // FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295

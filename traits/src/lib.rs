@@ -12,7 +12,7 @@ use rstd::{
 	prelude::Vec,
 	result,
 };
-use sr_primitives::traits::{MaybeSerializeDeserialize, SimpleArithmetic};
+use sp_runtime::traits::{MaybeSerializeDeserialize, SimpleArithmetic};
 
 /// Abstraction over a fungible multi-currency system.
 pub trait MultiCurrency<AccountId> {

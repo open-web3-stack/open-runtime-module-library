@@ -1,7 +1,7 @@
 use codec::FullCodec;
 use codec::{Decode, Encode};
 use rstd::{fmt::Debug, result};
-use sr_primitives::{
+use sp_runtime::{
 	traits::{MaybeSerializeDeserialize, SimpleArithmetic},
 	RuntimeDebug,
 };

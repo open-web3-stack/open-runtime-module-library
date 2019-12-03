@@ -3,7 +3,7 @@
 use frame_support::{decl_module, decl_storage, Parameter};
 use orml_traits::{DataProvider, PriceProvider};
 use orml_utilities::FixedU128;
-use sr_primitives::traits::{MaybeSerializeDeserialize, Member};
+use sp_runtime::traits::{MaybeSerializeDeserialize, Member};
 
 pub type Price = FixedU128;
 

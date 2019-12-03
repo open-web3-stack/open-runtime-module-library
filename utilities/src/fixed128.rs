@@ -1,7 +1,7 @@
 use codec::{Decode, Encode};
 use primitives::U256;
 use rstd::convert::{Into, TryFrom, TryInto};
-use sr_primitives::{
+use sp_runtime::{
 	traits::{Bounded, Saturating},
 	Perbill, Percent, Permill, Perquintill,
 };
