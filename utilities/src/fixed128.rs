@@ -6,9 +6,13 @@ use sp_runtime::{
 	Perbill, Percent, Permill, Perquintill,
 };
 
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
+
 /// An unsigned fixed point number. Can hold any value in the range [0, 340_282_366_920_938_463_464]
 /// with fixed point accuracy of 10 ** 18.
 #[derive(Encode, Decode, Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct FixedU128(u128);
 
 const DIV: u128 = 1_000_000_000_000_000_000;
