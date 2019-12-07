@@ -53,6 +53,11 @@ impl FixedU128 {
 		self.0
 	}
 
+	/// Takes the reciprocal(inverse) of FixedU128, 1/x
+	pub fn recip(&self) -> Option<Self> {
+		Self::from_natural(1u128).checked_div(self)
+	}
+
 	/// Checked add. Same semantic to `num_traits::CheckedAdd`.
 	pub fn checked_add(&self, rhs: &Self) -> Option<Self> {
 		self.0.checked_add(rhs.0).map(Self)
@@ -289,5 +294,23 @@ mod tests {
 
 		let ten_percent_perquintill: FixedU128 = Perquintill::from_percent(10).into();
 		assert_eq!(ten_percent_perquintill.deconstruct(), DIV / 10);
+	}
+
+	#[test]
+	fn recip_should_work() {
+		let a = FixedU128::from_natural(2);
+		assert_eq!(a.recip(), Some(FixedU128::from_rational(1, 2)));
+
+		let a = FixedU128::from_natural(2);
+		assert_eq!(a.recip().unwrap().checked_mul_int(&4i32), Some(2i32));
+
+		let a = FixedU128::from_rational(100, 121);
+		assert_eq!(a.recip(), Some(FixedU128::from_rational(121, 100)));
+
+		let a = FixedU128::from_rational(1, 2);
+		assert_eq!(a.recip().unwrap().checked_mul(&a), Some(FixedU128::from_natural(1)));
+
+		let a = FixedU128::from_natural(0);
+		assert_eq!(a.recip(), None);
 	}
 }
