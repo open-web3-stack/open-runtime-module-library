@@ -103,8 +103,8 @@ decl_error! {
 impl<T: Trait> Module<T> {}
 
 impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
-	type Balance = T::Balance;
 	type CurrencyId = T::CurrencyId;
+	type Balance = T::Balance;
 	type Error = Error;
 
 	fn total_issuance(currency_id: Self::CurrencyId) -> Self::Balance {
@@ -113,6 +113,18 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 
 	fn balance(currency_id: Self::CurrencyId, who: &T::AccountId) -> Self::Balance {
 		<Balance<T>>::get(currency_id, who)
+	}
+
+	fn ensure_can_withdraw(
+		currency_id: Self::CurrencyId,
+		who: &T::AccountId,
+		amount: Self::Balance,
+	) -> result::Result<(), Self::Error> {
+		if Self::balance(currency_id, who).checked_sub(&amount).is_some() {
+			Ok(())
+		} else {
+			Err(Error::BalanceTooLow)
+		}
 	}
 
 	fn transfer(
