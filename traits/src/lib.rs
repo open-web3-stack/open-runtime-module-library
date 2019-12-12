@@ -33,6 +33,13 @@ pub trait MultiCurrency<AccountId> {
 	/// The combined balance of `who` under `currency_id`.
 	fn balance(currency_id: Self::CurrencyId, who: &AccountId) -> Self::Balance;
 
+	/// A dry-run of `withdraw`. Returns `Ok` iff the account is able to make a withdrawal of the given amount.
+	fn ensure_can_withdraw(
+		currency_id: Self::CurrencyId,
+		who: &AccountId,
+		amount: Self::Balance,
+	) -> result::Result<(), Self::Error>;
+
 	// Public mutables
 
 	/// Transfer some amount from one account to another.
@@ -100,6 +107,9 @@ pub trait BasicCurrency<AccountId> {
 
 	/// The balance of `who`.
 	fn balance(who: &AccountId) -> Self::Balance;
+
+	/// A dry-run of `withdraw`. Returns `Ok` iff the account is able to make a withdrawal of the given amount.
+	fn ensure_can_withdraw(who: &AccountId, amount: Self::Balance) -> result::Result<(), Self::Error>;
 
 	// Public mutables
 

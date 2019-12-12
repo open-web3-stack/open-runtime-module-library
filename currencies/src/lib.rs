@@ -5,7 +5,7 @@ use frame_support::{
 	traits::{Currency as PalletCurrency, ExistenceRequirement, Get, WithdrawReason},
 };
 use rstd::{convert::TryInto, marker, result};
-use sp_runtime::traits::StaticLookup;
+use sp_runtime::traits::{CheckedSub, StaticLookup};
 // FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
@@ -55,6 +55,7 @@ decl_error! {
 	/// Error for currencies module.
 	pub enum Error {
 		AmountIntoBalanceFailed,
+		BalanceTooLow,
 	}
 }
 
@@ -115,6 +116,18 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 			T::NativeCurrency::balance(who)
 		} else {
 			T::MultiCurrency::balance(currency_id, who)
+		}
+	}
+
+	fn ensure_can_withdraw(
+		currency_id: Self::CurrencyId,
+		who: &T::AccountId,
+		amount: Self::Balance,
+	) -> result::Result<(), Self::Error> {
+		if currency_id == T::GetNativeCurrencyId::get() {
+			T::NativeCurrency::ensure_can_withdraw(who, amount)
+		} else {
+			T::MultiCurrency::ensure_can_withdraw(currency_id, who, amount)
 		}
 	}
 
@@ -198,6 +211,10 @@ where
 		<Module<T>>::balance(GetCurrencyId::get(), who)
 	}
 
+	fn ensure_can_withdraw(who: &T::AccountId, amount: Self::Balance) -> result::Result<(), Self::Error> {
+		<Module<T>>::ensure_can_withdraw(GetCurrencyId::get(), who, amount)
+	}
+
 	fn transfer(from: &T::AccountId, to: &T::AccountId, amount: Self::Balance) -> result::Result<(), Self::Error> {
 		<Module<T> as MultiCurrency<T::AccountId>>::transfer(GetCurrencyId::get(), from, to, amount)
 	}
@@ -257,6 +274,18 @@ where
 
 	fn balance(who: &AccountId) -> Self::Balance {
 		BalanceConvert::from(Currency::total_balance(who)).into()
+	}
+
+	fn ensure_can_withdraw(who: &AccountId, amount: Self::Balance) -> Result<(), Self::Error> {
+		let new_balance_pallet = {
+			let new_balance = Self::balance(who)
+				.checked_sub(&amount)
+				.ok_or(ErrorConvert::from(Error::BalanceTooLow.into()).into())?;
+			BalanceConvert::from(new_balance).into()
+		};
+		let amount_pallet = BalanceConvert::from(amount).into();
+		Currency::ensure_can_withdraw(who, amount_pallet, WithdrawReason::Transfer.into(), new_balance_pallet)
+			.map_err(|err| ErrorConvert::from(err).into())
 	}
 
 	fn transfer(from: &AccountId, to: &AccountId, amount: Self::Balance) -> result::Result<(), Self::Error> {
