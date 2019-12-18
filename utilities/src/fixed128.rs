@@ -2,7 +2,7 @@ use codec::{Decode, Encode};
 use primitives::U256;
 use rstd::convert::{Into, TryFrom, TryInto};
 use sp_runtime::{
-	traits::{Bounded, Saturating},
+	traits::{Bounded, Saturating, UniqueSaturatedInto},
 	Perbill, Percent, Permill, Perquintill,
 };
 
@@ -38,9 +38,15 @@ impl FixedU128 {
 	/// Creates self from a rational number. Equal to `n/d`.
 	///
 	/// Note that this might be lossy.
-	pub fn from_rational(n: u128, d: u128) -> Self {
+	pub fn from_rational<N: UniqueSaturatedInto<u128>>(n: N, d: N) -> Self {
+		// this should really be `N: Into<U256>` or else might give wrong result
+		// TODO: Should have a better way to enforce this requirement
+		let n = n.unique_saturated_into();
+		let n = U256::from(n);
+		let d = d.unique_saturated_into();
+		let d = U256::from(d);
 		Self(
-			(U256::from(n).saturating_mul(U256::from(DIV)) / U256::from(d).max(U256::one()))
+			(n.saturating_mul(DIV.into()) / d.max(U256::one()))
 				.try_into()
 				.unwrap_or_else(|_| Bounded::max_value()),
 		)
@@ -117,6 +123,14 @@ impl FixedU128 {
 		None
 	}
 
+	/// Checked mul for int type `N`.
+	pub fn saturating_mul_int<N>(&self, other: &N) -> N
+	where
+		N: Copy + TryFrom<u128> + TryInto<u128> + Bounded,
+	{
+		self.checked_mul_int(other).unwrap_or_else(Bounded::max_value)
+	}
+
 	/// Checked div for int type `N`.
 	pub fn checked_div_int<N>(&self, other: &N) -> Option<N>
 	where
@@ -131,6 +145,14 @@ impl FixedU128 {
 		}
 
 		None
+	}
+
+	pub fn zero() -> Self {
+		Self(0)
+	}
+
+	pub fn is_zero(&self) -> bool {
+		self.0 == 0
 	}
 }
 
@@ -178,7 +200,7 @@ macro_rules! impl_perthing_into_fixed_u128 {
 	($perthing:ty) => {
 		impl Into<FixedU128> for $perthing {
 			fn into(self) -> FixedU128 {
-				FixedU128::from_rational(self.deconstruct().into(), <$perthing>::accuracy().into())
+				FixedU128::from_rational(self.deconstruct(), <$perthing>::accuracy())
 			}
 		}
 	};
@@ -239,6 +261,32 @@ mod tests {
 		let a = FixedU128::from_rational(1, 2);
 		let b = 20i32;
 		assert_eq!(a.checked_mul_int::<i32>(&b), Some(10));
+	}
+
+	#[test]
+	fn saturating_mul_int_works() {
+		let a = FixedU128::from_rational(10, 1);
+		let b = u32::max_value() / 5;
+		assert_eq!(a.saturating_mul_int(&b), u32::max_value());
+
+		let a = FixedU128::from_rational(3, 1);
+		let b = 100u8;
+		assert_eq!(a.saturating_mul_int(&b), 255u8);
+
+		let a = FixedU128::from_rational(10, 1);
+		let b = 123;
+		assert_eq!(a.saturating_mul_int(&b), 1230);
+	}
+
+	#[test]
+	fn zero_works() {
+		assert_eq!(FixedU128::zero(), FixedU128::from_natural(0));
+	}
+
+	#[test]
+	fn is_zero_works() {
+		assert!(FixedU128::zero().is_zero());
+		assert!(!FixedU128::from_natural(1).is_zero());
 	}
 
 	#[test]
