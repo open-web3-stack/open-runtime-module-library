@@ -212,6 +212,7 @@ mod tests {
 		type MaximumBlockLength = MaximumBlockLength;
 		type AvailableBlockRatio = AvailableBlockRatio;
 		type Version = ();
+		type ModuleToIndex = ();
 	}
 
 	type TestLinkedList = LinkedList<TestItem, Key, Value>;

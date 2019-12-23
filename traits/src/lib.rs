@@ -10,9 +10,11 @@ use rstd::{
 	convert::{TryFrom, TryInto},
 	fmt::Debug,
 	prelude::Vec,
-	result,
 };
-use sp_runtime::traits::{MaybeSerializeDeserialize, SimpleArithmetic};
+use sp_runtime::{
+	traits::{MaybeSerializeDeserialize, SimpleArithmetic},
+	DispatchResult,
+};
 
 /// Abstraction over a fungible multi-currency system.
 pub trait MultiCurrency<AccountId> {
@@ -21,9 +23,6 @@ pub trait MultiCurrency<AccountId> {
 
 	/// The balance of an account.
 	type Balance: SimpleArithmetic + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default;
-
-	/// The error type.
-	type Error: Into<&'static str> + Debug;
 
 	// Public immutables
 
@@ -34,11 +33,7 @@ pub trait MultiCurrency<AccountId> {
 	fn balance(currency_id: Self::CurrencyId, who: &AccountId) -> Self::Balance;
 
 	/// A dry-run of `withdraw`. Returns `Ok` iff the account is able to make a withdrawal of the given amount.
-	fn ensure_can_withdraw(
-		currency_id: Self::CurrencyId,
-		who: &AccountId,
-		amount: Self::Balance,
-	) -> result::Result<(), Self::Error>;
+	fn ensure_can_withdraw(currency_id: Self::CurrencyId, who: &AccountId, amount: Self::Balance) -> DispatchResult;
 
 	// Public mutables
 
@@ -48,21 +43,13 @@ pub trait MultiCurrency<AccountId> {
 		from: &AccountId,
 		to: &AccountId,
 		amount: Self::Balance,
-	) -> result::Result<(), Self::Error>;
+	) -> DispatchResult;
 
 	/// Add `amount` to the balance of `who` under `currency_id` and increase total issuance.
-	fn deposit(
-		currency_id: Self::CurrencyId,
-		who: &AccountId,
-		amount: Self::Balance,
-	) -> result::Result<(), Self::Error>;
+	fn deposit(currency_id: Self::CurrencyId, who: &AccountId, amount: Self::Balance) -> DispatchResult;
 
 	/// Remove `amount` from the balance of `who` under `currency_id` and reduce total issuance.
-	fn withdraw(
-		currency_id: Self::CurrencyId,
-		who: &AccountId,
-		amount: Self::Balance,
-	) -> result::Result<(), Self::Error>;
+	fn withdraw(currency_id: Self::CurrencyId, who: &AccountId, amount: Self::Balance) -> DispatchResult;
 
 	/// Deduct the balance of `who` by up to `amount`.
 	///
@@ -85,20 +72,13 @@ pub trait MultiCurrencyExtended<AccountId>: MultiCurrency<AccountId> {
 		+ Default;
 
 	/// Add or remove abs(`by_amount`) from the balance of `who` under `currency_id`. If positive `by_amount`, do add, else do remove.
-	fn update_balance(
-		currency_id: Self::CurrencyId,
-		who: &AccountId,
-		by_amount: Self::Amount,
-	) -> result::Result<(), Self::Error>;
+	fn update_balance(currency_id: Self::CurrencyId, who: &AccountId, by_amount: Self::Amount) -> DispatchResult;
 }
 
 /// Abstraction over a fungible (single) currency system.
 pub trait BasicCurrency<AccountId> {
 	/// The balance of an account.
 	type Balance: SimpleArithmetic + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default;
-
-	/// The error type.
-	type Error: Into<&'static str>;
 
 	// Public immutables
 
@@ -109,18 +89,18 @@ pub trait BasicCurrency<AccountId> {
 	fn balance(who: &AccountId) -> Self::Balance;
 
 	/// A dry-run of `withdraw`. Returns `Ok` iff the account is able to make a withdrawal of the given amount.
-	fn ensure_can_withdraw(who: &AccountId, amount: Self::Balance) -> result::Result<(), Self::Error>;
+	fn ensure_can_withdraw(who: &AccountId, amount: Self::Balance) -> DispatchResult;
 
 	// Public mutables
 
 	/// Transfer some amount from one account to another.
-	fn transfer(from: &AccountId, to: &AccountId, amount: Self::Balance) -> result::Result<(), Self::Error>;
+	fn transfer(from: &AccountId, to: &AccountId, amount: Self::Balance) -> DispatchResult;
 
 	/// Add `amount` to the balance of `who` and increase total issuance.
-	fn deposit(who: &AccountId, amount: Self::Balance) -> result::Result<(), Self::Error>;
+	fn deposit(who: &AccountId, amount: Self::Balance) -> DispatchResult;
 
 	/// Remove `amount` from the balance of `who` and reduce total issuance.
-	fn withdraw(who: &AccountId, amount: Self::Balance) -> result::Result<(), Self::Error>;
+	fn withdraw(who: &AccountId, amount: Self::Balance) -> DispatchResult;
 
 	/// Deduct the balance of `who` by up to `amount`.
 	///
@@ -143,7 +123,7 @@ pub trait BasicCurrencyExtended<AccountId>: BasicCurrency<AccountId> {
 		+ Default;
 
 	/// Add or remove abs(`by_amount`) from the balance of `who`. If positive `by_amount`, do add, else do remove.
-	fn update_balance(who: &AccountId, by_amount: Self::Amount) -> result::Result<(), Self::Error>;
+	fn update_balance(who: &AccountId, by_amount: Self::Amount) -> DispatchResult;
 }
 
 #[impl_trait_for_tuples::impl_for_tuples(30)]

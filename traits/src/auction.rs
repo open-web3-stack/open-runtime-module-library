@@ -1,9 +1,9 @@
 use codec::FullCodec;
 use codec::{Decode, Encode};
-use rstd::{fmt::Debug, result};
+use rstd::fmt::Debug;
 use sp_runtime::{
 	traits::{MaybeSerializeDeserialize, SimpleArithmetic},
-	RuntimeDebug,
+	DispatchResult, RuntimeDebug,
 };
 
 /// Auction info.
@@ -24,16 +24,11 @@ pub trait Auction<AccountId, BlockNumber> {
 	type AuctionId: FullCodec + Default + Copy + MaybeSerializeDeserialize + Debug;
 	/// The price to bid.
 	type Balance: SimpleArithmetic + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default;
-	/// The error type.
-	type Error: Into<&'static str>;
 
 	/// The auction info of `id`
 	fn auction_info(id: Self::AuctionId) -> Option<AuctionInfo<AccountId, Self::Balance, BlockNumber>>;
 	/// Update the auction info of `id` with `info`
-	fn update_auction(
-		id: Self::AuctionId,
-		info: AuctionInfo<AccountId, Self::Balance, BlockNumber>,
-	) -> result::Result<(), Self::Error>;
+	fn update_auction(id: Self::AuctionId, info: AuctionInfo<AccountId, Self::Balance, BlockNumber>) -> DispatchResult;
 	/// Create new auction with specific startblock and endblock, return the id of the auction
 	fn new_auction(start: BlockNumber, end: Option<BlockNumber>) -> Self::AuctionId;
 }
