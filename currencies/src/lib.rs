@@ -4,8 +4,11 @@ use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage,
 	traits::{Currency as PalletCurrency, ExistenceRequirement, Get, WithdrawReason},
 };
-use rstd::{convert::TryInto, marker, result};
-use sp_runtime::traits::{CheckedSub, StaticLookup};
+use rstd::{convert::TryInto, marker};
+use sp_runtime::{
+	traits::{CheckedSub, StaticLookup},
+	DispatchResult,
+};
 // FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
@@ -19,7 +22,6 @@ mod tests;
 type BalanceOf<T> = <<T as Trait>::MultiCurrency as MultiCurrency<<T as frame_system::Trait>::AccountId>>::Balance;
 type CurrencyIdOf<T> =
 	<<T as Trait>::MultiCurrency as MultiCurrency<<T as frame_system::Trait>::AccountId>>::CurrencyId;
-type ErrorOf<T> = <<T as Trait>::MultiCurrency as MultiCurrency<<T as frame_system::Trait>::AccountId>>::Error;
 
 type AmountOf<T> =
 	<<T as Trait>::MultiCurrency as MultiCurrencyExtended<<T as frame_system::Trait>::AccountId>>::Amount;
@@ -27,12 +29,7 @@ type AmountOf<T> =
 pub trait Trait: frame_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
 	type MultiCurrency: MultiCurrencyExtended<Self::AccountId>;
-	type NativeCurrency: BasicCurrencyExtended<
-		Self::AccountId,
-		Balance = BalanceOf<Self>,
-		Error = ErrorOf<Self>,
-		Amount = AmountOf<Self>,
-	>;
+	type NativeCurrency: BasicCurrencyExtended<Self::AccountId, Balance = BalanceOf<Self>, Amount = AmountOf<Self>>;
 	type GetNativeCurrencyId: Get<CurrencyIdOf<Self>>;
 }
 
@@ -53,7 +50,7 @@ decl_event!(
 
 decl_error! {
 	/// Error for currencies module.
-	pub enum Error {
+	pub enum Error for Module<T: Trait> {
 		AmountIntoBalanceFailed,
 		BalanceTooLow,
 	}
@@ -61,6 +58,8 @@ decl_error! {
 
 decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+		type Error = Error<T>;
+
 		fn deposit_event() = default;
 
 		/// Transfer some balance to another account.
@@ -73,9 +72,9 @@ decl_module! {
 			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
 			if currency_id == T::GetNativeCurrencyId::get() {
-				T::NativeCurrency::transfer(&from, &to, amount).map_err(Into::into)?;
+				T::NativeCurrency::transfer(&from, &to, amount)?;
 			} else {
-				T::MultiCurrency::transfer(currency_id, &from, &to, amount).map_err(Into::into)?;
+				T::MultiCurrency::transfer(currency_id, &from, &to, amount)?;
 			}
 
 			Self::deposit_event(RawEvent::Transferred(currency_id, from, to, amount));
@@ -89,7 +88,7 @@ decl_module! {
 		) {
 			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
-			T::NativeCurrency::transfer(&from, &to, amount).map_err(Into::into)?;
+			T::NativeCurrency::transfer(&from, &to, amount)?;
 
 			Self::deposit_event(RawEvent::Transferred(T::GetNativeCurrencyId::get(), from, to, amount));
 		}
@@ -101,7 +100,6 @@ impl<T: Trait> Module<T> {}
 impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	type CurrencyId = CurrencyIdOf<T>;
 	type Balance = BalanceOf<T>;
-	type Error = ErrorOf<T>;
 
 	fn total_issuance(currency_id: Self::CurrencyId) -> Self::Balance {
 		if currency_id == T::GetNativeCurrencyId::get() {
@@ -119,11 +117,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		}
 	}
 
-	fn ensure_can_withdraw(
-		currency_id: Self::CurrencyId,
-		who: &T::AccountId,
-		amount: Self::Balance,
-	) -> result::Result<(), Self::Error> {
+	fn ensure_can_withdraw(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
 		if currency_id == T::GetNativeCurrencyId::get() {
 			T::NativeCurrency::ensure_can_withdraw(who, amount)
 		} else {
@@ -136,7 +130,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		from: &T::AccountId,
 		to: &T::AccountId,
 		amount: Self::Balance,
-	) -> result::Result<(), Self::Error> {
+	) -> DispatchResult {
 		if currency_id == T::GetNativeCurrencyId::get() {
 			T::NativeCurrency::transfer(from, to, amount)
 		} else {
@@ -144,11 +138,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		}
 	}
 
-	fn deposit(
-		currency_id: Self::CurrencyId,
-		who: &T::AccountId,
-		amount: Self::Balance,
-	) -> result::Result<(), Self::Error> {
+	fn deposit(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
 		if currency_id == T::GetNativeCurrencyId::get() {
 			T::NativeCurrency::deposit(who, amount)
 		} else {
@@ -156,11 +146,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		}
 	}
 
-	fn withdraw(
-		currency_id: Self::CurrencyId,
-		who: &T::AccountId,
-		amount: Self::Balance,
-	) -> result::Result<(), Self::Error> {
+	fn withdraw(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
 		if currency_id == T::GetNativeCurrencyId::get() {
 			T::NativeCurrency::withdraw(who, amount)
 		} else {
@@ -180,11 +166,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 impl<T: Trait> MultiCurrencyExtended<T::AccountId> for Module<T> {
 	type Amount = AmountOf<T>;
 
-	fn update_balance(
-		currency_id: Self::CurrencyId,
-		who: &T::AccountId,
-		by_amount: Self::Amount,
-	) -> result::Result<(), Self::Error> {
+	fn update_balance(currency_id: Self::CurrencyId, who: &T::AccountId, by_amount: Self::Amount) -> DispatchResult {
 		if currency_id == T::GetNativeCurrencyId::get() {
 			T::NativeCurrency::update_balance(who, by_amount)
 		} else {
@@ -201,7 +183,6 @@ where
 	GetCurrencyId: Get<CurrencyIdOf<T>>,
 {
 	type Balance = BalanceOf<T>;
-	type Error = ErrorOf<T>;
 
 	fn total_issuance() -> Self::Balance {
 		<Module<T>>::total_issuance(GetCurrencyId::get())
@@ -211,19 +192,19 @@ where
 		<Module<T>>::balance(GetCurrencyId::get(), who)
 	}
 
-	fn ensure_can_withdraw(who: &T::AccountId, amount: Self::Balance) -> result::Result<(), Self::Error> {
+	fn ensure_can_withdraw(who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
 		<Module<T>>::ensure_can_withdraw(GetCurrencyId::get(), who, amount)
 	}
 
-	fn transfer(from: &T::AccountId, to: &T::AccountId, amount: Self::Balance) -> result::Result<(), Self::Error> {
+	fn transfer(from: &T::AccountId, to: &T::AccountId, amount: Self::Balance) -> DispatchResult {
 		<Module<T> as MultiCurrency<T::AccountId>>::transfer(GetCurrencyId::get(), from, to, amount)
 	}
 
-	fn deposit(who: &T::AccountId, amount: Self::Balance) -> result::Result<(), Self::Error> {
+	fn deposit(who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
 		<Module<T>>::deposit(GetCurrencyId::get(), who, amount)
 	}
 
-	fn withdraw(who: &T::AccountId, amount: Self::Balance) -> result::Result<(), Self::Error> {
+	fn withdraw(who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
 		<Module<T>>::withdraw(GetCurrencyId::get(), who, amount)
 	}
 
@@ -239,7 +220,7 @@ where
 {
 	type Amount = AmountOf<T>;
 
-	fn update_balance(who: &T::AccountId, by_amount: Self::Amount) -> result::Result<(), Self::Error> {
+	fn update_balance(who: &T::AccountId, by_amount: Self::Amount) -> DispatchResult {
 		<Module<T>>::update_balance(GetCurrencyId::get(), who, by_amount)
 	}
 }
@@ -247,15 +228,13 @@ where
 pub type NativeCurrencyOf<T> = Currency<T, <T as Trait>::GetNativeCurrencyId>;
 
 /// Adapt other currency traits implementation to `BasicCurrency`.
-pub struct BasicCurrencyAdapter<T, Currency, BalanceConvert, ErrorConvert>(
-	marker::PhantomData<(T, Currency, BalanceConvert, ErrorConvert)>,
-);
+pub struct BasicCurrencyAdapter<T, Currency, BalanceConvert>(marker::PhantomData<(T, Currency, BalanceConvert)>);
 
 type PalletBalanceOf<A, Currency> = <Currency as PalletCurrency<A>>::Balance;
 
 // Adapt `frame_support::traits::Currency`
-impl<AccountId, T, Currency, BalanceConvert, ErrorConvert> BasicCurrency<AccountId>
-	for BasicCurrencyAdapter<T, Currency, BalanceConvert, ErrorConvert>
+impl<AccountId, T, Currency, BalanceConvert> BasicCurrency<AccountId>
+	for BasicCurrencyAdapter<T, Currency, BalanceConvert>
 where
 	T: Trait,
 	Currency: PalletCurrency<AccountId>,
@@ -263,10 +242,8 @@ where
 		+ Into<PalletBalanceOf<AccountId, Currency>>
 		+ From<BalanceOf<T>>
 		+ Into<BalanceOf<T>>,
-	ErrorConvert: From<&'static str> + Into<ErrorOf<T>>,
 {
 	type Balance = BalanceOf<T>;
-	type Error = ErrorOf<T>;
 
 	fn total_issuance() -> Self::Balance {
 		BalanceConvert::from(Currency::total_issuance()).into()
@@ -276,30 +253,28 @@ where
 		BalanceConvert::from(Currency::total_balance(who)).into()
 	}
 
-	fn ensure_can_withdraw(who: &AccountId, amount: Self::Balance) -> Result<(), Self::Error> {
+	fn ensure_can_withdraw(who: &AccountId, amount: Self::Balance) -> DispatchResult {
 		let new_balance_pallet = {
 			let new_balance = Self::balance(who)
 				.checked_sub(&amount)
-				.ok_or(ErrorConvert::from(Error::BalanceTooLow.into()).into())?;
+				.ok_or(Error::<T>::BalanceTooLow)?;
 			BalanceConvert::from(new_balance).into()
 		};
 		let amount_pallet = BalanceConvert::from(amount).into();
 		Currency::ensure_can_withdraw(who, amount_pallet, WithdrawReason::Transfer.into(), new_balance_pallet)
-			.map_err(|err| ErrorConvert::from(err).into())
 	}
 
-	fn transfer(from: &AccountId, to: &AccountId, amount: Self::Balance) -> result::Result<(), Self::Error> {
+	fn transfer(from: &AccountId, to: &AccountId, amount: Self::Balance) -> DispatchResult {
 		let amount_pallet = BalanceConvert::from(amount).into();
 		Currency::transfer(from, to, amount_pallet, ExistenceRequirement::AllowDeath)
-			.map_err(|err| ErrorConvert::from(err).into())
 	}
 
-	fn deposit(who: &AccountId, amount: Self::Balance) -> result::Result<(), Self::Error> {
+	fn deposit(who: &AccountId, amount: Self::Balance) -> DispatchResult {
 		let _ = Currency::deposit_creating(who, BalanceConvert::from(amount).into());
 		Ok(())
 	}
 
-	fn withdraw(who: &AccountId, amount: Self::Balance) -> result::Result<(), Self::Error> {
+	fn withdraw(who: &AccountId, amount: Self::Balance) -> DispatchResult {
 		Currency::withdraw(
 			who,
 			BalanceConvert::from(amount).into(),
@@ -307,7 +282,6 @@ where
 			ExistenceRequirement::AllowDeath,
 		)
 		.map(|_| ())
-		.map_err(|err| ErrorConvert::from(err).into())
 	}
 
 	fn slash(who: &AccountId, amount: Self::Balance) -> Self::Balance {
@@ -317,8 +291,8 @@ where
 }
 
 // Adapt `frame_support::traits::Currency`
-impl<AccountId, T, Currency, BalanceConvert, ErrorConvert> BasicCurrencyExtended<AccountId>
-	for BasicCurrencyAdapter<T, Currency, BalanceConvert, ErrorConvert>
+impl<AccountId, T, Currency, BalanceConvert> BasicCurrencyExtended<AccountId>
+	for BasicCurrencyAdapter<T, Currency, BalanceConvert>
 where
 	T: Trait,
 	Currency: PalletCurrency<AccountId>,
@@ -326,15 +300,14 @@ where
 		+ Into<PalletBalanceOf<AccountId, Currency>>
 		+ From<BalanceOf<T>>
 		+ Into<BalanceOf<T>>,
-	ErrorConvert: From<&'static str> + Into<ErrorOf<T>>,
 {
 	type Amount = AmountOf<T>;
 
-	fn update_balance(who: &AccountId, by_amount: Self::Amount) -> Result<(), Self::Error> {
+	fn update_balance(who: &AccountId, by_amount: Self::Amount) -> DispatchResult {
 		let by_balance = by_amount
 			.abs()
 			.try_into()
-			.map_err(|_| ErrorConvert::from(Error::AmountIntoBalanceFailed.into()).into())?;
+			.map_err(|_| Error::<T>::AmountIntoBalanceFailed)?;
 		if by_amount.is_positive() {
 			Self::deposit(who, by_balance)
 		} else {

@@ -4,7 +4,7 @@
 
 use super::*;
 use frame_support::assert_ok;
-use mock::{AuctionModule, ExtBuilder, ALICE};
+use mock::{AuctionModule, ExtBuilder, Runtime, ALICE};
 
 #[test]
 fn new_auction_should_work() {
@@ -65,7 +65,7 @@ fn bid_should_fail() {
 		assert_eq!(AuctionModule::new_auction(10, Some(100)), 0);
 		assert_eq!(
 			AuctionModule::bid(Some(ALICE).into(), 0, 20),
-			Err(Error::AuctionNotStarted.into())
+			Err(Error::<Runtime>::AuctionNotStarted.into())
 		);
 	});
 }

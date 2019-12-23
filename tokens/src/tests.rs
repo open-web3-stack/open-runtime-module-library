@@ -4,7 +4,7 @@
 
 use super::*;
 use frame_support::{assert_noop, assert_ok};
-use mock::{Balance, ExtBuilder, System, TestEvent, Tokens, ALICE, BOB, TEST_TOKEN_ID};
+use mock::{Balance, ExtBuilder, Runtime, System, TestEvent, Tokens, ALICE, BOB, TEST_TOKEN_ID};
 
 #[test]
 fn genesis_issuance_should_work() {
@@ -34,7 +34,7 @@ fn transfer_should_work() {
 
 			assert_noop!(
 				Tokens::transfer(Some(ALICE).into(), BOB, TEST_TOKEN_ID, 60),
-				Error::BalanceTooLow.into(),
+				Error::<Runtime>::BalanceTooLow,
 			);
 		});
 }
@@ -51,7 +51,7 @@ fn deposit_should_work() {
 
 			assert_noop!(
 				Tokens::deposit(TEST_TOKEN_ID, &ALICE, Balance::max_value()),
-				Error::TotalIssuanceOverflow,
+				Error::<Runtime>::TotalIssuanceOverflow,
 			);
 		});
 }
@@ -66,7 +66,10 @@ fn withdraw_should_work() {
 			assert_eq!(Tokens::balance(TEST_TOKEN_ID, &ALICE), 50);
 			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 150);
 
-			assert_noop!(Tokens::withdraw(TEST_TOKEN_ID, &ALICE, 60), Error::BalanceTooLow);
+			assert_noop!(
+				Tokens::withdraw(TEST_TOKEN_ID, &ALICE, 60),
+				Error::<Runtime>::BalanceTooLow
+			);
 		});
 }
 
@@ -102,7 +105,10 @@ fn update_balance_should_work() {
 			assert_eq!(Tokens::balance(TEST_TOKEN_ID, &BOB), 50);
 			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 200);
 
-			assert_noop!(Tokens::update_balance(TEST_TOKEN_ID, &BOB, -60), Error::BalanceTooLow);
+			assert_noop!(
+				Tokens::update_balance(TEST_TOKEN_ID, &BOB, -60),
+				Error::<Runtime>::BalanceTooLow
+			);
 		});
 }
 
@@ -114,7 +120,7 @@ fn ensure_can_withdraw_should_work() {
 		.execute_with(|| {
 			assert_noop!(
 				Tokens::ensure_can_withdraw(TEST_TOKEN_ID, &ALICE, 101),
-				Error::BalanceTooLow
+				Error::<Runtime>::BalanceTooLow
 			);
 
 			assert_ok!(Tokens::ensure_can_withdraw(TEST_TOKEN_ID, &ALICE, 1));

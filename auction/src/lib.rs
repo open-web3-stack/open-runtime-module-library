@@ -1,10 +1,12 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::{decl_error, decl_event, decl_module, decl_storage, dispatch::Result, ensure, Parameter};
+use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, Parameter};
 use frame_system::{self as system, ensure_signed};
 use orml_utilities::{LinkedItem, LinkedList};
-use rstd::result;
-use sp_runtime::traits::{MaybeSerializeDeserialize, Member, SimpleArithmetic};
+use sp_runtime::{
+	traits::{MaybeSerializeDeserialize, Member, SimpleArithmetic, Zero},
+	DispatchResult,
+};
 
 use orml_traits::{Auction, AuctionHandler, AuctionInfo};
 
@@ -43,22 +45,24 @@ decl_storage! {
 
 decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+		type Error = Error<T>;
+
 		fn deposit_event() = default;
 
-		pub fn bid(origin, id: T::AuctionId, value: T::Balance) -> Result {
+		pub fn bid(origin, id: T::AuctionId, value: T::Balance) {
 			let from = ensure_signed(origin)?;
 
-			let mut auction = <Auctions<T>>::get(id).ok_or(Error::AuctionNotExist)?;
+			let mut auction = <Auctions<T>>::get(id).ok_or(Error::<T>::AuctionNotExist)?;
 
 			let block_number = <frame_system::Module<T>>::block_number();
 
 			// make sure auction is started
-			ensure!(block_number >= auction.start, Error::AuctionNotStarted.into());
+			ensure!(block_number >= auction.start, Error::<T>::AuctionNotStarted);
 
 			if let Some(ref current_bid) = auction.bid {
-				ensure!(value > current_bid.1, Error::InvalidBidPrice.into());
+				ensure!(value > current_bid.1, Error::<T>::InvalidBidPrice);
 			} else {
-				ensure!(value > 0.into(), Error::InvalidBidPrice.into());
+				ensure!(!value.is_zero(), Error::<T>::InvalidBidPrice);
 			}
 			let bid_result = T::Handler::on_new_bid(
 				block_number,
@@ -67,7 +71,7 @@ decl_module! {
 				auction.bid.clone(),
 			);
 
-			ensure!(bid_result.accept_bid, Error::BidNotAccepted.into());
+			ensure!(bid_result.accept_bid, Error::<T>::BidNotAccepted);
 			if let Some(new_end) = bid_result.auction_end {
 				if let Some(old_end_block) = auction.end {
 					<AuctionEndTimeList<T>>::remove(&old_end_block, id);
@@ -80,7 +84,6 @@ decl_module! {
 			auction.bid = Some((from.clone(), value));
 			<Auctions<T>>::insert(id, auction);
 			Self::deposit_event(RawEvent::Bid(id, from, value));
-			Ok(())
 		}
 
 		fn on_finalize(now: T::BlockNumber) {
@@ -106,7 +109,7 @@ decl_module! {
 
 decl_error! {
 	/// Error for auction module.
-	pub enum Error {
+	pub enum Error for Module<T: Trait> {
 		AuctionNotExist,
 		AuctionNotStarted,
 		BidNotAccepted,
@@ -119,7 +122,6 @@ impl<T: Trait> Module<T> {}
 impl<T: Trait> Auction<T::AccountId, T::BlockNumber> for Module<T> {
 	type AuctionId = T::AuctionId;
 	type Balance = T::Balance;
-	type Error = Error;
 
 	fn auction_info(id: Self::AuctionId) -> Option<AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber>> {
 		Self::auctions(id)
@@ -128,8 +130,8 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber> for Module<T> {
 	fn update_auction(
 		id: Self::AuctionId,
 		info: AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber>,
-	) -> result::Result<(), Self::Error> {
-		let auction = <Auctions<T>>::get(id).ok_or(Error::AuctionNotExist)?;
+	) -> DispatchResult {
+		let auction = <Auctions<T>>::get(id).ok_or(Error::<T>::AuctionNotExist)?;
 		if let Some(old_end) = auction.end {
 			<AuctionEndTimeList<T>>::remove(&old_end, id);
 		}

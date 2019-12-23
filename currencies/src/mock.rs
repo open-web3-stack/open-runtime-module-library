@@ -42,6 +42,7 @@ impl frame_system::Trait for Runtime {
 	type MaximumBlockLength = MaximumBlockLength;
 	type AvailableBlockRatio = AvailableBlockRatio;
 	type Version = ();
+	type ModuleToIndex = ();
 }
 
 type CurrencyId = u32;
@@ -89,7 +90,7 @@ impl Trait for Runtime {
 }
 pub type Currencies = Module<Runtime>;
 pub type NativeCurrency = NativeCurrencyOf<Runtime>;
-pub type AdaptedBasicCurrency = BasicCurrencyAdapter<Runtime, PalletBalances, Balance, tokens::Error>;
+pub type AdaptedBasicCurrency = BasicCurrencyAdapter<Runtime, PalletBalances, Balance>;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;

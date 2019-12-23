@@ -1,11 +1,11 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, Parameter};
-use rstd::{
-	convert::{TryFrom, TryInto},
-	result,
+use rstd::convert::{TryFrom, TryInto};
+use sp_runtime::{
+	traits::{CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, SimpleArithmetic, StaticLookup},
+	DispatchResult,
 };
-use sp_runtime::traits::{CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, SimpleArithmetic, StaticLookup};
 // FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
@@ -73,6 +73,8 @@ decl_event!(
 
 decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+		type Error = Error<T>;
+
 		fn deposit_event() = default;
 
 		/// Transfer some balance to another account.
@@ -93,7 +95,7 @@ decl_module! {
 
 decl_error! {
 	/// Error for token module.
-	pub enum Error {
+	pub enum Error for Module<T: Trait> {
 		BalanceTooLow,
 		TotalIssuanceOverflow,
 		AmountIntoBalanceFailed,
@@ -105,7 +107,6 @@ impl<T: Trait> Module<T> {}
 impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	type CurrencyId = T::CurrencyId;
 	type Balance = T::Balance;
-	type Error = Error;
 
 	fn total_issuance(currency_id: Self::CurrencyId) -> Self::Balance {
 		<TotalIssuance<T>>::get(currency_id)
@@ -115,15 +116,11 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		<Balance<T>>::get(currency_id, who)
 	}
 
-	fn ensure_can_withdraw(
-		currency_id: Self::CurrencyId,
-		who: &T::AccountId,
-		amount: Self::Balance,
-	) -> result::Result<(), Self::Error> {
+	fn ensure_can_withdraw(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
 		if Self::balance(currency_id, who).checked_sub(&amount).is_some() {
 			Ok(())
 		} else {
-			Err(Error::BalanceTooLow)
+			Err(Error::<T>::BalanceTooLow.into())
 		}
 	}
 
@@ -132,8 +129,8 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		from: &T::AccountId,
 		to: &T::AccountId,
 		amount: Self::Balance,
-	) -> result::Result<(), Self::Error> {
-		ensure!(Self::balance(currency_id, from) >= amount, Error::BalanceTooLow);
+	) -> DispatchResult {
+		ensure!(Self::balance(currency_id, from) >= amount, Error::<T>::BalanceTooLow);
 
 		if from != to {
 			<Balance<T>>::mutate(currency_id, from, |balance| *balance -= amount);
@@ -143,14 +140,10 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		Ok(())
 	}
 
-	fn deposit(
-		currency_id: Self::CurrencyId,
-		who: &T::AccountId,
-		amount: Self::Balance,
-	) -> result::Result<(), Self::Error> {
+	fn deposit(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
 		ensure!(
 			Self::total_issuance(currency_id).checked_add(&amount).is_some(),
-			Error::TotalIssuanceOverflow,
+			Error::<T>::TotalIssuanceOverflow,
 		);
 
 		<TotalIssuance<T>>::mutate(currency_id, |v| *v += amount);
@@ -159,14 +152,10 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		Ok(())
 	}
 
-	fn withdraw(
-		currency_id: Self::CurrencyId,
-		who: &T::AccountId,
-		amount: Self::Balance,
-	) -> result::Result<(), Self::Error> {
+	fn withdraw(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
 		ensure!(
 			Self::balance(currency_id, who).checked_sub(&amount).is_some(),
-			Error::BalanceTooLow,
+			Error::<T>::BalanceTooLow,
 		);
 
 		<TotalIssuance<T>>::mutate(currency_id, |v| *v -= amount);
@@ -186,13 +175,9 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 impl<T: Trait> MultiCurrencyExtended<T::AccountId> for Module<T> {
 	type Amount = T::Amount;
 
-	fn update_balance(
-		currency_id: Self::CurrencyId,
-		who: &T::AccountId,
-		by_amount: Self::Amount,
-	) -> Result<(), Self::Error> {
+	fn update_balance(currency_id: Self::CurrencyId, who: &T::AccountId, by_amount: Self::Amount) -> DispatchResult {
 		let by_balance =
-			TryInto::<Self::Balance>::try_into(by_amount.abs()).map_err(|_| Error::AmountIntoBalanceFailed)?;
+			TryInto::<Self::Balance>::try_into(by_amount.abs()).map_err(|_| Error::<T>::AmountIntoBalanceFailed)?;
 		if by_amount.is_positive() {
 			Self::deposit(currency_id, who, by_balance)
 		} else {

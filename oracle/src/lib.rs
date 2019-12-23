@@ -7,12 +7,10 @@ mod tests;
 mod timestamped_value;
 
 pub use default_combine_data::DefaultCombineData;
-use frame_support::{
-	decl_error, decl_event, decl_module, decl_storage, dispatch::Result, ensure, traits::Time, Parameter,
-};
+use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, traits::Time, Parameter};
 pub use operator_provider::OperatorProvider;
-use rstd::{prelude::*, result, vec};
-use sp_runtime::traits::Member;
+use rstd::{prelude::*, vec};
+use sp_runtime::{traits::Member, DispatchResult};
 // FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
@@ -43,23 +41,24 @@ decl_storage! {
 
 decl_error! {
 	// Oracle module errors
-	pub enum Error {
+	pub enum Error for Module<T: Trait> {
 		NoPermission,
 	}
 }
 
 decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+		type Error = Error<T>;
 		fn deposit_event() = default;
 
-		pub fn feed_value(origin, key: T::OracleKey, value: T::OracleValue) -> Result {
+		pub fn feed_value(origin, key: T::OracleKey, value: T::OracleValue) {
 			let who = ensure_signed(origin)?;
-			Self::_feed_values(who, vec![(key, value)]).map_err(|e| e.into())
+			Self::_feed_values(who, vec![(key, value)])?;
 		}
 
-		pub fn feed_values(origin, values: Vec<(T::OracleKey, T::OracleValue)>) -> Result {
+		pub fn feed_values(origin, values: Vec<(T::OracleKey, T::OracleValue)>) {
 			let who = ensure_signed(origin)?;
-			Self::_feed_values(who, values).map_err(|e| e.into())
+			Self::_feed_values(who, values)?;
 		}
 	}
 }
@@ -101,8 +100,8 @@ impl<T: Trait> DataProvider<T::OracleKey, T::OracleValue> for Module<T> {
 }
 
 impl<T: Trait> Module<T> {
-	fn _feed_values(who: T::AccountId, values: Vec<(T::OracleKey, T::OracleValue)>) -> result::Result<(), Error> {
-		ensure!(T::OperatorProvider::can_feed_data(&who), Error::NoPermission);
+	fn _feed_values(who: T::AccountId, values: Vec<(T::OracleKey, T::OracleValue)>) -> DispatchResult {
+		ensure!(T::OperatorProvider::can_feed_data(&who), Error::<T>::NoPermission);
 
 		let now = T::Time::now();
 
