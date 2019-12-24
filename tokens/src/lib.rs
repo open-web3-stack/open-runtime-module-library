@@ -47,11 +47,7 @@ decl_storage! {
 				.map(|(_, currency_id, initial_balance)| (currency_id, initial_balance))
 				.fold(BTreeMap::<T::CurrencyId, T::Balance>::new(), |mut acc, (currency_id, initial_balance)| {
 					if let Some(issuance) = acc.get_mut(currency_id) {
-						if let Some(sum) = issuance.checked_add(initial_balance) {
-							*issuance = sum;
-						} else {
-							panic!("total issuance overflow")
-						}
+						*issuance = issuance.checked_add(initial_balance).expect("total issuance cannot overflow when building genesis");
 					} else {
 						acc.insert(*currency_id, *initial_balance);
 					}
