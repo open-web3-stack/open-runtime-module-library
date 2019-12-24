@@ -1,7 +1,10 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, Parameter};
-use rstd::convert::{TryFrom, TryInto};
+use rstd::{
+	collections::btree_map::BTreeMap,
+	convert::{TryFrom, TryInto},
+};
 use sp_runtime::{
 	traits::{CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, SimpleArithmetic, StaticLookup},
 	DispatchResult,
@@ -31,30 +34,38 @@ pub trait Trait: frame_system::Trait {
 		+ Default
 		+ Copy
 		+ MaybeSerializeDeserialize;
-	type CurrencyId: Parameter + Member + Copy + MaybeSerializeDeserialize;
+	type CurrencyId: Parameter + Member + Copy + MaybeSerializeDeserialize + Ord;
 }
 
 decl_storage! {
 	trait Store for Module<T: Trait> as Tokens {
 		/// The total issuance of a token type.
 		pub TotalIssuance get(fn total_issuance) build(|config: &GenesisConfig<T>| {
-			let issuance = config.initial_balance * (config.endowed_accounts.len() as u32).into();
-			config.tokens.iter().map(|id| (id.clone(), issuance)).collect::<Vec<_>>()
+			config
+				.endowed_accounts
+				.iter()
+				.map(|(_, currency_id, initial_balance)| (currency_id, initial_balance))
+				.fold(BTreeMap::<T::CurrencyId, T::Balance>::new(), |mut acc, (currency_id, initial_balance)| {
+					if let Some(issuance) = acc.get_mut(currency_id) {
+						*issuance = issuance.checked_add(initial_balance).expect("total issuance cannot overflow when building genesis");
+					} else {
+						acc.insert(*currency_id, *initial_balance);
+					}
+					acc
+				})
+				.into_iter()
+				.collect::<Vec<_>>()
 		}): map T::CurrencyId => T::Balance;
 
 		/// The balance of a token type under an account.
 		pub Balance get(fn balance): double_map T::CurrencyId, blake2_256(T::AccountId) => T::Balance;
 	}
 	add_extra_genesis {
-		config(tokens): Vec<T::CurrencyId>;
-		config(initial_balance): T::Balance;
-		config(endowed_accounts): Vec<T::AccountId>;
+		config(endowed_accounts): Vec<(T::AccountId, T::CurrencyId, T::Balance)>;
 
 		build(|config: &GenesisConfig<T>| {
-			config.tokens.iter().for_each(|currency_id| {
-				config.endowed_accounts.iter().for_each(|account_id| {
-					<Balance<T>>::insert(currency_id, account_id, &config.initial_balance);
-				})
+			config.endowed_accounts.iter().for_each(|(account_id, currency_id, initial_balance)| {
+				<Balance<T>>::insert(currency_id, account_id, initial_balance);
 			})
 		})
 	}

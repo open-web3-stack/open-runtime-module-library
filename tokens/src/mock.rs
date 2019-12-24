@@ -36,9 +36,9 @@ parameter_types! {
 type AccountId = u64;
 impl frame_system::Trait for Runtime {
 	type Origin = Origin;
+	type Call = ();
 	type Index = u64;
 	type BlockNumber = u64;
-	type Call = ();
 	type Hash = H256;
 	type Hashing = ::sp_runtime::traits::BlakeTwo256;
 	type AccountId = AccountId;
@@ -70,30 +70,25 @@ pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 
 pub struct ExtBuilder {
-	currency_id: CurrencyId,
-	endowed_accounts: Vec<AccountId>,
-	initial_balance: Balance,
+	endowed_accounts: Vec<(AccountId, CurrencyId, Balance)>,
 }
 
 impl Default for ExtBuilder {
 	fn default() -> Self {
 		Self {
-			currency_id: TEST_TOKEN_ID,
-			endowed_accounts: vec![0],
-			initial_balance: 0,
+			endowed_accounts: vec![],
 		}
 	}
 }
 
 impl ExtBuilder {
-	pub fn balances(mut self, account_ids: Vec<AccountId>, initial_balance: Balance) -> Self {
-		self.endowed_accounts = account_ids;
-		self.initial_balance = initial_balance;
+	pub fn balances(mut self, endowed_accounts: Vec<(AccountId, CurrencyId, Balance)>) -> Self {
+		self.endowed_accounts = endowed_accounts;
 		self
 	}
 
 	pub fn one_hundred_for_alice_n_bob(self) -> Self {
-		self.balances(vec![ALICE, BOB], 100)
+		self.balances(vec![(ALICE, TEST_TOKEN_ID, 100), (BOB, TEST_TOKEN_ID, 100)])
 	}
 
 	pub fn build(self) -> runtime_io::TestExternalities {
@@ -102,8 +97,6 @@ impl ExtBuilder {
 			.unwrap();
 
 		GenesisConfig::<Runtime> {
-			tokens: vec![self.currency_id],
-			initial_balance: self.initial_balance,
 			endowed_accounts: self.endowed_accounts,
 		}
 		.assimilate_storage(&mut t)

@@ -97,9 +97,7 @@ pub const BOB: AccountId = 2;
 pub const EVA: AccountId = 5;
 
 pub struct ExtBuilder {
-	currency_ids: Vec<CurrencyId>,
-	endowed_accounts: Vec<AccountId>,
-	initial_balance: Balance,
+	endowed_accounts: Vec<(AccountId, CurrencyId, Balance)>,
 	// whether the configs are for `pallet_balances` or not
 	is_for_pallet_balances: bool,
 }
@@ -107,23 +105,25 @@ pub struct ExtBuilder {
 impl Default for ExtBuilder {
 	fn default() -> Self {
 		Self {
-			currency_ids: vec![NATIVE_CURRENCY_ID, X_TOKEN_ID],
-			endowed_accounts: vec![0],
-			initial_balance: 0,
+			endowed_accounts: vec![],
 			is_for_pallet_balances: false,
 		}
 	}
 }
 
 impl ExtBuilder {
-	pub fn balances(mut self, account_ids: Vec<AccountId>, initial_balance: Balance) -> Self {
-		self.endowed_accounts = account_ids;
-		self.initial_balance = initial_balance;
+	pub fn balances(mut self, endowed_accounts: Vec<(AccountId, CurrencyId, Balance)>) -> Self {
+		self.endowed_accounts = endowed_accounts;
 		self
 	}
 
 	pub fn one_hundred_for_alice_n_bob(self) -> Self {
-		self.balances(vec![ALICE, BOB], 100)
+		self.balances(vec![
+			(ALICE, NATIVE_CURRENCY_ID, 100),
+			(BOB, NATIVE_CURRENCY_ID, 100),
+			(ALICE, X_TOKEN_ID, 100),
+			(BOB, X_TOKEN_ID, 100),
+		])
 	}
 
 	pub fn make_for_pallet_balances(mut self) -> Self {
@@ -140,17 +140,16 @@ impl ExtBuilder {
 			pallet_balances::GenesisConfig::<Runtime> {
 				balances: self
 					.endowed_accounts
-					.iter()
-					.map(|acc| (acc.clone(), self.initial_balance))
-					.collect(),
+					.into_iter()
+					.filter(|(_, currency_id, _)| *currency_id == X_TOKEN_ID)
+					.map(|(account_id, _, initial_balance)| (account_id, initial_balance))
+					.collect::<Vec<_>>(),
 				vesting: vec![],
 			}
 			.assimilate_storage(&mut t)
 			.unwrap();
 		} else {
 			tokens::GenesisConfig::<Runtime> {
-				tokens: self.currency_ids,
-				initial_balance: self.initial_balance,
 				endowed_accounts: self.endowed_accounts,
 			}
 			.assimilate_storage(&mut t)
