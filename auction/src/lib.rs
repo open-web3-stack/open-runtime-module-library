@@ -87,22 +87,7 @@ decl_module! {
 		}
 
 		fn on_finalize(now: T::BlockNumber) {
-			let head_key: Option<T::AuctionId> = None;
-			if let Some(mut head_item) = <AuctionEndTime<T>>::get((now, head_key)) {
-				while let Some(auction_id) = head_item.next {
-					if let Some(auction) = Self::auctions(auction_id) {
-						T::Handler::on_auction_ended(auction_id, auction.bid);
-						<Auctions<T>>::remove(auction_id);
-					}
-					head_item = <AuctionEndTime<T>>::get((now, Some(auction_id))).unwrap_or_else(|| LinkedItem {
-							prev: None,
-							next: None,
-						});
-					<AuctionEndTime<T>>::remove((now, Some(auction_id)));
-				}
-
-				<AuctionEndTime<T>>::remove((now, head_key));
-			}
+			Self::_on_finalize(now);
 		}
 	}
 }
@@ -117,7 +102,17 @@ decl_error! {
 	}
 }
 
-impl<T: Trait> Module<T> {}
+impl<T: Trait> Module<T> {
+	fn _on_finalize(now: T::BlockNumber) {
+		<AuctionEndTimeList<T>>::take_all(&now).for_each(|auction_id| {
+			if let Some(auction) = Self::auctions(auction_id) {
+				T::Handler::on_auction_ended(auction_id, auction.bid.clone());
+				<AuctionsCount<T>>::mutate(|n| *n -= T::AuctionId::from(1));
+				<Auctions<T>>::remove(auction_id);
+			}
+		});
+	}
+}
 
 impl<T: Trait> Auction<T::AccountId, T::BlockNumber> for Module<T> {
 	type AuctionId = T::AuctionId;

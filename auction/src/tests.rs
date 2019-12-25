@@ -5,6 +5,7 @@
 use super::*;
 use frame_support::assert_ok;
 use mock::{AuctionModule, ExtBuilder, Runtime, ALICE};
+use sp_runtime::traits::OnFinalize;
 
 #[test]
 fn new_auction_should_work() {
@@ -67,5 +68,21 @@ fn bid_should_fail() {
 			AuctionModule::bid(Some(ALICE).into(), 0, 20),
 			Err(Error::<Runtime>::AuctionNotStarted.into())
 		);
+	});
+}
+
+#[test]
+fn cleanup_auction_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_eq!(AuctionModule::new_auction(10, Some(100)), 0);
+		assert_eq!(AuctionModule::auctions_count(), 1);
+		assert_eq!(AuctionModule::new_auction(10, Some(50)), 1);
+		assert_eq!(AuctionModule::auctions_count(), 2);
+		AuctionModule::on_finalize(1);
+		assert_eq!(AuctionModule::auctions_count(), 2);
+		AuctionModule::on_finalize(50);
+		assert_eq!(AuctionModule::auctions_count(), 1);
+		AuctionModule::on_finalize(100);
+		assert_eq!(AuctionModule::auctions_count(), 0);
 	});
 }
