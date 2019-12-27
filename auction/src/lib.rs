@@ -4,7 +4,7 @@ use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, P
 use frame_system::{self as system, ensure_signed};
 use orml_utilities::{LinkedItem, LinkedList};
 use sp_runtime::{
-	traits::{CheckedSub, MaybeSerializeDeserialize, Member, One, SimpleArithmetic, Zero},
+	traits::{MaybeSerializeDeserialize, Member, One, Saturating, SimpleArithmetic, Zero},
 	DispatchResult,
 };
 
@@ -104,14 +104,15 @@ decl_error! {
 
 impl<T: Trait> Module<T> {
 	fn _on_finalize(now: T::BlockNumber) {
-		<AuctionEndTimeList<T>>::take_all(&now).for_each(|auction_id| {
-			if let Some(auction) = <Auctions<T>>::take(auction_id) {
+		let ended_auctions = <AuctionEndTimeList<T>>::take_all(&now);
+		let mut count = Self::auctions_count();
+		ended_auctions.for_each(|auction_id| {
+			if let Some(auction) = <Auctions<T>>::take(&auction_id) {
 				T::Handler::on_auction_ended(auction_id, auction.bid.clone());
-				<AuctionsCount<T>>::mutate(|n| {
-					*n = n.checked_sub(&T::AuctionId::one()).unwrap_or(T::AuctionId::zero())
-				});
+				count = count.saturating_sub(T::AuctionId::one());
 			}
 		});
+		<AuctionsCount<T>>::put(count);
 	}
 }
 
