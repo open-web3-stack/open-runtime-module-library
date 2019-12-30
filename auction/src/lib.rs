@@ -4,7 +4,7 @@ use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, P
 use frame_system::{self as system, ensure_signed};
 use orml_utilities::{LinkedItem, LinkedList};
 use sp_runtime::{
-	traits::{MaybeSerializeDeserialize, Member, SimpleArithmetic, Zero},
+	traits::{MaybeSerializeDeserialize, Member, One, Saturating, SimpleArithmetic, Zero},
 	DispatchResult,
 };
 
@@ -87,22 +87,7 @@ decl_module! {
 		}
 
 		fn on_finalize(now: T::BlockNumber) {
-			let head_key: Option<T::AuctionId> = None;
-			if let Some(mut head_item) = <AuctionEndTime<T>>::get((now, head_key)) {
-				while let Some(auction_id) = head_item.next {
-					if let Some(auction) = Self::auctions(auction_id) {
-						T::Handler::on_auction_ended(auction_id, auction.bid);
-						<Auctions<T>>::remove(auction_id);
-					}
-					head_item = <AuctionEndTime<T>>::get((now, Some(auction_id))).unwrap_or_else(|| LinkedItem {
-							prev: None,
-							next: None,
-						});
-					<AuctionEndTime<T>>::remove((now, Some(auction_id)));
-				}
-
-				<AuctionEndTime<T>>::remove((now, head_key));
-			}
+			Self::_on_finalize(now);
 		}
 	}
 }
@@ -117,7 +102,19 @@ decl_error! {
 	}
 }
 
-impl<T: Trait> Module<T> {}
+impl<T: Trait> Module<T> {
+	fn _on_finalize(now: T::BlockNumber) {
+		let ended_auctions = <AuctionEndTimeList<T>>::take_all(&now);
+		let mut count = Self::auctions_count();
+		ended_auctions.for_each(|auction_id| {
+			if let Some(auction) = <Auctions<T>>::take(&auction_id) {
+				T::Handler::on_auction_ended(auction_id, auction.bid.clone());
+				count = count.saturating_sub(T::AuctionId::one());
+			}
+		});
+		<AuctionsCount<T>>::put(count);
+	}
+}
 
 impl<T: Trait> Auction<T::AccountId, T::BlockNumber> for Module<T> {
 	type AuctionId = T::AuctionId;
