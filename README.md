@@ -4,11 +4,19 @@ The Open Runtime Module Library (ORML) is a community maintained collection of S
 ## Runtime modules
 
 - orml-traits
-    - Shared traits including `MultiCurrency`.
+    - Shared traits including `BasicCurrency`, `MultiCurrency`, `Auction` and more.
+- orml-utilities
+	- Various utilities including `FixedU128` and `LinkedList`.
 - orml-tokens
     - Fungible tokens module that implements `MultiCurrency` trait.
+- orml-currencies
+	- Provide `MultiCurrency` implementation using `pallet-balances` and `orml-tokens` module.
 - orml-oracle
     - Oracle module that makes off-chain data available on-chain.
+- orml-prices
+	- Provide basic asset price abstraction.
+- orml-auction
+	- Auction module that implements `Auction` trait.
 
 ## Makefile targets
 
