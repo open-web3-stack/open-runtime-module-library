@@ -31,6 +31,8 @@ pub trait Auction<AccountId, BlockNumber> {
 	fn update_auction(id: Self::AuctionId, info: AuctionInfo<AccountId, Self::Balance, BlockNumber>) -> DispatchResult;
 	/// Create new auction with specific startblock and endblock, return the id of the auction
 	fn new_auction(start: BlockNumber, end: Option<BlockNumber>) -> Self::AuctionId;
+	/// Remove auction by `id`
+	fn remove_auction(id: Self::AuctionId);
 }
 
 /// The result of bid handling.
