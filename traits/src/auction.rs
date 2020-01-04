@@ -1,6 +1,9 @@
 use codec::FullCodec;
 use codec::{Decode, Encode};
-use rstd::fmt::Debug;
+use rstd::{
+	cmp::{Eq, PartialEq},
+	fmt::Debug,
+};
 use sp_runtime::{
 	traits::{MaybeSerializeDeserialize, SimpleArithmetic},
 	DispatchResult, RuntimeDebug,
@@ -21,7 +24,7 @@ pub struct AuctionInfo<AccountId, Balance, BlockNumber> {
 /// Abstraction over a simple auction system.
 pub trait Auction<AccountId, BlockNumber> {
 	/// The id of an AuctionInfo
-	type AuctionId: FullCodec + Default + Copy + MaybeSerializeDeserialize + Debug;
+	type AuctionId: FullCodec + Default + Copy + Eq + PartialEq + MaybeSerializeDeserialize + Debug;
 	/// The price to bid.
 	type Balance: SimpleArithmetic + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default;
 
