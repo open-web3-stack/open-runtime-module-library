@@ -4,7 +4,7 @@ use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, P
 use frame_system::{self as system, ensure_signed};
 use orml_utilities::{LinkedItem, LinkedList};
 use sp_runtime::{
-	traits::{MaybeSerializeDeserialize, Member, One, Saturating, SimpleArithmetic, Zero},
+	traits::{MaybeSerializeDeserialize, Member, One, SimpleArithmetic, Zero},
 	DispatchResult,
 };
 
@@ -38,7 +38,7 @@ type AuctionIdLinkedItem<T> = LinkedItem<<T as Trait>::AuctionId>;
 decl_storage! {
 	trait Store for Module<T: Trait> as Auction {
 		pub Auctions get(fn auctions): map T::AuctionId => Option<AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>>;
-		pub AuctionsCount get(fn auctions_count): T::AuctionId;
+		pub AuctionsIndex get(fn auctions_index): T::AuctionId;
 		pub AuctionEndTime get(fn auction_end_time): map(T::BlockNumber, Option<T::AuctionId>) => Option<AuctionIdLinkedItem<T>>;
 	}
 }
@@ -105,14 +105,11 @@ decl_error! {
 impl<T: Trait> Module<T> {
 	fn _on_finalize(now: T::BlockNumber) {
 		let ended_auctions = <AuctionEndTimeList<T>>::take_all(&now);
-		let mut count = Self::auctions_count();
 		ended_auctions.for_each(|auction_id| {
 			if let Some(auction) = <Auctions<T>>::take(&auction_id) {
 				T::Handler::on_auction_ended(auction_id, auction.bid.clone());
-				count = count.saturating_sub(T::AuctionId::one());
 			}
 		});
-		<AuctionsCount<T>>::put(count);
 	}
 }
 
@@ -141,13 +138,21 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber> for Module<T> {
 
 	fn new_auction(start: T::BlockNumber, end: Option<T::BlockNumber>) -> Self::AuctionId {
 		let auction = AuctionInfo { bid: None, start, end };
-		let auction_id = Self::auctions_count();
-		<AuctionsCount<T>>::mutate(|n| *n += Self::AuctionId::from(1));
+		let auction_id = Self::auctions_index();
+		<AuctionsIndex<T>>::mutate(|n| *n += Self::AuctionId::one());
 		<Auctions<T>>::insert(auction_id, auction);
 		if let Some(end_block) = end {
 			<AuctionEndTimeList<T>>::append(&end_block, auction_id);
 		}
 
 		auction_id
+	}
+
+	fn remove_auction(id: Self::AuctionId) {
+		if let Some(auction) = <Auctions<T>>::take(&id) {
+			if let Some(end_block) = auction.end {
+				<AuctionEndTimeList<T>>::remove(&end_block, id);
+			}
+		}
 	}
 }

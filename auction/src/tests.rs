@@ -72,17 +72,32 @@ fn bid_should_fail() {
 }
 
 #[test]
+fn remove_auction_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_eq!(AuctionModule::new_auction(10, Some(100)), 0);
+		assert_eq!(AuctionModule::auctions_index(), 1);
+		assert_eq!(AuctionModule::auctions(0).is_some(), true);
+		assert_eq!(AuctionModule::auction_end_time((100, Some(0))).is_some(), true);
+		AuctionModule::remove_auction(0);
+		assert_eq!(AuctionModule::auctions(0), None);
+		assert_eq!(AuctionModule::auction_end_time((100, Some(0))), None);
+	});
+}
+
+#[test]
 fn cleanup_auction_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_eq!(AuctionModule::new_auction(10, Some(100)), 0);
-		assert_eq!(AuctionModule::auctions_count(), 1);
+		assert_eq!(AuctionModule::auctions_index(), 1);
 		assert_eq!(AuctionModule::new_auction(10, Some(50)), 1);
-		assert_eq!(AuctionModule::auctions_count(), 2);
-		AuctionModule::on_finalize(1);
-		assert_eq!(AuctionModule::auctions_count(), 2);
+		assert_eq!(AuctionModule::auctions_index(), 2);
+		assert_eq!(AuctionModule::auctions(0).is_some(), true);
+		assert_eq!(AuctionModule::auctions(1).is_some(), true);
 		AuctionModule::on_finalize(50);
-		assert_eq!(AuctionModule::auctions_count(), 1);
+		assert_eq!(AuctionModule::auctions(0).is_some(), true);
+		assert_eq!(AuctionModule::auctions(1).is_some(), false);
 		AuctionModule::on_finalize(100);
-		assert_eq!(AuctionModule::auctions_count(), 0);
+		assert_eq!(AuctionModule::auctions(0).is_some(), false);
+		assert_eq!(AuctionModule::auctions(1).is_some(), false);
 	});
 }
