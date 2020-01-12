@@ -58,7 +58,7 @@ decl_storage! {
 		}): map T::CurrencyId => T::Balance;
 
 		/// The balance of a token type under an account.
-		pub Balance get(fn balance): double_map T::CurrencyId, blake2_256(T::AccountId) => T::Balance;
+		pub Balance get(fn balance): double_map T::CurrencyId, T::AccountId => T::Balance;
 	}
 	add_extra_genesis {
 		config(endowed_accounts): Vec<(T::AccountId, T::CurrencyId, T::Balance)>;
