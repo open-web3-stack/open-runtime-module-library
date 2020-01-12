@@ -33,7 +33,7 @@ pub trait Trait: frame_system::Trait {
 
 decl_storage! {
 	trait Store for Module<T: Trait> as Oracle {
-		pub RawValues get(raw_values): double_map T::OracleKey, blake2_256(T::AccountId) => Option<TimestampedValueOf<T>>;
+		pub RawValues get(raw_values): double_map T::OracleKey, T::AccountId => Option<TimestampedValueOf<T>>;
 		pub HasUpdate get(has_update): map T::OracleKey => bool;
 		pub Values get(values): map T::OracleKey => Option<TimestampedValueOf<T>>;
 	}
