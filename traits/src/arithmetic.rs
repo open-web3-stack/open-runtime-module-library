@@ -1,3 +1,4 @@
+use codec::HasCompact;
 pub use num_traits::{
 	Bounded, CheckedAdd, CheckedDiv, CheckedMul, CheckedShl, CheckedShr, CheckedSub, One, Signed, Zero,
 };
@@ -46,6 +47,7 @@ pub trait SimpleArithmetic:
 	+ PartialOrd<Self>
 	+ Ord
 	+ Bounded
+	+ HasCompact
 	+ Sized
 {
 }
@@ -84,6 +86,7 @@ impl<
 			+ PartialOrd<Self>
 			+ Ord
 			+ Bounded
+			+ HasCompact
 			+ Sized,
 	> SimpleArithmetic for T
 {
