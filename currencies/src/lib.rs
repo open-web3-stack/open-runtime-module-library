@@ -74,11 +74,7 @@ decl_module! {
 		) {
 			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
-			if currency_id == T::GetNativeCurrencyId::get() {
-				T::NativeCurrency::transfer(&from, &to, amount)?;
-			} else {
-				T::MultiCurrency::transfer(currency_id, &from, &to, amount)?;
-			}
+			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, &from, &to, amount)?;
 
 			Self::deposit_event(RawEvent::Transferred(currency_id, from, to, amount));
 		}
@@ -105,11 +101,7 @@ decl_module! {
 		) {
 			ensure_root(origin)?;
 			let dest = T::Lookup::lookup(who)?;
-			if currency_id == T::GetNativeCurrencyId::get() {
-				T::NativeCurrency::update_balance(&dest, amount)?;
-			} else {
-				T::MultiCurrency::update_balance(currency_id, &dest, amount)?;
-			}
+			<Self as MultiCurrencyExtended<T::AccountId>>::update_balance(currency_id, &dest, amount)?;
 
 			Self::deposit_event(RawEvent::BalanceUpdated(currency_id, dest, amount));
 		}

@@ -149,10 +149,14 @@ fn basic_currency_adapting_pallet_balances_update_balance() {
 fn update_balance_call_should_work() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
+		.make_for_pallet_balances()
 		.build()
 		.execute_with(|| {
-			assert_ok!(Currencies::update_balance(Origin::ROOT, ALICE, X_TOKEN_ID, -10));
-			assert_eq!(Currencies::balance(X_TOKEN_ID, &ALICE), 90);
+			assert_ok!(Currencies::update_balance(Origin::ROOT, ALICE, NATIVE_CURRENCY_ID, -10));
+			assert_eq!(NativeCurrency::balance(&ALICE), 90);
+
+			assert_ok!(Currencies::update_balance(Origin::ROOT, ALICE, X_TOKEN_ID, 10));
+			assert_eq!(Currencies::balance(X_TOKEN_ID, &ALICE), 10);
 		});
 }
 
