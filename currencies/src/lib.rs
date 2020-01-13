@@ -101,7 +101,7 @@ decl_module! {
 			origin,
 			who: <T::Lookup as StaticLookup>::Source,
 			currency_id: CurrencyIdOf<T>,
-			#[compact] amount: AmountOf<T>,
+			amount: AmountOf<T>,
 		) {
 			ensure_root(origin)?;
 			let dest = T::Lookup::lookup(who)?;
@@ -242,7 +242,7 @@ where
 	type Amount = AmountOf<T>;
 
 	fn update_balance(who: &T::AccountId, by_amount: Self::Amount) -> DispatchResult {
-		<Module<T>>::update_balance(GetCurrencyId::get(), who, by_amount)
+		<Module<T> as MultiCurrencyExtended<T::AccountId>>::update_balance(GetCurrencyId::get(), who, by_amount)
 	}
 }
 
