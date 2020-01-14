@@ -185,9 +185,15 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 			Error::<T>::TotalIssuanceOverflow,
 		);
 
+		let balance = Self::balance(currency_id, who);
+		// Nothing happens if deposition doesn't meet existential deposit rule,
+		// consistent behavior with pallet-balances.
+		if balance.is_zero() && amount < T::ExistentialDeposit::get() {
+			return Ok(());
+		}
+
 		<TotalIssuance<T>>::mutate(currency_id, |v| *v += amount);
 
-		let balance = Self::balance(currency_id, who);
 		Self::set_balance(currency_id, who, balance + amount);
 
 		Ok(())
