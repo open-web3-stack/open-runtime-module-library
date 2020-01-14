@@ -118,7 +118,17 @@ decl_error! {
 impl<T: Trait> Module<T> {
 	/// Transfer all remaining balance to the given account.
 	pub fn transfer_all(currency_id: T::CurrencyId, from: &T::AccountId, to: &T::AccountId) {
-		<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, from, to, Self::balance(currency_id, from));
+		// cannot fail
+		let _ =
+			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, from, to, Self::balance(currency_id, from));
+	}
+
+	fn ensure_existential_rule(currency_id: T::CurrencyId, who: &T::AccountId) {
+		let balance = Self::balance(currency_id, who);
+		if balance < T::ExistentialDeposit::get() {
+			<Balance<T>>::remove(currency_id, who);
+			T::OnDustRemoval::on_dust_removal(balance);
+		}
 	}
 }
 
@@ -155,6 +165,9 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 			<Balance<T>>::mutate(currency_id, to, |balance| *balance += amount);
 		}
 
+		Self::ensure_existential_rule(currency_id, from);
+		Self::ensure_existential_rule(currency_id, to);
+
 		Ok(())
 	}
 
@@ -167,6 +180,8 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		<TotalIssuance<T>>::mutate(currency_id, |v| *v += amount);
 		<Balance<T>>::mutate(currency_id, who, |v| *v += amount);
 
+		Self::ensure_existential_rule(currency_id, who);
+
 		Ok(())
 	}
 
@@ -178,6 +193,8 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 
 		<TotalIssuance<T>>::mutate(currency_id, |v| *v -= amount);
 		<Balance<T>>::mutate(currency_id, who, |v| *v -= amount);
+
+		Self::ensure_existential_rule(currency_id, who);
 
 		Ok(())
 	}
