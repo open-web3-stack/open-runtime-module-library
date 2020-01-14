@@ -67,6 +67,21 @@ fn transfer_enforces_existential_rule() {
 }
 
 #[test]
+fn transfer_all_should_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_ok!(Tokens::transfer_all(Some(ALICE).into(), BOB, TEST_TOKEN_ID));
+			assert_eq!(Tokens::balance(TEST_TOKEN_ID, &ALICE), 0);
+			assert_eq!(Tokens::balance(TEST_TOKEN_ID, &BOB), 200);
+
+			let transferred_event = TestEvent::tokens(RawEvent::Transferred(TEST_TOKEN_ID, ALICE, BOB, 100));
+			assert!(System::events().iter().any(|record| record.event == transferred_event));
+		});
+}
+
+#[test]
 fn deposit_should_work() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()

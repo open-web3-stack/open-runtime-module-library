@@ -103,6 +103,20 @@ decl_module! {
 
 			Self::deposit_event(RawEvent::Transferred(currency_id, from, to, amount));
 		}
+
+		/// Transfer all remaining balance to the given account.
+		pub fn transfer_all(
+			origin,
+			dest: <T::Lookup as StaticLookup>::Source,
+			currency_id: T::CurrencyId,
+		) {
+			let from = ensure_signed(origin)?;
+			let to = T::Lookup::lookup(dest)?;
+			let balance = Self::balance(currency_id, &from);
+			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, &from, &to, balance)?;
+
+			Self::deposit_event(RawEvent::Transferred(currency_id, from, to, balance));
+		}
 	}
 }
 
@@ -117,13 +131,6 @@ decl_error! {
 }
 
 impl<T: Trait> Module<T> {
-	/// Transfer all remaining balance to the given account.
-	pub fn transfer_all(currency_id: T::CurrencyId, from: &T::AccountId, to: &T::AccountId) {
-		// cannot fail
-		let _ =
-			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, from, to, Self::balance(currency_id, from));
-	}
-
 	/// Set balance of `who` to a new value, meanwhile enforce existential rule.
 	///
 	/// Note this will not maintain total issuance, and the caller is expected to do it.
