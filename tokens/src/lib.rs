@@ -6,7 +6,7 @@ use rstd::{
 	convert::{TryFrom, TryInto},
 };
 use sp_runtime::{
-	traits::{CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, SimpleArithmetic, StaticLookup},
+	traits::{CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, SimpleArithmetic, StaticLookup, Zero},
 	DispatchResult,
 };
 // FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
@@ -112,6 +112,7 @@ decl_error! {
 		BalanceTooLow,
 		TotalIssuanceOverflow,
 		AmountIntoBalanceFailed,
+		ExistentialDeposit,
 	}
 }
 
@@ -123,7 +124,9 @@ impl<T: Trait> Module<T> {
 			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, from, to, Self::balance(currency_id, from));
 	}
 
-	fn ensure_existential_rule(currency_id: T::CurrencyId, who: &T::AccountId) {
+	/// Enforce existential rule applied to `who`, i.e. if balance of `who` is under existential deposit,
+	/// set their balance to zero and call `on_dust_removal`.
+	fn enforce_existential_rule(currency_id: T::CurrencyId, who: &T::AccountId) {
 		let balance = Self::balance(currency_id, who);
 		if balance < T::ExistentialDeposit::get() {
 			<Balance<T>>::remove(currency_id, who);
@@ -160,13 +163,16 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	) -> DispatchResult {
 		ensure!(Self::balance(currency_id, from) >= amount, Error::<T>::BalanceTooLow);
 
+		if amount < T::ExistentialDeposit::get() && Self::balance(currency_id, to).is_zero() {
+			return Err(Error::<T>::ExistentialDeposit.into());
+		}
+
 		if from != to {
 			<Balance<T>>::mutate(currency_id, from, |balance| *balance -= amount);
 			<Balance<T>>::mutate(currency_id, to, |balance| *balance += amount);
 		}
 
-		Self::ensure_existential_rule(currency_id, from);
-		Self::ensure_existential_rule(currency_id, to);
+		Self::enforce_existential_rule(currency_id, from);
 
 		Ok(())
 	}
@@ -180,7 +186,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		<TotalIssuance<T>>::mutate(currency_id, |v| *v += amount);
 		<Balance<T>>::mutate(currency_id, who, |v| *v += amount);
 
-		Self::ensure_existential_rule(currency_id, who);
+		Self::enforce_existential_rule(currency_id, who);
 
 		Ok(())
 	}
@@ -194,7 +200,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		<TotalIssuance<T>>::mutate(currency_id, |v| *v -= amount);
 		<Balance<T>>::mutate(currency_id, who, |v| *v -= amount);
 
-		Self::ensure_existential_rule(currency_id, who);
+		Self::enforce_existential_rule(currency_id, who);
 
 		Ok(())
 	}
