@@ -124,13 +124,15 @@ impl<T: Trait> Module<T> {
 			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, from, to, Self::balance(currency_id, from));
 	}
 
-	/// Enforce existential rule applied to `who`, i.e. if balance of `who` is under existential deposit,
-	/// set their balance to zero and call `on_dust_removal`.
-	fn enforce_existential_rule(currency_id: T::CurrencyId, who: &T::AccountId) {
-		let balance = Self::balance(currency_id, who);
+	/// Set balance of `who` to a new value, meanwhile enforce existential rule.
+	///
+	/// Note this will not maintain total issuance, and the caller is expected to do it.
+	fn set_balance(currency_id: T::CurrencyId, who: &T::AccountId, balance: T::Balance) {
 		if balance < T::ExistentialDeposit::get() {
 			<Balance<T>>::remove(currency_id, who);
 			T::OnDustRemoval::on_dust_removal(balance);
+		} else {
+			<Balance<T>>::insert(currency_id, who, balance);
 		}
 	}
 }
@@ -161,18 +163,18 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		to: &T::AccountId,
 		amount: Self::Balance,
 	) -> DispatchResult {
-		ensure!(Self::balance(currency_id, from) >= amount, Error::<T>::BalanceTooLow);
+		let from_balance = Self::balance(currency_id, from);
+		ensure!(from_balance >= amount, Error::<T>::BalanceTooLow);
 
-		if amount < T::ExistentialDeposit::get() && Self::balance(currency_id, to).is_zero() {
+		let to_balance = Self::balance(currency_id, to);
+		if to_balance.is_zero() && amount < T::ExistentialDeposit::get() {
 			return Err(Error::<T>::ExistentialDeposit.into());
 		}
 
 		if from != to {
-			<Balance<T>>::mutate(currency_id, from, |balance| *balance -= amount);
-			<Balance<T>>::mutate(currency_id, to, |balance| *balance += amount);
+			Self::set_balance(currency_id, from, from_balance - amount);
+			Self::set_balance(currency_id, to, to_balance + amount);
 		}
-
-		Self::enforce_existential_rule(currency_id, from);
 
 		Ok(())
 	}
@@ -184,31 +186,30 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		);
 
 		<TotalIssuance<T>>::mutate(currency_id, |v| *v += amount);
-		<Balance<T>>::mutate(currency_id, who, |v| *v += amount);
 
-		Self::enforce_existential_rule(currency_id, who);
+		let balance = Self::balance(currency_id, who);
+		Self::set_balance(currency_id, who, balance + amount);
 
 		Ok(())
 	}
 
 	fn withdraw(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
-		ensure!(
-			Self::balance(currency_id, who).checked_sub(&amount).is_some(),
-			Error::<T>::BalanceTooLow,
-		);
+		let balance = Self::balance(currency_id, who);
+		ensure!(balance.checked_sub(&amount).is_some(), Error::<T>::BalanceTooLow);
 
 		<TotalIssuance<T>>::mutate(currency_id, |v| *v -= amount);
-		<Balance<T>>::mutate(currency_id, who, |v| *v -= amount);
-
-		Self::enforce_existential_rule(currency_id, who);
+		Self::set_balance(currency_id, who, balance - amount);
 
 		Ok(())
 	}
 
 	fn slash(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> Self::Balance {
-		let slashed_amount = Self::balance(currency_id, who).min(amount);
+		let balance = Self::balance(currency_id, who);
+		let slashed_amount = balance.min(amount);
+
 		<TotalIssuance<T>>::mutate(currency_id, |v| *v -= slashed_amount);
-		<Balance<T>>::mutate(currency_id, who, |v| *v -= slashed_amount);
+		Self::set_balance(currency_id, who, balance - slashed_amount);
+
 		amount - slashed_amount
 	}
 }
