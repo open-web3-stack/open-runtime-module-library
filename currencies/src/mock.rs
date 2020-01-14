@@ -12,7 +12,7 @@ use tokens;
 use super::*;
 
 impl_outer_origin! {
-	pub enum Origin for Runtime {}
+	pub enum Origin for Runtime where system = frame_system {}
 }
 
 // Workaround for https://github.com/rust-lang/rust/issues/26925 . Remove when sorted.
@@ -25,7 +25,7 @@ parameter_types! {
 	pub const AvailableBlockRatio: Perbill = Perbill::one();
 }
 
-type AccountId = u64;
+pub type AccountId = u64;
 impl frame_system::Trait for Runtime {
 	type Origin = Origin;
 	type Call = ();

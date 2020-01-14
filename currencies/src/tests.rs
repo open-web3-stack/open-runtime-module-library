@@ -3,11 +3,12 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::assert_ok;
+use frame_support::{assert_noop, assert_ok};
 use mock::{
-	AdaptedBasicCurrency, CreationFee, Currencies, ExtBuilder, NativeCurrency, PalletBalances, ALICE, BOB, EVA,
-	NATIVE_CURRENCY_ID, X_TOKEN_ID,
+	AccountId, AdaptedBasicCurrency, CreationFee, Currencies, ExtBuilder, NativeCurrency, Origin, PalletBalances,
+	ALICE, BOB, EVA, NATIVE_CURRENCY_ID, X_TOKEN_ID,
 };
+use sp_runtime::traits::BadOrigin;
 
 #[test]
 fn multi_currency_should_work() {
@@ -27,7 +28,9 @@ fn multi_currency_extended_should_work() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
-			assert_ok!(Currencies::update_balance(X_TOKEN_ID, &ALICE, 50));
+			assert_ok!(<Currencies as MultiCurrencyExtended<AccountId>>::update_balance(
+				X_TOKEN_ID, &ALICE, 50
+			));
 			assert_eq!(Currencies::balance(X_TOKEN_ID, &ALICE), 150);
 		});
 }
@@ -63,7 +66,11 @@ fn native_currency_extended_should_work() {
 			assert_ok!(NativeCurrency::update_balance(&ALICE, 10));
 			assert_eq!(NativeCurrency::balance(&ALICE), 110);
 
-			assert_ok!(Currencies::update_balance(NATIVE_CURRENCY_ID, &ALICE, 10));
+			assert_ok!(<Currencies as MultiCurrencyExtended<AccountId>>::update_balance(
+				NATIVE_CURRENCY_ID,
+				&ALICE,
+				10
+			));
 			assert_eq!(NativeCurrency::balance(&ALICE), 120);
 		});
 }
@@ -136,4 +143,29 @@ fn basic_currency_adapting_pallet_balances_update_balance() {
 			assert_eq!(PalletBalances::total_balance(&ALICE), 90);
 			assert_eq!(PalletBalances::total_issuance(), 190);
 		});
+}
+
+#[test]
+fn update_balance_call_should_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.make_for_pallet_balances()
+		.build()
+		.execute_with(|| {
+			assert_ok!(Currencies::update_balance(Origin::ROOT, ALICE, NATIVE_CURRENCY_ID, -10));
+			assert_eq!(NativeCurrency::balance(&ALICE), 90);
+
+			assert_ok!(Currencies::update_balance(Origin::ROOT, ALICE, X_TOKEN_ID, 10));
+			assert_eq!(Currencies::balance(X_TOKEN_ID, &ALICE), 10);
+		});
+}
+
+#[test]
+fn update_balance_call_fails_if_not_root_origin() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_noop!(
+			Currencies::update_balance(Some(ALICE).into(), ALICE, X_TOKEN_ID, 100),
+			BadOrigin
+		);
+	});
 }

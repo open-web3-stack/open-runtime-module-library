@@ -12,7 +12,7 @@ use sp_runtime::{
 // FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
-use frame_system::{self as system, ensure_signed};
+use frame_system::{self as system, ensure_root, ensure_signed};
 
 use orml_traits::{arithmetic::Signed, BasicCurrency, BasicCurrencyExtended, MultiCurrency, MultiCurrencyExtended};
 
@@ -40,11 +40,14 @@ decl_storage! {
 decl_event!(
 	pub enum Event<T> where
 		<T as frame_system::Trait>::AccountId,
+		Amount = AmountOf<T>,
 		Balance = BalanceOf<T>,
 		CurrencyId = CurrencyIdOf<T>
 	{
 		/// Currency transfer success (currency_id, from, to, amount)
 		Transferred(CurrencyId, AccountId, AccountId, Balance),
+		/// Update balance success (currency_id, who, amount)
+		BalanceUpdated(CurrencyId, AccountId, Amount),
 	}
 );
 
@@ -71,11 +74,7 @@ decl_module! {
 		) {
 			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
-			if currency_id == T::GetNativeCurrencyId::get() {
-				T::NativeCurrency::transfer(&from, &to, amount)?;
-			} else {
-				T::MultiCurrency::transfer(currency_id, &from, &to, amount)?;
-			}
+			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, &from, &to, amount)?;
 
 			Self::deposit_event(RawEvent::Transferred(currency_id, from, to, amount));
 		}
@@ -91,6 +90,20 @@ decl_module! {
 			T::NativeCurrency::transfer(&from, &to, amount)?;
 
 			Self::deposit_event(RawEvent::Transferred(T::GetNativeCurrencyId::get(), from, to, amount));
+		}
+
+		/// Update balance of an account. This is a root call.
+		pub fn update_balance(
+			origin,
+			who: <T::Lookup as StaticLookup>::Source,
+			currency_id: CurrencyIdOf<T>,
+			amount: AmountOf<T>,
+		) {
+			ensure_root(origin)?;
+			let dest = T::Lookup::lookup(who)?;
+			<Self as MultiCurrencyExtended<T::AccountId>>::update_balance(currency_id, &dest, amount)?;
+
+			Self::deposit_event(RawEvent::BalanceUpdated(currency_id, dest, amount));
 		}
 	}
 }
@@ -221,7 +234,7 @@ where
 	type Amount = AmountOf<T>;
 
 	fn update_balance(who: &T::AccountId, by_amount: Self::Amount) -> DispatchResult {
-		<Module<T>>::update_balance(GetCurrencyId::get(), who, by_amount)
+		<Module<T> as MultiCurrencyExtended<T::AccountId>>::update_balance(GetCurrencyId::get(), who, by_amount)
 	}
 }
 
