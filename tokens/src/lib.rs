@@ -36,7 +36,7 @@ pub trait Trait: frame_system::Trait {
 		+ MaybeSerializeDeserialize;
 	type CurrencyId: Parameter + Member + Copy + MaybeSerializeDeserialize + Ord;
 	type ExistentialDeposit: Get<Self::Balance>;
-	type OnDustRemoval: OnDustRemoval<Self::Balance>;
+	type DustRemoval: OnDustRemoval<Self::Balance>;
 }
 
 decl_storage! {
@@ -130,7 +130,7 @@ impl<T: Trait> Module<T> {
 	fn set_balance(currency_id: T::CurrencyId, who: &T::AccountId, balance: T::Balance) {
 		if balance < T::ExistentialDeposit::get() {
 			<Balance<T>>::remove(currency_id, who);
-			T::OnDustRemoval::on_dust_removal(balance);
+			T::DustRemoval::on_dust_removal(balance);
 		} else {
 			<Balance<T>>::insert(currency_id, who, balance);
 		}

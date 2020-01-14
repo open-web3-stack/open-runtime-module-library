@@ -84,7 +84,7 @@ impl Trait for Runtime {
 	type Amount = i64;
 	type CurrencyId = CurrencyId;
 	type ExistentialDeposit = ExistentialDeposit;
-	type OnDustRemoval = MockDustRemoval<Balance>;
+	type DustRemoval = MockDustRemoval<Balance>;
 }
 
 pub type Tokens = Module<Runtime>;
