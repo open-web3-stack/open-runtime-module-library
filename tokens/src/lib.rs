@@ -1,6 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, Parameter};
+use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, traits::Get, Parameter};
 use rstd::{
 	collections::btree_map::BTreeMap,
 	convert::{TryFrom, TryInto},
@@ -16,7 +16,7 @@ use frame_system::{self as system, ensure_signed};
 
 use orml_traits::{
 	arithmetic::{self, Signed},
-	MultiCurrency, MultiCurrencyExtended,
+	MultiCurrency, MultiCurrencyExtended, OnDustRemoval,
 };
 
 mod mock;
@@ -35,6 +35,8 @@ pub trait Trait: frame_system::Trait {
 		+ Copy
 		+ MaybeSerializeDeserialize;
 	type CurrencyId: Parameter + Member + Copy + MaybeSerializeDeserialize + Ord;
+	type ExistentialDeposit: Get<Self::Balance>;
+	type OnDustRemoval: OnDustRemoval<Self::Balance>;
 }
 
 decl_storage! {
@@ -113,7 +115,12 @@ decl_error! {
 	}
 }
 
-impl<T: Trait> Module<T> {}
+impl<T: Trait> Module<T> {
+	/// Transfer all remaining balance to the given account.
+	pub fn transfer_all(currency_id: T::CurrencyId, from: &T::AccountId, to: &T::AccountId) {
+		<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, from, to, Self::balance(currency_id, from));
+	}
+}
 
 impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	type CurrencyId = T::CurrencyId;

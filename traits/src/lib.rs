@@ -148,3 +148,11 @@ pub trait CombineData<Key, TimestampedValue> {
 		prev_value: Option<TimestampedValue>,
 	) -> Option<TimestampedValue>;
 }
+
+pub trait OnDustRemoval<Balance> {
+	fn on_dust_removal(balance: Balance);
+}
+
+impl<Balance> OnDustRemoval<Balance> for () {
+	fn on_dust_removal(_: Balance) {}
+}
