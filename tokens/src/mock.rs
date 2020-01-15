@@ -5,6 +5,7 @@
 use frame_support::{impl_outer_event, impl_outer_origin, parameter_types};
 use frame_system as system;
 use primitives::H256;
+use rstd::{cell::RefCell, marker::PhantomData};
 use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
 use super::*;
@@ -56,11 +57,34 @@ pub type System = system::Module<Runtime>;
 
 type CurrencyId = u32;
 pub type Balance = u64;
+
+parameter_types! {
+	pub const ExistentialDeposit: u64 = 2;
+}
+
+thread_local! {
+	static ACCUMULATED_DUST: RefCell<Balance> = RefCell::new(Zero::zero());
+}
+
+pub struct MockDustRemoval<Balance>(PhantomData<Balance>);
+impl MockDustRemoval<Balance> {
+	pub fn accumulated_dust() -> Balance {
+		ACCUMULATED_DUST.with(|v| *v.borrow_mut())
+	}
+}
+impl OnDustRemoval<Balance> for MockDustRemoval<Balance> {
+	fn on_dust_removal(balance: Balance) {
+		ACCUMULATED_DUST.with(|v| *v.borrow_mut() += balance);
+	}
+}
+
 impl Trait for Runtime {
 	type Event = TestEvent;
 	type Balance = Balance;
 	type Amount = i64;
 	type CurrencyId = CurrencyId;
+	type ExistentialDeposit = ExistentialDeposit;
+	type DustRemoval = MockDustRemoval<Balance>;
 }
 
 pub type Tokens = Module<Runtime>;
@@ -68,6 +92,7 @@ pub type Tokens = Module<Runtime>;
 pub const TEST_TOKEN_ID: CurrencyId = 1;
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
+pub const CHARLIE: AccountId = 3;
 
 pub struct ExtBuilder {
 	endowed_accounts: Vec<(AccountId, CurrencyId, Balance)>,

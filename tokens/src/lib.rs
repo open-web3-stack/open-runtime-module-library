@@ -1,12 +1,12 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, Parameter};
+use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, traits::Get, Parameter};
 use rstd::{
 	collections::btree_map::BTreeMap,
 	convert::{TryFrom, TryInto},
 };
 use sp_runtime::{
-	traits::{CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, SimpleArithmetic, StaticLookup},
+	traits::{CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, SimpleArithmetic, StaticLookup, Zero},
 	DispatchResult,
 };
 // FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
@@ -16,7 +16,7 @@ use frame_system::{self as system, ensure_signed};
 
 use orml_traits::{
 	arithmetic::{self, Signed},
-	MultiCurrency, MultiCurrencyExtended,
+	MultiCurrency, MultiCurrencyExtended, OnDustRemoval,
 };
 
 mod mock;
@@ -35,6 +35,8 @@ pub trait Trait: frame_system::Trait {
 		+ Copy
 		+ MaybeSerializeDeserialize;
 	type CurrencyId: Parameter + Member + Copy + MaybeSerializeDeserialize + Ord;
+	type ExistentialDeposit: Get<Self::Balance>;
+	type DustRemoval: OnDustRemoval<Self::Balance>;
 }
 
 decl_storage! {
@@ -101,6 +103,20 @@ decl_module! {
 
 			Self::deposit_event(RawEvent::Transferred(currency_id, from, to, amount));
 		}
+
+		/// Transfer all remaining balance to the given account.
+		pub fn transfer_all(
+			origin,
+			dest: <T::Lookup as StaticLookup>::Source,
+			currency_id: T::CurrencyId,
+		) {
+			let from = ensure_signed(origin)?;
+			let to = T::Lookup::lookup(dest)?;
+			let balance = Self::balance(currency_id, &from);
+			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, &from, &to, balance)?;
+
+			Self::deposit_event(RawEvent::Transferred(currency_id, from, to, balance));
+		}
 	}
 }
 
@@ -110,10 +126,23 @@ decl_error! {
 		BalanceTooLow,
 		TotalIssuanceOverflow,
 		AmountIntoBalanceFailed,
+		ExistentialDeposit,
 	}
 }
 
-impl<T: Trait> Module<T> {}
+impl<T: Trait> Module<T> {
+	/// Set balance of `who` to a new value, meanwhile enforce existential rule.
+	///
+	/// Note this will not maintain total issuance, and the caller is expected to do it.
+	fn set_balance(currency_id: T::CurrencyId, who: &T::AccountId, balance: T::Balance) {
+		if balance < T::ExistentialDeposit::get() {
+			<Balance<T>>::remove(currency_id, who);
+			T::DustRemoval::on_dust_removal(balance);
+		} else {
+			<Balance<T>>::insert(currency_id, who, balance);
+		}
+	}
+}
 
 impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	type CurrencyId = T::CurrencyId;
@@ -141,11 +170,17 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		to: &T::AccountId,
 		amount: Self::Balance,
 	) -> DispatchResult {
-		ensure!(Self::balance(currency_id, from) >= amount, Error::<T>::BalanceTooLow);
+		let from_balance = Self::balance(currency_id, from);
+		ensure!(from_balance >= amount, Error::<T>::BalanceTooLow);
+
+		let to_balance = Self::balance(currency_id, to);
+		if to_balance.is_zero() && amount < T::ExistentialDeposit::get() {
+			return Err(Error::<T>::ExistentialDeposit.into());
+		}
 
 		if from != to {
-			<Balance<T>>::mutate(currency_id, from, |balance| *balance -= amount);
-			<Balance<T>>::mutate(currency_id, to, |balance| *balance += amount);
+			Self::set_balance(currency_id, from, from_balance - amount);
+			Self::set_balance(currency_id, to, to_balance + amount);
 		}
 
 		Ok(())
@@ -157,28 +192,37 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 			Error::<T>::TotalIssuanceOverflow,
 		);
 
+		let balance = Self::balance(currency_id, who);
+		// Nothing happens if deposition doesn't meet existential deposit rule,
+		// consistent behavior with pallet-balances.
+		if balance.is_zero() && amount < T::ExistentialDeposit::get() {
+			return Ok(());
+		}
+
 		<TotalIssuance<T>>::mutate(currency_id, |v| *v += amount);
-		<Balance<T>>::mutate(currency_id, who, |v| *v += amount);
+
+		Self::set_balance(currency_id, who, balance + amount);
 
 		Ok(())
 	}
 
 	fn withdraw(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
-		ensure!(
-			Self::balance(currency_id, who).checked_sub(&amount).is_some(),
-			Error::<T>::BalanceTooLow,
-		);
+		let balance = Self::balance(currency_id, who);
+		ensure!(balance.checked_sub(&amount).is_some(), Error::<T>::BalanceTooLow);
 
 		<TotalIssuance<T>>::mutate(currency_id, |v| *v -= amount);
-		<Balance<T>>::mutate(currency_id, who, |v| *v -= amount);
+		Self::set_balance(currency_id, who, balance - amount);
 
 		Ok(())
 	}
 
 	fn slash(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> Self::Balance {
-		let slashed_amount = Self::balance(currency_id, who).min(amount);
+		let balance = Self::balance(currency_id, who);
+		let slashed_amount = balance.min(amount);
+
 		<TotalIssuance<T>>::mutate(currency_id, |v| *v -= slashed_amount);
-		<Balance<T>>::mutate(currency_id, who, |v| *v -= slashed_amount);
+		Self::set_balance(currency_id, who, balance - slashed_amount);
+
 		amount - slashed_amount
 	}
 }

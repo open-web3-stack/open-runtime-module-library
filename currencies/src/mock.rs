@@ -74,6 +74,8 @@ impl tokens::Trait for Runtime {
 	type Balance = Balance;
 	type Amount = i64;
 	type CurrencyId = CurrencyId;
+	type ExistentialDeposit = ExistentialDeposit;
+	type DustRemoval = ();
 }
 
 pub const NATIVE_CURRENCY_ID: CurrencyId = 1;
