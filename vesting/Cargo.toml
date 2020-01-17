@@ -14,6 +14,12 @@ rstd = { package = "sp-std", git = "https://github.com/paritytech/substrate.git"
 frame-support = { git = "https://github.com/paritytech/substrate.git", default-features = false }
 frame-system = { git = "https://github.com/paritytech/substrate.git", default-features = false }
 
+[dev-dependencies]
+primitives = { package = "sp-core",  git = "https://github.com/paritytech/substrate.git", default-features = false }
+pallet-balances = { package = "pallet-balances", git = "https://github.com/paritytech/substrate.git" }
+
+clear_on_drop = { version = "0.2.3", features = ["no_cc"] }	# https://github.com/paritytech/substrate/issues/4179
+
 [features]
 default = ["std"]
 std = [
