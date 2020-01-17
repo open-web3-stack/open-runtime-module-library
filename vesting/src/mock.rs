@@ -107,7 +107,7 @@ impl ExtBuilder {
 		self.balances(vec![(ALICE, 100)])
 	}
 
-	pub fn build(self) -> runtime_io::TestExternalities {
+	pub fn build(self) -> sp_io::TestExternalities {
 		let mut t = frame_system::GenesisConfig::default()
 			.build_storage::<Runtime>()
 			.unwrap();

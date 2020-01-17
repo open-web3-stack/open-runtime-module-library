@@ -20,10 +20,10 @@ fn add_vesting_schedule_works() {
 			BOB,
 			schedule.clone()
 		));
-		let vested = Vesting::vesting_schedules(&BOB);
-		assert_eq!(vested, vec![schedule.clone()]);
+		let VestingScheduleAdded = Vesting::vesting_schedules(&BOB);
+		assert_eq!(VestingScheduleAdded, vec![schedule.clone()]);
 
-		let vested_event = TestEvent::vesting(RawEvent::Vested(ALICE, BOB, schedule));
+		let vested_event = TestEvent::vesting(RawEvent::VestingScheduleAdded(ALICE, BOB, schedule));
 		assert!(System::events().iter().any(|record| record.event == vested_event));
 	});
 }

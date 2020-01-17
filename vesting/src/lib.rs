@@ -66,7 +66,7 @@ decl_event!(
 		VestingSchedule = VestingScheduleOf<T>
 	{
 		/// Added new vesting schedule (from, to, vesting_schedule)
-		Vested(AccountId, AccountId, VestingSchedule),
+		VestingScheduleAdded(AccountId, AccountId, VestingSchedule),
 		/// Claimed vesting (who, outstanding_locked)
 		Claimed(AccountId, Balance),
 	}
@@ -96,7 +96,7 @@ decl_module! {
 			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
 			Self::do_add_vesting_schedule(&from, &to, schedule.clone())?;
-			Self::deposit_event(RawEvent::Vested(from, to, schedule));
+			Self::deposit_event(RawEvent::VestingScheduleAdded(from, to, schedule));
 		}
 
 		pub fn update_vesting_schedules(
