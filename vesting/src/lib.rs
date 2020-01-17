@@ -5,7 +5,7 @@ use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage, ensure,
 	traits::{Currency, ExistenceRequirement, LockIdentifier, LockableCurrency, WithdrawReasons},
 };
-use rstd::{
+use sp_std::{
 	cmp::{Eq, PartialEq},
 	vec::Vec,
 };
