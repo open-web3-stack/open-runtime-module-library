@@ -28,11 +28,11 @@ mod tests;
 /// after `start`.
 #[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug)]
 pub struct VestingSchedule<BlockNumber, Balance: HasCompact> {
-	start: BlockNumber,
-	period: BlockNumber,
-	period_count: u32,
+	pub start: BlockNumber,
+	pub period: BlockNumber,
+	pub period_count: u32,
 	#[codec(compact)]
-	per_period: Balance,
+	pub per_period: Balance,
 }
 
 impl<BlockNumber: SimpleArithmetic + Copy, Balance: SimpleArithmetic + Copy> VestingSchedule<BlockNumber, Balance> {
