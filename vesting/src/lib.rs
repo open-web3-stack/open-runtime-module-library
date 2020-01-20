@@ -7,7 +7,6 @@ use frame_support::{
 };
 use sp_std::{
 	cmp::{Eq, PartialEq},
-	result::Result,
 	vec::Vec,
 };
 // FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
@@ -15,7 +14,7 @@ use sp_std::{
 // #3295 https://github.com/paritytech/substrate/issues/3295
 use frame_system::{self as system, ensure_signed};
 use sp_runtime::{
-	traits::{CheckedAdd, CheckedMul, SimpleArithmetic, StaticLookup, Zero},
+	traits::{CheckedAdd, SimpleArithmetic, StaticLookup, Zero},
 	DispatchResult, RuntimeDebug,
 };
 
@@ -36,17 +35,22 @@ pub struct VestingSchedule<BlockNumber, Balance: HasCompact> {
 }
 
 impl<BlockNumber: SimpleArithmetic + Copy, Balance: SimpleArithmetic + Copy> VestingSchedule<BlockNumber, Balance> {
-	/// Returns the end of all periods, `None` if calculation overflow.
+	/// Returns the end of all periods, `None` if calculation overflows.
 	pub fn end(&self) -> Option<BlockNumber> {
 		self.period
 			.checked_mul(&self.period_count.into())?
 			.checked_add(&self.start)
 	}
 
-	/// Returns outstanding locked balance in schedule, based on given `time`.
+	/// Returns all locked amount, `None` if calculation overflows.
+	pub fn total_amount(&self) -> Option<Balance> {
+		self.per_period.checked_mul(&self.period_count.into())
+	}
+
+	/// Returns locked amount for a given `time`.
 	///
-	/// Note this func assumes schedule end calculation doesn't overflow, and it should be guaranteed by callers.
-	pub fn outstanding_locked(&self, time: BlockNumber) -> Balance {
+	/// Note this func assumes `schedule.end()` calculation doesn't overflow, and it should be guaranteed by callers.
+	pub fn locked_amount(&self, time: BlockNumber) -> Balance {
 		(1..=self.period_count).fold(Zero::zero(), |acc, i| {
 			let period_end = self.start + self.period * i.into();
 			if period_end <= time {
@@ -91,7 +95,7 @@ decl_event!(
 	{
 		/// Added new vesting schedule (from, to, vesting_schedule)
 		VestingScheduleAdded(AccountId, AccountId, VestingSchedule),
-		/// Claimed vesting (who, outstanding_locked)
+		/// Claimed vesting (who, locked_amount)
 		Claimed(AccountId, Balance),
 	}
 );
@@ -111,7 +115,11 @@ decl_module! {
 
 		fn deposit_event() = default;
 
-		pub fn claim(origin) {}
+		pub fn claim(origin) {
+			let who = ensure_signed(origin)?;
+			let locked_amount = Self::do_claim(&who);
+			Self::deposit_event(RawEvent::Claimed(who, locked_amount));
+		}
 
 		pub fn add_vesting_schedule(
 			origin,
@@ -125,9 +133,9 @@ decl_module! {
 		}
 
 		pub fn update_vesting_schedules(
-			origin,
-			who: <T::Lookup as StaticLookup>::Source,
-			vesting_schedules: Vec<VestingScheduleOf<T>>
+			_origin,
+			_who: <T::Lookup as StaticLookup>::Source,
+			_vesting_schedules: Vec<VestingScheduleOf<T>>
 		) {}
 	}
 }
@@ -135,19 +143,33 @@ decl_module! {
 const VESTING_LOCK_ID: LockIdentifier = *b"vestingm";
 
 impl<T: Trait> Module<T> {
-	fn do_claim(who: &T::AccountId) -> Result<BalanceOf<T>, &'static str> {
-		unimplemented!()
+	fn do_claim(who: &T::AccountId) -> BalanceOf<T> {
+		if let Some((amount, until)) = Self::locked(who) {
+			T::Currency::set_lock(VESTING_LOCK_ID, who, amount, until, WithdrawReasons::all());
+			amount
+		} else {
+			T::Currency::remove_lock(VESTING_LOCK_ID, who);
+			Zero::zero()
+		}
 	}
 
-	/// Returns `(locked_balance, end)` tuple of `who`, based on current block number. `(Zero::zero(), None)`
-	/// if no outstanding locked balance for vesting module.
-	fn locked_balance(who: &T::AccountId) -> (BalanceOf<T>, Option<T::BlockNumber>) {
+	/// Returns locked balance info based on current block number: if no remaining locked balance,
+	/// returns `None`, or returns `Some((amount, until))`
+	fn locked(who: &T::AccountId) -> Option<(BalanceOf<T>, T::BlockNumber)> {
 		let now = <frame_system::Module<T>>::block_number();
-		Self::vesting_schedules(who)
-			.iter()
-			.fold((Zero::zero(), None), |(acc_locked, acc_end), s| {
-				(acc_locked + s.outstanding_locked(now), acc_end.max(s.end()))
-			})
+		Self::vesting_schedules(who).iter().fold(None, |acc, s| {
+			let locked_amount = s.locked_amount(now);
+			if locked_amount.is_zero() {
+				return acc;
+			}
+
+			let s_end = s.end().expect("ensured not overflow while adding; qed");
+			if let Some((amount, until)) = acc {
+				Some((amount + locked_amount, until.max(s_end)))
+			} else {
+				Some((locked_amount, s_end))
+			}
+		})
 	}
 
 	fn do_add_vesting_schedule(
@@ -155,33 +177,24 @@ impl<T: Trait> Module<T> {
 		to: &T::AccountId,
 		schedule: VestingScheduleOf<T>,
 	) -> DispatchResult {
-		let VestingSchedule {
-			start,
-			period,
-			period_count,
-			per_period,
-		} = schedule;
-
-		ensure!(!period.is_zero(), Error::<T>::ZeroVestingPeriod);
-		ensure!(!period_count.is_zero(), Error::<T>::ZeroVestingPeriodCount);
+		ensure!(!schedule.period.is_zero(), Error::<T>::ZeroVestingPeriod);
+		ensure!(!schedule.period_count.is_zero(), Error::<T>::ZeroVestingPeriodCount);
 
 		//TODO: ensure no existing locks, or only `VESTING_LOCK_ID` locks.
 
-		let (locked, locked_until) = Self::locked_balance(to);
-		let new_to_lock = per_period
-			.checked_mul(&period_count.into())
-			.ok_or(Error::<T>::NumOverflow)?;
-		let total = locked.checked_add(&new_to_lock.into()).ok_or(Error::<T>::NumOverflow)?;
-		let until = {
-			let schedule_end = schedule.end().ok_or(Error::<T>::NumOverflow)?;
-			if let Some(l) = locked_until {
-				schedule_end.max(l)
-			} else {
-				schedule_end
-			}
-		};
+		let amount = schedule.total_amount().ok_or(Error::<T>::NumOverflow)?;
+		let schedule_end = schedule.end().ok_or(Error::<T>::NumOverflow)?;
 
-		T::Currency::transfer(from, to, new_to_lock, ExistenceRequirement::AllowDeath)?;
+		let mut total = amount;
+		let mut until = schedule_end;
+		if let Some((curr_locked_amount, curr_until)) = Self::locked(to) {
+			total = curr_locked_amount
+				.checked_add(&amount.into())
+				.ok_or(Error::<T>::NumOverflow)?;
+			until = until.max(curr_until);
+		}
+
+		T::Currency::transfer(from, to, amount, ExistenceRequirement::AllowDeath)?;
 		T::Currency::set_lock(VESTING_LOCK_ID, to, total, until, WithdrawReasons::all());
 		<VestingSchedules<T>>::mutate(to, |v| (*v).push(schedule));
 

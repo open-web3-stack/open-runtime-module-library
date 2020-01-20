@@ -29,7 +29,7 @@ fn add_vesting_schedule_works() {
 }
 
 #[test]
-fn add_new_vesting_schedule_merges_with_outstanding_locked_balance_and_until() {
+fn add_new_vesting_schedule_merges_with_current_locked_balance_and_until() {
 	ExtBuilder::default().one_hundred_for_alice().build().execute_with(|| {
 		let schedule = VestingSchedule {
 			start: 0u64,

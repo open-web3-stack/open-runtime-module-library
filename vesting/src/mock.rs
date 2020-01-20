@@ -53,7 +53,6 @@ impl frame_system::Trait for Runtime {
 }
 pub type System = system::Module<Runtime>;
 
-type CurrencyId = u32;
 type Balance = u64;
 
 parameter_types! {
