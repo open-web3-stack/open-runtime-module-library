@@ -5,6 +5,7 @@
 use super::*;
 use frame_support::{assert_noop, assert_ok, traits::WithdrawReason};
 use mock::{ExtBuilder, Origin, PalletBalances, Runtime, System, TestEvent, Vesting, ALICE, BOB};
+use pallet_balances::BalanceLock;
 
 #[test]
 fn add_vesting_schedule_works() {
@@ -20,11 +21,47 @@ fn add_vesting_schedule_works() {
 			BOB,
 			schedule.clone()
 		));
-		let VestingScheduleAdded = Vesting::vesting_schedules(&BOB);
-		assert_eq!(VestingScheduleAdded, vec![schedule.clone()]);
+		assert_eq!(Vesting::vesting_schedules(&BOB), vec![schedule.clone()]);
 
 		let vested_event = TestEvent::vesting(RawEvent::VestingScheduleAdded(ALICE, BOB, schedule));
 		assert!(System::events().iter().any(|record| record.event == vested_event));
+	});
+}
+
+#[test]
+fn add_new_vesting_schedule_merges_with_outstanding_locked_balance_and_until() {
+	ExtBuilder::default().one_hundred_for_alice().build().execute_with(|| {
+		let schedule = VestingSchedule {
+			start: 0u64,
+			period: 10u64,
+			period_count: 2u32,
+			per_period: 10u64,
+		};
+		assert_ok!(Vesting::add_vesting_schedule(Origin::signed(ALICE), BOB, schedule));
+
+		System::set_block_number(12);
+
+		let another_schedule = VestingSchedule {
+			start: 10u64,
+			period: 13u64,
+			period_count: 1u32,
+			per_period: 7u64,
+		};
+		assert_ok!(Vesting::add_vesting_schedule(
+			Origin::signed(ALICE),
+			BOB,
+			another_schedule
+		));
+
+		assert_eq!(
+			PalletBalances::locks(&BOB).pop(),
+			Some(BalanceLock {
+				id: VESTING_LOCK_ID,
+				amount: 17u64,
+				until: 23u64,
+				reasons: WithdrawReasons::all(),
+			})
+		);
 	});
 }
 
@@ -112,14 +149,14 @@ fn add_vesting_schedule_fails_if_overflow() {
 			Error::<Runtime>::NumOverflow
 		);
 
-		let schedule1 = VestingSchedule {
+		let another_schedule = VestingSchedule {
 			start: u64::max_value(),
 			period: 1u64,
 			period_count: 2u32,
 			per_period: 1u64,
 		};
 		assert_noop!(
-			Vesting::add_vesting_schedule(Origin::signed(ALICE), BOB, schedule1),
+			Vesting::add_vesting_schedule(Origin::signed(ALICE), BOB, another_schedule),
 			Error::<Runtime>::NumOverflow
 		);
 	});
