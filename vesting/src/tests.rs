@@ -97,3 +97,30 @@ fn add_vesting_schedule_fails_if_transfer_err() {
 		);
 	});
 }
+
+#[test]
+fn add_vesting_schedule_fails_if_overflow() {
+	ExtBuilder::default().one_hundred_for_alice().build().execute_with(|| {
+		let schedule = VestingSchedule {
+			start: 1u64,
+			period: 1u64,
+			period_count: 2u32,
+			per_period: u64::max_value(),
+		};
+		assert_noop!(
+			Vesting::add_vesting_schedule(Origin::signed(ALICE), BOB, schedule),
+			Error::<Runtime>::NumOverflow
+		);
+
+		let schedule1 = VestingSchedule {
+			start: u64::max_value(),
+			period: 1u64,
+			period_count: 2u32,
+			per_period: 1u64,
+		};
+		assert_noop!(
+			Vesting::add_vesting_schedule(Origin::signed(ALICE), BOB, schedule1),
+			Error::<Runtime>::NumOverflow
+		);
+	});
+}

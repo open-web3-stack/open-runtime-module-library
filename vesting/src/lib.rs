@@ -14,7 +14,7 @@ use sp_std::{
 // #3295 https://github.com/paritytech/substrate/issues/3295
 use frame_system::{self as system, ensure_signed};
 use sp_runtime::{
-	traits::{StaticLookup, Zero},
+	traits::{CheckedAdd, CheckedMul, StaticLookup, Zero},
 	DispatchResult, RuntimeDebug,
 };
 
@@ -77,6 +77,7 @@ decl_error! {
 	pub enum Error for Module<T: Trait> {
 		ZeroVestingPeriod,
 		ZeroVestingPeriodCount,
+		NumOverflow,
 	}
 }
 
@@ -136,12 +137,18 @@ impl<T: Trait> Module<T> {
 
 		//TODO: ensure no existing locks, or only `VESTING_LOCK_ID` locks.
 
-		let amount = per_period * period_count.into();
+		let amount = per_period
+			.checked_mul(&period_count.into())
+			.ok_or(Error::<T>::NumOverflow)?;
+		let until = {
+			let periods = period
+				.checked_mul(&period_count.into())
+				.ok_or(Error::<T>::NumOverflow)?;
+			start.checked_add(&periods).ok_or(Error::<T>::NumOverflow)?
+		};
+
 		T::Currency::transfer(from, to, amount, ExistenceRequirement::AllowDeath)?;
-
-		let until = start + period * period_count.into();
 		T::Currency::set_lock(VESTING_LOCK_ID, to, amount, until, WithdrawReasons::all());
-
 		<VestingSchedules<T>>::mutate(to, |v| (*v).push(schedule));
 
 		Ok(())
