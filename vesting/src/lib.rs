@@ -56,9 +56,7 @@ impl<BlockNumber: SimpleArithmetic + Copy, Balance: SimpleArithmetic + Copy> Ves
 			.saturating_sub(self.start)
 			.checked_div(&self.period)
 			.expect("ensured non-zero period; qed");
-		let unrealized = self
-			.period_count
-			.saturating_sub(full.try_into().unwrap_or(u32::max_value()));
+		let unrealized = self.period_count.saturating_sub(full.unique_saturated_into());
 		self.per_period
 			.checked_mul(&unrealized.into())
 			.expect("ensured non-overflow total amount; qed")
