@@ -49,16 +49,19 @@ impl<BlockNumber: SimpleArithmetic + Copy, Balance: SimpleArithmetic + Copy> Ves
 
 	/// Returns locked amount for a given `time`.
 	///
-	/// Note this func assumes `schedule.end()` calculation doesn't overflow, and it should be guaranteed by callers.
+	/// Note this func assumes schedule is a valid one(non-zero period and non-overflow total amount),
+	/// and it should be guaranteed by callers.
 	pub fn locked_amount(&self, time: BlockNumber) -> Balance {
-		(1..=self.period_count).fold(Zero::zero(), |acc, i| {
-			let period_end = self.start + self.period * i.into();
-			if period_end <= time {
-				acc + self.per_period
-			} else {
-				acc
-			}
-		})
+		let full = time
+			.saturating_sub(self.start)
+			.checked_div(&self.period)
+			.expect("ensured non-zero period; qed");
+		let unrealized = self
+			.period_count
+			.saturating_sub(full.try_into().unwrap_or(u32::max_value()));
+		self.per_period
+			.checked_mul(&unrealized.into())
+			.expect("ensured non-overflow total amount; qed")
 	}
 }
 
