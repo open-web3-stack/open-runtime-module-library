@@ -161,3 +161,39 @@ fn add_vesting_schedule_fails_if_overflow() {
 		);
 	});
 }
+
+#[test]
+fn claim_works() {
+	ExtBuilder::default().one_hundred_for_alice().build().execute_with(|| {
+		let schedule = VestingSchedule {
+			start: 0u64,
+			period: 10u64,
+			period_count: 2u32,
+			per_period: 10u64,
+		};
+		assert_ok!(Vesting::add_vesting_schedule(
+			Origin::signed(ALICE),
+			BOB,
+			schedule.clone()
+		));
+
+		System::set_block_number(11);
+		// remain locked if not claimed
+		assert!(PalletBalances::transfer(Origin::signed(BOB), ALICE, 10).is_err());
+		// unlocked after claiming
+		assert_ok!(Vesting::claim(Origin::signed(BOB)));
+		assert_ok!(PalletBalances::transfer(Origin::signed(BOB), ALICE, 10));
+		// more are still locked
+		assert!(PalletBalances::transfer(Origin::signed(BOB), ALICE, 1).is_err());
+
+		System::set_block_number(21);
+		// claim more
+		assert_ok!(Vesting::claim(Origin::signed(BOB)));
+		assert_ok!(PalletBalances::transfer(Origin::signed(BOB), ALICE, 10));
+		// all used up
+		assert_eq!(PalletBalances::free_balance(BOB), 0);
+
+		// no locks anymore
+		assert_eq!(PalletBalances::locks(&BOB), vec![]);
+	});
+}
