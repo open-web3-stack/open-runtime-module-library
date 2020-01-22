@@ -14,7 +14,7 @@ use sp_std::{
 // #3295 https://github.com/paritytech/substrate/issues/3295
 use frame_system::{self as system, ensure_root, ensure_signed};
 use sp_runtime::{
-	traits::{CheckedAdd, SimpleArithmetic, StaticLookup, Zero},
+	traits::{CheckedAdd, CheckedSub, SimpleArithmetic, StaticLookup, Zero},
 	DispatchResult, RuntimeDebug,
 };
 
@@ -110,6 +110,7 @@ decl_error! {
 		ZeroVestingPeriodCount,
 		NumOverflow,
 		InsufficientBalanceToLock,
+		HasNonVestingLocks,
 	}
 }
 
@@ -190,7 +191,11 @@ impl<T: Trait> Module<T> {
 		to: &T::AccountId,
 		schedule: VestingScheduleOf<T>,
 	) -> DispatchResult {
-		//TODO: ensure no existing locks, or only `VESTING_LOCK_ID` locks.
+		// FIXME: remove `do_claim` workaround after issue #4655 fixed
+		// https://github.com/paritytech/substrate/issues/4655
+		let _ = Self::do_claim(to);
+
+		Self::ensure_lockable(to)?;
 
 		let (schedule_amount, schedule_end) = Self::ensure_valid_vesting_schedule(&schedule)?;
 		let (mut total_amount, mut until) = (schedule_amount, schedule_end);
@@ -208,20 +213,8 @@ impl<T: Trait> Module<T> {
 		Ok(())
 	}
 
-	/// Returns `Ok((amount, end))` if valid schedule, or error.
-	fn ensure_valid_vesting_schedule(
-		schedule: &VestingScheduleOf<T>,
-	) -> Result<(BalanceOf<T>, T::BlockNumber), Error<T>> {
-		ensure!(!schedule.period.is_zero(), Error::<T>::ZeroVestingPeriod);
-		ensure!(!schedule.period_count.is_zero(), Error::<T>::ZeroVestingPeriodCount);
-
-		let amount = schedule.total_amount().ok_or(Error::<T>::NumOverflow)?;
-		let schedule_end = schedule.end().ok_or(Error::<T>::NumOverflow)?;
-		Ok((amount, schedule_end))
-	}
-
 	fn do_update_vesting_schedules(who: &T::AccountId, schedules: Vec<VestingScheduleOf<T>>) -> DispatchResult {
-		//TODO: ensure no existing locks, or only `VESTING_LOCK_ID` locks.
+		Self::ensure_lockable(who)?;
 
 		let (total_amount, until) = schedules
 			.iter()
@@ -241,5 +234,28 @@ impl<T: Trait> Module<T> {
 		<VestingSchedules<T>>::insert(who, schedules);
 
 		Ok(())
+	}
+
+	/// Returns `Ok((amount, end))` if valid schedule, or error.
+	fn ensure_valid_vesting_schedule(
+		schedule: &VestingScheduleOf<T>,
+	) -> Result<(BalanceOf<T>, T::BlockNumber), Error<T>> {
+		ensure!(!schedule.period.is_zero(), Error::<T>::ZeroVestingPeriod);
+		ensure!(!schedule.period_count.is_zero(), Error::<T>::ZeroVestingPeriodCount);
+
+		let amount = schedule.total_amount().ok_or(Error::<T>::NumOverflow)?;
+		let schedule_end = schedule.end().ok_or(Error::<T>::NumOverflow)?;
+		Ok((amount, schedule_end))
+	}
+
+	/// Ensure no other types of locks except `VESTING_LOCK_ID`.
+	fn ensure_lockable(who: &T::AccountId) -> DispatchResult {
+		// FIXME: use locks query in `LockableCurrency` when it's ready
+		// https://github.com/paritytech/substrate/issues/4655
+		let balance = T::Currency::free_balance(who);
+		let locked = Self::locked(who).map_or(Zero::zero(), |(amount, _)| amount);
+		let usable = balance.checked_sub(&locked).expect("ensured sufficient balance; qed");
+		T::Currency::ensure_can_withdraw(who, usable, WithdrawReasons::all(), locked)
+			.map_err(|_| Error::<T>::HasNonVestingLocks.into())
 	}
 }

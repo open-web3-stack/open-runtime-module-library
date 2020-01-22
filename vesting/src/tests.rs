@@ -3,7 +3,7 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{assert_noop, assert_ok, traits::WithdrawReason};
+use frame_support::{assert_err, assert_noop, assert_ok, traits::WithdrawReason};
 use mock::{ExtBuilder, Origin, PalletBalances, Runtime, System, TestEvent, Vesting, ALICE, BOB};
 use pallet_balances::BalanceLock;
 
@@ -92,7 +92,7 @@ fn add_vesting_schedule_fails_if_zero_period_or_count() {
 			period_count: 1u32,
 			per_period: 100u64,
 		};
-		assert_noop!(
+		assert_err!(
 			Vesting::add_vesting_schedule(Origin::signed(ALICE), BOB, schedule.clone()),
 			Error::<Runtime>::ZeroVestingPeriod
 		);
@@ -103,20 +103,29 @@ fn add_vesting_schedule_fails_if_zero_period_or_count() {
 			period_count: 0u32,
 			per_period: 100u64,
 		};
-		assert_noop!(
+		assert_err!(
 			Vesting::add_vesting_schedule(Origin::signed(ALICE), BOB, schedule.clone()),
 			Error::<Runtime>::ZeroVestingPeriodCount
 		);
 	});
 }
 
-//TODO: to be implemented
 #[test]
 fn add_vesting_schedule_fails_if_unexpected_existing_locks() {
-	ExtBuilder::default()
-		.one_hundred_for_alice()
-		.build()
-		.execute_with(|| {});
+	ExtBuilder::default().one_hundred_for_alice().build().execute_with(|| {
+		assert_ok!(PalletBalances::transfer(Origin::signed(ALICE), BOB, 1));
+		PalletBalances::set_lock(*b"prelocks", &BOB, 10u64, 10u64, WithdrawReasons::all());
+		let schedule = VestingSchedule {
+			start: 1u64,
+			period: 1u64,
+			period_count: 1u32,
+			per_period: 10u64,
+		};
+		assert_err!(
+			Vesting::add_vesting_schedule(Origin::signed(ALICE), BOB, schedule),
+			Error::<Runtime>::HasNonVestingLocks
+		);
+	});
 }
 
 #[test]
@@ -128,7 +137,7 @@ fn add_vesting_schedule_fails_if_transfer_err() {
 			period_count: 1u32,
 			per_period: 100u64,
 		};
-		assert_noop!(
+		assert_err!(
 			Vesting::add_vesting_schedule(Origin::signed(BOB), ALICE, schedule.clone()),
 			pallet_balances::Error::<Runtime, _>::InsufficientBalance,
 		);
@@ -144,7 +153,7 @@ fn add_vesting_schedule_fails_if_overflow() {
 			period_count: 2u32,
 			per_period: u64::max_value(),
 		};
-		assert_noop!(
+		assert_err!(
 			Vesting::add_vesting_schedule(Origin::signed(ALICE), BOB, schedule),
 			Error::<Runtime>::NumOverflow
 		);
@@ -155,7 +164,7 @@ fn add_vesting_schedule_fails_if_overflow() {
 			period_count: 2u32,
 			per_period: 1u64,
 		};
-		assert_noop!(
+		assert_err!(
 			Vesting::add_vesting_schedule(Origin::signed(ALICE), BOB, another_schedule),
 			Error::<Runtime>::NumOverflow
 		);
@@ -238,24 +247,26 @@ fn update_vesting_schedules_works() {
 //TODO: to be implemented
 #[test]
 fn update_vesting_schedules_fails_if_unexpected_existing_locks() {
-	ExtBuilder::default()
-		.one_hundred_for_alice()
-		.build()
-		.execute_with(|| {});
+	ExtBuilder::default().one_hundred_for_alice().build().execute_with(|| {
+		assert_ok!(PalletBalances::transfer(Origin::signed(ALICE), BOB, 1));
+		PalletBalances::set_lock(*b"prelocks", &BOB, 0u64, 10u64, WithdrawReasons::all());
+	});
 }
 
 #[test]
 fn update_vesting_schedules_fails_if_insufficient_balance_to_lock() {
 	ExtBuilder::default().one_hundred_for_alice().build().execute_with(|| {
+		assert_ok!(PalletBalances::transfer(Origin::signed(ALICE), BOB, 10));
+		PalletBalances::set_lock(*b"prelocks", &BOB, 10u64, 10u64, WithdrawReasons::all());
 		let schedule = VestingSchedule {
-			start: 0u64,
-			period: 10u64,
+			start: 1u64,
+			period: 1u64,
 			period_count: 1u32,
-			per_period: 101u64,
+			per_period: 10u64,
 		};
 		assert_noop!(
-			Vesting::update_vesting_schedules(Origin::ROOT, ALICE, vec![schedule]),
-			Error::<Runtime>::InsufficientBalanceToLock
+			Vesting::update_vesting_schedules(Origin::ROOT, BOB, vec![schedule]),
+			Error::<Runtime>::HasNonVestingLocks
 		);
 	});
 }
