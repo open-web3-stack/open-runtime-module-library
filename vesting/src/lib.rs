@@ -12,7 +12,7 @@ use sp_std::{
 // FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
-use frame_system::{self as system, ensure_signed};
+use frame_system::{self as system, ensure_root, ensure_signed};
 use sp_runtime::{
 	traits::{CheckedAdd, SimpleArithmetic, StaticLookup, Zero},
 	DispatchResult, RuntimeDebug,
@@ -98,6 +98,8 @@ decl_event!(
 		VestingScheduleAdded(AccountId, AccountId, VestingSchedule),
 		/// Claimed vesting (who, locked_amount)
 		Claimed(AccountId, Balance),
+		/// Updated vesting schedules (who)
+		VestingSchedulesUpdated(AccountId),
 	}
 );
 
@@ -107,6 +109,7 @@ decl_error! {
 		ZeroVestingPeriod,
 		ZeroVestingPeriodCount,
 		NumOverflow,
+		InsufficientBalanceToLock,
 	}
 }
 
@@ -119,6 +122,7 @@ decl_module! {
 		pub fn claim(origin) {
 			let who = ensure_signed(origin)?;
 			let locked_amount = Self::do_claim(&who);
+
 			Self::deposit_event(RawEvent::Claimed(who, locked_amount));
 		}
 
@@ -130,14 +134,22 @@ decl_module! {
 			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
 			Self::do_add_vesting_schedule(&from, &to, schedule.clone())?;
+
 			Self::deposit_event(RawEvent::VestingScheduleAdded(from, to, schedule));
 		}
 
 		pub fn update_vesting_schedules(
-			_origin,
-			_who: <T::Lookup as StaticLookup>::Source,
-			_vesting_schedules: Vec<VestingScheduleOf<T>>
-		) {}
+			origin,
+			who: <T::Lookup as StaticLookup>::Source,
+			vesting_schedules: Vec<VestingScheduleOf<T>>
+		) {
+			ensure_root(origin)?;
+
+			let account = T::Lookup::lookup(who)?;
+			Self::do_update_vesting_schedules(&account, vesting_schedules)?;
+
+			Self::deposit_event(RawEvent::VestingSchedulesUpdated(account));
+		}
 	}
 }
 
@@ -178,26 +190,55 @@ impl<T: Trait> Module<T> {
 		to: &T::AccountId,
 		schedule: VestingScheduleOf<T>,
 	) -> DispatchResult {
-		ensure!(!schedule.period.is_zero(), Error::<T>::ZeroVestingPeriod);
-		ensure!(!schedule.period_count.is_zero(), Error::<T>::ZeroVestingPeriodCount);
-
 		//TODO: ensure no existing locks, or only `VESTING_LOCK_ID` locks.
 
-		let amount = schedule.total_amount().ok_or(Error::<T>::NumOverflow)?;
-		let schedule_end = schedule.end().ok_or(Error::<T>::NumOverflow)?;
-
-		let mut total = amount;
-		let mut until = schedule_end;
-		if let Some((curr_locked_amount, curr_until)) = Self::locked(to) {
-			total = curr_locked_amount
-				.checked_add(&amount.into())
+		let (schedule_amount, schedule_end) = Self::ensure_valid_vesting_schedule(&schedule)?;
+		let (mut total_amount, mut until) = (schedule_amount, schedule_end);
+		if let Some((curr_amount, curr_until)) = Self::locked(to) {
+			total_amount = curr_amount
+				.checked_add(&schedule_amount.into())
 				.ok_or(Error::<T>::NumOverflow)?;
 			until = until.max(curr_until);
 		}
 
-		T::Currency::transfer(from, to, amount, ExistenceRequirement::AllowDeath)?;
-		T::Currency::set_lock(VESTING_LOCK_ID, to, total, until, WithdrawReasons::all());
+		T::Currency::transfer(from, to, schedule_amount, ExistenceRequirement::AllowDeath)?;
+		T::Currency::set_lock(VESTING_LOCK_ID, to, total_amount, until, WithdrawReasons::all());
 		<VestingSchedules<T>>::mutate(to, |v| (*v).push(schedule));
+
+		Ok(())
+	}
+
+	/// Returns `Ok((amount, end))` if valid schedule, or error.
+	fn ensure_valid_vesting_schedule(
+		schedule: &VestingScheduleOf<T>,
+	) -> Result<(BalanceOf<T>, T::BlockNumber), Error<T>> {
+		ensure!(!schedule.period.is_zero(), Error::<T>::ZeroVestingPeriod);
+		ensure!(!schedule.period_count.is_zero(), Error::<T>::ZeroVestingPeriodCount);
+
+		let amount = schedule.total_amount().ok_or(Error::<T>::NumOverflow)?;
+		let schedule_end = schedule.end().ok_or(Error::<T>::NumOverflow)?;
+		Ok((amount, schedule_end))
+	}
+
+	fn do_update_vesting_schedules(who: &T::AccountId, schedules: Vec<VestingScheduleOf<T>>) -> DispatchResult {
+		//TODO: ensure no existing locks, or only `VESTING_LOCK_ID` locks.
+
+		let (total_amount, until) = schedules
+			.iter()
+			.try_fold::<_, _, Result<(BalanceOf<T>, T::BlockNumber), Error<T>>>(
+				(Zero::zero(), Zero::zero()),
+				|(acc_amount, acc_end), schedule| {
+					let (amount, end) = Self::ensure_valid_vesting_schedule(schedule)?;
+					Ok((acc_amount + amount, acc_end.max(end)))
+				},
+			)?;
+		ensure!(
+			T::Currency::free_balance(who) >= total_amount,
+			Error::<T>::InsufficientBalanceToLock,
+		);
+
+		T::Currency::set_lock(VESTING_LOCK_ID, who, total_amount, until, WithdrawReasons::all());
+		<VestingSchedules<T>>::insert(who, schedules);
 
 		Ok(())
 	}
