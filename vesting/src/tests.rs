@@ -197,3 +197,65 @@ fn claim_works() {
 		assert_eq!(PalletBalances::locks(&BOB), vec![]);
 	});
 }
+
+#[test]
+fn update_vesting_schedules_works() {
+	ExtBuilder::default().one_hundred_for_alice().build().execute_with(|| {
+		let schedule = VestingSchedule {
+			start: 0u64,
+			period: 10u64,
+			period_count: 2u32,
+			per_period: 10u64,
+		};
+		assert_ok!(Vesting::add_vesting_schedule(
+			Origin::signed(ALICE),
+			BOB,
+			schedule.clone()
+		));
+
+		let updated_schedule = VestingSchedule {
+			start: 0u64,
+			period: 20u64,
+			period_count: 2u32,
+			per_period: 10u64,
+		};
+		assert_ok!(Vesting::update_vesting_schedules(
+			Origin::ROOT,
+			BOB,
+			vec![updated_schedule]
+		));
+
+		System::set_block_number(11);
+		assert_ok!(Vesting::claim(Origin::signed(BOB)));
+		assert!(PalletBalances::transfer(Origin::signed(BOB), ALICE, 1).is_err());
+
+		System::set_block_number(21);
+		assert_ok!(Vesting::claim(Origin::signed(BOB)));
+		assert_ok!(PalletBalances::transfer(Origin::signed(BOB), ALICE, 10));
+	});
+}
+
+//TODO: to be implemented
+#[test]
+fn update_vesting_schedules_fails_if_unexpected_existing_locks() {
+	ExtBuilder::default()
+		.one_hundred_for_alice()
+		.build()
+		.execute_with(|| {});
+}
+
+#[test]
+fn update_vesting_schedules_fails_if_insufficient_balance_to_lock() {
+	ExtBuilder::default().one_hundred_for_alice().build().execute_with(|| {
+		let schedule = VestingSchedule {
+			start: 0u64,
+			period: 10u64,
+			period_count: 1u32,
+			per_period: 101u64,
+		};
+		assert_noop!(
+			Vesting::update_vesting_schedules(Origin::ROOT, ALICE, vec![schedule]),
+			Error::<Runtime>::InsufficientBalanceToLock
+		);
+	});
+}
