@@ -14,7 +14,7 @@ use sp_std::{
 // #3295 https://github.com/paritytech/substrate/issues/3295
 use frame_system::{self as system, ensure_root, ensure_signed};
 use sp_runtime::{
-	traits::{CheckedAdd, CheckedSub, SimpleArithmetic, StaticLookup, Zero},
+	traits::{CheckedAdd, Saturating, SimpleArithmetic, StaticLookup, Zero},
 	DispatchResult, RuntimeDebug,
 };
 
@@ -154,7 +154,7 @@ decl_module! {
 	}
 }
 
-const VESTING_LOCK_ID: LockIdentifier = *b"vestingm";
+const VESTING_LOCK_ID: LockIdentifier = *b"ormlvest";
 
 impl<T: Trait> Module<T> {
 	fn do_claim(who: &T::AccountId) -> BalanceOf<T> {
@@ -191,10 +191,6 @@ impl<T: Trait> Module<T> {
 		to: &T::AccountId,
 		schedule: VestingScheduleOf<T>,
 	) -> DispatchResult {
-		// FIXME: remove `do_claim` workaround after issue #4655 fixed
-		// https://github.com/paritytech/substrate/issues/4655
-		let _ = Self::do_claim(to);
-
 		Self::ensure_lockable(to)?;
 
 		let (schedule_amount, schedule_end) = Self::ensure_valid_vesting_schedule(&schedule)?;
@@ -252,9 +248,14 @@ impl<T: Trait> Module<T> {
 	fn ensure_lockable(who: &T::AccountId) -> DispatchResult {
 		// FIXME: use locks query in `LockableCurrency` when it's ready
 		// https://github.com/paritytech/substrate/issues/4655
+
+		// FIXME: remove `do_claim` workaround after issue #4655 fixed
+		// https://github.com/paritytech/substrate/issues/4655
+		let _ = Self::do_claim(who);
+
 		let balance = T::Currency::free_balance(who);
 		let locked = Self::locked(who).map_or(Zero::zero(), |(amount, _)| amount);
-		let usable = balance.checked_sub(&locked).expect("ensured sufficient balance; qed");
+		let usable = balance.saturating_sub(locked);
 		T::Currency::ensure_can_withdraw(who, usable, WithdrawReasons::all(), locked)
 			.map_err(|_| Error::<T>::HasNonVestingLocks.into())
 	}
