@@ -7,4 +7,5 @@ members = [
 	"utilities",
 	"currencies",
 	"auction",
+	"vesting",
 ]
