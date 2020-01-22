@@ -244,7 +244,6 @@ fn update_vesting_schedules_works() {
 	});
 }
 
-//TODO: to be implemented
 #[test]
 fn update_vesting_schedules_fails_if_unexpected_existing_locks() {
 	ExtBuilder::default().one_hundred_for_alice().build().execute_with(|| {
