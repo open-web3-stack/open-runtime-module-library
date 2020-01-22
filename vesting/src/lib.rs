@@ -246,11 +246,9 @@ impl<T: Trait> Module<T> {
 
 	/// Ensure no other types of locks except `VESTING_LOCK_ID`.
 	fn ensure_lockable(who: &T::AccountId) -> DispatchResult {
-		// FIXME: use locks query in `LockableCurrency` when it's ready
-		// https://github.com/paritytech/substrate/issues/4655
-
-		// FIXME: remove `do_claim` workaround after issue #4655 fixed
-		// https://github.com/paritytech/substrate/issues/4655
+		// FIXME: when locks query in `LockableCurrency` is ready(https://github.com/paritytech/substrate/issues/4655):
+		// 1. use locks query instead of `ensure_can_withdraw` for locks check.
+		// 2. remove `do_claim` workaround
 		let _ = Self::do_claim(who);
 
 		let balance = T::Currency::free_balance(who);
