@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 #[rpc]
 pub trait OracleApi<BlockHash, Key, Value> {
-	#[rpc(name = "oracle_getNoOp")]
+	#[rpc(name = "oracle_getValue")]
 	fn get_no_op(&self, key: Key, at: Option<BlockHash>) -> Result<Option<Value>>;
 }
 
