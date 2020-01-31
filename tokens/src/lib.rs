@@ -1,10 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, traits::Get, Parameter};
-use rstd::{
-	collections::btree_map::BTreeMap,
-	convert::{TryFrom, TryInto},
-};
+use rstd::convert::{TryFrom, TryInto};
 use sp_runtime::{
 	traits::{CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, SimpleArithmetic, StaticLookup, Zero},
 	DispatchResult,
@@ -13,6 +10,9 @@ use sp_runtime::{
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
 use frame_system::{self as system, ensure_signed};
+
+#[cfg(feature = "std")]
+use rstd::collections::btree_map::BTreeMap;
 
 use orml_traits::{
 	arithmetic::{self, Signed},
@@ -57,10 +57,10 @@ decl_storage! {
 				})
 				.into_iter()
 				.collect::<Vec<_>>()
-		}): map T::CurrencyId => T::Balance;
+		}): map hasher(blake2_256) T::CurrencyId => T::Balance;
 
 		/// The balance of a token type under an account.
-		pub Balance get(fn balance): double_map T::CurrencyId, T::AccountId => T::Balance;
+		pub Balance get(fn balance): double_map hasher(blake2_256) T::CurrencyId, hasher(blake2_256) T::AccountId => T::Balance;
 	}
 	add_extra_genesis {
 		config(endowed_accounts): Vec<(T::AccountId, T::CurrencyId, T::Balance)>;
