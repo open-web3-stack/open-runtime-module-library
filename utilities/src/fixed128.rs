@@ -7,12 +7,12 @@ use sp_runtime::{
 };
 
 #[cfg(feature = "std")]
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
 
 /// An unsigned fixed point number. Can hold any value in the range [0, 340_282_366_920_938_463_464]
 /// with fixed point accuracy of 10 ** 18.
 #[derive(Encode, Decode, Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "std", derive(Deserialize))]
 pub struct FixedU128(u128);
 
 const DIV: u128 = 1_000_000_000_000_000_000;
@@ -196,6 +196,18 @@ impl rstd::fmt::Debug for FixedU128 {
 	}
 }
 
+impl rstd::fmt::Display for FixedU128 {
+	#[cfg(feature = "std")]
+	fn fmt(&self, f: &mut rstd::fmt::Formatter) -> rstd::fmt::Result {
+		rstd::fmt::Debug::fmt(self, f)
+	}
+
+	#[cfg(not(feature = "std"))]
+	fn fmt(&self, f: &mut rstd::fmt::Formatter) -> rstd::fmt::Result {
+		rstd::fmt::Debug::fmt(self, f)
+	}
+}
+
 macro_rules! impl_perthing_into_fixed_u128 {
 	($perthing:ty) => {
 		impl Into<FixedU128> for $perthing {
@@ -210,6 +222,25 @@ impl_perthing_into_fixed_u128!(Percent);
 impl_perthing_into_fixed_u128!(Permill);
 impl_perthing_into_fixed_u128!(Perbill);
 impl_perthing_into_fixed_u128!(Perquintill);
+
+impl FixedU128 {
+	#[cfg(feature = "std")]
+	fn str_with_precision(&self) -> String {
+		format!("{}.{}", &self.0 / DIV, &self.0 % DIV)
+	}
+}
+
+// Manual impl `Serialize` as serde_json does not support u128.
+// TODO: remove impl if issue https://github.com/serde-rs/json/issues/548 fixed.
+#[cfg(feature = "std")]
+impl Serialize for FixedU128 {
+	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+	where
+		S: Serializer,
+	{
+		serializer.serialize_str(&self.str_with_precision())
+	}
+}
 
 #[cfg(test)]
 mod tests {
