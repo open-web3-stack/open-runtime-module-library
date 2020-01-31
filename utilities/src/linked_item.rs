@@ -367,7 +367,8 @@ mod tests {
 	#[test]
 	fn linked_list_can_enumerate() {
 		new_test_ext().execute_with(|| {
-			assert_eq!(TestLinkedList::enumerate(&0).collect::<Vec<_>>(), []);
+			let v: Vec<u32> = vec![];
+			assert_eq!(TestLinkedList::enumerate(&0).collect::<Vec<_>>(), v);
 
 			TestLinkedList::append(&0, 1);
 			TestLinkedList::append(&0, 2);
@@ -384,7 +385,8 @@ mod tests {
 	#[test]
 	fn linked_list_can_take_all() {
 		new_test_ext().execute_with(|| {
-			assert_eq!(TestLinkedList::take_all(&0).collect::<Vec<_>>(), []);
+			let v: Vec<u32> = vec![];
+			assert_eq!(TestLinkedList::take_all(&0).collect::<Vec<_>>(), v);
 
 			TestLinkedList::append(&0, 1);
 			TestLinkedList::append(&0, 2);
@@ -395,14 +397,15 @@ mod tests {
 			assert_eq!(TestItem::get(&(0, Some(1))), None);
 			assert_eq!(TestItem::get(&(0, Some(2))), None);
 			assert_eq!(TestItem::get(&(0, Some(3))), None);
-			assert_eq!(TestLinkedList::enumerate(&0).collect::<Vec<_>>(), []);
+			assert_eq!(TestLinkedList::enumerate(&0).collect::<Vec<_>>(), v);
 		});
 	}
 
 	#[test]
 	fn linked_list_take_all_is_safe() {
 		new_test_ext().execute_with(|| {
-			assert_eq!(TestLinkedList::take_all(&0).collect::<Vec<_>>(), []);
+			let v: Vec<u32> = vec![];
+			assert_eq!(TestLinkedList::take_all(&0).collect::<Vec<_>>(), v);
 
 			TestLinkedList::append(&0, 1);
 			TestLinkedList::append(&0, 2);
@@ -413,7 +416,7 @@ mod tests {
 			assert_eq!(TestItem::get(&(0, Some(1))), None);
 			assert_eq!(TestItem::get(&(0, Some(2))), None);
 			assert_eq!(TestItem::get(&(0, Some(3))), None);
-			assert_eq!(TestLinkedList::enumerate(&0).collect::<Vec<_>>(), []);
+			assert_eq!(TestLinkedList::enumerate(&0).collect::<Vec<_>>(), v);
 		});
 	}
 }
