@@ -452,12 +452,12 @@ mod tests {
 		assert!(FixedU128::from_str_with_precision("340282366920938463464").is_err());
 	}
 
-		#[test]
-		fn serialize_deserialize_should_work() {
-			let two_point_five = FixedU128::from_rational(5, 2);
-			let serialized = serde_json::to_string(&two_point_five).unwrap();
-			assert_eq!(serialized, "\"2.500000000000000000\"");
-			let deserialized: FixedU128 = serde_json::from_str(&serialized).unwrap();
-			assert_eq!(deserialized, two_point_five);
-		}
+	#[test]
+	fn serialize_deserialize_should_work() {
+		let two_point_five = FixedU128::from_rational(5, 2);
+		let serialized = serde_json::to_string(&two_point_five).unwrap();
+		assert_eq!(serialized, "\"2.500000000000000000\"");
+		let deserialized: FixedU128 = serde_json::from_str(&serialized).unwrap();
+		assert_eq!(deserialized, two_point_five);
+	}
 }
