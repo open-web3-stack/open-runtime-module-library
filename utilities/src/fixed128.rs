@@ -1,18 +1,21 @@
 use codec::{Decode, Encode};
 use primitives::U256;
-use rstd::convert::{Into, TryFrom, TryInto};
+use rstd::{
+	convert::{Into, TryFrom, TryInto},
+	result::Result,
+	vec::Vec,
+};
 use sp_runtime::{
 	traits::{Bounded, Saturating, UniqueSaturatedInto},
 	Perbill, Percent, Permill, Perquintill,
 };
 
 #[cfg(feature = "std")]
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
 /// An unsigned fixed point number. Can hold any value in the range [0, 340_282_366_920_938_463_464]
 /// with fixed point accuracy of 10 ** 18.
 #[derive(Encode, Decode, Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-#[cfg_attr(feature = "std", derive(Deserialize))]
 pub struct FixedU128(u128);
 
 const DIV: u128 = 1_000_000_000_000_000_000;
@@ -211,10 +214,33 @@ impl_perthing_into_fixed_u128!(Permill);
 impl_perthing_into_fixed_u128!(Perbill);
 impl_perthing_into_fixed_u128!(Perquintill);
 
+#[cfg(feature = "std")]
 impl FixedU128 {
-	#[cfg(feature = "std")]
 	fn str_with_precision(&self) -> String {
 		format!("{}.{}", &self.0 / DIV, &self.0 % DIV)
+	}
+
+	fn from_str_with_precision(s: &str) -> Result<Self, &'static str> {
+		let err = "invalid string input";
+		let vec_str: Vec<&str> = s.split(".").collect();
+
+		// parsing to decimal and fractional parts
+		let (decimal_str, fractional_str) = match vec_str.as_slice() {
+			&[d] => (d, "0"),
+			&[d, f] => (d, f),
+			_ => return Err(err),
+		};
+
+		let decimal: u128 = decimal_str.parse().map_err(|_| err)?;
+		let decimal_with_precision = decimal.checked_mul(DIV).ok_or(err)?;
+		// width = 18; precision = 18
+		let padded_fractional_string = format!("{:0<18.18}", fractional_str);
+		let fractional_with_precision: u128 = padded_fractional_string.parse().map_err(|_| err)?;
+
+		let parts = decimal_with_precision
+			.checked_add(fractional_with_precision)
+			.ok_or(err)?;
+		Ok(Self::from_parts(parts))
 	}
 }
 
@@ -227,6 +253,19 @@ impl Serialize for FixedU128 {
 		S: Serializer,
 	{
 		serializer.serialize_str(&self.str_with_precision())
+	}
+}
+
+// Manual impl `Serialize` as serde_json does not support u128.
+// TODO: remove impl if issue https://github.com/serde-rs/json/issues/548 fixed.
+#[cfg(feature = "std")]
+impl<'de> Deserialize<'de> for FixedU128 {
+	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+	where
+		D: Deserializer<'de>,
+	{
+		let s = String::deserialize(deserializer)?;
+		FixedU128::from_str_with_precision(&s).map_err(|err_str| de::Error::custom(err_str))
 	}
 }
 
@@ -380,4 +419,45 @@ mod tests {
 		let a = FixedU128::from_natural(0);
 		assert_eq!(a.recip(), None);
 	}
+
+	#[test]
+	fn from_str_with_precision_should_work() {
+		assert_eq!(
+			FixedU128::from_str_with_precision("1").unwrap(),
+			FixedU128::from_natural(1)
+		);
+		assert_eq!(
+			FixedU128::from_str_with_precision("1.0").unwrap(),
+			FixedU128::from_natural(1)
+		);
+		assert_eq!(
+			FixedU128::from_str_with_precision("0.1").unwrap(),
+			FixedU128::from_rational(1, 10)
+		);
+		assert_eq!(
+			FixedU128::from_str_with_precision("2.5").unwrap(),
+			FixedU128::from_rational(5, 2)
+		);
+		assert_eq!(
+			FixedU128::from_str_with_precision("0.1000000000000000111").unwrap(),
+			FixedU128::from_rational(100000000000000011u128, 1000000000000000000u128)
+		);
+
+		assert!(FixedU128::from_str_with_precision(".").is_err());
+		assert!(FixedU128::from_str_with_precision("").is_err());
+		assert!(FixedU128::from_str_with_precision("1.1.1").is_err());
+		assert!(FixedU128::from_str_with_precision("a.1").is_err());
+		assert!(FixedU128::from_str_with_precision("1.a").is_err());
+		// 340282366920938463464 == u128::max_value() / DIV + 1; overflows
+		assert!(FixedU128::from_str_with_precision("340282366920938463464").is_err());
+	}
+
+		#[test]
+		fn serialize_deserialize_should_work() {
+			let two_point_five = FixedU128::from_rational(5, 2);
+			let serialized = serde_json::to_string(&two_point_five).unwrap();
+			assert_eq!(serialized, "\"2.500000000000000000\"");
+			let deserialized: FixedU128 = serde_json::from_str(&serialized).unwrap();
+			assert_eq!(deserialized, two_point_five);
+		}
 }
