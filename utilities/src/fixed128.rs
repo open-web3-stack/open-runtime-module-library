@@ -196,18 +196,6 @@ impl rstd::fmt::Debug for FixedU128 {
 	}
 }
 
-impl rstd::fmt::Display for FixedU128 {
-	#[cfg(feature = "std")]
-	fn fmt(&self, f: &mut rstd::fmt::Formatter) -> rstd::fmt::Result {
-		rstd::fmt::Debug::fmt(self, f)
-	}
-
-	#[cfg(not(feature = "std"))]
-	fn fmt(&self, f: &mut rstd::fmt::Formatter) -> rstd::fmt::Result {
-		rstd::fmt::Debug::fmt(self, f)
-	}
-}
-
 macro_rules! impl_perthing_into_fixed_u128 {
 	($perthing:ty) => {
 		impl Into<FixedU128> for $perthing {

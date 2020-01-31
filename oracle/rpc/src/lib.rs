@@ -48,7 +48,7 @@ where
 	C: Send + Sync + 'static + ProvideRuntimeApi<Block> + HeaderBackend<Block>,
 	C::Api: OracleRuntimeApi<Block, Key, Value>,
 	Key: Codec,
-	Value: Codec + ToString,
+	Value: Codec,
 {
 	fn get_no_op(&self, key: Key, at: Option<<Block as BlockT>::Hash>) -> Result<Option<Value>> {
 		let api = self.client.runtime_api();
