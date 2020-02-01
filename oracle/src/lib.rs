@@ -82,14 +82,32 @@ impl<T: Trait> Module<T> {
 			.collect()
 	}
 
+	/// Returns fresh combined value if has update, or latest combined value.
+	///
+	/// Note this will update values storage if has update.
 	pub fn get(key: &T::OracleKey) -> Option<TimestampedValueOf<T>> {
 		if <HasUpdate<T>>::take(key) {
-			let values = Self::read_raw_values(key);
-			let timestamped = T::CombineData::combine_data(key, values, <Values<T>>::get(key))?;
+			let timestamped = Self::combined(key)?;
 			<Values<T>>::insert(key, timestamped.clone());
 			return Some(timestamped);
 		}
 		<Values<T>>::get(key)
+	}
+
+	/// Returns fresh combined value if has update, or latest combined value.
+	///
+	/// This is a no-op function which would not change storage.
+	pub fn get_no_op(key: &T::OracleKey) -> Option<TimestampedValueOf<T>> {
+		if Self::has_update(key) {
+			Self::combined(key)
+		} else {
+			Self::values(key)
+		}
+	}
+
+	fn combined(key: &T::OracleKey) -> Option<TimestampedValueOf<T>> {
+		let values = Self::read_raw_values(key);
+		T::CombineData::combine_data(key, values, Self::values(key))
 	}
 }
 

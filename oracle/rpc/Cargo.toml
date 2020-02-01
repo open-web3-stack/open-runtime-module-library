@@ -1,0 +1,15 @@
+[package]
+name = "orml-oracle-rpc"
+version = "0.0.1"
+authors = ["Laminar Developers <hello@laminar.one>"]
+edition = "2018"
+
+[dependencies]
+codec = { package = "parity-scale-codec", version = "1.0.0" }
+jsonrpc-core = "14.0.3"
+jsonrpc-core-client = "14.0.3"
+jsonrpc-derive = "14.0.3"
+sp-runtime = { git = "https://github.com/paritytech/substrate.git" }
+sp-api = { git = "https://github.com/paritytech/substrate.git" }
+sp-blockchain = { git = "https://github.com/paritytech/substrate.git" }
+orml-oracle-rpc-runtime-api = { path = "runtime-api" }
