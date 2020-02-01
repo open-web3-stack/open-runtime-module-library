@@ -11,7 +11,7 @@ use std::sync::Arc;
 #[rpc]
 pub trait OracleApi<BlockHash, Key, Value> {
 	#[rpc(name = "oracle_getValue")]
-	fn get_no_op(&self, key: Key, at: Option<BlockHash>) -> Result<Option<Value>>;
+	fn get_value(&self, key: Key, at: Option<BlockHash>) -> Result<Option<Value>>;
 }
 
 /// A struct that implements the [`OracleApi`].
@@ -50,7 +50,7 @@ where
 	Key: Codec,
 	Value: Codec,
 {
-	fn get_no_op(&self, key: Key, at: Option<<Block as BlockT>::Hash>) -> Result<Option<Value>> {
+	fn get_value(&self, key: Key, at: Option<<Block as BlockT>::Hash>) -> Result<Option<Value>> {
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.
