@@ -9,6 +9,6 @@ sp_api::decl_runtime_apis! {
 		Key: Codec,
 		Value: Codec,
 	{
-		fn get_no_op(key: Key) -> Option<Value>;
+		fn get_value(key: Key) -> Option<Value>;
 	}
 }
