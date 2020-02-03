@@ -170,7 +170,9 @@ impl<T: Trait> Module<T> {
 	/// Returns locked balance based on current block number.
 	fn locked_balance(who: &T::AccountId) -> BalanceOf<T> {
 		let now = <frame_system::Module<T>>::block_number();
-		Self::vesting_schedules(who).iter().fold(Zero::zero(), |acc, s| acc + s.locked_amount(now))
+		Self::vesting_schedules(who)
+			.iter()
+			.fold(Zero::zero(), |acc, s| acc + s.locked_amount(now))
 	}
 
 	fn do_add_vesting_schedule(
@@ -181,7 +183,9 @@ impl<T: Trait> Module<T> {
 		Self::ensure_lockable(to)?;
 
 		let schedule_amount = Self::ensure_valid_vesting_schedule(&schedule)?;
-		let total_amount = Self::locked_balance(to).checked_add(&schedule_amount.into()).ok_or(Error::<T>::NumOverflow)?;
+		let total_amount = Self::locked_balance(to)
+			.checked_add(&schedule_amount.into())
+			.ok_or(Error::<T>::NumOverflow)?;
 
 		T::Currency::transfer(from, to, schedule_amount, ExistenceRequirement::AllowDeath)?;
 		T::Currency::set_lock(VESTING_LOCK_ID, to, total_amount, WithdrawReasons::all());
@@ -193,15 +197,13 @@ impl<T: Trait> Module<T> {
 	fn do_update_vesting_schedules(who: &T::AccountId, schedules: Vec<VestingScheduleOf<T>>) -> DispatchResult {
 		Self::ensure_lockable(who)?;
 
-		let total_amount = schedules
-			.iter()
-			.try_fold::<_, _, Result<BalanceOf<T>, Error<T>>>(
-				Zero::zero(),
-				|acc_amount, schedule| {
-					let amount = Self::ensure_valid_vesting_schedule(schedule)?;
-					Ok(acc_amount + amount)
-				},
-			)?;
+		let total_amount = schedules.iter().try_fold::<_, _, Result<BalanceOf<T>, Error<T>>>(
+			Zero::zero(),
+			|acc_amount, schedule| {
+				let amount = Self::ensure_valid_vesting_schedule(schedule)?;
+				Ok(acc_amount + amount)
+			},
+		)?;
 		ensure!(
 			T::Currency::free_balance(who) >= total_amount,
 			Error::<T>::InsufficientBalanceToLock,
@@ -214,9 +216,7 @@ impl<T: Trait> Module<T> {
 	}
 
 	/// Returns `Ok(amount)` if valid schedule, or error.
-	fn ensure_valid_vesting_schedule(
-		schedule: &VestingScheduleOf<T>,
-	) -> Result<BalanceOf<T>, Error<T>> {
+	fn ensure_valid_vesting_schedule(schedule: &VestingScheduleOf<T>) -> Result<BalanceOf<T>, Error<T>> {
 		ensure!(!schedule.period.is_zero(), Error::<T>::ZeroVestingPeriod);
 		ensure!(!schedule.period_count.is_zero(), Error::<T>::ZeroVestingPeriodCount);
 		ensure!(schedule.end().is_some(), Error::<T>::NumOverflow);
