@@ -5,7 +5,7 @@
 use super::*;
 use frame_support::{assert_err, assert_noop, assert_ok, traits::WithdrawReason};
 use mock::{ExtBuilder, Origin, PalletBalances, Runtime, System, TestEvent, Vesting, ALICE, BOB};
-use pallet_balances::BalanceLock;
+use pallet_balances::{BalanceLock, Reasons};
 
 #[test]
 fn add_vesting_schedule_works() {
@@ -58,8 +58,7 @@ fn add_new_vesting_schedule_merges_with_current_locked_balance_and_until() {
 			Some(BalanceLock {
 				id: VESTING_LOCK_ID,
 				amount: 17u64,
-				until: 23u64,
-				reasons: WithdrawReasons::all(),
+				reasons: Reasons::All,
 			})
 		);
 	});
@@ -114,7 +113,7 @@ fn add_vesting_schedule_fails_if_zero_period_or_count() {
 fn add_vesting_schedule_fails_if_unexpected_existing_locks() {
 	ExtBuilder::default().one_hundred_for_alice().build().execute_with(|| {
 		assert_ok!(PalletBalances::transfer(Origin::signed(ALICE), BOB, 1));
-		PalletBalances::set_lock(*b"prelocks", &BOB, 10u64, 10u64, WithdrawReasons::all());
+		PalletBalances::set_lock(*b"prelocks", &BOB, 10u64, WithdrawReasons::all());
 		let schedule = VestingSchedule {
 			start: 1u64,
 			period: 1u64,
@@ -248,7 +247,7 @@ fn update_vesting_schedules_works() {
 fn update_vesting_schedules_fails_if_unexpected_existing_locks() {
 	ExtBuilder::default().one_hundred_for_alice().build().execute_with(|| {
 		assert_ok!(PalletBalances::transfer(Origin::signed(ALICE), BOB, 1));
-		PalletBalances::set_lock(*b"prelocks", &BOB, 0u64, 10u64, WithdrawReasons::all());
+		PalletBalances::set_lock(*b"prelocks", &BOB, 0u64, WithdrawReasons::all());
 	});
 }
 
@@ -256,7 +255,7 @@ fn update_vesting_schedules_fails_if_unexpected_existing_locks() {
 fn update_vesting_schedules_fails_if_insufficient_balance_to_lock() {
 	ExtBuilder::default().one_hundred_for_alice().build().execute_with(|| {
 		assert_ok!(PalletBalances::transfer(Origin::signed(ALICE), BOB, 10));
-		PalletBalances::set_lock(*b"prelocks", &BOB, 10u64, 10u64, WithdrawReasons::all());
+		PalletBalances::set_lock(*b"prelocks", &BOB, 10u64, WithdrawReasons::all());
 		let schedule = VestingSchedule {
 			start: 1u64,
 			period: 1u64,

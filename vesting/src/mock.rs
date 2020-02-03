@@ -57,20 +57,17 @@ type Balance = u64;
 
 parameter_types! {
 	pub const ExistentialDeposit: u64 = 0;
-	pub const TransferFee: u64 = 0;
 	pub const CreationFee: u64 = 0;
 }
 
 impl pallet_balances::Trait for Runtime {
 	type Balance = Balance;
-	type OnFreeBalanceZero = ();
 	type OnNewAccount = ();
 	type OnReapAccount = ();
 	type TransferPayment = ();
 	type DustRemoval = ();
 	type Event = TestEvent;
 	type ExistentialDeposit = ExistentialDeposit;
-	type TransferFee = TransferFee;
 	type CreationFee = CreationFee;
 }
 pub type PalletBalances = pallet_balances::Module<Runtime>;
@@ -117,7 +114,6 @@ impl ExtBuilder {
 				.into_iter()
 				.map(|(account_id, initial_balance)| (account_id, initial_balance))
 				.collect::<Vec<_>>(),
-			vesting: vec![],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();
