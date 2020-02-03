@@ -158,32 +158,19 @@ const VESTING_LOCK_ID: LockIdentifier = *b"ormlvest";
 
 impl<T: Trait> Module<T> {
 	fn do_claim(who: &T::AccountId) -> BalanceOf<T> {
-		if let Some((amount, until)) = Self::locked(who) {
-			T::Currency::set_lock(VESTING_LOCK_ID, who, amount, until, WithdrawReasons::all());
-			amount
-		} else {
+		let locked = Self::locked_balance(who);
+		if locked.is_zero() {
 			T::Currency::remove_lock(VESTING_LOCK_ID, who);
-			Zero::zero()
+		} else {
+			T::Currency::set_lock(VESTING_LOCK_ID, who, locked, WithdrawReasons::all());
 		}
+		locked
 	}
 
-	/// Returns locked balance info based on current block number: if no remaining locked balance,
-	/// returns `None`, or returns `Some((amount, until))`
-	fn locked(who: &T::AccountId) -> Option<(BalanceOf<T>, T::BlockNumber)> {
+	/// Returns locked balance based on current block number.
+	fn locked_balance(who: &T::AccountId) -> BalanceOf<T> {
 		let now = <frame_system::Module<T>>::block_number();
-		Self::vesting_schedules(who).iter().fold(None, |acc, s| {
-			let locked_amount = s.locked_amount(now);
-			if locked_amount.is_zero() {
-				return acc;
-			}
-
-			let s_end = s.end().expect("ensured not overflow while adding; qed");
-			if let Some((amount, until)) = acc {
-				Some((amount + locked_amount, until.max(s_end)))
-			} else {
-				Some((locked_amount, s_end))
-			}
-		})
+		Self::vesting_schedules(who).iter().fold(Zero::zero(), |acc, s| acc + s.locked_amount(now))
 	}
 
 	fn do_add_vesting_schedule(
@@ -193,17 +180,11 @@ impl<T: Trait> Module<T> {
 	) -> DispatchResult {
 		Self::ensure_lockable(to)?;
 
-		let (schedule_amount, schedule_end) = Self::ensure_valid_vesting_schedule(&schedule)?;
-		let (mut total_amount, mut until) = (schedule_amount, schedule_end);
-		if let Some((curr_amount, curr_until)) = Self::locked(to) {
-			total_amount = curr_amount
-				.checked_add(&schedule_amount.into())
-				.ok_or(Error::<T>::NumOverflow)?;
-			until = until.max(curr_until);
-		}
+		let schedule_amount = Self::ensure_valid_vesting_schedule(&schedule)?;
+		let total_amount = Self::locked_balance(to).checked_add(&schedule_amount.into()).ok_or(Error::<T>::NumOverflow)?;
 
 		T::Currency::transfer(from, to, schedule_amount, ExistenceRequirement::AllowDeath)?;
-		T::Currency::set_lock(VESTING_LOCK_ID, to, total_amount, until, WithdrawReasons::all());
+		T::Currency::set_lock(VESTING_LOCK_ID, to, total_amount, WithdrawReasons::all());
 		<VestingSchedules<T>>::mutate(to, |v| (*v).push(schedule));
 
 		Ok(())
@@ -212,13 +193,13 @@ impl<T: Trait> Module<T> {
 	fn do_update_vesting_schedules(who: &T::AccountId, schedules: Vec<VestingScheduleOf<T>>) -> DispatchResult {
 		Self::ensure_lockable(who)?;
 
-		let (total_amount, until) = schedules
+		let total_amount = schedules
 			.iter()
-			.try_fold::<_, _, Result<(BalanceOf<T>, T::BlockNumber), Error<T>>>(
-				(Zero::zero(), Zero::zero()),
-				|(acc_amount, acc_end), schedule| {
-					let (amount, end) = Self::ensure_valid_vesting_schedule(schedule)?;
-					Ok((acc_amount + amount, acc_end.max(end)))
+			.try_fold::<_, _, Result<BalanceOf<T>, Error<T>>>(
+				Zero::zero(),
+				|acc_amount, schedule| {
+					let amount = Self::ensure_valid_vesting_schedule(schedule)?;
+					Ok(acc_amount + amount)
 				},
 			)?;
 		ensure!(
@@ -226,22 +207,21 @@ impl<T: Trait> Module<T> {
 			Error::<T>::InsufficientBalanceToLock,
 		);
 
-		T::Currency::set_lock(VESTING_LOCK_ID, who, total_amount, until, WithdrawReasons::all());
+		T::Currency::set_lock(VESTING_LOCK_ID, who, total_amount, WithdrawReasons::all());
 		<VestingSchedules<T>>::insert(who, schedules);
 
 		Ok(())
 	}
 
-	/// Returns `Ok((amount, end))` if valid schedule, or error.
+	/// Returns `Ok(amount)` if valid schedule, or error.
 	fn ensure_valid_vesting_schedule(
 		schedule: &VestingScheduleOf<T>,
-	) -> Result<(BalanceOf<T>, T::BlockNumber), Error<T>> {
+	) -> Result<BalanceOf<T>, Error<T>> {
 		ensure!(!schedule.period.is_zero(), Error::<T>::ZeroVestingPeriod);
 		ensure!(!schedule.period_count.is_zero(), Error::<T>::ZeroVestingPeriodCount);
+		ensure!(schedule.end().is_some(), Error::<T>::NumOverflow);
 
-		let amount = schedule.total_amount().ok_or(Error::<T>::NumOverflow)?;
-		let schedule_end = schedule.end().ok_or(Error::<T>::NumOverflow)?;
-		Ok((amount, schedule_end))
+		schedule.total_amount().ok_or(Error::<T>::NumOverflow)
 	}
 
 	/// Ensure no other types of locks except `VESTING_LOCK_ID`.
@@ -252,7 +232,7 @@ impl<T: Trait> Module<T> {
 		let _ = Self::do_claim(who);
 
 		let balance = T::Currency::free_balance(who);
-		let locked = Self::locked(who).map_or(Zero::zero(), |(amount, _)| amount);
+		let locked = Self::locked_balance(who);
 		let usable = balance.saturating_sub(locked);
 		T::Currency::ensure_can_withdraw(who, usable, WithdrawReasons::all(), locked)
 			.map_err(|_| Error::<T>::HasNonVestingLocks.into())
