@@ -7,7 +7,9 @@ mod tests;
 mod timestamped_value;
 
 pub use default_combine_data::DefaultCombineData;
-use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, traits::Time, Parameter};
+use frame_support::{
+	decl_error, decl_event, decl_module, decl_storage, ensure, traits::Time, weights::SimpleDispatchInfo, Parameter,
+};
 pub use operator_provider::OperatorProvider;
 use rstd::{prelude::*, vec};
 use sp_runtime::{traits::Member, DispatchResult};
@@ -51,11 +53,13 @@ decl_module! {
 		type Error = Error<T>;
 		fn deposit_event() = default;
 
+		#[weight = SimpleDispatchInfo::FreeOperational]
 		pub fn feed_value(origin, key: T::OracleKey, value: T::OracleValue) {
 			let who = ensure_signed(origin)?;
 			Self::_feed_values(who, vec![(key, value)])?;
 		}
 
+		#[weight = SimpleDispatchInfo::FreeOperational]
 		pub fn feed_values(origin, values: Vec<(T::OracleKey, T::OracleValue)>) {
 			let who = ensure_signed(origin)?;
 			Self::_feed_values(who, values)?;
