@@ -2,7 +2,7 @@
 
 use super::*;
 
-use frame_support::{impl_outer_origin, parameter_types, weights::Weight};
+use frame_support::{impl_outer_dispatch, impl_outer_origin, parameter_types, weights::Weight};
 use primitives::H256;
 use sp_runtime::{
 	testing::Header,
@@ -14,10 +14,18 @@ impl_outer_origin! {
 	pub enum Origin for Test {}
 }
 
+impl_outer_dispatch! {
+	pub enum Call for Test where origin: Origin {
+		oracle::ModuleOracle,
+	}
+}
+
+pub type OracleCall = super::Call<Test>;
+
 // For testing the module, we construct most of a mock runtime. This means
 // first constructing a configuration type (`Test`) which `impl`s each of the
 // configuration traits of modules we want to use.
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Debug)]
 pub struct Test;
 parameter_types! {
 	pub const BlockHashCount: u64 = 250;
@@ -27,7 +35,7 @@ parameter_types! {
 }
 impl frame_system::Trait for Test {
 	type Origin = Origin;
-	type Call = ();
+	type Call = Call;
 	type Index = u64;
 	type BlockNumber = u64;
 	type Hash = H256;

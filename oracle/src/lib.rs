@@ -6,9 +6,10 @@ mod operator_provider;
 mod tests;
 mod timestamped_value;
 
+use codec::{Decode, Encode};
 pub use default_combine_data::DefaultCombineData;
 use frame_support::{
-	decl_error, decl_event, decl_module, decl_storage, ensure, traits::Time, weights::SimpleDispatchInfo, Parameter,
+	decl_error, decl_event, decl_module, decl_storage, ensure, traits::Time, weights::FunctionOf, Parameter,
 };
 pub use operator_provider::OperatorProvider;
 use rstd::{prelude::*, vec};
@@ -16,6 +17,7 @@ use sp_runtime::{traits::Member, DispatchResult};
 // FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
+use frame_support::weights::DispatchClass;
 use frame_system::{self as system, ensure_signed};
 pub use orml_traits::{CombineData, DataProvider, OnNewData};
 pub use timestamped_value::TimestampedValue;
@@ -49,17 +51,18 @@ decl_error! {
 }
 
 decl_module! {
+	#[derive(Encode, Decode)]
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
 		type Error = Error<T>;
 		fn deposit_event() = default;
 
-		#[weight = SimpleDispatchInfo::FreeOperational]
+		#[weight = FunctionOf(|_: (&T::OracleKey, &T::OracleValue)| 0, DispatchClass::Operational, false)]
 		pub fn feed_value(origin, key: T::OracleKey, value: T::OracleValue) {
 			let who = ensure_signed(origin)?;
 			Self::_feed_values(who, vec![(key, value)])?;
 		}
 
-		#[weight = SimpleDispatchInfo::FreeOperational]
+		#[weight = FunctionOf(|_: (&Vec<(T::OracleKey, T::OracleValue)>,)| 0, DispatchClass::Operational, false)]
 		pub fn feed_values(origin, values: Vec<(T::OracleKey, T::OracleValue)>) {
 			let who = ensure_signed(origin)?;
 			Self::_feed_values(who, values)?;

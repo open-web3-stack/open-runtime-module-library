@@ -1,9 +1,12 @@
 #![cfg(test)]
 
-use crate::mock::{new_test_ext, ModuleOracle, Origin, Timestamp};
+use crate::mock::{new_test_ext, ModuleOracle, OracleCall, Origin, Timestamp};
 
 use crate::TimestampedValue;
-use frame_support::assert_ok;
+use frame_support::{
+	assert_ok,
+	weights::{DispatchClass, DispatchInfo, GetDispatchInfo},
+};
 
 #[test]
 fn should_feed_value() {
@@ -150,5 +153,24 @@ fn should_return_none() {
 	new_test_ext().execute_with(|| {
 		let key: u32 = 1;
 		assert_eq!(ModuleOracle::get(&key), None);
+	});
+}
+
+#[test]
+fn should_be_free_operational() {
+	new_test_ext().execute_with(|| {
+		let feed_value = OracleCall::feed_value(1, 1);
+		let feed_values = OracleCall::feed_values(vec![(1, 1)]);
+		vec![feed_value, feed_values].iter().for_each(|f| {
+			let dispatch_info = <OracleCall as GetDispatchInfo>::get_dispatch_info(&f);
+			assert_eq!(
+				dispatch_info,
+				DispatchInfo {
+					weight: 0,
+					class: DispatchClass::Operational,
+					pays_fee: false,
+				}
+			);
+		});
 	});
 }
