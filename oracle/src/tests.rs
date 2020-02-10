@@ -1,12 +1,14 @@
 #![cfg(test)]
 
-use crate::mock::{new_test_ext, ModuleOracle, OracleCall, Origin, Timestamp};
+use crate::mock::{new_test_ext, Call, ModuleOracle, OracleCall, Origin, Test, Timestamp};
 
-use crate::TimestampedValue;
+use crate::{Module, TimestampedValue};
 use frame_support::{
 	assert_ok,
-	weights::{DispatchClass, DispatchInfo, GetDispatchInfo},
+	weights::{DispatchClass, DispatchInfo, GetDispatchInfo, TransactionPriority},
 };
+use rstd::marker::PhantomData;
+use sp_runtime::{traits::SignedExtension, transaction_validity::ValidTransaction};
 
 #[test]
 fn should_feed_value() {
@@ -153,6 +155,18 @@ fn should_return_none() {
 	new_test_ext().execute_with(|| {
 		let key: u32 = 1;
 		assert_eq!(ModuleOracle::get(&key), None);
+	});
+}
+
+#[test]
+fn should_validate() {
+	new_test_ext().execute_with(|| {
+		let call = Call::ModuleOracle(OracleCall::feed_value(1, 1));
+		let mut info = DispatchInfo::default();
+		info.class = DispatchClass::Operational;
+		let mut valid = ValidTransaction::default();
+		valid.priority = TransactionPriority::max_value();
+		assert_eq!(Module::<Test>(PhantomData).validate(&1, &call, info, 1), Ok(valid));
 	});
 }
 

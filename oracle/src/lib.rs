@@ -12,14 +12,20 @@ use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage, ensure, traits::Time, weights::FunctionOf, Parameter,
 };
 pub use operator_provider::OperatorProvider;
-use rstd::{prelude::*, vec};
-use sp_runtime::{traits::Member, DispatchResult};
+use rstd::{fmt::Debug, prelude::*, vec};
+use sp_runtime::{
+	traits::{Member, SignedExtension},
+	DispatchResult,
+};
 // FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
-use frame_support::weights::DispatchClass;
+use frame_support::weights::{DispatchClass, DispatchInfo, TransactionPriority};
 use frame_system::{self as system, ensure_signed};
 pub use orml_traits::{CombineData, DataProvider, OnNewData};
+use sp_runtime::transaction_validity::{
+	InvalidTransaction, TransactionValidity, TransactionValidityError, ValidTransaction,
+};
 pub use timestamped_value::TimestampedValue;
 
 type MomentOf<T> = <<T as Trait>::Time as Time>::Moment;
@@ -115,6 +121,36 @@ impl<T: Trait> Module<T> {
 	fn combined(key: &T::OracleKey) -> Option<TimestampedValueOf<T>> {
 		let values = Self::read_raw_values(key);
 		T::CombineData::combine_data(key, values, Self::values(key))
+	}
+}
+
+impl<T: Trait + Send + Sync + Debug> SignedExtension for Module<T> {
+	const IDENTIFIER: &'static str = "Oracle";
+	type AccountId = T::AccountId;
+	type Call = T::Call;
+	type AdditionalSigned = ();
+	type Pre = ();
+	type DispatchInfo = DispatchInfo;
+
+	fn additional_signed(&self) -> rstd::result::Result<(), TransactionValidityError> {
+		Ok(())
+	}
+
+	fn validate(
+		&self,
+		who: &Self::AccountId,
+		_call: &Self::Call,
+		_info: Self::DispatchInfo,
+		_len: usize,
+	) -> TransactionValidity {
+		ensure!(
+			T::OperatorProvider::can_feed_data(who),
+			TransactionValidityError::Invalid(InvalidTransaction::Call.into())
+		);
+		// TODO: check this is the first oracle update tx by sender. i.e. only allow operator to update once per block
+		let mut r = ValidTransaction::default();
+		r.priority = TransactionPriority::max_value();
+		return Ok(r);
 	}
 }
 
