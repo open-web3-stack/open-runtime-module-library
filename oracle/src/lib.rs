@@ -9,7 +9,11 @@ mod timestamped_value;
 use codec::{Decode, Encode};
 pub use default_combine_data::DefaultCombineData;
 use frame_support::{
-	decl_error, decl_event, decl_module, decl_storage, ensure, traits::Time, weights::FunctionOf, Parameter,
+	decl_error, decl_event, decl_module, decl_storage, ensure,
+	traits::Time,
+	weights::FunctionOf,
+	weights::{DispatchClass, DispatchInfo, TransactionPriority},
+	Parameter,
 };
 pub use operator_provider::OperatorProvider;
 use rstd::{fmt::Debug, prelude::*, vec};
@@ -20,7 +24,6 @@ use sp_runtime::{
 // FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
-use frame_support::weights::{DispatchClass, DispatchInfo, TransactionPriority};
 use frame_system::{self as system, ensure_signed};
 pub use orml_traits::{CombineData, DataProvider, OnNewData};
 use sp_runtime::transaction_validity::{
@@ -46,14 +49,18 @@ decl_storage! {
 		pub RawValues get(raw_values): double_map hasher(blake2_256) T::OracleKey, hasher(blake2_256) T::AccountId => Option<TimestampedValueOf<T>>;
 		pub HasUpdate get(has_update): map hasher(blake2_256) T::OracleKey => bool;
 		pub Values get(values): map hasher(blake2_256) T::OracleKey => Option<TimestampedValueOf<T>>;
+		HasUpdated get(has_updated): Vec<T::AccountId>;
 	}
 }
 
 decl_error! {
 	// Oracle module errors
-	pub enum Error for Module<T: Trait> {
-		NoPermission,
-	}
+	pub enum Error for Module<T: Trait> {}
+}
+
+#[repr(u8)]
+pub enum ValidityError {
+	NoPermission,
 }
 
 decl_module! {
@@ -72,6 +79,11 @@ decl_module! {
 		pub fn feed_values(origin, values: Vec<(T::OracleKey, T::OracleValue)>) {
 			let who = ensure_signed(origin)?;
 			Self::_feed_values(who, values)?;
+		}
+
+		fn on_finalize(_n: T::BlockNumber) {
+			// cleanup for next block
+			<HasUpdated<T>>::kill();
 		}
 	}
 }
@@ -127,7 +139,7 @@ impl<T: Trait> Module<T> {
 impl<T: Trait + Send + Sync + Debug> SignedExtension for Module<T> {
 	const IDENTIFIER: &'static str = "Oracle";
 	type AccountId = T::AccountId;
-	type Call = T::Call;
+	type Call = Call<T>;
 	type AdditionalSigned = ();
 	type Pre = ();
 	type DispatchInfo = DispatchInfo;
@@ -139,18 +151,32 @@ impl<T: Trait + Send + Sync + Debug> SignedExtension for Module<T> {
 	fn validate(
 		&self,
 		who: &Self::AccountId,
-		_call: &Self::Call,
+		call: &Self::Call,
 		_info: Self::DispatchInfo,
 		_len: usize,
 	) -> TransactionValidity {
-		ensure!(
-			T::OperatorProvider::can_feed_data(who),
-			TransactionValidityError::Invalid(InvalidTransaction::Call.into())
-		);
-		// TODO: check this is the first oracle update tx by sender. i.e. only allow operator to update once per block
-		let mut r = ValidTransaction::default();
-		r.priority = TransactionPriority::max_value();
-		return Ok(r);
+		if let Call::<T>::feed_value(..) | Call::<T>::feed_values(..) = call {
+			ensure!(
+				T::OperatorProvider::can_feed_data(who),
+				TransactionValidityError::Invalid(InvalidTransaction::Custom(ValidityError::NoPermission as u8))
+			);
+
+			// ensure account hasn't updated yet
+			let mut accounts = Self::has_updated();
+			if accounts.contains(who) {
+				return Err(TransactionValidityError::Invalid(InvalidTransaction::Custom(
+					ValidityError::NoPermission as u8,
+				)));
+			}
+			accounts.push(who.clone());
+			<HasUpdated<T>>::put(accounts);
+
+			// valid tx with max priority
+			let mut valid = ValidTransaction::default();
+			valid.priority = TransactionPriority::max_value();
+			return Ok(valid);
+		}
+		return Ok(ValidTransaction::default());
 	}
 }
 
@@ -162,8 +188,6 @@ impl<T: Trait> DataProvider<T::OracleKey, T::OracleValue> for Module<T> {
 
 impl<T: Trait> Module<T> {
 	fn _feed_values(who: T::AccountId, values: Vec<(T::OracleKey, T::OracleValue)>) -> DispatchResult {
-		ensure!(T::OperatorProvider::can_feed_data(&who), Error::<T>::NoPermission);
-
 		let now = T::Time::now();
 
 		for (key, value) in &values {
