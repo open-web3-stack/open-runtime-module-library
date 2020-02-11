@@ -55,7 +55,9 @@ decl_storage! {
 
 decl_error! {
 	// Oracle module errors
-	pub enum Error for Module<T: Trait> {}
+	pub enum Error for Module<T: Trait> {
+		NoPermission
+	}
 }
 
 #[repr(u8)]
@@ -188,6 +190,7 @@ impl<T: Trait> DataProvider<T::OracleKey, T::OracleValue> for Module<T> {
 
 impl<T: Trait> Module<T> {
 	fn _feed_values(who: T::AccountId, values: Vec<(T::OracleKey, T::OracleValue)>) -> DispatchResult {
+		ensure!(T::OperatorProvider::can_feed_data(&who), Error::<T>::NoPermission);
 		let now = T::Time::now();
 
 		for (key, value) in &values {

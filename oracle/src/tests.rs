@@ -143,7 +143,6 @@ fn should_return_prev_value() {
 		assert_ok!(ModuleOracle::feed_value(Origin::signed(1), key, 1300));
 		assert_ok!(ModuleOracle::feed_value(Origin::signed(2), key, 1000));
 		assert_ok!(ModuleOracle::feed_value(Origin::signed(3), key, 1200));
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(4), key, 1200));
 		assert_eq!(ModuleOracle::get(&key), expected);
 
 		Timestamp::set_timestamp(23456);
