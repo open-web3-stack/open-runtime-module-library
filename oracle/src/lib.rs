@@ -56,7 +56,7 @@ decl_storage! {
 decl_error! {
 	// Oracle module errors
 	pub enum Error for Module<T: Trait> {
-		NoPermission
+		NoPermission,
 	}
 }
 
