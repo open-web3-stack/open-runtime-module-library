@@ -36,7 +36,7 @@ pub type TimestampedValueOf<T> = TimestampedValue<<T as Trait>::OracleValue, Mom
 
 pub trait Trait: frame_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
-	type OnNewData: OnNewData<Self::OracleKey, Self::OracleValue>;
+	type OnNewData: OnNewData<Self::AccountId, Self::OracleKey, Self::OracleValue>;
 	type OperatorProvider: OperatorProvider<Self::AccountId>;
 	type CombineData: CombineData<Self::OracleKey, TimestampedValueOf<Self>>;
 	type Time: Time;
@@ -201,7 +201,7 @@ impl<T: Trait> Module<T> {
 			<RawValues<T>>::insert(&key, &who, timestamped);
 			<HasUpdate<T>>::insert(&key, true);
 
-			T::OnNewData::on_new_data(&key, &value);
+			T::OnNewData::on_new_data(&who, &key, &value);
 		}
 
 		Self::deposit_event(RawEvent::NewFeedData(who, values));

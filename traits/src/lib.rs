@@ -127,8 +127,8 @@ pub trait BasicCurrencyExtended<AccountId>: BasicCurrency<AccountId> {
 }
 
 #[impl_trait_for_tuples::impl_for_tuples(30)]
-pub trait OnNewData<Key, Value> {
-	fn on_new_data(key: &Key, value: &Value);
+pub trait OnNewData<AccountId, Key, Value> {
+	fn on_new_data(who: &AccountId, key: &Key, value: &Value);
 }
 
 pub trait DataProvider<Key, Value> {
