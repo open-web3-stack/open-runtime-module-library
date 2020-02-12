@@ -56,7 +56,7 @@ pub type System = system::Module<Runtime>;
 type Balance = u64;
 
 parameter_types! {
-	pub const ExistentialDeposit: u64 = 0;
+	pub const ExistentialDeposit: u64 = 1;
 	pub const CreationFee: u64 = 0;
 }
 
