@@ -49,7 +49,7 @@ type CurrencyId = u32;
 type Balance = u64;
 
 parameter_types! {
-	pub const ExistentialDeposit: u64 = 0;
+	pub const ExistentialDeposit: u64 = 1;
 	pub const CreationFee: u64 = 2;
 }
 
