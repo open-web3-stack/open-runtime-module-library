@@ -1,15 +1,17 @@
 #![cfg(test)]
 
-use crate::mock::{new_test_ext, Call, ModuleOracle, OracleCall, Origin, Test, Timestamp};
-
-use crate::{CheckOperator, TimestampedValue, ValidityError};
+use crate::{
+	mock::{new_test_ext, Call, ModuleOracle, OracleCall, Origin, Test, Timestamp},
+	{CheckOperator, Error, TimestampedValue},
+};
 use frame_support::{
-	assert_ok,
+	assert_noop, assert_ok,
 	weights::{DispatchClass, DispatchInfo, GetDispatchInfo, TransactionPriority},
 };
-use sp_runtime::traits::OnFinalize;
-use sp_runtime::transaction_validity::{InvalidTransaction, TransactionValidityError};
-use sp_runtime::{traits::SignedExtension, transaction_validity::ValidTransaction};
+use sp_runtime::{
+	traits::{OnFinalize, SignedExtension},
+	transaction_validity::ValidTransaction,
+};
 
 #[test]
 fn should_feed_value() {
@@ -164,31 +166,13 @@ fn should_validate() {
 	new_test_ext().execute_with(|| {
 		let call = Call::ModuleOracle(OracleCall::feed_values(vec![(1, 1)]));
 		let info = <Call as GetDispatchInfo>::get_dispatch_info(&call);
-		let valid = ValidTransaction {
-			priority: TransactionPriority::max_value(),
-			..Default::default()
-		};
 
 		assert_eq!(
 			CheckOperator::<Test>(Default::default()).validate(&1, &call, info, 1),
-			Ok(valid.clone())
-		);
-
-		// second call should fail
-		assert_eq!(
-			CheckOperator::<Test>(Default::default()).validate(&1, &call, info, 1),
-			Err(TransactionValidityError::Invalid(InvalidTransaction::Custom(
-				ValidityError::UpdateAlreadyDispatched as u8
-			)))
-		);
-
-		// finalize block
-		<ModuleOracle as OnFinalize<u64>>::on_finalize(1);
-
-		// next block should work
-		assert_eq!(
-			CheckOperator::<Test>(Default::default()).validate(&1, &call, info, 1),
-			Ok(valid)
+			Ok(ValidTransaction {
+				priority: TransactionPriority::max_value(),
+				..Default::default()
+			})
 		);
 	});
 }
@@ -209,5 +193,18 @@ fn should_be_free_operational() {
 				}
 			);
 		});
+	});
+}
+
+#[test]
+fn multiple_calls_should_fail() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(ModuleOracle::feed_value(Origin::signed(1), 1, 1000));
+		assert_noop!(
+			ModuleOracle::feed_value(Origin::signed(1), 1, 1200),
+			Error::<Test>::UpdateAlreadyDispatched
+		);
+		<ModuleOracle as OnFinalize<u64>>::on_finalize(1);
+		assert_ok!(ModuleOracle::feed_value(Origin::signed(1), 1, 1200));
 	});
 }

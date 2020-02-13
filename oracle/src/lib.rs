@@ -59,13 +59,13 @@ decl_error! {
 	// Oracle module errors
 	pub enum Error for Module<T: Trait> {
 		NoPermission,
+		UpdateAlreadyDispatched,
 	}
 }
 
 #[repr(u8)]
 pub enum ValidityError {
 	NoPermission,
-	UpdateAlreadyDispatched,
 }
 
 decl_module! {
@@ -186,14 +186,6 @@ impl<T: Trait + Send + Sync> SignedExtension for CheckOperator<T> {
 				TransactionValidityError::Invalid(InvalidTransaction::Custom(ValidityError::NoPermission as u8))
 			);
 
-			// ensure account hasn't dispatched an updated yet
-			let mut accounts = <HasDispatched<T>>::get();
-			if accounts.contains(who) {
-				return Err(InvalidTransaction::Custom(ValidityError::UpdateAlreadyDispatched as u8).into());
-			}
-			accounts.push(who.clone());
-			<HasDispatched<T>>::put(accounts);
-
 			return Ok(ValidTransaction {
 				priority: TransactionPriority::max_value(),
 				..Default::default()
@@ -212,6 +204,13 @@ impl<T: Trait> DataProvider<T::OracleKey, T::OracleValue> for Module<T> {
 impl<T: Trait> Module<T> {
 	fn _feed_values(who: T::AccountId, values: Vec<(T::OracleKey, T::OracleValue)>) -> DispatchResult {
 		ensure!(T::OperatorProvider::can_feed_data(&who), Error::<T>::NoPermission);
+
+		// ensure account hasn't dispatched an updated yet
+		let mut accounts = <HasDispatched<T>>::get();
+		ensure!(accounts.contains(&who) == false, Error::<T>::UpdateAlreadyDispatched);
+		accounts.push(who.clone());
+		<HasDispatched<T>>::put(accounts);
+
 		let now = T::Time::now();
 
 		for (key, value) in &values {
