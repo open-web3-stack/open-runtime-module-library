@@ -19,14 +19,14 @@ use frame_support::{
 pub use operator_provider::OperatorProvider;
 use sp_runtime::{
 	traits::{Member, SignedExtension},
-	DispatchResult,
+	DispatchError, DispatchResult,
 };
 use sp_std::{prelude::*, vec};
 // FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
 use frame_system::{self as system, ensure_signed};
-pub use orml_traits::{CombineData, DataProvider, OnNewData};
+pub use orml_traits::{CombineData, DataProvider, OnNewData, OnRedundantCall};
 use sp_runtime::transaction_validity::{
 	InvalidTransaction, TransactionValidity, TransactionValidityError, ValidTransaction,
 };
@@ -39,6 +39,7 @@ pub trait Trait: frame_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
 	type Call: Parameter + Dispatchable<Origin = <Self as frame_system::Trait>::Origin> + IsSubType<Module<Self>, Self>;
 	type OnNewData: OnNewData<Self::AccountId, Self::OracleKey, Self::OracleValue>;
+	type OnRedundantCall: OnRedundantCall<Self::AccountId>;
 	type OperatorProvider: OperatorProvider<Self::AccountId>;
 	type CombineData: CombineData<Self::OracleKey, TimestampedValueOf<Self>>;
 	type Time: Time;
@@ -207,7 +208,14 @@ impl<T: Trait> Module<T> {
 
 		// ensure account hasn't dispatched an updated yet
 		let mut accounts = <HasDispatched<T>>::get();
-		ensure!(accounts.contains(&who) == false, Error::<T>::UpdateAlreadyDispatched);
+		if accounts.contains(&who) {
+			T::OnRedundantCall::multiple_calls_per_block(&who);
+			return Err(DispatchError::Module {
+				index: 0,
+				error: 1,
+				message: Some(Error::<T>::UpdateAlreadyDispatched.into()),
+			});
+		}
 		accounts.push(who.clone());
 		<HasDispatched<T>>::put(accounts);
 

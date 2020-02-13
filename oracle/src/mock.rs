@@ -89,6 +89,7 @@ impl Trait for Test {
 	type Event = ();
 	type Call = Call;
 	type OnNewData = ();
+	type OnRedundantCall = ();
 	type OperatorProvider = MockOperatorProvider;
 	type CombineData = DefaultCombineData<Self, MinimumCount, ExpiresIn>;
 	type Time = pallet_timestamp::Module<Self>;
