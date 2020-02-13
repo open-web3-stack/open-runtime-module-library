@@ -147,7 +147,7 @@ pub struct CheckOperator<T: Trait + Send + Sync>(sp_std::marker::PhantomData<T>)
 impl<T: Trait + Send + Sync> sp_std::fmt::Debug for CheckOperator<T> {
 	#[cfg(feature = "std")]
 	fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
-		write!(f, "for")
+		write!(f, "CheckOperator")
 	}
 
 	#[cfg(not(feature = "std"))]
