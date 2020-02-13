@@ -13,8 +13,7 @@ use frame_support::{
 	dispatch::Dispatchable,
 	ensure,
 	traits::Time,
-	weights::FunctionOf,
-	weights::{DispatchClass, DispatchInfo, TransactionPriority},
+	weights::{DispatchClass, DispatchInfo, FunctionOf, TransactionPriority},
 	IsSubType, Parameter,
 };
 pub use operator_provider::OperatorProvider;
@@ -22,7 +21,7 @@ use sp_runtime::{
 	traits::{Member, SignedExtension},
 	DispatchResult,
 };
-use sp_std::{fmt::Debug, prelude::*, vec};
+use sp_std::{prelude::*, vec};
 // FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
@@ -157,7 +156,7 @@ impl<T: Trait + Send + Sync> sp_std::fmt::Debug for CheckOperator<T> {
 	}
 }
 
-impl<T: Trait + Send + Sync + Debug> SignedExtension for CheckOperator<T> {
+impl<T: Trait + Send + Sync> SignedExtension for CheckOperator<T> {
 	const IDENTIFIER: &'static str = "CheckOperator";
 	type AccountId = T::AccountId;
 	type Call = <T as Trait>::Call;
