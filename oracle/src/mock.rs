@@ -2,7 +2,7 @@
 
 use super::*;
 
-use frame_support::{impl_outer_origin, parameter_types, weights::Weight};
+use frame_support::{impl_outer_dispatch, impl_outer_origin, parameter_types, weights::Weight};
 use primitives::H256;
 use sp_runtime::{
 	testing::Header,
@@ -13,6 +13,14 @@ use sp_runtime::{
 impl_outer_origin! {
 	pub enum Origin for Test {}
 }
+
+impl_outer_dispatch! {
+	pub enum Call for Test where origin: Origin {
+		oracle::ModuleOracle,
+	}
+}
+
+pub type OracleCall = super::Call<Test>;
 
 // For testing the module, we construct most of a mock runtime. This means
 // first constructing a configuration type (`Test`) which `impl`s each of the
@@ -79,6 +87,7 @@ parameter_types! {
 
 impl Trait for Test {
 	type Event = ();
+	type Call = Call;
 	type OnNewData = ();
 	type OperatorProvider = MockOperatorProvider;
 	type CombineData = DefaultCombineData<Self, MinimumCount, ExpiresIn>;
@@ -87,12 +96,10 @@ impl Trait for Test {
 	type OracleValue = Value;
 }
 pub type ModuleOracle = Module<Test>;
-
 // This function basically just builds a genesis storage key/value store according to
 // our desired mockup.
 pub fn new_test_ext() -> runtime_io::TestExternalities {
-	frame_system::GenesisConfig::default()
-		.build_storage::<Test>()
-		.unwrap()
-		.into()
+	let r = frame_system::GenesisConfig::default().build_storage::<Test>();
+
+	r.unwrap().into()
 }

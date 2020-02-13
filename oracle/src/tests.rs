@@ -1,8 +1,8 @@
 #![cfg(test)]
 
-use crate::mock::{new_test_ext, ModuleOracle, Origin, Test, Timestamp};
+use crate::mock::{new_test_ext, Call, ModuleOracle, OracleCall, Origin, Test, Timestamp};
 
-use crate::{Call, Module, TimestampedValue, ValidityError};
+use crate::{CheckOperator, TimestampedValue, ValidityError};
 use frame_support::{
 	assert_ok,
 	weights::{DispatchClass, DispatchInfo, GetDispatchInfo, TransactionPriority},
@@ -10,7 +10,6 @@ use frame_support::{
 use sp_runtime::traits::OnFinalize;
 use sp_runtime::transaction_validity::{InvalidTransaction, TransactionValidityError};
 use sp_runtime::{traits::SignedExtension, transaction_validity::ValidTransaction};
-use sp_std::marker::PhantomData;
 
 #[test]
 fn should_feed_value() {
@@ -163,20 +162,23 @@ fn should_return_none() {
 #[test]
 fn should_validate() {
 	new_test_ext().execute_with(|| {
-		let call = <Call<Test>>::feed_values(vec![(1, 1)]);
-		let info = <Call<Test> as GetDispatchInfo>::get_dispatch_info(&call);
-		let mut valid = ValidTransaction::default();
-		valid.priority = TransactionPriority::max_value();
+		let call = Call::ModuleOracle(OracleCall::feed_values(vec![(1, 1)]));
+		let info = <Call as GetDispatchInfo>::get_dispatch_info(&call);
+		let valid = ValidTransaction {
+			priority: TransactionPriority::max_value(),
+			..Default::default()
+		};
+
 		assert_eq!(
-			Module::<Test>(PhantomData).validate(&1, &call, info, 1),
+			CheckOperator::<Test>(Default::default()).validate(&1, &call, info, 1),
 			Ok(valid.clone())
 		);
 
 		// second call should fail
 		assert_eq!(
-			Module::<Test>(PhantomData).validate(&1, &call, info, 1),
+			CheckOperator::<Test>(Default::default()).validate(&1, &call, info, 1),
 			Err(TransactionValidityError::Invalid(InvalidTransaction::Custom(
-				ValidityError::NoPermission as u8
+				ValidityError::UpdateAlreadyDispatched as u8
 			)))
 		);
 
@@ -184,17 +186,20 @@ fn should_validate() {
 		<ModuleOracle as OnFinalize<u64>>::on_finalize(1);
 
 		// next block should work
-		assert_eq!(Module::<Test>(PhantomData).validate(&1, &call, info, 1), Ok(valid));
+		assert_eq!(
+			CheckOperator::<Test>(Default::default()).validate(&1, &call, info, 1),
+			Ok(valid)
+		);
 	});
 }
 
 #[test]
 fn should_be_free_operational() {
 	new_test_ext().execute_with(|| {
-		let feed_value = <Call<Test>>::feed_value(1, 1);
-		let feed_values = <Call<Test>>::feed_values(vec![(1, 1)]);
+		let feed_value = Call::ModuleOracle(OracleCall::feed_value(1, 1));
+		let feed_values = Call::ModuleOracle(OracleCall::feed_values(vec![(1, 1)]));
 		vec![feed_value, feed_values].iter().for_each(|f| {
-			let dispatch_info = <Call<Test> as GetDispatchInfo>::get_dispatch_info(&f);
+			let dispatch_info = <Call as GetDispatchInfo>::get_dispatch_info(&f);
 			assert_eq!(
 				dispatch_info,
 				DispatchInfo {

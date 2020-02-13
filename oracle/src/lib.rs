@@ -52,7 +52,7 @@ decl_storage! {
 		pub RawValues get(raw_values): double_map hasher(blake2_256) T::OracleKey, hasher(blake2_256) T::AccountId => Option<TimestampedValueOf<T>>;
 		pub HasUpdate get(has_update): map hasher(blake2_256) T::OracleKey => bool;
 		pub Values get(values): map hasher(blake2_256) T::OracleKey => Option<TimestampedValueOf<T>>;
-		HasUpdated get(has_updated): Vec<T::AccountId>;
+		HasDispatched: Vec<T::AccountId>;
 	}
 }
 
@@ -66,6 +66,7 @@ decl_error! {
 #[repr(u8)]
 pub enum ValidityError {
 	NoPermission,
+	UpdateAlreadyDispatched,
 }
 
 decl_module! {
@@ -88,7 +89,7 @@ decl_module! {
 
 		fn on_finalize(_n: T::BlockNumber) {
 			// cleanup for next block
-			<HasUpdated<T>>::kill();
+			<HasDispatched<T>>::kill();
 		}
 	}
 }
@@ -186,20 +187,18 @@ impl<T: Trait + Send + Sync + Debug> SignedExtension for CheckOperator<T> {
 				TransactionValidityError::Invalid(InvalidTransaction::Custom(ValidityError::NoPermission as u8))
 			);
 
-			// ensure account hasn't updated yet
-			let mut accounts = <HasUpdated<T>>::get();
+			// ensure account hasn't dispatched an updated yet
+			let mut accounts = <HasDispatched<T>>::get();
 			if accounts.contains(who) {
-				return Err(TransactionValidityError::Invalid(InvalidTransaction::Custom(
-					ValidityError::NoPermission as u8,
-				)));
+				return Err(InvalidTransaction::Custom(ValidityError::UpdateAlreadyDispatched as u8).into());
 			}
 			accounts.push(who.clone());
-			<HasUpdated<T>>::put(accounts);
+			<HasDispatched<T>>::put(accounts);
 
-			// valid tx with max priority
-			let mut valid = ValidTransaction::default();
-			valid.priority = TransactionPriority::max_value();
-			return Ok(valid);
+			return Ok(ValidTransaction {
+				priority: TransactionPriority::max_value(),
+				..Default::default()
+			});
 		}
 		return Ok(ValidTransaction::default());
 	}
