@@ -1,4 +1,4 @@
-use rstd::prelude::Vec;
+use sp_std::prelude::Vec;
 
 pub trait OperatorProvider<AccountId> {
 	// Make sure `who` has permission to feed data

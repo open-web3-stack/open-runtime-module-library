@@ -7,10 +7,10 @@ use frame_support::{
 	assert_ok,
 	weights::{DispatchClass, DispatchInfo, GetDispatchInfo, TransactionPriority},
 };
-use rstd::marker::PhantomData;
 use sp_runtime::traits::OnFinalize;
 use sp_runtime::transaction_validity::{InvalidTransaction, TransactionValidityError};
 use sp_runtime::{traits::SignedExtension, transaction_validity::ValidTransaction};
+use sp_std::marker::PhantomData;
 
 #[test]
 fn should_feed_value() {

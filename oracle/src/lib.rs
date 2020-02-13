@@ -9,18 +9,20 @@ mod timestamped_value;
 use codec::{Decode, Encode};
 pub use default_combine_data::DefaultCombineData;
 use frame_support::{
-	decl_error, decl_event, decl_module, decl_storage, ensure,
+	decl_error, decl_event, decl_module, decl_storage,
+	dispatch::Dispatchable,
+	ensure,
 	traits::Time,
 	weights::FunctionOf,
 	weights::{DispatchClass, DispatchInfo, TransactionPriority},
-	Parameter,
+	IsSubType, Parameter,
 };
 pub use operator_provider::OperatorProvider;
-use rstd::{fmt::Debug, prelude::*, vec};
 use sp_runtime::{
 	traits::{Member, SignedExtension},
 	DispatchResult,
 };
+use sp_std::{fmt::Debug, prelude::*, vec};
 // FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
@@ -36,6 +38,7 @@ pub type TimestampedValueOf<T> = TimestampedValue<<T as Trait>::OracleValue, Mom
 
 pub trait Trait: frame_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
+	type Call: Parameter + Dispatchable<Origin = <Self as frame_system::Trait>::Origin> + IsSubType<Module<Self>, Self>;
 	type OnNewData: OnNewData<Self::AccountId, Self::OracleKey, Self::OracleValue>;
 	type OperatorProvider: OperatorProvider<Self::AccountId>;
 	type CombineData: CombineData<Self::OracleKey, TimestampedValueOf<Self>>;
@@ -138,25 +141,45 @@ impl<T: Trait> Module<T> {
 	}
 }
 
-impl<T: Trait + Send + Sync + Debug> SignedExtension for Module<T> {
-	const IDENTIFIER: &'static str = "Oracle";
+#[derive(Encode, Decode, Clone, Eq, PartialEq)]
+pub struct CheckOperator<T: Trait + Send + Sync>(sp_std::marker::PhantomData<T>);
+
+impl<T: Trait + Send + Sync> sp_std::fmt::Debug for CheckOperator<T> {
+	#[cfg(feature = "std")]
+	fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
+		write!(f, "for")
+	}
+
+	#[cfg(not(feature = "std"))]
+	fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
+		Ok(())
+	}
+}
+
+impl<T: Trait + Send + Sync + Debug> SignedExtension for CheckOperator<T> {
+	const IDENTIFIER: &'static str = "CheckOperator";
 	type AccountId = T::AccountId;
-	type Call = Call<T>;
+	type Call = <T as Trait>::Call;
 	type AdditionalSigned = ();
 	type Pre = ();
 	type DispatchInfo = DispatchInfo;
 
-	fn additional_signed(&self) -> rstd::result::Result<(), TransactionValidityError> {
+	fn additional_signed(&self) -> sp_std::result::Result<(), TransactionValidityError> {
 		Ok(())
 	}
 
 	fn validate(
 		&self,
-		who: &Self::AccountId,
+		who: &T::AccountId,
 		call: &Self::Call,
 		_info: Self::DispatchInfo,
 		_len: usize,
 	) -> TransactionValidity {
+		let call = match call.is_sub_type() {
+			Some(call) => call,
+			None => return Ok(ValidTransaction::default()),
+		};
+
 		if let Call::<T>::feed_value(..) | Call::<T>::feed_values(..) = call {
 			ensure!(
 				T::OperatorProvider::can_feed_data(who),
@@ -164,7 +187,7 @@ impl<T: Trait + Send + Sync + Debug> SignedExtension for Module<T> {
 			);
 
 			// ensure account hasn't updated yet
-			let mut accounts = Self::has_updated();
+			let mut accounts = <HasUpdated<T>>::get();
 			if accounts.contains(who) {
 				return Err(TransactionValidityError::Invalid(InvalidTransaction::Custom(
 					ValidityError::NoPermission as u8,
