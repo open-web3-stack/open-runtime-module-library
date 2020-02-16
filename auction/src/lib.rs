@@ -4,7 +4,7 @@ use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, P
 use frame_system::{self as system, ensure_signed};
 use orml_utilities::{LinkedItem, LinkedList};
 use sp_runtime::{
-	traits::{MaybeSerializeDeserialize, Member, One, SimpleArithmetic, Zero},
+	traits::{AtLeast32Bit, MaybeSerializeDeserialize, Member, One, Zero},
 	DispatchResult,
 };
 
@@ -15,8 +15,8 @@ mod tests;
 
 pub trait Trait: frame_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
-	type Balance: Parameter + Member + SimpleArithmetic + Default + Copy + MaybeSerializeDeserialize;
-	type AuctionId: Parameter + Member + SimpleArithmetic + Default + Copy + MaybeSerializeDeserialize;
+	type Balance: Parameter + Member + AtLeast32Bit + Default + Copy + MaybeSerializeDeserialize;
+	type AuctionId: Parameter + Member + AtLeast32Bit + Default + Copy + MaybeSerializeDeserialize;
 	type Handler: AuctionHandler<Self::AccountId, Self::Balance, Self::BlockNumber, Self::AuctionId>;
 }
 

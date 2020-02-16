@@ -12,7 +12,7 @@ use rstd::{
 	prelude::Vec,
 };
 use sp_runtime::{
-	traits::{MaybeSerializeDeserialize, SimpleArithmetic},
+	traits::{AtLeast32Bit, MaybeSerializeDeserialize},
 	DispatchResult,
 };
 
@@ -22,7 +22,7 @@ pub trait MultiCurrency<AccountId> {
 	type CurrencyId: FullCodec + Eq + PartialEq + Copy + MaybeSerializeDeserialize + Debug;
 
 	/// The balance of an account.
-	type Balance: SimpleArithmetic + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default;
+	type Balance: AtLeast32Bit + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default;
 
 	// Public immutables
 
@@ -78,7 +78,7 @@ pub trait MultiCurrencyExtended<AccountId>: MultiCurrency<AccountId> {
 /// Abstraction over a fungible (single) currency system.
 pub trait BasicCurrency<AccountId> {
 	/// The balance of an account.
-	type Balance: SimpleArithmetic + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default;
+	type Balance: AtLeast32Bit + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default;
 
 	// Public immutables
 
