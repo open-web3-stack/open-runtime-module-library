@@ -19,6 +19,7 @@ mod auction {
 
 impl_outer_event! {
 	pub enum TestEvent for Runtime {
+		frame_system<T>,
 		auction<T>,
 	}
 }
@@ -55,6 +56,9 @@ impl frame_system::Trait for Runtime {
 	type AvailableBlockRatio = AvailableBlockRatio;
 	type Version = ();
 	type ModuleToIndex = ();
+	type AccountData = ();
+	type OnNewAccount = ();
+	type OnReapAccount = ();
 }
 
 pub struct Handler;

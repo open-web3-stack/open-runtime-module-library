@@ -43,6 +43,9 @@ impl frame_system::Trait for Runtime {
 	type AvailableBlockRatio = AvailableBlockRatio;
 	type Version = ();
 	type ModuleToIndex = ();
+	type AccountData = pallet_balances::AccountData<u64>;
+	type OnNewAccount = ();
+	type OnReapAccount = ();
 }
 
 type CurrencyId = u32;
@@ -50,18 +53,14 @@ type Balance = u64;
 
 parameter_types! {
 	pub const ExistentialDeposit: u64 = 1;
-	pub const CreationFee: u64 = 2;
 }
 
 impl pallet_balances::Trait for Runtime {
 	type Balance = Balance;
-	type OnNewAccount = ();
-	type OnReapAccount = ();
-	type TransferPayment = ();
 	type DustRemoval = ();
 	type Event = ();
 	type ExistentialDeposit = ExistentialDeposit;
-	type CreationFee = CreationFee;
+	type AccountStore = frame_system::Module<Runtime>;
 }
 
 pub type PalletBalances = pallet_balances::Module<Runtime>;
