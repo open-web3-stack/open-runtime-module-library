@@ -127,8 +127,8 @@ pub trait BasicCurrencyExtended<AccountId>: BasicCurrency<AccountId> {
 }
 
 #[impl_trait_for_tuples::impl_for_tuples(30)]
-pub trait OnNewData<Key, Value> {
-	fn on_new_data(key: &Key, value: &Value);
+pub trait OnNewData<AccountId, Key, Value> {
+	fn on_new_data(who: &AccountId, key: &Key, value: &Value);
 }
 
 pub trait DataProvider<Key, Value> {
@@ -155,4 +155,9 @@ pub trait OnDustRemoval<Balance> {
 
 impl<Balance> OnDustRemoval<Balance> for () {
 	fn on_dust_removal(_: Balance) {}
+}
+
+#[impl_trait_for_tuples::impl_for_tuples(30)]
+pub trait OnRedundantCall<AccountId> {
+	fn multiple_calls_per_block(who: &AccountId);
 }

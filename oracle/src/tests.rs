@@ -1,9 +1,17 @@
 #![cfg(test)]
 
-use crate::mock::{new_test_ext, ModuleOracle, Origin, Timestamp};
-
-use crate::TimestampedValue;
-use frame_support::assert_ok;
+use crate::{
+	mock::{new_test_ext, Call, ModuleOracle, OracleCall, Origin, Test, Timestamp},
+	{CheckOperator, Error, TimestampedValue},
+};
+use frame_support::{
+	assert_noop, assert_ok,
+	weights::{DispatchClass, DispatchInfo, GetDispatchInfo, TransactionPriority},
+};
+use sp_runtime::{
+	traits::{OnFinalize, SignedExtension},
+	transaction_validity::ValidTransaction,
+};
 
 #[test]
 fn should_feed_value() {
@@ -150,5 +158,53 @@ fn should_return_none() {
 	new_test_ext().execute_with(|| {
 		let key: u32 = 1;
 		assert_eq!(ModuleOracle::get(&key), None);
+	});
+}
+
+#[test]
+fn should_validate() {
+	new_test_ext().execute_with(|| {
+		let call = Call::ModuleOracle(OracleCall::feed_values(vec![(1, 1)]));
+		let info = <Call as GetDispatchInfo>::get_dispatch_info(&call);
+
+		assert_eq!(
+			CheckOperator::<Test>(Default::default()).validate(&1, &call, info, 1),
+			Ok(ValidTransaction {
+				priority: TransactionPriority::max_value(),
+				..Default::default()
+			})
+		);
+	});
+}
+
+#[test]
+fn should_be_free_operational() {
+	new_test_ext().execute_with(|| {
+		let feed_value = Call::ModuleOracle(OracleCall::feed_value(1, 1));
+		let feed_values = Call::ModuleOracle(OracleCall::feed_values(vec![(1, 1)]));
+		vec![feed_value, feed_values].iter().for_each(|f| {
+			let dispatch_info = <Call as GetDispatchInfo>::get_dispatch_info(&f);
+			assert_eq!(
+				dispatch_info,
+				DispatchInfo {
+					weight: 0,
+					class: DispatchClass::Operational,
+					pays_fee: false,
+				}
+			);
+		});
+	});
+}
+
+#[test]
+fn multiple_calls_should_fail() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(ModuleOracle::feed_value(Origin::signed(1), 1, 1000));
+		assert_noop!(
+			ModuleOracle::feed_value(Origin::signed(1), 1, 1200),
+			Error::<Test>::UpdateAlreadyDispatched
+		);
+		<ModuleOracle as OnFinalize<u64>>::on_finalize(1);
+		assert_ok!(ModuleOracle::feed_value(Origin::signed(1), 1, 1200));
 	});
 }
