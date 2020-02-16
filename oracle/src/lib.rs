@@ -19,7 +19,7 @@ use frame_support::{
 pub use operator_provider::OperatorProvider;
 use sp_runtime::{
 	traits::{Member, SignedExtension},
-	DispatchError, DispatchResult,
+	DispatchResult,
 };
 use sp_std::{prelude::*, vec};
 // FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
@@ -210,11 +210,7 @@ impl<T: Trait> Module<T> {
 		let mut accounts = <HasDispatched<T>>::get();
 		if accounts.contains(&who) {
 			T::OnRedundantCall::multiple_calls_per_block(&who);
-			return Err(DispatchError::Module {
-				index: 0,
-				error: 1,
-				message: Some(Error::<T>::UpdateAlreadyDispatched.into()),
-			});
+			return Err(Error::<T>::UpdateAlreadyDispatched.into());
 		}
 		accounts.push(who.clone());
 		<HasDispatched<T>>::put(accounts);
