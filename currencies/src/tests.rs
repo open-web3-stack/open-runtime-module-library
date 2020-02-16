@@ -5,8 +5,8 @@
 use super::*;
 use frame_support::{assert_noop, assert_ok};
 use mock::{
-	AccountId, AdaptedBasicCurrency, CreationFee, Currencies, ExtBuilder, NativeCurrency, Origin, PalletBalances,
-	ALICE, BOB, EVA, NATIVE_CURRENCY_ID, X_TOKEN_ID,
+	AccountId, AdaptedBasicCurrency, Currencies, ExtBuilder, NativeCurrency, Origin, PalletBalances, ALICE, BOB, EVA,
+	NATIVE_CURRENCY_ID, X_TOKEN_ID,
 };
 use sp_runtime::traits::BadOrigin;
 
@@ -88,7 +88,7 @@ fn basic_currency_adapting_pallet_balances_transfer() {
 
 			// creation fee
 			assert_ok!(AdaptedBasicCurrency::transfer(&ALICE, &EVA, 10));
-			assert_eq!(PalletBalances::total_balance(&ALICE), 40 - CreationFee::get());
+			assert_eq!(PalletBalances::total_balance(&ALICE), 40);
 			assert_eq!(PalletBalances::total_balance(&EVA), 10);
 		});
 }

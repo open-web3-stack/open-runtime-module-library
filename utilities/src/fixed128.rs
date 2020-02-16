@@ -3,7 +3,7 @@ use primitives::U256;
 use rstd::convert::{Into, TryFrom, TryInto};
 use sp_runtime::{
 	traits::{Bounded, Saturating, UniqueSaturatedInto},
-	Perbill, Percent, Permill, Perquintill,
+	PerThing,
 };
 
 #[cfg(feature = "std")]
@@ -195,20 +195,11 @@ impl rstd::fmt::Debug for FixedU128 {
 	}
 }
 
-macro_rules! impl_perthing_into_fixed_u128 {
-	($perthing:ty) => {
-		impl Into<FixedU128> for $perthing {
-			fn into(self) -> FixedU128 {
-				FixedU128::from_rational(self.deconstruct(), <$perthing>::accuracy())
-			}
-		}
-	};
+impl<P: PerThing> From<P> for FixedU128 {
+	fn from(val: P) -> Self {
+		FixedU128::from_rational(val.deconstruct(), P::ACCURACY)
+	}
 }
-
-impl_perthing_into_fixed_u128!(Percent);
-impl_perthing_into_fixed_u128!(Permill);
-impl_perthing_into_fixed_u128!(Perbill);
-impl_perthing_into_fixed_u128!(Perquintill);
 
 #[cfg(feature = "std")]
 impl FixedU128 {
@@ -250,6 +241,7 @@ impl<'de> Deserialize<'de> for FixedU128 {
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use sp_runtime::{Perbill, Percent, Permill, Perquintill};
 
 	fn max() -> FixedU128 {
 		FixedU128::from_parts(u128::max_value())
