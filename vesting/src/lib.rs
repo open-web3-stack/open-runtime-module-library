@@ -14,7 +14,7 @@ use sp_std::{
 // #3295 https://github.com/paritytech/substrate/issues/3295
 use frame_system::{self as system, ensure_root, ensure_signed};
 use sp_runtime::{
-	traits::{AtLeast32Bit, CheckedAdd, Saturating, StaticLookup, Zero},
+	traits::{AtLeast32Bit, CheckedAdd, StaticLookup, Zero},
 	DispatchResult, RuntimeDebug,
 };
 
@@ -110,7 +110,6 @@ decl_error! {
 		ZeroVestingPeriodCount,
 		NumOverflow,
 		InsufficientBalanceToLock,
-		HasNonVestingLocks,
 	}
 }
 
@@ -180,8 +179,6 @@ impl<T: Trait> Module<T> {
 		to: &T::AccountId,
 		schedule: VestingScheduleOf<T>,
 	) -> DispatchResult {
-		Self::ensure_lockable(to)?;
-
 		let schedule_amount = Self::ensure_valid_vesting_schedule(&schedule)?;
 		let total_amount = Self::locked_balance(to)
 			.checked_add(&schedule_amount.into())
@@ -195,8 +192,6 @@ impl<T: Trait> Module<T> {
 	}
 
 	fn do_update_vesting_schedules(who: &T::AccountId, schedules: Vec<VestingScheduleOf<T>>) -> DispatchResult {
-		Self::ensure_lockable(who)?;
-
 		let total_amount = schedules.iter().try_fold::<_, _, Result<BalanceOf<T>, Error<T>>>(
 			Zero::zero(),
 			|acc_amount, schedule| {
@@ -222,19 +217,5 @@ impl<T: Trait> Module<T> {
 		ensure!(schedule.end().is_some(), Error::<T>::NumOverflow);
 
 		schedule.total_amount().ok_or(Error::<T>::NumOverflow)
-	}
-
-	/// Ensure no other types of locks except `VESTING_LOCK_ID`.
-	fn ensure_lockable(who: &T::AccountId) -> DispatchResult {
-		// FIXME: when locks query in `LockableCurrency` is ready(https://github.com/paritytech/substrate/issues/4655):
-		// 1. use locks query instead of `ensure_can_withdraw` for locks check.
-		// 2. remove `do_claim` workaround
-		let _ = Self::do_claim(who);
-
-		let balance = T::Currency::free_balance(who);
-		let locked = Self::locked_balance(who);
-		let usable = balance.saturating_sub(locked);
-		T::Currency::ensure_can_withdraw(who, usable, WithdrawReasons::all(), locked)
-			.map_err(|_| Error::<T>::HasNonVestingLocks.into())
 	}
 }
