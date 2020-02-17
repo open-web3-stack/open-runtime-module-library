@@ -3,7 +3,7 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{assert_err, assert_noop, assert_ok, traits::WithdrawReason};
+use frame_support::{assert_err, assert_ok, traits::WithdrawReason};
 use mock::{ExtBuilder, Origin, PalletBalances, Runtime, System, TestEvent, Vesting, ALICE, BOB};
 use pallet_balances::{BalanceLock, Reasons};
 
