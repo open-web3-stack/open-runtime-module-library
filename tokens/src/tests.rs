@@ -205,3 +205,16 @@ fn ensure_can_withdraw_should_work() {
 			assert_eq!(Tokens::balance(TEST_TOKEN_ID, &ALICE), 100);
 		});
 }
+
+#[test]
+fn no_op_if_amount_is_zero() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(Tokens::ensure_can_withdraw(TEST_TOKEN_ID, &ALICE, 0));
+		assert_ok!(Tokens::transfer(Some(ALICE).into(), BOB, TEST_TOKEN_ID, 0));
+		assert_ok!(Tokens::transfer(Some(ALICE).into(), ALICE, TEST_TOKEN_ID, 0));
+		assert_ok!(Tokens::deposit(TEST_TOKEN_ID, &ALICE, 0));
+		assert_ok!(Tokens::withdraw(TEST_TOKEN_ID, &ALICE, 0));
+		assert_eq!(Tokens::slash(TEST_TOKEN_ID, &ALICE, 0), 0);
+		assert_ok!(Tokens::update_balance(TEST_TOKEN_ID, &ALICE, 0));
+	});
+}

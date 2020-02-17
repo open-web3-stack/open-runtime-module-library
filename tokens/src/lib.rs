@@ -157,6 +157,9 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	}
 
 	fn ensure_can_withdraw(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
+		if amount.is_zero() {
+			return Ok(());
+		}
 		if Self::balance(currency_id, who).checked_sub(&amount).is_some() {
 			Ok(())
 		} else {
@@ -170,6 +173,10 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		to: &T::AccountId,
 		amount: Self::Balance,
 	) -> DispatchResult {
+		if amount.is_zero() || from == to {
+			return Ok(());
+		}
+
 		let from_balance = Self::balance(currency_id, from);
 		ensure!(from_balance >= amount, Error::<T>::BalanceTooLow);
 
@@ -187,6 +194,10 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	}
 
 	fn deposit(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
+		if amount.is_zero() {
+			return Ok(());
+		}
+
 		ensure!(
 			Self::total_issuance(currency_id).checked_add(&amount).is_some(),
 			Error::<T>::TotalIssuanceOverflow,
@@ -207,6 +218,10 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	}
 
 	fn withdraw(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
+		if amount.is_zero() {
+			return Ok(());
+		}
+
 		let balance = Self::balance(currency_id, who);
 		ensure!(balance.checked_sub(&amount).is_some(), Error::<T>::BalanceTooLow);
 
@@ -217,6 +232,10 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	}
 
 	fn slash(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> Self::Balance {
+		if amount.is_zero() {
+			return amount;
+		}
+
 		let balance = Self::balance(currency_id, who);
 		let slashed_amount = balance.min(amount);
 
@@ -231,6 +250,10 @@ impl<T: Trait> MultiCurrencyExtended<T::AccountId> for Module<T> {
 	type Amount = T::Amount;
 
 	fn update_balance(currency_id: Self::CurrencyId, who: &T::AccountId, by_amount: Self::Amount) -> DispatchResult {
+		if by_amount.is_zero() {
+			return Ok(());
+		}
+
 		let by_balance =
 			TryInto::<Self::Balance>::try_into(by_amount.abs()).map_err(|_| Error::<T>::AmountIntoBalanceFailed)?;
 		if by_amount.is_positive() {
