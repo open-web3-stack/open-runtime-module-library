@@ -145,6 +145,12 @@ impl<T: Trait> Module<T> {
 #[derive(Encode, Decode, Clone, Eq, PartialEq)]
 pub struct CheckOperator<T: Trait + Send + Sync>(sp_std::marker::PhantomData<T>);
 
+impl<T: Trait + Send + Sync> CheckOperator<T> {
+	pub fn new() -> Self {
+		Self(sp_std::marker::PhantomData)
+	}
+}
+
 impl<T: Trait + Send + Sync> sp_std::fmt::Debug for CheckOperator<T> {
 	#[cfg(feature = "std")]
 	fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
