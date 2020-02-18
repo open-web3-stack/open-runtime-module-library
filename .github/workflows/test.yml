@@ -35,6 +35,8 @@ jobs:
       run: rustup target add wasm32-unknown-unknown
     - name: Check format
       run: make dev-format-check
+    - name: Update
+      run: cargo update
     - name: Check for Wasm
       run: make dev-check
     - name: Run tests
