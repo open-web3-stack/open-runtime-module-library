@@ -136,6 +136,7 @@ fn withdraw_enforces_existential_rule() {
 			assert_ok!(Tokens::withdraw(TEST_TOKEN_ID, &ALICE, 99));
 			assert_eq!(Tokens::balance(TEST_TOKEN_ID, &ALICE), 0);
 			assert_eq!(MockDustRemoval::accumulated_dust(), 1);
+			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 100);
 		});
 }
 
@@ -215,6 +216,7 @@ fn no_op_if_amount_is_zero() {
 		assert_ok!(Tokens::deposit(TEST_TOKEN_ID, &ALICE, 0));
 		assert_ok!(Tokens::withdraw(TEST_TOKEN_ID, &ALICE, 0));
 		assert_eq!(Tokens::slash(TEST_TOKEN_ID, &ALICE, 0), 0);
+		assert_eq!(Tokens::slash(TEST_TOKEN_ID, &ALICE, 1), 1);
 		assert_ok!(Tokens::update_balance(TEST_TOKEN_ID, &ALICE, 0));
 	});
 }
