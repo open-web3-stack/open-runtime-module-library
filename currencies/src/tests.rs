@@ -5,8 +5,8 @@
 use super::*;
 use frame_support::{assert_noop, assert_ok};
 use mock::{
-	AccountId, AdaptedBasicCurrency, Currencies, ExtBuilder, NativeCurrency, Origin, PalletBalances, ALICE, BOB, EVA,
-	NATIVE_CURRENCY_ID, X_TOKEN_ID,
+	AccountId, AdaptedBasicCurrency, Currencies, ExtBuilder, NativeCurrency, Origin, PalletBalances, System, TestEvent,
+	ALICE, BOB, EVA, NATIVE_CURRENCY_ID, X_TOKEN_ID,
 };
 use sp_runtime::traits::BadOrigin;
 
@@ -168,4 +168,44 @@ fn update_balance_call_fails_if_not_root_origin() {
 			BadOrigin
 		);
 	});
+}
+
+#[test]
+fn call_event_should_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_ok!(Currencies::transfer(Some(ALICE).into(), BOB, X_TOKEN_ID, 50));
+			assert_eq!(Currencies::balance(X_TOKEN_ID, &ALICE), 50);
+			assert_eq!(Currencies::balance(X_TOKEN_ID, &BOB), 150);
+
+			let transferred_event = TestEvent::currencies(RawEvent::Transferred(X_TOKEN_ID, ALICE, BOB, 50));
+			assert!(System::events().iter().any(|record| record.event == transferred_event));
+
+			assert_ok!(<Currencies as MultiCurrency<AccountId>>::transfer(
+				X_TOKEN_ID, &ALICE, &BOB, 10
+			));
+			assert_eq!(Currencies::balance(X_TOKEN_ID, &ALICE), 40);
+			assert_eq!(Currencies::balance(X_TOKEN_ID, &BOB), 160);
+
+			let transferred_event = TestEvent::currencies(RawEvent::Transferred(X_TOKEN_ID, ALICE, BOB, 10));
+			assert!(System::events().iter().any(|record| record.event == transferred_event));
+
+			assert_ok!(<Currencies as MultiCurrency<AccountId>>::deposit(
+				X_TOKEN_ID, &ALICE, 100
+			));
+			assert_eq!(Currencies::balance(X_TOKEN_ID, &ALICE), 140);
+
+			let transferred_event = TestEvent::currencies(RawEvent::Deposited(X_TOKEN_ID, ALICE, 100));
+			assert!(System::events().iter().any(|record| record.event == transferred_event));
+
+			assert_ok!(<Currencies as MultiCurrency<AccountId>>::withdraw(
+				X_TOKEN_ID, &ALICE, 20
+			));
+			assert_eq!(Currencies::balance(X_TOKEN_ID, &ALICE), 120);
+
+			let transferred_event = TestEvent::currencies(RawEvent::Withdrawn(X_TOKEN_ID, ALICE, 20));
+			assert!(System::events().iter().any(|record| record.event == transferred_event));
+		});
 }

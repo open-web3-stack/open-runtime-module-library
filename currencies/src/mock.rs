@@ -2,7 +2,7 @@
 
 #![cfg(test)]
 
-use frame_support::{impl_outer_origin, parameter_types};
+use frame_support::{impl_outer_event, impl_outer_origin, parameter_types};
 use pallet_balances;
 use primitives::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
@@ -10,6 +10,19 @@ use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 use tokens;
 
 use super::*;
+
+mod currencies {
+	pub use crate::Event;
+}
+
+impl_outer_event! {
+	pub enum TestEvent for Runtime {
+		frame_system<T>,
+		currencies<T>,
+		tokens<T>,
+		pallet_balances<T>,
+	}
+}
 
 impl_outer_origin! {
 	pub enum Origin for Runtime where system = frame_system {}
@@ -36,7 +49,7 @@ impl frame_system::Trait for Runtime {
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
-	type Event = ();
+	type Event = TestEvent;
 	type BlockHashCount = BlockHashCount;
 	type MaximumBlockWeight = MaximumBlockWeight;
 	type MaximumBlockLength = MaximumBlockLength;
@@ -47,6 +60,7 @@ impl frame_system::Trait for Runtime {
 	type OnNewAccount = ();
 	type OnReapAccount = ();
 }
+pub type System = system::Module<Runtime>;
 
 type CurrencyId = u32;
 type Balance = u64;
@@ -58,7 +72,7 @@ parameter_types! {
 impl pallet_balances::Trait for Runtime {
 	type Balance = Balance;
 	type DustRemoval = ();
-	type Event = ();
+	type Event = TestEvent;
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = frame_system::Module<Runtime>;
 }
@@ -66,7 +80,7 @@ impl pallet_balances::Trait for Runtime {
 pub type PalletBalances = pallet_balances::Module<Runtime>;
 
 impl tokens::Trait for Runtime {
-	type Event = ();
+	type Event = TestEvent;
 	type Balance = Balance;
 	type Amount = i64;
 	type CurrencyId = CurrencyId;
@@ -82,7 +96,7 @@ parameter_types! {
 }
 
 impl Trait for Runtime {
-	type Event = ();
+	type Event = TestEvent;
 	type MultiCurrency = tokens::Module<Runtime>;
 	type NativeCurrency = AdaptedBasicCurrency;
 	type GetNativeCurrencyId = GetNativeCurrencyId;

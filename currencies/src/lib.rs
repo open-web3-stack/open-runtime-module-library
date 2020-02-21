@@ -49,11 +49,9 @@ decl_event!(
 		/// Update balance success (currency_id, who, amount)
 		BalanceUpdated(CurrencyId, AccountId, Amount),
 		/// Deposit success (currency_id, who, amount)
-		Deposited(CurrencyId, AccountId, Amount),
+		Deposited(CurrencyId, AccountId, Balance),
 		/// Withdraw success (currency_id, who, amount)
-		Withdrawn(CurrencyId, AccountId, Amount),
-
-		Test(CurrencyId),
+		Withdrawn(CurrencyId, AccountId, Balance),
 	}
 );
 
@@ -83,7 +81,6 @@ decl_module! {
 			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
 			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, &from, &to, amount)?;
-
 		}
 
 		/// Transfer native currency balance from one account to another.
@@ -156,8 +153,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		} else {
 			T::MultiCurrency::transfer(currency_id, from, to, amount)?;
 		}
-		Self::deposit_event(RawEvent::Transferred(currency_id, from, to, amount));
-		//Self::deposit_event(RawEvent::Test(currency_id));
+		Self::deposit_event(RawEvent::Transferred(currency_id, from.clone(), to.clone(), amount));
 		Ok(())
 	}
 
@@ -167,7 +163,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		} else {
 			T::MultiCurrency::deposit(currency_id, who, amount)?;
 		}
-		//Self::deposit_event(RawEvent::Deposited(currency_id, who, amount));
+		Self::deposit_event(RawEvent::Deposited(currency_id, who.clone(), amount));
 		Ok(())
 	}
 
@@ -177,7 +173,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		} else {
 			T::MultiCurrency::withdraw(currency_id, who, amount)?;
 		}
-		//Self::deposit_event(RawEvent::Withdrawn(currency_id, who, amount));
+		Self::deposit_event(RawEvent::Withdrawn(currency_id, who.clone(), amount));
 		Ok(())
 	}
 
