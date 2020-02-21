@@ -156,7 +156,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		} else {
 			T::MultiCurrency::transfer(currency_id, from, to, amount)?;
 		}
-		Self::deposit_event(RawEvent::Transferred(currency_id, from, to, amount));
+		Self::deposit_event(<Event<T>>::Transferred(currency_id, from.clone(), to.clone(), amount));
 		//Self::deposit_event(RawEvent::Test(currency_id));
 		Ok(())
 	}
