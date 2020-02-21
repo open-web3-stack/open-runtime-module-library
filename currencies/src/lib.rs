@@ -48,6 +48,10 @@ decl_event!(
 		Transferred(CurrencyId, AccountId, AccountId, Balance),
 		/// Update balance success (currency_id, who, amount)
 		BalanceUpdated(CurrencyId, AccountId, Amount),
+		/// Deposit success (currency_id, who, amount)
+		Deposited(CurrencyId, AccountId, Balance),
+		/// Withdraw success (currency_id, who, amount)
+		Withdrawn(CurrencyId, AccountId, Balance),
 	}
 );
 
@@ -77,8 +81,6 @@ decl_module! {
 			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
 			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, &from, &to, amount)?;
-
-			Self::deposit_event(RawEvent::Transferred(currency_id, from, to, amount));
 		}
 
 		/// Transfer native currency balance from one account to another.
@@ -147,26 +149,32 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		amount: Self::Balance,
 	) -> DispatchResult {
 		if currency_id == T::GetNativeCurrencyId::get() {
-			T::NativeCurrency::transfer(from, to, amount)
+			T::NativeCurrency::transfer(from, to, amount)?;
 		} else {
-			T::MultiCurrency::transfer(currency_id, from, to, amount)
+			T::MultiCurrency::transfer(currency_id, from, to, amount)?;
 		}
+		Self::deposit_event(RawEvent::Transferred(currency_id, from.clone(), to.clone(), amount));
+		Ok(())
 	}
 
 	fn deposit(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
 		if currency_id == T::GetNativeCurrencyId::get() {
-			T::NativeCurrency::deposit(who, amount)
+			T::NativeCurrency::deposit(who, amount)?;
 		} else {
-			T::MultiCurrency::deposit(currency_id, who, amount)
+			T::MultiCurrency::deposit(currency_id, who, amount)?;
 		}
+		Self::deposit_event(RawEvent::Deposited(currency_id, who.clone(), amount));
+		Ok(())
 	}
 
 	fn withdraw(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
 		if currency_id == T::GetNativeCurrencyId::get() {
-			T::NativeCurrency::withdraw(who, amount)
+			T::NativeCurrency::withdraw(who, amount)?;
 		} else {
-			T::MultiCurrency::withdraw(currency_id, who, amount)
+			T::MultiCurrency::withdraw(currency_id, who, amount)?;
 		}
+		Self::deposit_event(RawEvent::Withdrawn(currency_id, who.clone(), amount));
+		Ok(())
 	}
 
 	fn slash(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> Self::Balance {
