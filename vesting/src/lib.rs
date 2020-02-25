@@ -80,7 +80,7 @@ decl_storage! {
 					(who.clone(), vec![VestingSchedule {start, period, period_count, per_period}])
 				)
 				.collect::<Vec<_>>()
-		}): map hasher(blake2_256) T::AccountId => Vec<VestingScheduleOf<T>>;
+		}): map hasher(blake2_128_concat) T::AccountId => Vec<VestingScheduleOf<T>>;
 	}
 
 	add_extra_genesis {

@@ -49,9 +49,9 @@ pub trait Trait: frame_system::Trait {
 
 decl_storage! {
 	trait Store for Module<T: Trait> as Oracle {
-		pub RawValues get(raw_values): double_map hasher(blake2_256) T::OracleKey, hasher(blake2_256) T::AccountId => Option<TimestampedValueOf<T>>;
-		pub HasUpdate get(has_update): map hasher(blake2_256) T::OracleKey => bool;
-		pub Values get(values): map hasher(blake2_256) T::OracleKey => Option<TimestampedValueOf<T>>;
+		pub RawValues get(raw_values): double_map hasher(twox_64_concat) T::OracleKey, hasher(twox_64_concat) T::AccountId => Option<TimestampedValueOf<T>>;
+		pub HasUpdate get(has_update): map hasher(twox_64_concat) T::OracleKey => bool;
+		pub Values get(values): map hasher(twox_64_concat) T::OracleKey => Option<TimestampedValueOf<T>>;
 		HasDispatched: Vec<T::AccountId>;
 	}
 }
