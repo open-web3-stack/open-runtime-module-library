@@ -57,10 +57,10 @@ decl_storage! {
 				})
 				.into_iter()
 				.collect::<Vec<_>>()
-		}): map hasher(blake2_256) T::CurrencyId => T::Balance;
+		}): map hasher(twox_64_concat) T::CurrencyId => T::Balance;
 
 		/// The balance of a token type under an account.
-		pub Balance get(fn balance): double_map hasher(blake2_256) T::CurrencyId, hasher(blake2_256) T::AccountId => T::Balance;
+		pub Balance get(fn balance): double_map hasher(twox_64_concat) T::CurrencyId, hasher(blake2_128_concat) T::AccountId => T::Balance;
 	}
 	add_extra_genesis {
 		config(endowed_accounts): Vec<(T::AccountId, T::CurrencyId, T::Balance)>;
