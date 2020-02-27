@@ -10,7 +10,7 @@ use sp_runtime::{
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use sp_runtime::traits::SaturatedConversion;
 
-/// An unsigned fixed point number. Can hold any value in the range [-170_141_183_460_469_231_731, 170_141_183_460_469_231_731]
+/// An signed fixed point number. Can hold any value in the range [-170_141_183_460_469_231_731, 170_141_183_460_469_231_731]
 /// with fixed point accuracy of 10 ** 18.
 #[derive(Encode, Decode, Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Fixed128(i128);
@@ -54,7 +54,7 @@ impl Fixed128 {
 		)
 	}
 
-	/// Consume self and return the inner raw `u128` value.
+	/// Consume self and return the inner raw `i128` value.
 	///
 	/// Note this is a low level function, as the returned value is represented with accuracy.
 	pub fn deconstruct(self) -> i128 {
@@ -87,10 +87,9 @@ impl Fixed128 {
 		if rhs.is_negative() {
 			rhs = rhs.saturating_mul(-1);
 		}
-		let div = u128::try_from(DIV).unwrap();
 		if let Some(r) = U256::from(lhs)
 			.checked_mul(U256::from(rhs))
-			.and_then(|n| n.checked_div(U256::from(div)))
+			.and_then(|n| n.checked_div(U256::from(DIV)))
 		{
 			if let Ok(r) = TryInto::<i128>::try_into(r) {
 				return Some(Self(r * signum));
@@ -114,9 +113,8 @@ impl Fixed128 {
 		if rhs.is_negative() {
 			rhs = rhs.saturating_mul(-1);
 		}
-		let div = u128::try_from(DIV).unwrap();
 		if let Some(r) = U256::from(lhs)
-			.checked_mul(U256::from(div))
+			.checked_mul(U256::from(DIV))
 			.and_then(|n| n.checked_div(U256::from(rhs)))
 		{
 			if let Ok(r) = TryInto::<i128>::try_into(r) {
@@ -253,7 +251,7 @@ impl Fixed128 {
 	}
 }
 
-// Manual impl `Serialize` as serde_json does not support u128.
+// Manual impl `Serialize` as serde_json does not support i128.
 // TODO: remove impl if issue https://github.com/serde-rs/json/issues/548 fixed.
 #[cfg(feature = "std")]
 impl Serialize for Fixed128 {
@@ -265,7 +263,7 @@ impl Serialize for Fixed128 {
 	}
 }
 
-// Manual impl `Serialize` as serde_json does not support u128.
+// Manual impl `Serialize` as serde_json does not support i128.
 // TODO: remove impl if issue https://github.com/serde-rs/json/issues/548 fixed.
 #[cfg(feature = "std")]
 impl<'de> Deserialize<'de> for Fixed128 {
