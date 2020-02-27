@@ -79,7 +79,7 @@ impl Fixed128 {
 	/// Checked mul. Same semantic to `num_traits::CheckedMul`.
 	pub fn checked_mul(&self, rhs: &Self) -> Option<Self> {
 		let signum = self.0.signum() * rhs.0.signum();
-		let mut lhs: i128 = self.0.saturated_into();
+		let mut lhs = self.0;
 		if lhs.is_negative() {
 			lhs = lhs.saturating_mul(-1);
 		}
@@ -105,7 +105,7 @@ impl Fixed128 {
 			return None;
 		}
 		let signum = self.0.signum() / rhs.0.signum();
-		let mut lhs: i128 = self.0.saturated_into();
+		let mut lhs: i128 = self.0;
 		if lhs.is_negative() {
 			lhs = lhs.saturating_mul(-1);
 		}
@@ -131,7 +131,7 @@ impl Fixed128 {
 		N: Copy + TryFrom<i128> + TryInto<i128>,
 	{
 		if let Ok(rhs) = N::try_into(*other) {
-			let mut lhs: i128 = self.0.saturated_into();
+			let mut lhs = self.0;
 			if lhs.is_negative() {
 				lhs = lhs.saturating_mul(-1);
 			}
@@ -160,13 +160,17 @@ impl Fixed128 {
 		N: Copy + TryFrom<i128> + TryInto<i128> + Bounded,
 	{
 		self.checked_mul_int(other).unwrap_or_else(|| {
-			if let Ok(n) = N::try_into(*other) {
-				let signum = self.0.signum() * n.signum();
-				if signum.is_negative() {
-					return Bounded::min_value();
-				}
-			}
-			Bounded::max_value()
+			N::try_into(*other)
+				.map(|n| n.signum())
+				.map(|n| n * self.0.signum())
+				.map(|signum| {
+					if signum.is_negative() {
+						Bounded::min_value()
+					} else {
+						Bounded::max_value()
+					}
+				})
+				.unwrap_or(Bounded::max_value())
 		})
 	}
 
