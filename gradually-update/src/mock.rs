@@ -35,9 +35,7 @@ parameter_types! {
 }
 
 pub type AccountId = u64;
-pub type Balance = u64;
 pub type BlockNumber = u64;
-pub type AuctionId = u64;
 
 impl frame_system::Trait for Runtime {
 	type Origin = Origin;
@@ -60,6 +58,7 @@ impl frame_system::Trait for Runtime {
 	type OnNewAccount = ();
 	type OnReapAccount = ();
 }
+pub type System = system::Module<Runtime>;
 
 parameter_types! {
 	pub const UpdateFrequency: BlockNumber = 10;
@@ -70,8 +69,6 @@ impl Trait for Runtime {
 	type UpdateFrequency = UpdateFrequency;
 }
 pub type GraduallyUpdateModule = Module<Runtime>;
-
-pub const ALICE: AccountId = 1;
 
 pub struct ExtBuilder;
 

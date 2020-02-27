@@ -12,9 +12,11 @@ frame-system = { git = "https://github.com/paritytech/substrate.git", default-fe
 sp-runtime = { git = "https://github.com/paritytech/substrate.git", default-features = false }
 sp-state-machine = { git = "https://github.com/paritytech/substrate.git", optional = true }
 sp-io = { package = "sp-io", git = "https://github.com/paritytech/substrate.git", default-features = false }
+rstd = { package = "sp-std", git = "https://github.com/paritytech/substrate.git", default-features = false }
 
 [dev-dependencies]
 primitives = { package = "sp-core",  git = "https://github.com/paritytech/substrate.git", default-features = false }
+orml-utilities = { path = "../utilities", default-features = false }
 
 [features]
 default = ["std"]
@@ -22,6 +24,7 @@ std = [
 	"codec/std",
 	"frame-support/std",
 	"frame-system/std",
+	"rstd/std",
 	"sp-io/std",
 	"sp-runtime/std",
 	"sp-state-machine",
