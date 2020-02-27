@@ -10,8 +10,8 @@ use sp_runtime::{
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use sp_runtime::traits::SaturatedConversion;
 
-/// An signed fixed point number. Can hold any value in the range [-170_141_183_460_469_231_731, 170_141_183_460_469_231_731]
-/// with fixed point accuracy of 10 ** 18.
+/// A signed fixed-point number. Can hold any value in the range [-170_141_183_460_469_231_731, 170_141_183_460_469_231_731]
+/// with fixed-point accuracy of 10 ** 18.
 #[derive(Encode, Decode, Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Fixed128(i128);
 
@@ -285,6 +285,10 @@ mod tests {
 		Fixed128::from_parts(i128::max_value())
 	}
 
+	fn min() -> Fixed128 {
+		Fixed128::from_parts(i128::min_value())
+	}
+
 	#[test]
 	fn fixed128_semantics() {
 		assert_eq!(Fixed128::from_rational(5, 2).0, 5 * 1_000_000_000_000_000_000 / 2);
@@ -294,6 +298,10 @@ mod tests {
 		// biggest value that can be created.
 		assert_ne!(max(), Fixed128::from_natural(170_141_183_460_469_231_731));
 		assert_eq!(max(), Fixed128::from_natural(170_141_183_460_469_231_732));
+
+		// the smallest value that can be created.
+		assert_ne!(min(), Fixed128::from_natural(-170_141_183_460_469_231_731));
+		assert_eq!(min(), Fixed128::from_natural(-170_141_183_460_469_231_732));
 	}
 
 	#[test]
@@ -313,59 +321,45 @@ mod tests {
 		assert_eq!(a.checked_div(&b), Some(Fixed128::from_rational(10, 6)));
 
 		let a = Fixed128::from_natural(120);
-		let b = 2i32;
-		assert_eq!(a.checked_div_int::<i32>(&b), Some(60));
+		assert_eq!(a.checked_div_int(&2i32), Some(60));
 
 		let a = Fixed128::from_rational(20, 1);
-		let b = 2i32;
-		assert_eq!(a.checked_div_int::<i32>(&b), Some(10));
+		assert_eq!(a.checked_div_int(&2i32), Some(10));
 
 		let a = Fixed128::from_natural(120);
-		let b = 2i32;
-		assert_eq!(a.checked_mul_int::<i32>(&b), Some(240));
+		assert_eq!(a.checked_mul_int(&2i32), Some(240));
 
 		let a = Fixed128::from_rational(1, 2);
-		let b = 20i32;
-		assert_eq!(a.checked_mul_int::<i32>(&b), Some(10));
+		assert_eq!(a.checked_mul_int(&20i32), Some(10));
 
 		let a = Fixed128::from_rational(-1, 2);
-		let b = 20i32;
-		assert_eq!(a.checked_mul_int::<i32>(&b), Some(-10));
+		assert_eq!(a.checked_mul_int(&20i32), Some(-10));
 	}
 
 	#[test]
 	fn saturating_mul_int_works() {
 		let a = Fixed128::from_rational(10, 1);
-		let b = i32::max_value() / 5;
-		assert_eq!(a.saturating_mul_int(&b), i32::max_value());
+		assert_eq!(a.saturating_mul_int(&i32::max_value()), i32::max_value());
 
 		let a = Fixed128::from_rational(-10, 1);
-		let b = i32::max_value() / 5;
-		assert_eq!(a.saturating_mul_int(&b), i32::min_value());
+		assert_eq!(a.saturating_mul_int(&i32::max_value()), i32::min_value());
 
 		let a = Fixed128::from_rational(3, 1);
-		let b = 100i8;
-		assert_eq!(a.saturating_mul_int(&b), i8::max_value());
+		assert_eq!(a.saturating_mul_int(&100i8), i8::max_value());
 
 		let a = Fixed128::from_rational(10, 1);
-		let b = 123;
-		assert_eq!(a.saturating_mul_int(&b), 1230);
+		assert_eq!(a.saturating_mul_int(&123i128), 1230);
 
 		let a = Fixed128::from_rational(-10, 1);
-		let b = 123;
-		assert_eq!(a.saturating_mul_int(&b), -1230);
+		assert_eq!(a.saturating_mul_int(&123i128), -1230);
 
-		let b = 2i128;
-		assert_eq!(max().saturating_mul_int(&b), 340_282_366_920_938_463_463);
+		assert_eq!(max().saturating_mul_int(&2i128), 340_282_366_920_938_463_463);
 
-		let b = i128::min_value();
-		assert_eq!(max().saturating_mul_int(&b), i128::min_value());
+		assert_eq!(max().saturating_mul_int(&i128::min_value()), i128::min_value());
 
-		let b = Fixed128::from_parts(i128::min_value());
-		assert_eq!(b.saturating_mul_int(&i128::max_value()), i128::min_value());
+		assert_eq!(min().saturating_mul_int(&i128::max_value()), i128::min_value());
 
-		let b = Fixed128::from_parts(i128::min_value());
-		assert_eq!(b.saturating_mul_int(&i128::min_value()), i128::max_value());
+		assert_eq!(min().saturating_mul_int(&i128::min_value()), i128::max_value());
 	}
 
 	#[test]
@@ -389,15 +383,13 @@ mod tests {
 	#[test]
 	fn checked_div_int_with_zero_should_be_none() {
 		let a = Fixed128::from_natural(1);
-		let b = 0i32;
-		assert_eq!(a.checked_div_int(&b), None);
+		assert_eq!(a.checked_div_int(&0i32), None);
 	}
 
 	#[test]
 	fn under_flow_should_be_none() {
-		let a = Fixed128::from_parts(i128::min_value());
 		let b = Fixed128::from_natural(1);
-		assert_eq!(a.checked_sub(&b), None);
+		assert_eq!(min().checked_sub(&b), None);
 	}
 
 	#[test]
@@ -425,29 +417,43 @@ mod tests {
 
 	#[test]
 	fn checked_div_int_should_work() {
+		// 256 / 10 = 25 (25.6 as int = 25)
 		let a = Fixed128::from_natural(256);
-		let b = 10i128;
-		assert_eq!(a.checked_div_int(&b), Some(25));
+		let result = a.checked_div_int(&10i128).unwrap();
+		assert_eq!(result, 25);
 
+		// 256 / 100 = 2 (2.56 as int = 2)
 		let a = Fixed128::from_natural(256);
-		let b = 100i128;
-		assert_eq!(a.checked_div_int(&b), Some(2));
+		let result = a.checked_div_int(&100i128).unwrap();
+		assert_eq!(result, 2);
 
+		// 256 / 1000 = 0 (0.256 as int = 0)
 		let a = Fixed128::from_natural(256);
-		let b = 1000i128;
-		assert_eq!(a.checked_div_int(&b), Some(0));
+		let result = a.checked_div_int(&1000i128).unwrap();
+		assert_eq!(result, 0);
 
+		// 256 / -1 = -256
 		let a = Fixed128::from_natural(256);
-		let b = -1i128;
-		assert_eq!(a.checked_div_int(&b), Some(-256));
+		let result = a.checked_div_int(&-1i128).unwrap();
+		assert_eq!(result, -256);
 
-		let a = Fixed128::from_rational(20, 2);
-		let b = -5i128;
-		assert_eq!(a.checked_div_int(&b), Some(-2));
-
+		// -256 / -1 = 256
 		let a = Fixed128::from_natural(-256);
-		let b = -1i128;
-		assert_eq!(a.checked_div_int(&b), Some(256));
+		let result = a.checked_div_int(&-1i128).unwrap();
+		assert_eq!(result, 256);
+
+		// 10 / -5 = -2
+		let a = Fixed128::from_rational(20, 2);
+		let result = a.checked_div_int(&-5i128).unwrap();
+		assert_eq!(result, -2);
+
+		// -170_141_183_460_469_231_731 / -2 = 85_070_591_730_234_615_865
+		let result = min().checked_div_int(&-2i128).unwrap();
+		assert_eq!(result, 85_070_591_730_234_615_865);
+
+		// 85_070_591_730_234_615_865 * -2 = -170_141_183_460_469_231_730
+		let result = Fixed128::from_natural(result).checked_mul_int(&-2i128).unwrap();
+		assert_eq!(result, -170_141_183_460_469_231_730);
 	}
 
 	#[test]
