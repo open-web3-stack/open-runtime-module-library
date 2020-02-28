@@ -38,18 +38,19 @@ impl Fixed128 {
 	/// Creates self from a rational number. Equal to `n/d`.
 	///
 	/// Note that this might be lossy.
-	pub fn from_rational<N: UniqueSaturatedInto<i128>>(n: N, d: N) -> Self {
+	pub fn from_rational<N: UniqueSaturatedInto<i128>>(n: N, d: u128) -> Self {
 		// TODO: Should have a better way to enforce this requirement
 		let n = n.unique_saturated_into();
-		let d = d.unique_saturated_into();
+		let d: i128 = d.unique_saturated_into();
 		Self(
 			(n.saturating_mul(DIV.into()) / d.max(1))
 				.try_into()
 				.unwrap_or_else(|_| {
-					if (n.signum() / d.max(1)).is_negative() {
-						return Bounded::min_value();
+					if n.is_negative() {
+						Bounded::min_value()
+					} else {
+						Bounded::max_value()
 					}
-					Bounded::max_value()
 				}),
 		)
 	}
@@ -113,16 +114,11 @@ impl Fixed128 {
 		if rhs.is_negative() {
 			rhs = rhs.saturating_mul(-1);
 		}
-		if let Some(r) = U256::from(lhs)
+		U256::from(lhs)
 			.checked_mul(U256::from(DIV))
 			.and_then(|n| n.checked_div(U256::from(rhs)))
-		{
-			if let Ok(r) = TryInto::<i128>::try_into(r) {
-				return Some(Self(r / signum));
-			}
-		}
-
-		None
+			.and_then(|n| TryInto::<i128>::try_into(n).ok())
+			.map(|n| Self(n / signum))
 	}
 
 	/// Checked mul for int type `N`.
@@ -130,7 +126,7 @@ impl Fixed128 {
 	where
 		N: Copy + TryFrom<i128> + TryInto<i128>,
 	{
-		if let Ok(rhs) = N::try_into(*other) {
+		N::try_into(*other).ok().and_then(|rhs| {
 			let mut lhs = self.0;
 			if lhs.is_negative() {
 				lhs = lhs.saturating_mul(-1);
@@ -140,18 +136,13 @@ impl Fixed128 {
 			if rhs.is_negative() {
 				rhs = rhs.saturating_mul(-1);
 			}
-			if let Some(result) = U256::from(lhs)
+
+			U256::from(lhs)
 				.checked_mul(U256::from(rhs))
 				.and_then(|n| n.checked_div(U256::from(DIV)))
-			{
-				if let Ok(r) = TryInto::<i128>::try_into(result) {
-					if let Ok(r) = TryInto::<N>::try_into(r * signum) {
-						return Some(r);
-					}
-				}
-			}
-		}
-		None
+				.and_then(|n| TryInto::<i128>::try_into(n).ok())
+				.and_then(|n| TryInto::<N>::try_into(n * signum).ok())
+		})
 	}
 
 	/// Checked mul for int type `N`.
@@ -179,15 +170,11 @@ impl Fixed128 {
 	where
 		N: Copy + TryFrom<i128> + TryInto<i128>,
 	{
-		if let Ok(n) = N::try_into(*other) {
-			if let Some(n) = self.0.checked_div(n).and_then(|n| n.checked_div(DIV)) {
-				if let Ok(r) = TryInto::<N>::try_into(n) {
-					return Some(r);
-				}
-			}
-		}
-
-		None
+		N::try_into(*other)
+			.ok()
+			.and_then(|n| self.0.checked_div(n))
+			.and_then(|n| n.checked_div(DIV))
+			.and_then(|n| TryInto::<N>::try_into(n).ok())
 	}
 
 	pub fn zero() -> Self {
@@ -215,11 +202,11 @@ impl Saturating for Fixed128 {
 
 impl Bounded for Fixed128 {
 	fn min_value() -> Self {
-		Self(i128::min_value())
+		Self(Bounded::min_value())
 	}
 
 	fn max_value() -> Self {
-		Self(i128::max_value())
+		Self(Bounded::max_value())
 	}
 }
 
@@ -237,7 +224,7 @@ impl rstd::fmt::Debug for Fixed128 {
 
 impl<P: PerThing> From<P> for Fixed128 {
 	fn from(val: P) -> Self {
-		let accuracy = P::ACCURACY.saturated_into() as i128;
+		let accuracy = P::ACCURACY.saturated_into() as u128;
 		let value = val.deconstruct().saturated_into() as i128;
 		Fixed128::from_rational(value, accuracy)
 	}
@@ -286,11 +273,11 @@ mod tests {
 	use sp_runtime::{Perbill, Percent, Permill, Perquintill};
 
 	fn max() -> Fixed128 {
-		Fixed128::from_parts(i128::max_value())
+		Fixed128::max_value()
 	}
 
 	fn min() -> Fixed128 {
-		Fixed128::from_parts(i128::min_value())
+		Fixed128::min_value()
 	}
 
 	#[test]
@@ -298,6 +285,7 @@ mod tests {
 		assert_eq!(Fixed128::from_rational(5, 2).0, 5 * 1_000_000_000_000_000_000 / 2);
 		assert_eq!(Fixed128::from_rational(5, 2), Fixed128::from_rational(10, 4));
 		assert_eq!(Fixed128::from_rational(5, 0), Fixed128::from_rational(5, 1));
+		assert_eq!(Fixed128::from_rational(-5, 0), Fixed128::from_natural(-5));
 
 		// biggest value that can be created.
 		assert_ne!(max(), Fixed128::from_natural(170_141_183_460_469_231_731));
