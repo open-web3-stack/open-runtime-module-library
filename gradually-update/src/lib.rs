@@ -4,8 +4,9 @@ use codec::{Decode, Encode};
 use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, storage, traits::Get};
 use frame_system::{self as system, ensure_root};
 
-use sp_runtime::RuntimeDebug;
+use sp_runtime::{traits::SaturatedConversion, RuntimeDebug};
 use sp_state_machine::{StorageKey, StorageValue};
+use sp_std::prelude::Vec;
 
 mod mock;
 mod tests;
@@ -86,7 +87,7 @@ decl_module! {
 				.filter(|item| item.key != key)
 				.collect();
 
-			ensure!(GraduallyUpdates::get().len() - gradually_updates.len() == 1, Error::<T>::CancelGradullyUpdateNotExisted);
+			ensure!(GraduallyUpdates::decode_len().unwrap_or_default() - gradually_updates.len() == 1, Error::<T>::CancelGradullyUpdateNotExisted);
 			GraduallyUpdates::put(gradually_updates);
 
 			Self::deposit_event(RawEvent::CancelGraduallyUpdate(key));
@@ -110,8 +111,8 @@ impl<T: Trait> Module<T> {
 			let current_value = storage::unhashed::get::<StorageValue>(&update.key).unwrap_or_default();
 			let current_value_u128 = u128::from_le_bytes(Self::convert_vec_to_u8(&current_value));
 
-			let frequency_u128 =
-				u128::from_le_bytes(Self::convert_vec_to_u8(&T::UpdateFrequency::get().encode().to_vec()));
+			let frequency_u128: u128 = T::UpdateFrequency::get().saturated_into();
+
 			let step = u128::from_le_bytes(Self::convert_vec_to_u8(&update.per_block));
 			let step_u128 = step.checked_mul(frequency_u128).unwrap();
 
@@ -138,7 +139,7 @@ impl<T: Trait> Module<T> {
 		}
 
 		// gradually_update has finished. Remove it from GraduallyUpdates.
-		if gradually_updates.len() < GraduallyUpdates::get().len() {
+		if gradually_updates.len() < GraduallyUpdates::decode_len().unwrap_or_default() {
 			GraduallyUpdates::put(gradually_updates);
 		}
 

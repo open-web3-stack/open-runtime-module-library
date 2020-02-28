@@ -3,8 +3,8 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::assert_ok;
-use mock::{ExtBuilder, GraduallyUpdateModule, Origin, System, TestEvent};
+use frame_support::{assert_noop, assert_ok};
+use mock::{ExtBuilder, GraduallyUpdateModule, Origin, Runtime, System, TestEvent};
 use orml_utilities::FixedU128;
 use sp_runtime::{traits::OnFinalize, Permill};
 
@@ -38,6 +38,33 @@ fn gradually_update_should_work() {
 }
 
 #[test]
+fn gradually_update_should_fail() {
+	ExtBuilder::default().build().execute_with(|| {
+		let update = GraduallyUpdate {
+			key: vec![1],
+			target_value: 9u32.encode(),
+			per_block: 1u64.encode(),
+		};
+		assert_noop!(
+			GraduallyUpdateModule::gradually_update(Origin::ROOT, update.clone()),
+			Error::<Runtime>::InvalidTargetValue
+		);
+
+		let update = GraduallyUpdate {
+			key: vec![1],
+			target_value: 9u32.encode(),
+			per_block: 1u32.encode(),
+		};
+		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::ROOT, update.clone()));
+
+		assert_noop!(
+			GraduallyUpdateModule::gradually_update(Origin::ROOT, update.clone()),
+			Error::<Runtime>::GraduallyUpdateHasExisted
+		);
+	});
+}
+
+#[test]
 fn cancel_gradually_update_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let update = GraduallyUpdate {
@@ -63,6 +90,28 @@ fn cancel_gradually_update_should_work() {
 		assert!(System::events()
 			.iter()
 			.any(|record| record.event == cancel_gradually_update_event));
+	});
+}
+
+#[test]
+fn cancel_gradually_update_should_fail() {
+	ExtBuilder::default().build().execute_with(|| {
+		let update = GraduallyUpdate {
+			key: vec![1],
+			target_value: 9u32.encode(),
+			per_block: 1u32.encode(),
+		};
+		assert_noop!(
+			GraduallyUpdateModule::cancel_gradually_update(Origin::ROOT, update.key.clone()),
+			Error::<Runtime>::CancelGradullyUpdateNotExisted
+		);
+
+		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::ROOT, update.clone()));
+
+		assert_ok!(GraduallyUpdateModule::cancel_gradually_update(
+			Origin::ROOT,
+			update.key.clone()
+		));
 	});
 }
 
