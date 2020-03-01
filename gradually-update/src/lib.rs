@@ -5,11 +5,13 @@ use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, s
 use frame_system::{self as system, ensure_root};
 
 use sp_runtime::{traits::SaturatedConversion, RuntimeDebug};
-use sp_state_machine::{StorageKey, StorageValue};
 use sp_std::prelude::Vec;
 
 mod mock;
 mod tests;
+
+type StorageKey = Vec<u8>;
+type StorageValue = Vec<u8>;
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub struct GraduallyUpdate {
@@ -47,6 +49,7 @@ decl_event!(
 decl_error! {
 	/// Error for gradually-update module.
 	pub enum Error for Module<T: Trait> {
+		InvalidPerBlockOrTargetValue,
 		InvalidTargetValue,
 		GraduallyUpdateHasExisted,
 		CancelGradullyUpdateNotExisted,
@@ -66,8 +69,12 @@ decl_module! {
 			ensure_root(origin)?;
 
 			// Support max value is u128, ensure per_block and target_value <= 16 bytes.
-			// If current_value is zero, it's length is zero, so can't compare with target_value.len().
-			ensure!(update.per_block.len() == update.target_value.len() && update.per_block.len() <= 16, Error::<T>::InvalidTargetValue);
+			ensure!(update.per_block.len() == update.target_value.len() && update.per_block.len() <= 16, Error::<T>::InvalidPerBlockOrTargetValue);
+
+			if storage::unhashed::exists(&update.key) {
+				let current_value = storage::unhashed::get::<StorageValue>(&update.key).unwrap();
+				ensure!(current_value.len() == update.target_value.len(), Error::<T>::InvalidTargetValue);
+			}
 
 			let mut gradually_updates = GraduallyUpdates::get();
 			ensure!(!gradually_updates.contains(&update), Error::<T>::GraduallyUpdateHasExisted);
@@ -146,7 +153,7 @@ impl<T: Trait> Module<T> {
 		GraduallyUpdateBlockNumber::<T>::put(now);
 	}
 
-	fn convert_vec_to_u8(input: &Vec<u8>) -> [u8; 16] {
+	fn convert_vec_to_u8(input: &StorageValue) -> [u8; 16] {
 		let mut array: [u8; 16] = [0; 16];
 		for (i, v) in input.iter().enumerate() {
 			array[i] = v.clone();

@@ -47,15 +47,27 @@ fn gradually_update_should_fail() {
 		};
 		assert_noop!(
 			GraduallyUpdateModule::gradually_update(Origin::ROOT, update.clone()),
-			Error::<Runtime>::InvalidTargetValue
+			Error::<Runtime>::InvalidPerBlockOrTargetValue
 		);
 
 		let update = GraduallyUpdate {
 			key: vec![1],
-			target_value: 9u32.encode(),
+			target_value: 90u32.encode(),
 			per_block: 1u32.encode(),
 		};
 		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::ROOT, update.clone()));
+
+		GraduallyUpdateModule::on_finalize(20);
+
+		let new_update = GraduallyUpdate {
+			key: vec![1],
+			target_value: 9u64.encode(),
+			per_block: 1u64.encode(),
+		};
+		assert_noop!(
+			GraduallyUpdateModule::gradually_update(Origin::ROOT, new_update.clone()),
+			Error::<Runtime>::InvalidTargetValue
+		);
 
 		assert_noop!(
 			GraduallyUpdateModule::gradually_update(Origin::ROOT, update.clone()),
