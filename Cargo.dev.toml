@@ -8,4 +8,5 @@ members = [
 	"currencies",
 	"auction",
 	"vesting",
+	"gradually-update",
 ]
