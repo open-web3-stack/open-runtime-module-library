@@ -6,7 +6,7 @@ use frame_support::{
 };
 use rstd::{convert::TryInto, marker};
 use sp_runtime::{
-	traits::{CheckedSub, StaticLookup},
+	traits::{CheckedSub, StaticLookup, Zero},
 	DispatchResult,
 };
 // FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
@@ -106,8 +106,6 @@ decl_module! {
 			ensure_root(origin)?;
 			let dest = T::Lookup::lookup(who)?;
 			<Self as MultiCurrencyExtended<T::AccountId>>::update_balance(currency_id, &dest, amount)?;
-
-			Self::deposit_event(RawEvent::BalanceUpdated(currency_id, dest, amount));
 		}
 	}
 }
@@ -148,6 +146,9 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		to: &T::AccountId,
 		amount: Self::Balance,
 	) -> DispatchResult {
+		if amount.is_zero() {
+			return Ok(());
+		}
 		if currency_id == T::GetNativeCurrencyId::get() {
 			T::NativeCurrency::transfer(from, to, amount)?;
 		} else {
@@ -158,6 +159,9 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	}
 
 	fn deposit(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
+		if amount.is_zero() {
+			return Ok(());
+		}
 		if currency_id == T::GetNativeCurrencyId::get() {
 			T::NativeCurrency::deposit(who, amount)?;
 		} else {
@@ -168,6 +172,9 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	}
 
 	fn withdraw(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
+		if amount.is_zero() {
+			return Ok(());
+		}
 		if currency_id == T::GetNativeCurrencyId::get() {
 			T::NativeCurrency::withdraw(who, amount)?;
 		} else {
@@ -191,10 +198,12 @@ impl<T: Trait> MultiCurrencyExtended<T::AccountId> for Module<T> {
 
 	fn update_balance(currency_id: Self::CurrencyId, who: &T::AccountId, by_amount: Self::Amount) -> DispatchResult {
 		if currency_id == T::GetNativeCurrencyId::get() {
-			T::NativeCurrency::update_balance(who, by_amount)
+			T::NativeCurrency::update_balance(who, by_amount)?;
 		} else {
-			T::MultiCurrency::update_balance(currency_id, who, by_amount)
+			T::MultiCurrency::update_balance(currency_id, who, by_amount)?;
 		}
+		Self::deposit_event(RawEvent::BalanceUpdated(currency_id, who.clone(), by_amount));
+		Ok(())
 	}
 }
 
