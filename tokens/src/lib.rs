@@ -1,3 +1,36 @@
+//! # Tokens Module
+//!
+//! ## Overview
+//!
+//! The tokens module provides fungible multi-currency functionality that implements `MultiCurrency` trait.
+//!
+//! The tokens module provides functions for:
+//!
+//! - Querying and setting the balance of a given account.
+//! - Getting and managing total issuance.
+//! - Balance transfer between accounts.
+//! - Depositing and withdrawing balance.
+//! - Slashing an account balance.
+//!
+//! ### Implementations
+//!
+//! The tokens module provides implementations for following traits.
+//!
+//! - `MultiCurrency` - Abstraction over a fungible multi-currency system.
+//! - `MultiCurrencyExtended` - Extended `MultiCurrency` with additional helper types and methods, like updating balance
+//! by a given signed integer amount.
+//!
+//! ## Interface
+//!
+//! ### Dispatchable Functions
+//!
+//! - `transfer` - Transfer some balance to another account.
+//! - `transfer_all` - Transfer all balance to another account.
+//!
+//! ### Genesis Config
+//!
+//! The tokens module depends on the `GenesisConfig`. Endowed accounts could be configured in genesis configs.
+
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, traits::Get, Parameter};
