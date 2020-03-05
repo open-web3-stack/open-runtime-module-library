@@ -17,6 +17,8 @@ The Open Runtime Module Library (ORML) is a community maintained collection of S
 	- Provide basic asset price abstraction.
 - orml-auction
 	- Auction module that implements `Auction` trait.
+- orml-vesting
+    - Provides scheduled balance locking mechanism, in a *graded vesting* way.
 
 ## Makefile targets
 
