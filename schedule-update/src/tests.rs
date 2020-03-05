@@ -39,6 +39,17 @@ fn schedule_dispatch_should_work() {
 }
 
 #[test]
+fn schedule_dispatch_should_fail() {
+	ExtBuilder::default().build().execute_with(|| {
+		let call = Call::Balances(BalancesCall::transfer(2, 11));
+		assert_noop!(
+			ScheduleUpdateModule::schedule_dispatch(Origin::signed(1), call, DelayedDispatchTime::At(0)),
+			Error::<Runtime>::InvalidDelayedDispatchTime
+		);
+	});
+}
+
+#[test]
 fn cancel_deplayed_dispatch_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		// NormalDispatches

@@ -22,6 +22,9 @@ primitives = { package = "sp-core",  git = "https://github.com/paritytech/substr
 
 clear_on_drop = { version = "0.2.3", features = ["no_cc"] }	# https://github.com/paritytech/substrate/issues/4179
 
+# CI failed. Caused by issue: https://github.com/withoutboats/failure_derive/issues/13
+quote = "=1.0.2"
+
 [features]
 default = ["std"]
 std = [

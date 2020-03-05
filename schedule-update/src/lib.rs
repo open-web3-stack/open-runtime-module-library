@@ -4,13 +4,14 @@ use codec::{Decode, Encode};
 use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage,
 	dispatch::Weight,
+	ensure,
 	traits::Get,
 	weights::{DispatchClass, GetDispatchInfo},
 	Parameter,
 };
 use frame_system::{self as system, ensure_root, ensure_signed};
 use sp_runtime::{
-	traits::{Dispatchable, One},
+	traits::{CheckedAdd, Dispatchable, One},
 	DispatchError, RuntimeDebug,
 };
 use sp_std::{prelude::*, result};
@@ -53,17 +54,20 @@ decl_error! {
 	/// Error for schedule-update module.
 	pub enum Error for Module<T: Trait> {
 		BadOrigin,
+		InvalidDelayedDispatchTime,
 		CannotGetNextId,
 		NoPermission,
 		DispatchNotExisted,
+		BlockNumberOverflow,
+		ExceedMaxScheduleDispatchWeight,
 	}
 }
 
 decl_storage! {
 	trait Store for Module<T: Trait> as ScheduleUpdate {
 		pub NextId get(fn next_id): DispatchId;
-		pub DelayedNormalDispatches get(fn delayed_normal_dispatches): double_map hasher(blake2_256) T::BlockNumber, hasher(blake2_256) DispatchId => (Option<T::AccountId>, CallOf<T>, DispatchId);
-		pub DelayedOperationalDispatches get(fn delayed_operational_dispatches): double_map hasher(blake2_256) T::BlockNumber, hasher(blake2_256) DispatchId => (Option<T::AccountId>, CallOf<T>, DispatchId);
+		pub DelayedNormalDispatches get(fn delayed_normal_dispatches): double_map hasher(twox_64_concat) T::BlockNumber, hasher(twox_64_concat) DispatchId => (Option<T::AccountId>, CallOf<T>, DispatchId);
+		pub DelayedOperationalDispatches get(fn delayed_operational_dispatches): double_map hasher(twox_64_concat) T::BlockNumber, hasher(twox_64_concat) DispatchId => (Option<T::AccountId>, CallOf<T>, DispatchId);
 	}
 }
 
@@ -77,25 +81,24 @@ decl_module! {
 
 		/// Add schedule_update at block_number
 		pub fn schedule_dispatch(origin, call: CallOf<T>, when: DelayedDispatchTime<T::BlockNumber>) {
-			let who: Option<T::AccountId>;
-			if ensure_signed(origin.clone()).is_ok() {
-				who = ensure_signed(origin.clone()).ok();
-			} else if ensure_root(origin.clone()).is_ok() {
-				who = None;
-			} else {
-				return Err(Error::<T>::BadOrigin.into());
-			}
+			let who = match origin.into() {
+				Ok(frame_system::RawOrigin::Root) => None,
+				Ok(frame_system::RawOrigin::Signed(t)) => Some(t),
+				_ => return Err(Error::<T>::BadOrigin.into())
+			};
 
-			let id = Self::_get_next_id()?;
-
+			let now = <frame_system::Module<T>>::block_number();
 			let block_number = match when {
 				DelayedDispatchTime::At(block_number) => {
+					ensure!(block_number > now, Error::<T>::InvalidDelayedDispatchTime);
 					block_number
 				},
 				DelayedDispatchTime::After(block_count) => {
-					<frame_system::Module<T>>::block_number() + block_count
+					now.checked_add(&block_count).ok_or(Error::<T>::BlockNumberOverflow)?
 				},
 			};
+
+			let id = Self::_get_next_id()?;
 
 			match call.get_dispatch_info().class {
 				DispatchClass::Normal => {
@@ -142,11 +145,11 @@ decl_module! {
 
 			// Operational calls are dispatched first and then normal calls
 			// TODO: dispatches should be sorted
-			let operational_dispatches = <DelayedOperationalDispatches<T>>::iter_prefix(now);
-			operational_dispatches.for_each(|(who, call, id)| {
+			let mut operational_dispatches = <DelayedOperationalDispatches<T>>::iter_prefix(now);
+			let _ = operational_dispatches.try_for_each(|(who, call, id)| {
 				weight += call.get_dispatch_info().weight;
 				if weight > total_weight {
-					return;
+					return Err(Error::<T>::ExceedMaxScheduleDispatchWeight);
 				}
 
 				let origin: T::Origin;
@@ -163,13 +166,14 @@ decl_module! {
 					 Self::deposit_event(RawEvent::ScheduleDispatchSuccess(now, id));
 				}
 				<DelayedOperationalDispatches<T>>::remove(now, id);
+				Ok(())
 			});
 
-			let normal_dispatches = <DelayedNormalDispatches<T>>::iter_prefix(now);
-			normal_dispatches.for_each(|(who, call, id)| {
+			let mut normal_dispatches = <DelayedNormalDispatches<T>>::iter_prefix(now);
+			let _ = normal_dispatches.try_for_each(|(who, call, id)| {
 				weight += call.get_dispatch_info().weight;
 				if weight > total_weight {
-					return;
+					return Err(Error::<T>::ExceedMaxScheduleDispatchWeight);
 				}
 
 				let origin: T::Origin;
@@ -186,6 +190,7 @@ decl_module! {
 					Self::deposit_event(RawEvent::ScheduleDispatchSuccess(now, id));
 				}
 				<DelayedNormalDispatches<T>>::remove(now, id);
+				Ok(())
 			});
 
 			// Check Call dispatch weight and ensure they don't exceed MaxScheduleDispatchWeight
