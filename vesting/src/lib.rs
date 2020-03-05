@@ -1,4 +1,4 @@
-//！ # Vesting Module
+//！# Vesting Module
 //!
 //! ## Overview
 //!
