@@ -24,19 +24,12 @@ pub enum DelayedDispatchTime<BlockNumber> {
 	After(BlockNumber),
 }
 
-//#[derive(Encode, Decode, Clone, Eq, PartialEq)]
-//pub struct DelayedDispatch<T: Trait> {
-//	origin: T::Origin,
-//	call: CallOf<T>,
-//	when: T::BlockNumber,
-//}
-
 type DispatchId = u32;
 type CallOf<T> = <T as Trait>::Call;
 
 pub trait Trait: frame_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
-	type Call: Parameter + Default + Dispatchable<Origin = Self::Origin> + GetDispatchInfo;
+	type Call: Parameter + Default + Dispatchable<Origin = <Self as frame_system::Trait>::Origin> + GetDispatchInfo;
 	type MaxScheduleDispatchWeight: Get<Weight>;
 }
 
@@ -44,22 +37,22 @@ decl_event!(
 	/// Event for schedule-update module.
 	pub enum Event<T> where
 		<T as frame_system::Trait>::BlockNumber,
-	<T as frame_system::Trait>::AccountId,
 	{
-		/// Add schedule dispatch success (AccountId, DispatchId, BlockNumber)
-		ScheduleDispatch(AccountId, DispatchId, BlockNumber),
+		/// Add schedule dispatch success (BlockNumber, DispatchId)
+		ScheduleDispatch(BlockNumber, DispatchId),
 		/// Cancel deplayed dispatch success (DispatchId)
 		CancelDeplayedDispatch(DispatchId),
-		///
-		ScheduleDispatchSuccess(AccountId, DispatchId, BlockNumber),
-		///
-		ScheduleDispatchFail(AccountId, DispatchId, DispatchError),
+		/// Schedule dispatch success (BlockNumber, DispatchId)
+		ScheduleDispatchSuccess(BlockNumber, DispatchId),
+		/// Schedule dispatch failed (DispatchId, DispatchError)
+		ScheduleDispatchFail(DispatchId, DispatchError),
 	}
 );
 
 decl_error! {
 	/// Error for schedule-update module.
 	pub enum Error for Module<T: Trait> {
+		BadOrigin,
 		CannotGetNextId,
 		NoPermission,
 		DispatchNotExisted,
@@ -69,8 +62,8 @@ decl_error! {
 decl_storage! {
 	trait Store for Module<T: Trait> as ScheduleUpdate {
 		pub NextId get(fn next_id): DispatchId;
-		pub DelayedNormalDispatches get(fn delayed_normal_dispatches): double_map hasher(blake2_256) T::BlockNumber, hasher(blake2_256) DispatchId => (T::AccountId, CallOf<T>, DispatchId);
-		pub DelayedOperationalDispatches get(fn delayed_operational_dispatches): double_map hasher(blake2_256) T::BlockNumber, hasher(blake2_256) DispatchId => (T::AccountId, CallOf<T>, DispatchId);
+		pub DelayedNormalDispatches get(fn delayed_normal_dispatches): double_map hasher(blake2_256) T::BlockNumber, hasher(blake2_256) DispatchId => (Option<T::AccountId>, CallOf<T>, DispatchId);
+		pub DelayedOperationalDispatches get(fn delayed_operational_dispatches): double_map hasher(blake2_256) T::BlockNumber, hasher(blake2_256) DispatchId => (Option<T::AccountId>, CallOf<T>, DispatchId);
 	}
 }
 
@@ -82,8 +75,16 @@ decl_module! {
 
 		const MaxScheduleDispatchWeight: Weight = T::MaxScheduleDispatchWeight::get();
 
+		/// Add schedule_update at block_number
 		pub fn schedule_dispatch(origin, call: CallOf<T>, when: DelayedDispatchTime<T::BlockNumber>) {
-			let who = ensure_signed(origin)?;
+			let who: Option<T::AccountId>;
+			if ensure_signed(origin.clone()).is_ok() {
+				who = ensure_signed(origin.clone()).ok();
+			} else if ensure_root(origin.clone()).is_ok() {
+				who = None;
+			} else {
+				return Err(Error::<T>::BadOrigin.into());
+			}
 
 			let id = Self::_get_next_id()?;
 
@@ -98,15 +99,16 @@ decl_module! {
 
 			match call.get_dispatch_info().class {
 				DispatchClass::Normal => {
-					<DelayedNormalDispatches<T>>::insert(block_number, id, (who.clone(), call, id));
+					<DelayedNormalDispatches<T>>::insert(block_number, id, (who, call, id));
 				},
 				DispatchClass::Operational => {
-					<DelayedOperationalDispatches<T>>::insert(block_number, id, (who.clone(), call, id));
+					<DelayedOperationalDispatches<T>>::insert(block_number, id, (who, call, id));
 				},
 			}
-			Self::deposit_event(RawEvent::ScheduleDispatch(who, id, block_number));
+			Self::deposit_event(RawEvent::ScheduleDispatch(block_number, id));
 		}
 
+		/// Cancel schedule_update
 		pub fn cancel_deplayed_dispatch(origin, at: T::BlockNumber, id: DispatchId) {
 			let is_root = ensure_root(origin.clone()).is_ok();
 
@@ -114,7 +116,7 @@ decl_module! {
 				if !is_root {
 					let w = ensure_signed(origin)?;
 					let (who, _, _) = <DelayedNormalDispatches<T>>::get(at, id);
-					if w != who {
+					if Some(w) != who {
 						return Err(Error::<T>::NoPermission.into());
 					}
 				}
@@ -123,7 +125,7 @@ decl_module! {
 				if !is_root {
 					let w = ensure_signed(origin)?;
 					let (who, _, _) = <DelayedOperationalDispatches<T>>::get(at, id);
-					if w != who {
+					if Some(w) != who {
 						return Err(Error::<T>::NoPermission.into());
 					}
 				}
@@ -138,6 +140,8 @@ decl_module! {
 			let mut weight: Weight = 0;
 			let total_weight = T::MaxScheduleDispatchWeight::get();
 
+			// Operational calls are dispatched first and then normal calls
+			// TODO: dispatches should be sorted
 			let operational_dispatches = <DelayedOperationalDispatches<T>>::iter_prefix(now);
 			operational_dispatches.for_each(|(who, call, id)| {
 				weight += call.get_dispatch_info().weight;
@@ -145,11 +149,18 @@ decl_module! {
 					return;
 				}
 
-				let result = call.dispatch(frame_system::RawOrigin::Signed(who.clone()).into());
-				if let Err(e) = result {
-					Self::deposit_event(RawEvent::ScheduleDispatchFail(who, id, e));
+				let origin: T::Origin;
+				if let Some(w) = who {
+					origin = frame_system::RawOrigin::Signed(w).into();
 				} else {
-					Self::deposit_event(RawEvent::ScheduleDispatchSuccess(who, id, now));
+					origin = frame_system::RawOrigin::Root.into();
+				}
+
+				let result = call.dispatch(origin.clone());
+				if let Err(e) = result {
+					 Self::deposit_event(RawEvent::ScheduleDispatchFail(id, e));
+				} else {
+					 Self::deposit_event(RawEvent::ScheduleDispatchSuccess(now, id));
 				}
 				<DelayedOperationalDispatches<T>>::remove(now, id);
 			});
@@ -161,15 +172,24 @@ decl_module! {
 					return;
 				}
 
-				let result = call.dispatch(frame_system::RawOrigin::Signed(who.clone()).into());
-				if let Err(e) = result {
-					Self::deposit_event(RawEvent::ScheduleDispatchFail(who, id, e));
+				let origin: T::Origin;
+				if let Some(w) = who {
+					origin = frame_system::RawOrigin::Signed(w).into();
 				} else {
-					Self::deposit_event(RawEvent::ScheduleDispatchSuccess(who, id, now));
+					origin = frame_system::RawOrigin::Root.into();
+				}
+
+				let result = call.dispatch(origin.clone());
+				if let Err(e) = result {
+					Self::deposit_event(RawEvent::ScheduleDispatchFail(id, e));
+				} else {
+					Self::deposit_event(RawEvent::ScheduleDispatchSuccess(now, id));
 				}
 				<DelayedNormalDispatches<T>>::remove(now, id);
 			});
 
+			// Check Call dispatch weight and ensure they don't exceed MaxScheduleDispatchWeight
+			// Extra ones are moved to next block
 			let operational_dispatches = <DelayedOperationalDispatches<T>>::iter_prefix(now);
 			operational_dispatches.for_each(|(who, call, id)| {
 				<DelayedOperationalDispatches<T>>::insert(now + One::one(), id, (who, call, id));
