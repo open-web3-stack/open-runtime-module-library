@@ -142,6 +142,10 @@ decl_module! {
 		fn on_initialize(now: T::BlockNumber) {
 			let mut weight: Weight = 0;
 			let total_weight = T::MaxScheduleDispatchWeight::get();
+			let next_block_number = match now.checked_add(&One::one()) {
+				Some(block_number) => block_number,
+				_ => return
+			};
 
 			// Operational calls are dispatched first and then normal calls
 			// TODO: dispatches should be sorted
@@ -197,13 +201,13 @@ decl_module! {
 			// Extra ones are moved to next block
 			let operational_dispatches = <DelayedOperationalDispatches<T>>::iter_prefix(now);
 			operational_dispatches.for_each(|(who, call, id)| {
-				<DelayedOperationalDispatches<T>>::insert(now + One::one(), id, (who, call, id));
+				<DelayedOperationalDispatches<T>>::insert(next_block_number, id, (who, call, id));
 				<DelayedOperationalDispatches<T>>::remove(now, id);
 			});
 
 			let normal_dispatches = <DelayedNormalDispatches<T>>::iter_prefix(now);
 			normal_dispatches.for_each(|(who, call, id)| {
-				<DelayedNormalDispatches<T>>::insert(now + One::one(), id, (who, call, id));
+				<DelayedNormalDispatches<T>>::insert(next_block_number, id, (who, call, id));
 				<DelayedNormalDispatches<T>>::remove(now, id);
 			});
 		}
