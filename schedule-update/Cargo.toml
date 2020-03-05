@@ -1,5 +1,5 @@
 [package]
-name = "orml-gradually-update"
+name = "orml-schedule-update"
 version = "0.0.1"
 authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2018"
