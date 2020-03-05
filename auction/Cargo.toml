@@ -23,9 +23,6 @@ primitives = { package = "sp-core",  version = "2.0.0-alpha.3", default-features
 clear_on_drop = { version = "0.2.3", features = ["no_cc"] }	# https://github.com/paritytech/substrate/issues/4179
 quote = "=1.0.2" # https://github.com/rust-lang-nursery/failure/issues/342
 
-# CI failed. Caused by issue: https://github.com/withoutboats/failure_derive/issues/13
-quote = "=1.0.2"
-
 [features]
 default = ["std"]
 std = [
