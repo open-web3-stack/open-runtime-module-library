@@ -1,4 +1,4 @@
-# Tokens module
+# Tokens Module
 
 ## Overview
 

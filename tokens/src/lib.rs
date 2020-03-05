@@ -1,8 +1,8 @@
-//! # Tokens module
+//! # Tokens Module
 //!
 //! ## Overview
 //!
-//! The tokens module provides fungible multi-currencies functionality that implements `MultiCurrency` trait.
+//! The tokens module provides fungible multi-currency functionality that implements `MultiCurrency` trait.
 //!
 //! The tokens module provides functions for:
 //!
@@ -13,6 +13,8 @@
 //! - Slashing an account balance.
 //!
 //! ### Implementations
+//!
+//! The tokens module provides implementations for following traits.
 //!
 //! - `MultiCurrency` - Abstraction over a fungible multi-currency system.
 //! - `MultiCurrencyExtended` - Extended `MultiCurrency` with additional helper types and methods, like updating balance
