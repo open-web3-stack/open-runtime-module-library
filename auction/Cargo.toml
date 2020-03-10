@@ -21,7 +21,6 @@ orml-utilities = { path = "../utilities", default-features = false }
 primitives = { package = "sp-core",  version = "2.0.0-alpha.3", default-features = false }
 
 clear_on_drop = { version = "0.2.3", features = ["no_cc"] }	# https://github.com/paritytech/substrate/issues/4179
-quote = "=1.0.2" # https://github.com/rust-lang-nursery/failure/issues/342
 
 [features]
 default = ["std"]
