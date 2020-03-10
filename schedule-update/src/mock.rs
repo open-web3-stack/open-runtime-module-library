@@ -1,26 +1,39 @@
-//! Mocks for the vesting module.
+//! Mocks for the schedule-update module.
 
 #![cfg(test)]
 
-use frame_support::{impl_outer_event, impl_outer_origin, parameter_types};
-use pallet_balances;
+use frame_support::{impl_outer_dispatch, impl_outer_event, impl_outer_origin, parameter_types};
+use frame_system as system;
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
 use super::*;
 
 impl_outer_origin! {
-	pub enum Origin for Runtime where system = frame_system {}
+	pub enum Origin for Runtime {}
 }
 
-mod vesting {
+mod schedule_update {
 	pub use crate::Event;
 }
+
 impl_outer_event! {
 	pub enum TestEvent for Runtime {
 		frame_system<T>,
-		vesting<T>,
+		schedule_update<T>,
 		pallet_balances<T>,
+	}
+}
+
+impl_outer_dispatch! {
+	pub enum Call for Runtime where origin: Origin {
+		pallet_balances::Balances,
+	}
+}
+
+impl Default for Call {
+	fn default() -> Call {
+		Default::default()
 	}
 }
 
@@ -35,11 +48,13 @@ parameter_types! {
 }
 
 pub type AccountId = u64;
+pub type BlockNumber = u64;
+
 impl frame_system::Trait for Runtime {
 	type Origin = Origin;
-	type Call = ();
 	type Index = u64;
-	type BlockNumber = u64;
+	type BlockNumber = BlockNumber;
+	type Call = Call;
 	type Hash = H256;
 	type Hashing = ::sp_runtime::traits::BlakeTwo256;
 	type AccountId = AccountId;
@@ -52,69 +67,55 @@ impl frame_system::Trait for Runtime {
 	type AvailableBlockRatio = AvailableBlockRatio;
 	type Version = ();
 	type ModuleToIndex = ();
-	type AccountData = pallet_balances::AccountData<u64>;
+	type AccountData = pallet_balances::AccountData<u128>;
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 }
-pub type System = system::Module<Runtime>;
-
-type Balance = u64;
+pub type System = frame_system::Module<Runtime>;
 
 parameter_types! {
 	pub const ExistentialDeposit: u64 = 1;
 }
 
 impl pallet_balances::Trait for Runtime {
-	type Balance = Balance;
+	type Balance = u128;
 	type DustRemoval = ();
 	type Event = TestEvent;
 	type ExistentialDeposit = ExistentialDeposit;
-	type AccountStore = frame_system::Module<Runtime>;
+	type AccountStore = System;
 }
-pub type PalletBalances = pallet_balances::Module<Runtime>;
+
+parameter_types! {
+	pub const MaxScheduleDispatchWeight: Weight = 2_000_000;
+}
 
 impl Trait for Runtime {
 	type Event = TestEvent;
-	type Currency = PalletBalances;
+	type Call = Call;
+	type MaxScheduleDispatchWeight = MaxScheduleDispatchWeight;
 }
-pub type Vesting = Module<Runtime>;
+pub type ScheduleUpdateModule = Module<Runtime>;
 
-pub const ALICE: AccountId = 1;
-pub const BOB: AccountId = 2;
+pub type Balances = pallet_balances::Module<Runtime>;
 
-pub struct ExtBuilder {
-	endowed_accounts: Vec<(AccountId, Balance)>,
-}
+pub type BalancesCall = pallet_balances::Call<Runtime>;
+
+pub struct ExtBuilder;
 
 impl Default for ExtBuilder {
 	fn default() -> Self {
-		Self {
-			endowed_accounts: vec![],
-		}
+		ExtBuilder
 	}
 }
 
 impl ExtBuilder {
-	pub fn balances(mut self, endowed_accounts: Vec<(AccountId, Balance)>) -> Self {
-		self.endowed_accounts = endowed_accounts;
-		self
-	}
-
-	pub fn one_hundred_for_alice(self) -> Self {
-		self.balances(vec![(ALICE, 100)])
-	}
-
 	pub fn build(self) -> sp_io::TestExternalities {
 		let mut t = frame_system::GenesisConfig::default()
 			.build_storage::<Runtime>()
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {
-			balances: self
-				.endowed_accounts
-				.into_iter()
-				.map(|(account_id, initial_balance)| (account_id, initial_balance))
-				.collect::<Vec<_>>(),
+			balances: vec![(1, 100), (2, 100), (3, 100), (4, 100), (5, 100)],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();

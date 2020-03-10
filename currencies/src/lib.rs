@@ -1,3 +1,34 @@
+//! # Currencies Module
+//!
+//! ## Overview
+//!
+//! The currencies module provides a mixed currencies system, by configuring a native currency which implements
+//! `BasicCurrencyExtended`, and a multi-currency which implements `MultiCurrency`.
+//!
+//! It also provides an adapter, to adapt `frame_support::traits::Currency` implementations into
+//! `BasicCurrencyExtended`.
+//!
+//! The currencies module provides functionality of both `MultiCurrencyExtended` and `BasicCurrencyExtended`, via
+//! unified interfaces, and all calls would be delegated to the underlying multi-currency and base currency system.
+//! A native currency ID could be set by `Trait::GetNativeCurrencyId`, to identify the native currency.
+//!
+//! ### Implementations
+//!
+//! The currencies module provides implementations for following traits.
+//!
+//! - `MultiCurrency` - Abstraction over a fungible multi-currency system.
+//! - `MultiCurrencyExtended` - Extended `MultiCurrency` with additional helper types and methods, like updating balance
+//! by a given signed integer amount.
+//!
+//! ## Interface
+//!
+//! ### Dispatchable Functions
+//!
+//! - `transfer` - Transfer some balance to another account, in a given currency.
+//! - `transfer_native_currency` - Transfer some balance to another account, in native currency set in
+//! `Trait::NativeCurrency`.
+//! - `update_balance` - Update balance by signed integer amount, in a given currency, root origin required.
+
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::{
@@ -6,7 +37,7 @@ use frame_support::{
 };
 use rstd::{convert::TryInto, marker};
 use sp_runtime::{
-	traits::{CheckedSub, StaticLookup},
+	traits::{CheckedSub, StaticLookup, Zero},
 	DispatchResult,
 };
 // FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
@@ -48,6 +79,10 @@ decl_event!(
 		Transferred(CurrencyId, AccountId, AccountId, Balance),
 		/// Update balance success (currency_id, who, amount)
 		BalanceUpdated(CurrencyId, AccountId, Amount),
+		/// Deposit success (currency_id, who, amount)
+		Deposited(CurrencyId, AccountId, Balance),
+		/// Withdraw success (currency_id, who, amount)
+		Withdrawn(CurrencyId, AccountId, Balance),
 	}
 );
 
@@ -77,8 +112,6 @@ decl_module! {
 			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
 			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, &from, &to, amount)?;
-
-			Self::deposit_event(RawEvent::Transferred(currency_id, from, to, amount));
 		}
 
 		/// Transfer native currency balance from one account to another.
@@ -104,8 +137,6 @@ decl_module! {
 			ensure_root(origin)?;
 			let dest = T::Lookup::lookup(who)?;
 			<Self as MultiCurrencyExtended<T::AccountId>>::update_balance(currency_id, &dest, amount)?;
-
-			Self::deposit_event(RawEvent::BalanceUpdated(currency_id, dest, amount));
 		}
 	}
 }
@@ -146,27 +177,42 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		to: &T::AccountId,
 		amount: Self::Balance,
 	) -> DispatchResult {
-		if currency_id == T::GetNativeCurrencyId::get() {
-			T::NativeCurrency::transfer(from, to, amount)
-		} else {
-			T::MultiCurrency::transfer(currency_id, from, to, amount)
+		if amount.is_zero() {
+			return Ok(());
 		}
+		if currency_id == T::GetNativeCurrencyId::get() {
+			T::NativeCurrency::transfer(from, to, amount)?;
+		} else {
+			T::MultiCurrency::transfer(currency_id, from, to, amount)?;
+		}
+		Self::deposit_event(RawEvent::Transferred(currency_id, from.clone(), to.clone(), amount));
+		Ok(())
 	}
 
 	fn deposit(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
-		if currency_id == T::GetNativeCurrencyId::get() {
-			T::NativeCurrency::deposit(who, amount)
-		} else {
-			T::MultiCurrency::deposit(currency_id, who, amount)
+		if amount.is_zero() {
+			return Ok(());
 		}
+		if currency_id == T::GetNativeCurrencyId::get() {
+			T::NativeCurrency::deposit(who, amount)?;
+		} else {
+			T::MultiCurrency::deposit(currency_id, who, amount)?;
+		}
+		Self::deposit_event(RawEvent::Deposited(currency_id, who.clone(), amount));
+		Ok(())
 	}
 
 	fn withdraw(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
-		if currency_id == T::GetNativeCurrencyId::get() {
-			T::NativeCurrency::withdraw(who, amount)
-		} else {
-			T::MultiCurrency::withdraw(currency_id, who, amount)
+		if amount.is_zero() {
+			return Ok(());
 		}
+		if currency_id == T::GetNativeCurrencyId::get() {
+			T::NativeCurrency::withdraw(who, amount)?;
+		} else {
+			T::MultiCurrency::withdraw(currency_id, who, amount)?;
+		}
+		Self::deposit_event(RawEvent::Withdrawn(currency_id, who.clone(), amount));
+		Ok(())
 	}
 
 	fn slash(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> Self::Balance {
@@ -183,10 +229,12 @@ impl<T: Trait> MultiCurrencyExtended<T::AccountId> for Module<T> {
 
 	fn update_balance(currency_id: Self::CurrencyId, who: &T::AccountId, by_amount: Self::Amount) -> DispatchResult {
 		if currency_id == T::GetNativeCurrencyId::get() {
-			T::NativeCurrency::update_balance(who, by_amount)
+			T::NativeCurrency::update_balance(who, by_amount)?;
 		} else {
-			T::MultiCurrency::update_balance(currency_id, who, by_amount)
+			T::MultiCurrency::update_balance(currency_id, who, by_amount)?;
 		}
+		Self::deposit_event(RawEvent::BalanceUpdated(currency_id, who.clone(), by_amount));
+		Ok(())
 	}
 }
 

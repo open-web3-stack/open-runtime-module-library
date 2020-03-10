@@ -37,9 +37,9 @@ type AuctionIdLinkedItem<T> = LinkedItem<<T as Trait>::AuctionId>;
 
 decl_storage! {
 	trait Store for Module<T: Trait> as Auction {
-		pub Auctions get(fn auctions): map hasher(blake2_256) T::AuctionId => Option<AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>>;
+		pub Auctions get(fn auctions): map hasher(twox_64_concat) T::AuctionId => Option<AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>>;
 		pub AuctionsIndex get(fn auctions_index): T::AuctionId;
-		pub AuctionEndTime get(fn auction_end_time): map hasher(blake2_256) (T::BlockNumber, Option<T::AuctionId>) => Option<AuctionIdLinkedItem<T>>;
+		pub AuctionEndTime get(fn auction_end_time): map hasher(twox_64_concat) (T::BlockNumber, Option<T::AuctionId>) => Option<AuctionIdLinkedItem<T>>;
 	}
 }
 

@@ -215,7 +215,7 @@ mod tests {
 		type ModuleToIndex = ();
 		type AccountData = ();
 		type OnNewAccount = ();
-		type OnReapAccount = ();
+		type OnKilledAccount = ();
 	}
 
 	type TestLinkedList = LinkedList<TestItem, Key, Value>;

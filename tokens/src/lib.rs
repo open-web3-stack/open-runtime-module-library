@@ -1,3 +1,36 @@
+//! # Tokens Module
+//!
+//! ## Overview
+//!
+//! The tokens module provides fungible multi-currency functionality that implements `MultiCurrency` trait.
+//!
+//! The tokens module provides functions for:
+//!
+//! - Querying and setting the balance of a given account.
+//! - Getting and managing total issuance.
+//! - Balance transfer between accounts.
+//! - Depositing and withdrawing balance.
+//! - Slashing an account balance.
+//!
+//! ### Implementations
+//!
+//! The tokens module provides implementations for following traits.
+//!
+//! - `MultiCurrency` - Abstraction over a fungible multi-currency system.
+//! - `MultiCurrencyExtended` - Extended `MultiCurrency` with additional helper types and methods, like updating balance
+//! by a given signed integer amount.
+//!
+//! ## Interface
+//!
+//! ### Dispatchable Functions
+//!
+//! - `transfer` - Transfer some balance to another account.
+//! - `transfer_all` - Transfer all balance to another account.
+//!
+//! ### Genesis Config
+//!
+//! The tokens module depends on the `GenesisConfig`. Endowed accounts could be configured in genesis configs.
+
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, traits::Get, Parameter};
@@ -57,10 +90,10 @@ decl_storage! {
 				})
 				.into_iter()
 				.collect::<Vec<_>>()
-		}): map hasher(blake2_256) T::CurrencyId => T::Balance;
+		}): map hasher(twox_64_concat) T::CurrencyId => T::Balance;
 
 		/// The balance of a token type under an account.
-		pub Balance get(fn balance): double_map hasher(blake2_256) T::CurrencyId, hasher(blake2_256) T::AccountId => T::Balance;
+		pub Balance get(fn balance): double_map hasher(twox_64_concat) T::CurrencyId, hasher(blake2_128_concat) T::AccountId => T::Balance;
 	}
 	add_extra_genesis {
 		config(endowed_accounts): Vec<(T::AccountId, T::CurrencyId, T::Balance)>;
@@ -138,6 +171,7 @@ impl<T: Trait> Module<T> {
 		if balance < T::ExistentialDeposit::get() {
 			<Balance<T>>::remove(currency_id, who);
 			T::DustRemoval::on_dust_removal(balance);
+			<TotalIssuance<T>>::mutate(currency_id, |v| *v -= balance);
 		} else {
 			<Balance<T>>::insert(currency_id, who, balance);
 		}
@@ -181,7 +215,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		ensure!(from_balance >= amount, Error::<T>::BalanceTooLow);
 
 		let to_balance = Self::balance(currency_id, to);
-		if to_balance.is_zero() && amount < T::ExistentialDeposit::get() {
+		if to_balance + amount < T::ExistentialDeposit::get() {
 			return Err(Error::<T>::ExistentialDeposit.into());
 		}
 
@@ -223,7 +257,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		}
 
 		let balance = Self::balance(currency_id, who);
-		ensure!(balance.checked_sub(&amount).is_some(), Error::<T>::BalanceTooLow);
+		ensure!(balance >= amount, Error::<T>::BalanceTooLow);
 
 		<TotalIssuance<T>>::mutate(currency_id, |v| *v -= amount);
 		Self::set_balance(currency_id, who, balance - amount);
@@ -238,6 +272,10 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 
 		let balance = Self::balance(currency_id, who);
 		let slashed_amount = balance.min(amount);
+
+		if slashed_amount.is_zero() {
+			return amount;
+		}
 
 		<TotalIssuance<T>>::mutate(currency_id, |v| *v -= slashed_amount);
 		Self::set_balance(currency_id, who, balance - slashed_amount);

@@ -1,16 +1,27 @@
-//! Mocks for the prices module.
+//! Mocks for the gradually-update module.
 
 #![cfg(test)]
 
-use frame_support::{impl_outer_origin, parameter_types};
+use frame_support::{impl_outer_event, impl_outer_origin, parameter_types};
 use frame_system as system;
-use primitives::H256;
+use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
 use super::*;
 
 impl_outer_origin! {
 	pub enum Origin for Runtime {}
+}
+
+mod gradually_update {
+	pub use crate::Event;
+}
+
+impl_outer_event! {
+	pub enum TestEvent for Runtime {
+		frame_system<T>,
+		gradually_update<T>,
+	}
 }
 
 // Workaround for https://github.com/rust-lang/rust/issues/26925 . Remove when sorted.
@@ -36,7 +47,7 @@ impl frame_system::Trait for Runtime {
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
-	type Event = ();
+	type Event = TestEvent;
 	type BlockHashCount = BlockHashCount;
 	type MaximumBlockWeight = MaximumBlockWeight;
 	type MaximumBlockLength = MaximumBlockLength;
@@ -47,27 +58,17 @@ impl frame_system::Trait for Runtime {
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 }
+pub type System = system::Module<Runtime>;
 
-type CurrencyId = u32;
-
-pub struct MockDataProvider;
-impl DataProvider<CurrencyId, Price> for MockDataProvider {
-	fn get(currency: &CurrencyId) -> Option<Price> {
-		match currency {
-			0 => Some(Price::from_parts(0)),
-			1 => Some(Price::from_parts(1)),
-			2 => Some(Price::from_parts(2)),
-			_ => None,
-		}
-	}
+parameter_types! {
+	pub const UpdateFrequency: BlockNumber = 10;
 }
 
 impl Trait for Runtime {
-	type CurrencyId = CurrencyId;
-	type Source = MockDataProvider;
+	type Event = TestEvent;
+	type UpdateFrequency = UpdateFrequency;
 }
-
-pub type PricesModule = Module<Runtime>;
+pub type GraduallyUpdateModule = Module<Runtime>;
 
 pub struct ExtBuilder;
 
@@ -78,7 +79,7 @@ impl Default for ExtBuilder {
 }
 
 impl ExtBuilder {
-	pub fn build(self) -> runtime_io::TestExternalities {
+	pub fn build(self) -> sp_io::TestExternalities {
 		let t = frame_system::GenesisConfig::default()
 			.build_storage::<Runtime>()
 			.unwrap();
