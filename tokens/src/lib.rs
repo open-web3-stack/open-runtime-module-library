@@ -216,7 +216,6 @@ decl_error! {
 }
 
 impl<T: Trait> Module<T> {
-	// $
 	/// Set free balance of `who` to a new value, meanwhile enforce existential rule.
 	///
 	/// Note this will not maintain total issuance except balance is less to ExistentialDeposit,
@@ -231,7 +230,6 @@ impl<T: Trait> Module<T> {
 		}
 	}
 
-	// $
 	/// Set reserved balance of `who` to a new value, meanwhile enforce existential rule.
 	///
 	/// Note this will not maintain total issuance, and the caller is expected to do it.
@@ -269,22 +267,18 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	type CurrencyId = T::CurrencyId;
 	type Balance = T::Balance;
 
-	// $
 	fn total_issuance(currency_id: Self::CurrencyId) -> Self::Balance {
 		<TotalIssuance<T>>::get(currency_id)
 	}
 
-	// $
 	fn total_balance(currency_id: Self::CurrencyId, who: &T::AccountId) -> Self::Balance {
 		Self::accounts(currency_id, who).total()
 	}
 
-	// $
 	fn free_balance(currency_id: Self::CurrencyId, who: &T::AccountId) -> Self::Balance {
 		Self::accounts(currency_id, who).free
 	}
 
-	// $
 	fn ensure_can_withdraw(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
 		if amount.is_zero() {
 			return Ok(());
@@ -300,7 +294,6 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		Ok(())
 	}
 
-	// $
 	fn transfer(
 		currency_id: Self::CurrencyId,
 		from: &T::AccountId,
@@ -327,7 +320,6 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		Ok(())
 	}
 
-	// $
 	fn deposit(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
 		if amount.is_zero() {
 			return Ok(());
@@ -351,7 +343,6 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		Ok(())
 	}
 
-	// $
 	fn withdraw(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
 		if amount.is_zero() {
 			return Ok(());
@@ -364,7 +355,6 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		Ok(())
 	}
 
-	// $
 	// Check if `value` amount of free balance can be slashed from `who`.
 	fn can_slash(currency_id: Self::CurrencyId, who: &T::AccountId, value: Self::Balance) -> bool {
 		if value.is_zero() {
@@ -373,7 +363,6 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		Self::free_balance(currency_id, who) >= value
 	}
 
-	// $
 	/// Is a no-op if `value` to be slashed is zero.
 	///
 	/// NOTE: `slash()` prefers free balance, but assumes that reserve balance can be drawn
@@ -409,7 +398,6 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 impl<T: Trait> MultiCurrencyExtended<T::AccountId> for Module<T> {
 	type Amount = T::Amount;
 
-	// $
 	fn update_balance(currency_id: Self::CurrencyId, who: &T::AccountId, by_amount: Self::Amount) -> DispatchResult {
 		if by_amount.is_zero() {
 			return Ok(());
@@ -545,8 +533,8 @@ impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
 
 		let account = Self::accounts(currency_id, who);
 		let actual = account.reserved.min(value);
-		Self::set_reserved_balance(currency_id, who, account.reserved - value);
-		Self::set_free_balance(currency_id, who, account.free + value);
+		Self::set_reserved_balance(currency_id, who, account.reserved - actual);
+		Self::set_free_balance(currency_id, who, account.free + actual);
 		value - actual
 	}
 

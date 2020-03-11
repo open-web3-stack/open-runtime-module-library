@@ -6,9 +6,40 @@ use super::*;
 use frame_support::{assert_noop, assert_ok};
 use mock::{
 	AccountId, AdaptedBasicCurrency, Currencies, ExtBuilder, NativeCurrency, Origin, PalletBalances, System, TestEvent,
-	ALICE, BOB, EVA, NATIVE_CURRENCY_ID, X_TOKEN_ID,
+	Tokens, ALICE, BOB, EVA, ID_1, NATIVE_CURRENCY_ID, X_TOKEN_ID,
 };
 use sp_runtime::traits::BadOrigin;
+
+#[test]
+fn multi_lockable_currency_should_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			Currencies::set_lock(ID_1, X_TOKEN_ID, &ALICE, 50);
+			assert_eq!(Tokens::locks(X_TOKEN_ID, &ALICE).len(), 1);
+			Currencies::set_lock(ID_1, NATIVE_CURRENCY_ID, &ALICE, 50);
+			assert_eq!(PalletBalances::locks(&ALICE).len(), 1);
+		});
+}
+
+#[test]
+fn multi_reservable_currency_should_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_eq!(Currencies::total_issuance(NATIVE_CURRENCY_ID), 200);
+			assert_eq!(Currencies::total_issuance(X_TOKEN_ID), 200);
+			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &ALICE), 100);
+			assert_eq!(NativeCurrency::free_balance(&ALICE), 100);
+
+			assert_ok!(Currencies::reserve(X_TOKEN_ID, &ALICE, 30));
+			assert_ok!(Currencies::reserve(NATIVE_CURRENCY_ID, &ALICE, 40));
+			assert_eq!(Currencies::reserved_balance(X_TOKEN_ID, &ALICE), 30);
+			assert_eq!(Currencies::reserved_balance(NATIVE_CURRENCY_ID, &ALICE), 40);
+		});
+}
 
 #[test]
 fn multi_currency_should_work() {
@@ -39,7 +70,6 @@ fn multi_currency_extended_should_work() {
 fn native_currency_should_work() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
-		.make_for_pallet_balances()
 		.build()
 		.execute_with(|| {
 			assert_ok!(Currencies::transfer_native_currency(Some(ALICE).into(), BOB, 50));
@@ -60,7 +90,6 @@ fn native_currency_should_work() {
 fn native_currency_extended_should_work() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
-		.make_for_pallet_balances()
 		.build()
 		.execute_with(|| {
 			assert_ok!(NativeCurrency::update_balance(&ALICE, 10));
@@ -79,7 +108,6 @@ fn native_currency_extended_should_work() {
 fn basic_currency_adapting_pallet_balances_transfer() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
-		.make_for_pallet_balances()
 		.build()
 		.execute_with(|| {
 			assert_ok!(AdaptedBasicCurrency::transfer(&ALICE, &BOB, 50));
@@ -97,7 +125,6 @@ fn basic_currency_adapting_pallet_balances_transfer() {
 fn basic_currency_adapting_pallet_balances_deposit() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
-		.make_for_pallet_balances()
 		.build()
 		.execute_with(|| {
 			assert_ok!(AdaptedBasicCurrency::deposit(&EVA, 50));
@@ -110,7 +137,6 @@ fn basic_currency_adapting_pallet_balances_deposit() {
 fn basic_currency_adapting_pallet_balances_withdraw() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
-		.make_for_pallet_balances()
 		.build()
 		.execute_with(|| {
 			assert_ok!(AdaptedBasicCurrency::withdraw(&ALICE, 100));
@@ -123,7 +149,6 @@ fn basic_currency_adapting_pallet_balances_withdraw() {
 fn basic_currency_adapting_pallet_balances_slash() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
-		.make_for_pallet_balances()
 		.build()
 		.execute_with(|| {
 			assert_eq!(AdaptedBasicCurrency::slash(&ALICE, 101), 1);
@@ -136,7 +161,6 @@ fn basic_currency_adapting_pallet_balances_slash() {
 fn basic_currency_adapting_pallet_balances_update_balance() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
-		.make_for_pallet_balances()
 		.build()
 		.execute_with(|| {
 			assert_ok!(AdaptedBasicCurrency::update_balance(&ALICE, -10));
@@ -149,14 +173,13 @@ fn basic_currency_adapting_pallet_balances_update_balance() {
 fn update_balance_call_should_work() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
-		.make_for_pallet_balances()
 		.build()
 		.execute_with(|| {
 			assert_ok!(Currencies::update_balance(Origin::ROOT, ALICE, NATIVE_CURRENCY_ID, -10));
 			assert_eq!(NativeCurrency::free_balance(&ALICE), 90);
-
+			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &ALICE), 100);
 			assert_ok!(Currencies::update_balance(Origin::ROOT, ALICE, X_TOKEN_ID, 10));
-			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &ALICE), 10);
+			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &ALICE), 110);
 		});
 }
 

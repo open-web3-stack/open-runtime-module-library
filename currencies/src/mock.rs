@@ -87,6 +87,7 @@ impl tokens::Trait for Runtime {
 	type ExistentialDeposit = ExistentialDeposit;
 	type DustRemoval = ();
 }
+pub type Tokens = tokens::Module<Runtime>;
 
 pub const NATIVE_CURRENCY_ID: CurrencyId = 1;
 pub const X_TOKEN_ID: CurrencyId = 2;
@@ -97,7 +98,7 @@ parameter_types! {
 
 impl Trait for Runtime {
 	type Event = TestEvent;
-	type MultiCurrency = tokens::Module<Runtime>;
+	type MultiCurrency = Tokens;
 	type NativeCurrency = AdaptedBasicCurrency;
 	type GetNativeCurrencyId = GetNativeCurrencyId;
 }
@@ -108,18 +109,16 @@ pub type AdaptedBasicCurrency = BasicCurrencyAdapter<Runtime, PalletBalances, Ba
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const EVA: AccountId = 5;
+pub const ID_1: LockIdentifier = *b"1       ";
 
 pub struct ExtBuilder {
 	endowed_accounts: Vec<(AccountId, CurrencyId, Balance)>,
-	// whether the configs are for `pallet_balances` or not
-	is_for_pallet_balances: bool,
 }
 
 impl Default for ExtBuilder {
 	fn default() -> Self {
 		Self {
 			endowed_accounts: vec![],
-			is_for_pallet_balances: false,
 		}
 	}
 }
@@ -139,34 +138,32 @@ impl ExtBuilder {
 		])
 	}
 
-	pub fn make_for_pallet_balances(mut self) -> Self {
-		self.is_for_pallet_balances = true;
-		self
-	}
-
 	pub fn build(self) -> runtime_io::TestExternalities {
 		let mut t = frame_system::GenesisConfig::default()
 			.build_storage::<Runtime>()
 			.unwrap();
 
-		if self.is_for_pallet_balances {
-			pallet_balances::GenesisConfig::<Runtime> {
-				balances: self
-					.endowed_accounts
-					.into_iter()
-					.filter(|(_, currency_id, _)| *currency_id == X_TOKEN_ID)
-					.map(|(account_id, _, initial_balance)| (account_id, initial_balance))
-					.collect::<Vec<_>>(),
-			}
-			.assimilate_storage(&mut t)
-			.unwrap();
-		} else {
-			tokens::GenesisConfig::<Runtime> {
-				endowed_accounts: self.endowed_accounts,
-			}
-			.assimilate_storage(&mut t)
-			.unwrap();
+		pallet_balances::GenesisConfig::<Runtime> {
+			balances: self
+				.endowed_accounts
+				.clone()
+				.into_iter()
+				.filter(|(_, currency_id, _)| *currency_id == NATIVE_CURRENCY_ID)
+				.map(|(account_id, _, initial_balance)| (account_id, initial_balance))
+				.collect::<Vec<_>>(),
 		}
+		.assimilate_storage(&mut t)
+		.unwrap();
+
+		tokens::GenesisConfig::<Runtime> {
+			endowed_accounts: self
+				.endowed_accounts
+				.into_iter()
+				.filter(|(_, currency_id, _)| *currency_id != NATIVE_CURRENCY_ID)
+				.collect::<Vec<_>>(),
+		}
+		.assimilate_storage(&mut t)
+		.unwrap();
 
 		t.into()
 	}
