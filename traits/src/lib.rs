@@ -5,6 +5,7 @@ pub mod auction;
 
 pub use auction::{Auction, AuctionHandler, AuctionInfo, OnNewBidResult};
 use codec::{Codec, FullCodec};
+pub use frame_support::traits::{BalanceStatus, LockIdentifier};
 use rstd::{
 	cmp::{Eq, PartialEq},
 	convert::{TryFrom, TryInto},
@@ -14,9 +15,8 @@ use rstd::{
 };
 use sp_runtime::{
 	traits::{AtLeast32Bit, MaybeSerializeDeserialize},
-	DispatchResult, DispatchError,
+	DispatchError, DispatchResult,
 };
-pub use frame_support::traits::{LockIdentifier, BalanceStatus};
 
 /// Abstraction over a fungible multi-currency system.
 pub trait MultiCurrency<AccountId> {
@@ -95,12 +95,7 @@ pub trait MultiLockableCurrency<AccountId>: MultiCurrency<AccountId> {
 	/// the `Locks` vec in storage. Note that you can lock more funds than a user has.
 	///
 	/// If the lock `lock_id` already exists, this will update it.
-	fn set_lock(
-		lock_id: LockIdentifier,
-		currency_id: Self::CurrencyId,
-		who: &AccountId,
-		amount: Self::Balance,
-	);
+	fn set_lock(lock_id: LockIdentifier, currency_id: Self::CurrencyId, who: &AccountId, amount: Self::Balance);
 
 	/// Changes a balance lock (selected by `lock_id`) so that it becomes less liquid in all
 	/// parameters or creates a new one if it does not exist.
@@ -109,40 +104,23 @@ pub trait MultiLockableCurrency<AccountId>: MultiCurrency<AccountId> {
 	/// applies the most severe constraints of the two, while `set_lock` replaces the lock
 	/// with the new parameters. As in, `extend_lock` will set:
 	/// - maximum `amount`
-	fn extend_lock(
-		lock_id: LockIdentifier,
-		currency_id: Self::CurrencyId,
-		who: &AccountId,
-		amount: Self::Balance,
-	);
+	fn extend_lock(lock_id: LockIdentifier, currency_id: Self::CurrencyId, who: &AccountId, amount: Self::Balance);
 
 	/// Remove an existing lock.
-	fn remove_lock(
-		lock_id: LockIdentifier,
-		currency_id: Self::CurrencyId,
-		who: &AccountId,
-	);
+	fn remove_lock(lock_id: LockIdentifier, currency_id: Self::CurrencyId, who: &AccountId);
 }
 
 /// A fungible multi-currency system where funds can be reserved from the user.
 pub trait MultiReservableCurrency<AccountId>: MultiCurrency<AccountId> {
 	/// Same result as `reserve(who, value)` (but without the side-effects) assuming there
 	/// are no balance changes in the meantime.
-	fn can_reserve(
-		currency_id: Self::CurrencyId,
-		who: &AccountId,
-		value: Self::Balance,
-	) -> bool;
+	fn can_reserve(currency_id: Self::CurrencyId, who: &AccountId, value: Self::Balance) -> bool;
 
 	/// Deducts up to `value` from reserved balance of `who`. This function cannot fail.
 	///
 	/// As much funds up to `value` will be deducted as possible. If the reserve balance of `who`
 	/// is less than `value`, then a non-zero second item will be returned.
-	fn slash_reserved(
-		currency_id: Self::CurrencyId,
-		who: &AccountId,
-		value: Self::Balance
-	) -> Self::Balance;
+	fn slash_reserved(currency_id: Self::CurrencyId, who: &AccountId, value: Self::Balance) -> Self::Balance;
 
 	/// The amount of the balance of a given account that is externally reserved; this can still get
 	/// slashed, but gets slashed last of all.
@@ -155,11 +133,7 @@ pub trait MultiReservableCurrency<AccountId>: MultiCurrency<AccountId> {
 	///
 	/// If the free balance is lower than `value`, then no funds will be moved and an `Err` will
 	/// be returned to notify of this. This is different behavior than `unreserve`.
-	fn reserve(
-		currency_id: Self::CurrencyId,
-		who: &AccountId,
-		value: Self::Balance,
-	) -> DispatchResult;
+	fn reserve(currency_id: Self::CurrencyId, who: &AccountId, value: Self::Balance) -> DispatchResult;
 
 	/// Moves up to `value` from reserved balance to free balance. This function cannot fail.
 	///
@@ -169,11 +143,7 @@ pub trait MultiReservableCurrency<AccountId>: MultiCurrency<AccountId> {
 	/// # NOTES
 	///
 	/// - This is different from `reserve`.
-	fn unreserve(
-		currency_id: Self::CurrencyId,
-		who: &AccountId,
-		value: Self::Balance,
-	) -> Self::Balance;
+	fn unreserve(currency_id: Self::CurrencyId, who: &AccountId, value: Self::Balance) -> Self::Balance;
 
 	/// Moves up to `value` from reserved balance of account `slashed` to balance of account
 	/// `beneficiary`. `beneficiary` must exist for this to succeed. If it does not, `Err` will be
@@ -202,10 +172,10 @@ pub trait BasicCurrency<AccountId> {
 	fn total_issuance() -> Self::Balance;
 
 	/// The combined balance of `who`.
-    fn total_balance(who: &AccountId) -> Self::Balance;
+	fn total_balance(who: &AccountId) -> Self::Balance;
 
 	/// The free balance of `who`.
-    fn free_balance(who: &AccountId) -> Self::Balance;
+	fn free_balance(who: &AccountId) -> Self::Balance;
 
 	/// A dry-run of `withdraw`. Returns `Ok` iff the account is able to make a withdrawal of the given amount.
 	fn ensure_can_withdraw(who: &AccountId, amount: Self::Balance) -> DispatchResult;
@@ -222,7 +192,7 @@ pub trait BasicCurrency<AccountId> {
 	fn withdraw(who: &AccountId, amount: Self::Balance) -> DispatchResult;
 
 	/// Same result as `slash(who, value)` (but without the side-effects) assuming there are no
-    /// balance changes in the meantime and only the reserved balance is not taken into account.
+	/// balance changes in the meantime and only the reserved balance is not taken into account.
 	fn can_slash(who: &AccountId, value: Self::Balance) -> bool;
 
 	/// Deduct the balance of `who` by up to `amount`.
@@ -260,11 +230,7 @@ pub trait BasicLockableCurrency<AccountId>: BasicCurrency<AccountId> {
 	/// the `Locks` vec in storage. Note that you can lock more funds than a user has.
 	///
 	/// If the lock `lock_id` already exists, this will update it.
-	fn set_lock(
-		lock_id: LockIdentifier,
-		who: &AccountId,
-		amount: Self::Balance,
-	);
+	fn set_lock(lock_id: LockIdentifier, who: &AccountId, amount: Self::Balance);
 
 	/// Changes a balance lock (selected by `lock_id`) so that it becomes less liquid in all
 	/// parameters or creates a new one if it does not exist.
@@ -273,36 +239,23 @@ pub trait BasicLockableCurrency<AccountId>: BasicCurrency<AccountId> {
 	/// applies the most severe constraints of the two, while `set_lock` replaces the lock
 	/// with the new parameters. As in, `extend_lock` will set:
 	/// - maximum `amount`
-	fn extend_lock(
-		lock_id: LockIdentifier,
-		who: &AccountId,
-		amount: Self::Balance,
-	);
+	fn extend_lock(lock_id: LockIdentifier, who: &AccountId, amount: Self::Balance);
 
 	/// Remove an existing lock.
-	fn remove_lock(
-		lock_id: LockIdentifier,
-		who: &AccountId,
-	);
+	fn remove_lock(lock_id: LockIdentifier, who: &AccountId);
 }
 
 /// A fungible single currency system where funds can be reserved from the user.
 pub trait BasicReservableCurrency<AccountId>: BasicCurrency<AccountId> {
 	/// Same result as `reserve(who, value)` (but without the side-effects) assuming there
 	/// are no balance changes in the meantime.
-	fn can_reserve(
-		who: &AccountId,
-		value: Self::Balance,
-	) -> bool;
+	fn can_reserve(who: &AccountId, value: Self::Balance) -> bool;
 
 	/// Deducts up to `value` from reserved balance of `who`. This function cannot fail.
 	///
 	/// As much funds up to `value` will be deducted as possible. If the reserve balance of `who`
 	/// is less than `value`, then a non-zero second item will be returned.
-	fn slash_reserved(
-		who: &AccountId,
-		value: Self::Balance
-	) -> Self::Balance;
+	fn slash_reserved(who: &AccountId, value: Self::Balance) -> Self::Balance;
 
 	/// The amount of the balance of a given account that is externally reserved; this can still get
 	/// slashed, but gets slashed last of all.
@@ -315,10 +268,7 @@ pub trait BasicReservableCurrency<AccountId>: BasicCurrency<AccountId> {
 	///
 	/// If the free balance is lower than `value`, then no funds will be moved and an `Err` will
 	/// be returned to notify of this. This is different behavior than `unreserve`.
-	fn reserve(
-		who: &AccountId,
-		value: Self::Balance,
-	) -> DispatchResult;
+	fn reserve(who: &AccountId, value: Self::Balance) -> DispatchResult;
 
 	/// Moves up to `value` from reserved balance to free balance. This function cannot fail.
 	///
@@ -328,10 +278,7 @@ pub trait BasicReservableCurrency<AccountId>: BasicCurrency<AccountId> {
 	/// # NOTES
 	///
 	/// - This is different from `reserve`.
-	fn unreserve(
-		who: &AccountId,
-		value: Self::Balance,
-	) -> Self::Balance;
+	fn unreserve(who: &AccountId, value: Self::Balance) -> Self::Balance;
 
 	/// Moves up to `value` from reserved balance of account `slashed` to balance of account
 	/// `beneficiary`. `beneficiary` must exist for this to succeed. If it does not, `Err` will be

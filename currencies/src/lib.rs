@@ -34,16 +34,14 @@
 use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage,
 	traits::{
-		Currency as PalletCurrency,
-		LockableCurrency as PalletLockableCurrency,
-		ReservableCurrency as PalletReservableCurrency,
-		ExistenceRequirement, Get, WithdrawReason,
+		Currency as PalletCurrency, ExistenceRequirement, Get, LockableCurrency as PalletLockableCurrency,
+		ReservableCurrency as PalletReservableCurrency, WithdrawReason,
 	},
 };
 use rstd::{convert::TryInto, marker};
 use sp_runtime::{
 	traits::{CheckedSub, StaticLookup, Zero},
-	DispatchResult, DispatchError,
+	DispatchError, DispatchResult,
 };
 // FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
@@ -51,9 +49,9 @@ use sp_runtime::{
 use frame_system::{self as system, ensure_root, ensure_signed};
 
 use orml_traits::{
-	arithmetic::Signed, LockIdentifier, BalanceStatus,
-	BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency, BasicReservableCurrency,
-	MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
+	arithmetic::Signed, BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency,
+	BasicReservableCurrency, LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency,
+	MultiReservableCurrency,
 };
 
 mod mock;
@@ -68,14 +66,12 @@ type AmountOf<T> =
 
 pub trait Trait: frame_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
-	type MultiCurrency:
-		MultiCurrencyExtended<Self::AccountId> +
-		MultiLockableCurrency<Self::AccountId> +
-		MultiReservableCurrency<Self::AccountId>;
-	type NativeCurrency:
-		BasicCurrencyExtended<Self::AccountId, Balance = BalanceOf<Self>, Amount = AmountOf<Self>> +
-		BasicLockableCurrency<Self::AccountId, Balance = BalanceOf<Self>> +
-		BasicReservableCurrency<Self::AccountId, Balance = BalanceOf<Self>>;
+	type MultiCurrency: MultiCurrencyExtended<Self::AccountId>
+		+ MultiLockableCurrency<Self::AccountId>
+		+ MultiReservableCurrency<Self::AccountId>;
+	type NativeCurrency: BasicCurrencyExtended<Self::AccountId, Balance = BalanceOf<Self>, Amount = AmountOf<Self>>
+		+ BasicLockableCurrency<Self::AccountId, Balance = BalanceOf<Self>>
+		+ BasicReservableCurrency<Self::AccountId, Balance = BalanceOf<Self>>;
 	type GetNativeCurrencyId: Get<CurrencyIdOf<Self>>;
 }
 
@@ -272,12 +268,7 @@ impl<T: Trait> MultiCurrencyExtended<T::AccountId> for Module<T> {
 impl<T: Trait> MultiLockableCurrency<T::AccountId> for Module<T> {
 	type Moment = T::BlockNumber;
 
-	fn set_lock(
-        lock_id: LockIdentifier,
-        currency_id: Self::CurrencyId,
-        who: &T::AccountId,
-        amount: Self::Balance,
-    ) {
+	fn set_lock(lock_id: LockIdentifier, currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) {
 		if currency_id == T::GetNativeCurrencyId::get() {
 			T::NativeCurrency::set_lock(lock_id, who, amount);
 		} else {
@@ -285,12 +276,7 @@ impl<T: Trait> MultiLockableCurrency<T::AccountId> for Module<T> {
 		}
 	}
 
-	fn extend_lock(
-        lock_id: LockIdentifier,
-        currency_id: Self::CurrencyId,
-        who: &T::AccountId,
-        amount: Self::Balance,
-    ) {
+	fn extend_lock(lock_id: LockIdentifier, currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) {
 		if currency_id == T::GetNativeCurrencyId::get() {
 			T::NativeCurrency::extend_lock(lock_id, who, amount);
 		} else {
@@ -298,11 +284,7 @@ impl<T: Trait> MultiLockableCurrency<T::AccountId> for Module<T> {
 		}
 	}
 
-	fn remove_lock(
-        lock_id: LockIdentifier,
-        currency_id: Self::CurrencyId,
-        who: &T::AccountId,
-    ) {
+	fn remove_lock(lock_id: LockIdentifier, currency_id: Self::CurrencyId, who: &T::AccountId) {
 		if currency_id == T::GetNativeCurrencyId::get() {
 			T::NativeCurrency::remove_lock(lock_id, who);
 		} else {
@@ -312,11 +294,7 @@ impl<T: Trait> MultiLockableCurrency<T::AccountId> for Module<T> {
 }
 
 impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
-	fn can_reserve(
-        currency_id: Self::CurrencyId,
-        who: &T::AccountId,
-        value: Self::Balance,
-    ) -> bool {
+	fn can_reserve(currency_id: Self::CurrencyId, who: &T::AccountId, value: Self::Balance) -> bool {
 		if currency_id == T::GetNativeCurrencyId::get() {
 			T::NativeCurrency::can_reserve(who, value)
 		} else {
@@ -324,11 +302,7 @@ impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
 		}
 	}
 
-	fn slash_reserved(
-        currency_id: Self::CurrencyId,
-        who: &T::AccountId,
-        value: Self::Balance
-    ) -> Self::Balance {
+	fn slash_reserved(currency_id: Self::CurrencyId, who: &T::AccountId, value: Self::Balance) -> Self::Balance {
 		if currency_id == T::GetNativeCurrencyId::get() {
 			T::NativeCurrency::slash_reserved(who, value)
 		} else {
@@ -344,11 +318,7 @@ impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
 		}
 	}
 
-	fn reserve(
-        currency_id: Self::CurrencyId,
-        who: &T::AccountId,
-        value: Self::Balance,
-    ) -> DispatchResult {
+	fn reserve(currency_id: Self::CurrencyId, who: &T::AccountId, value: Self::Balance) -> DispatchResult {
 		if currency_id == T::GetNativeCurrencyId::get() {
 			T::NativeCurrency::reserve(who, value)
 		} else {
@@ -356,11 +326,7 @@ impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
 		}
 	}
 
-	fn unreserve(
-        currency_id: Self::CurrencyId,
-        who: &T::AccountId,
-        value: Self::Balance,
-    ) -> Self::Balance {
+	fn unreserve(currency_id: Self::CurrencyId, who: &T::AccountId, value: Self::Balance) -> Self::Balance {
 		if currency_id == T::GetNativeCurrencyId::get() {
 			T::NativeCurrency::unreserve(who, value)
 		} else {
@@ -369,12 +335,12 @@ impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
 	}
 
 	fn repatriate_reserved(
-        currency_id: Self::CurrencyId,
-        slashed: &T::AccountId,
-        beneficiary: &T::AccountId,
-        value: Self::Balance,
-        status: BalanceStatus,
-    ) -> rstd::result::Result<Self::Balance, DispatchError> {
+		currency_id: Self::CurrencyId,
+		slashed: &T::AccountId,
+		beneficiary: &T::AccountId,
+		value: Self::Balance,
+		status: BalanceStatus,
+	) -> rstd::result::Result<Self::Balance, DispatchError> {
 		if currency_id == T::GetNativeCurrencyId::get() {
 			T::NativeCurrency::repatriate_reserved(slashed, beneficiary, value, status)
 		} else {
@@ -448,26 +414,15 @@ where
 {
 	type Moment = T::BlockNumber;
 
-	fn set_lock(
-        lock_id: LockIdentifier,
-        who: &T::AccountId,
-        amount: Self::Balance,
-    ) {
+	fn set_lock(lock_id: LockIdentifier, who: &T::AccountId, amount: Self::Balance) {
 		<Module<T> as MultiLockableCurrency<T::AccountId>>::set_lock(lock_id, GetCurrencyId::get(), who, amount);
 	}
 
-	fn extend_lock(
-        lock_id: LockIdentifier,
-        who: &T::AccountId,
-        amount: Self::Balance,
-    ) {
+	fn extend_lock(lock_id: LockIdentifier, who: &T::AccountId, amount: Self::Balance) {
 		<Module<T> as MultiLockableCurrency<T::AccountId>>::extend_lock(lock_id, GetCurrencyId::get(), who, amount);
 	}
 
-	fn remove_lock(
-        lock_id: LockIdentifier,
-        who: &T::AccountId,
-    ) {
+	fn remove_lock(lock_id: LockIdentifier, who: &T::AccountId) {
 		<Module<T> as MultiLockableCurrency<T::AccountId>>::remove_lock(lock_id, GetCurrencyId::get(), who);
 	}
 }
@@ -477,17 +432,11 @@ where
 	T: Trait,
 	GetCurrencyId: Get<CurrencyIdOf<T>>,
 {
-	fn can_reserve(
-        who: &T::AccountId,
-        value: Self::Balance,
-    ) -> bool {
+	fn can_reserve(who: &T::AccountId, value: Self::Balance) -> bool {
 		<Module<T> as MultiReservableCurrency<T::AccountId>>::can_reserve(GetCurrencyId::get(), who, value)
 	}
 
-	fn slash_reserved(
-        who: &T::AccountId,
-        value: Self::Balance
-    ) -> Self::Balance {
+	fn slash_reserved(who: &T::AccountId, value: Self::Balance) -> Self::Balance {
 		<Module<T> as MultiReservableCurrency<T::AccountId>>::slash_reserved(GetCurrencyId::get(), who, value)
 	}
 
@@ -495,27 +444,27 @@ where
 		<Module<T> as MultiReservableCurrency<T::AccountId>>::reserved_balance(GetCurrencyId::get(), who)
 	}
 
-	fn reserve(
-        who: &T::AccountId,
-        value: Self::Balance,
-    ) -> DispatchResult {
+	fn reserve(who: &T::AccountId, value: Self::Balance) -> DispatchResult {
 		<Module<T> as MultiReservableCurrency<T::AccountId>>::reserve(GetCurrencyId::get(), who, value)
 	}
 
-	fn unreserve(
-        who: &T::AccountId,
-        value: Self::Balance,
-    ) -> Self::Balance {
+	fn unreserve(who: &T::AccountId, value: Self::Balance) -> Self::Balance {
 		<Module<T> as MultiReservableCurrency<T::AccountId>>::unreserve(GetCurrencyId::get(), who, value)
 	}
 
 	fn repatriate_reserved(
-        slashed: &T::AccountId,
-        beneficiary: &T::AccountId,
-        value: Self::Balance,
-        status: BalanceStatus,
-    ) -> rstd::result::Result<Self::Balance, DispatchError> {
-		<Module<T> as MultiReservableCurrency<T::AccountId>>::repatriate_reserved(GetCurrencyId::get(), slashed, beneficiary, value, status)
+		slashed: &T::AccountId,
+		beneficiary: &T::AccountId,
+		value: Self::Balance,
+		status: BalanceStatus,
+	) -> rstd::result::Result<Self::Balance, DispatchError> {
+		<Module<T> as MultiReservableCurrency<T::AccountId>>::repatriate_reserved(
+			GetCurrencyId::get(),
+			slashed,
+			beneficiary,
+			value,
+			status,
+		)
 	}
 }
 
@@ -618,7 +567,6 @@ where
 	}
 }
 
-
 // Adapt `frame_support::traits::LockableCurrency`
 impl<AccountId, T, Currency, BalanceConvert> BasicLockableCurrency<AccountId>
 	for BasicCurrencyAdapter<T, Currency, BalanceConvert>
@@ -632,11 +580,7 @@ where
 {
 	type Moment = T::BlockNumber;
 
-	fn set_lock(
-        lock_id: LockIdentifier,
-        who: &AccountId,
-        amount: Self::Balance,
-    ) {
+	fn set_lock(lock_id: LockIdentifier, who: &AccountId, amount: Self::Balance) {
 		Currency::set_lock(
 			lock_id.into(),
 			who,
@@ -645,11 +589,7 @@ where
 		);
 	}
 
-	fn extend_lock(
-        lock_id: LockIdentifier,
-        who: &AccountId,
-        amount: Self::Balance,
-    ) {
+	fn extend_lock(lock_id: LockIdentifier, who: &AccountId, amount: Self::Balance) {
 		Currency::extend_lock(
 			lock_id.into(),
 			who,
@@ -658,10 +598,7 @@ where
 		);
 	}
 
-	fn remove_lock(
-        lock_id: LockIdentifier,
-        who: &AccountId,
-    ) {
+	fn remove_lock(lock_id: LockIdentifier, who: &AccountId) {
 		Currency::remove_lock(lock_id.into(), who);
 	}
 }
@@ -677,17 +614,11 @@ where
 		+ From<BalanceOf<T>>
 		+ Into<BalanceOf<T>>,
 {
-	fn can_reserve(
-        who: &AccountId,
-        value: Self::Balance,
-    ) -> bool {
+	fn can_reserve(who: &AccountId, value: Self::Balance) -> bool {
 		Currency::can_reserve(who, BalanceConvert::from(value).into())
 	}
 
-	fn slash_reserved(
-        who: &AccountId,
-        value: Self::Balance
-    ) -> Self::Balance {
+	fn slash_reserved(who: &AccountId, value: Self::Balance) -> Self::Balance {
 		let (_, gap) = Currency::slash_reserved(who, BalanceConvert::from(value).into());
 		BalanceConvert::from(gap).into()
 	}
@@ -696,33 +627,21 @@ where
 		BalanceConvert::from(Currency::reserved_balance(who)).into()
 	}
 
-	fn reserve(
-        who: &AccountId,
-        value: Self::Balance,
-    ) -> DispatchResult {
+	fn reserve(who: &AccountId, value: Self::Balance) -> DispatchResult {
 		Currency::reserve(who, BalanceConvert::from(value).into())
 	}
 
-	fn unreserve(
-        who: &AccountId,
-        value: Self::Balance,
-    ) -> Self::Balance {
-		BalanceConvert::from(
-			Currency::unreserve(who, BalanceConvert::from(value).into())
-		).into()
+	fn unreserve(who: &AccountId, value: Self::Balance) -> Self::Balance {
+		BalanceConvert::from(Currency::unreserve(who, BalanceConvert::from(value).into())).into()
 	}
 
 	fn repatriate_reserved(
-        slashed: &AccountId,
-        beneficiary: &AccountId,
-        value: Self::Balance,
-        status: BalanceStatus,
-    ) -> rstd::result::Result<Self::Balance, DispatchError> {
-		Currency::repatriate_reserved(
-			slashed,
-			beneficiary,
-			BalanceConvert::from(value).into(),
-			status.into(),
-		).map(|a| BalanceConvert::from(a).into())
+		slashed: &AccountId,
+		beneficiary: &AccountId,
+		value: Self::Balance,
+		status: BalanceStatus,
+	) -> rstd::result::Result<Self::Balance, DispatchError> {
+		Currency::repatriate_reserved(slashed, beneficiary, BalanceConvert::from(value).into(), status.into())
+			.map(|a| BalanceConvert::from(a).into())
 	}
 }

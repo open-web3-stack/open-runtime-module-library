@@ -35,12 +35,10 @@
 
 use codec::{Decode, Encode};
 use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, traits::Get, Parameter};
-use rstd::{
-	convert::{TryFrom, TryInto},
-};
+use rstd::convert::{TryFrom, TryInto};
 use sp_runtime::{
-	traits::{AtLeast32Bit, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, StaticLookup, Zero, Saturating},
-	DispatchResult, DispatchError, RuntimeDebug,
+	traits::{AtLeast32Bit, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, Saturating, StaticLookup, Zero},
+	DispatchError, DispatchResult, RuntimeDebug,
 };
 // FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
@@ -52,8 +50,8 @@ use rstd::collections::btree_map::BTreeMap;
 
 use orml_traits::{
 	arithmetic::{self, Signed},
-	MultiCurrency, MultiCurrencyExtended, OnDustRemoval, MultiLockableCurrency, LockIdentifier,
-	MultiReservableCurrency, BalanceStatus,
+	BalanceStatus, LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency,
+	MultiReservableCurrency, OnDustRemoval,
 };
 
 mod mock;
@@ -241,11 +239,7 @@ impl<T: Trait> Module<T> {
 	}
 
 	/// Update the account entry for `who` under `currency_id`, given the locks.
-	fn update_locks(
-		currency_id: T::CurrencyId,
-		who: &T::AccountId,
-		locks: &[BalanceLock<T::Balance>]
-	) {
+	fn update_locks(currency_id: T::CurrencyId, who: &T::AccountId, locks: &[BalanceLock<T::Balance>]) {
 		// update account data
 		<Accounts<T>>::mutate(currency_id, who, |account_data| {
 			account_data.frozen = Zero::zero();
@@ -295,8 +289,13 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 			return Ok(());
 		}
 
-		let new_balance = Self::free_balance(currency_id, who).checked_sub(&amount).ok_or(Error::<T>::BalanceTooLow)?;
-		ensure!(new_balance >= Self::accounts(currency_id, who).frozen(), Error::<T>::LiquidityRestrictions);
+		let new_balance = Self::free_balance(currency_id, who)
+			.checked_sub(&amount)
+			.ok_or(Error::<T>::BalanceTooLow)?;
+		ensure!(
+			new_balance >= Self::accounts(currency_id, who).frozen(),
+			Error::<T>::LiquidityRestrictions
+		);
 		Ok(())
 	}
 
@@ -367,7 +366,9 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	// $
 	// Check if `value` amount of free balance can be slashed from `who`.
 	fn can_slash(currency_id: Self::CurrencyId, who: &T::AccountId, value: Self::Balance) -> bool {
-		if value.is_zero() { return true }
+		if value.is_zero() {
+			return true;
+		}
 		Self::free_balance(currency_id, who) >= value
 	}
 
@@ -428,23 +429,24 @@ impl<T: Trait> MultiLockableCurrency<T::AccountId> for Module<T> {
 
 	// Set a lock on the balance of `who` under `currency_id`.
 	// Is a no-op if lock amount is zero.
-	fn set_lock(
-		lock_id: LockIdentifier,
-		currency_id: Self::CurrencyId,
-		who: &T::AccountId,
-		amount: Self::Balance,
-	) {
-		if amount.is_zero() { return }
-		let mut new_lock = Some(BalanceLock{
+	fn set_lock(lock_id: LockIdentifier, currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) {
+		if amount.is_zero() {
+			return;
+		}
+		let mut new_lock = Some(BalanceLock {
 			id: lock_id,
 			amount: amount,
 		});
-		let mut locks = Self::locks(currency_id, who).into_iter().filter_map(|lock|
-			if lock.id == lock_id {
-				new_lock.take()
-			} else {
-				Some(lock)
-			}).collect::<Vec<_>>();
+		let mut locks = Self::locks(currency_id, who)
+			.into_iter()
+			.filter_map(|lock| {
+				if lock.id == lock_id {
+					new_lock.take()
+				} else {
+					Some(lock)
+				}
+			})
+			.collect::<Vec<_>>();
 		if let Some(lock) = new_lock {
 			locks.push(lock)
 		}
@@ -453,39 +455,34 @@ impl<T: Trait> MultiLockableCurrency<T::AccountId> for Module<T> {
 
 	// Extend a lock on the balance of `who` under `currency_id`.
 	// Is a no-op if lock amount is zero
-	fn extend_lock(
-		lock_id: LockIdentifier,
-		currency_id: Self::CurrencyId,
-		who: &T::AccountId,
-		amount: Self::Balance,
-	) {
-		if amount.is_zero() { return }
-		let mut new_lock = Some(BalanceLock{
+	fn extend_lock(lock_id: LockIdentifier, currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) {
+		if amount.is_zero() {
+			return;
+		}
+		let mut new_lock = Some(BalanceLock {
 			id: lock_id,
 			amount: amount,
 		});
-		let mut locks = Self::locks(currency_id, who).into_iter().filter_map(|lock|
-			if lock.id == lock_id {
-				new_lock.take().map(|nl| {
-					BalanceLock {
+		let mut locks = Self::locks(currency_id, who)
+			.into_iter()
+			.filter_map(|lock| {
+				if lock.id == lock_id {
+					new_lock.take().map(|nl| BalanceLock {
 						id: lock.id,
 						amount: lock.amount.max(nl.amount),
-					}
-				})
-			} else {
-				Some(lock)
-			}).collect::<Vec<_>>();
+					})
+				} else {
+					Some(lock)
+				}
+			})
+			.collect::<Vec<_>>();
 		if let Some(lock) = new_lock {
 			locks.push(lock)
 		}
 		Self::update_locks(currency_id, who, &locks[..]);
 	}
 
-	fn remove_lock(
-		lock_id: LockIdentifier,
-		currency_id: Self::CurrencyId,
-		who: &T::AccountId,
-	) {
+	fn remove_lock(lock_id: LockIdentifier, currency_id: Self::CurrencyId, who: &T::AccountId) {
 		let mut locks = Self::locks(currency_id, who);
 		locks.retain(|lock| lock.id != lock_id);
 		Self::update_locks(currency_id, who, &locks[..]);
@@ -496,24 +493,20 @@ impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
 	/// Check if `who` can reserve `value` from their free balance.
 	///
 	/// Always `true` if value to be reserved is zero.
-	fn can_reserve(
-		currency_id: Self::CurrencyId,
-		who: &T::AccountId,
-		value: Self::Balance,
-	) -> bool {
-		if value.is_zero() { return true }
+	fn can_reserve(currency_id: Self::CurrencyId, who: &T::AccountId, value: Self::Balance) -> bool {
+		if value.is_zero() {
+			return true;
+		}
 		Self::ensure_can_withdraw(currency_id, who, value).is_ok()
 	}
 
 	/// Slash from reserved balance, returning any amount that was unable to be slashed.
 	///
 	/// Is a no-op if the value to be slashed is zero.
-	fn slash_reserved(
-		currency_id: Self::CurrencyId,
-		who: &T::AccountId,
-		value: Self::Balance
-	) -> Self::Balance {
-		if value.is_zero() { return Zero::zero() }
+	fn slash_reserved(currency_id: Self::CurrencyId, who: &T::AccountId, value: Self::Balance) -> Self::Balance {
+		if value.is_zero() {
+			return Zero::zero();
+		}
 
 		let reserved_balance = Self::reserved_balance(currency_id, who);
 		let actual = reserved_balance.min(value);
@@ -529,12 +522,10 @@ impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
 	/// Move `value` from the free balance from `who` to their reserved balance.
 	///
 	/// Is a no-op if value to be reserved is zero.
-	fn reserve(
-		currency_id: Self::CurrencyId,
-		who: &T::AccountId,
-		value: Self::Balance,
-	) -> DispatchResult {
-		if value.is_zero() { return Ok(()) }
+	fn reserve(currency_id: Self::CurrencyId, who: &T::AccountId, value: Self::Balance) -> DispatchResult {
+		if value.is_zero() {
+			return Ok(());
+		}
 		Self::ensure_can_withdraw(currency_id, who, value)?;
 
 		let account = Self::accounts(currency_id, who);
@@ -546,12 +537,10 @@ impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
 	/// Unreserve some funds, returning any amount that was unable to be unreserved.
 	///
 	/// Is a no-op if the value to be unreserved is zero.
-	fn unreserve(
-		currency_id: Self::CurrencyId,
-		who: &T::AccountId,
-		value: Self::Balance,
-	) -> Self::Balance {
-		if value.is_zero() { return Zero::zero() }
+	fn unreserve(currency_id: Self::CurrencyId, who: &T::AccountId, value: Self::Balance) -> Self::Balance {
+		if value.is_zero() {
+			return Zero::zero();
+		}
 
 		let account = Self::accounts(currency_id, who);
 		let actual = account.reserved.min(value);
@@ -572,7 +561,9 @@ impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
 		value: Self::Balance,
 		status: BalanceStatus,
 	) -> rstd::result::Result<Self::Balance, DispatchError> {
-		if value.is_zero() { return Ok(Zero::zero()) }
+		if value.is_zero() {
+			return Ok(Zero::zero());
+		}
 
 		if slashed == beneficiary {
 			return match status {
@@ -587,7 +578,7 @@ impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
 		match status {
 			BalanceStatus::Free => {
 				Self::set_free_balance(currency_id, beneficiary, to_account.free + actual);
-			},
+			}
 			BalanceStatus::Reserved => {
 				Self::set_reserved_balance(currency_id, beneficiary, to_account.reserved + actual);
 			}
