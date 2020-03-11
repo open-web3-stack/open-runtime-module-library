@@ -17,8 +17,8 @@ fn multi_currency_should_work() {
 		.build()
 		.execute_with(|| {
 			assert_ok!(Currencies::transfer(Some(ALICE).into(), BOB, X_TOKEN_ID, 50));
-			assert_eq!(Currencies::balance(X_TOKEN_ID, &ALICE), 50);
-			assert_eq!(Currencies::balance(X_TOKEN_ID, &BOB), 150);
+			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &ALICE), 50);
+			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &BOB), 150);
 		});
 }
 
@@ -31,7 +31,7 @@ fn multi_currency_extended_should_work() {
 			assert_ok!(<Currencies as MultiCurrencyExtended<AccountId>>::update_balance(
 				X_TOKEN_ID, &ALICE, 50
 			));
-			assert_eq!(Currencies::balance(X_TOKEN_ID, &ALICE), 150);
+			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &ALICE), 150);
 		});
 }
 
@@ -43,15 +43,15 @@ fn native_currency_should_work() {
 		.build()
 		.execute_with(|| {
 			assert_ok!(Currencies::transfer_native_currency(Some(ALICE).into(), BOB, 50));
-			assert_eq!(NativeCurrency::balance(&ALICE), 50);
-			assert_eq!(NativeCurrency::balance(&BOB), 150);
+			assert_eq!(NativeCurrency::free_balance(&ALICE), 50);
+			assert_eq!(NativeCurrency::free_balance(&BOB), 150);
 
 			assert_ok!(NativeCurrency::transfer(&ALICE, &BOB, 10));
-			assert_eq!(NativeCurrency::balance(&ALICE), 40);
-			assert_eq!(NativeCurrency::balance(&BOB), 160);
+			assert_eq!(NativeCurrency::free_balance(&ALICE), 40);
+			assert_eq!(NativeCurrency::free_balance(&BOB), 160);
 
 			assert_eq!(Currencies::slash(NATIVE_CURRENCY_ID, &ALICE, 10), 0);
-			assert_eq!(NativeCurrency::balance(&ALICE), 30);
+			assert_eq!(NativeCurrency::free_balance(&ALICE), 30);
 			assert_eq!(NativeCurrency::total_issuance(), 190);
 		});
 }
@@ -64,14 +64,14 @@ fn native_currency_extended_should_work() {
 		.build()
 		.execute_with(|| {
 			assert_ok!(NativeCurrency::update_balance(&ALICE, 10));
-			assert_eq!(NativeCurrency::balance(&ALICE), 110);
+			assert_eq!(NativeCurrency::free_balance(&ALICE), 110);
 
 			assert_ok!(<Currencies as MultiCurrencyExtended<AccountId>>::update_balance(
 				NATIVE_CURRENCY_ID,
 				&ALICE,
 				10
 			));
-			assert_eq!(NativeCurrency::balance(&ALICE), 120);
+			assert_eq!(NativeCurrency::free_balance(&ALICE), 120);
 		});
 }
 
@@ -153,10 +153,10 @@ fn update_balance_call_should_work() {
 		.build()
 		.execute_with(|| {
 			assert_ok!(Currencies::update_balance(Origin::ROOT, ALICE, NATIVE_CURRENCY_ID, -10));
-			assert_eq!(NativeCurrency::balance(&ALICE), 90);
+			assert_eq!(NativeCurrency::free_balance(&ALICE), 90);
 
 			assert_ok!(Currencies::update_balance(Origin::ROOT, ALICE, X_TOKEN_ID, 10));
-			assert_eq!(Currencies::balance(X_TOKEN_ID, &ALICE), 10);
+			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &ALICE), 10);
 		});
 }
 
@@ -177,8 +177,8 @@ fn call_event_should_work() {
 		.build()
 		.execute_with(|| {
 			assert_ok!(Currencies::transfer(Some(ALICE).into(), BOB, X_TOKEN_ID, 50));
-			assert_eq!(Currencies::balance(X_TOKEN_ID, &ALICE), 50);
-			assert_eq!(Currencies::balance(X_TOKEN_ID, &BOB), 150);
+			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &ALICE), 50);
+			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &BOB), 150);
 
 			let transferred_event = TestEvent::currencies(RawEvent::Transferred(X_TOKEN_ID, ALICE, BOB, 50));
 			assert!(System::events().iter().any(|record| record.event == transferred_event));
@@ -186,8 +186,8 @@ fn call_event_should_work() {
 			assert_ok!(<Currencies as MultiCurrency<AccountId>>::transfer(
 				X_TOKEN_ID, &ALICE, &BOB, 10
 			));
-			assert_eq!(Currencies::balance(X_TOKEN_ID, &ALICE), 40);
-			assert_eq!(Currencies::balance(X_TOKEN_ID, &BOB), 160);
+			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &ALICE), 40);
+			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &BOB), 160);
 
 			let transferred_event = TestEvent::currencies(RawEvent::Transferred(X_TOKEN_ID, ALICE, BOB, 10));
 			assert!(System::events().iter().any(|record| record.event == transferred_event));
@@ -195,7 +195,7 @@ fn call_event_should_work() {
 			assert_ok!(<Currencies as MultiCurrency<AccountId>>::deposit(
 				X_TOKEN_ID, &ALICE, 100
 			));
-			assert_eq!(Currencies::balance(X_TOKEN_ID, &ALICE), 140);
+			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &ALICE), 140);
 
 			let transferred_event = TestEvent::currencies(RawEvent::Deposited(X_TOKEN_ID, ALICE, 100));
 			assert!(System::events().iter().any(|record| record.event == transferred_event));
@@ -203,7 +203,7 @@ fn call_event_should_work() {
 			assert_ok!(<Currencies as MultiCurrency<AccountId>>::withdraw(
 				X_TOKEN_ID, &ALICE, 20
 			));
-			assert_eq!(Currencies::balance(X_TOKEN_ID, &ALICE), 120);
+			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &ALICE), 120);
 
 			let transferred_event = TestEvent::currencies(RawEvent::Withdrawn(X_TOKEN_ID, ALICE, 20));
 			assert!(System::events().iter().any(|record| record.event == transferred_event));

@@ -14,8 +14,8 @@ fn genesis_issuance_should_work() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
-			assert_eq!(Tokens::balance(TEST_TOKEN_ID, &ALICE), 100);
-			assert_eq!(Tokens::balance(TEST_TOKEN_ID, &BOB), 100);
+			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 100);
+			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &BOB), 100);
 			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 200);
 		});
 }
@@ -27,8 +27,8 @@ fn transfer_should_work() {
 		.build()
 		.execute_with(|| {
 			assert_ok!(Tokens::transfer(Some(ALICE).into(), BOB, TEST_TOKEN_ID, 50));
-			assert_eq!(Tokens::balance(TEST_TOKEN_ID, &ALICE), 50);
-			assert_eq!(Tokens::balance(TEST_TOKEN_ID, &BOB), 150);
+			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 50);
+			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &BOB), 150);
 			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 200);
 
 			let transferred_event = TestEvent::tokens(RawEvent::Transferred(TEST_TOKEN_ID, ALICE, BOB, 50));
@@ -61,7 +61,7 @@ fn transfer_enforces_existential_rule() {
 		.build()
 		.execute_with(|| {
 			assert_ok!(Tokens::transfer(Some(ALICE).into(), BOB, TEST_TOKEN_ID, 99));
-			assert_eq!(Tokens::balance(TEST_TOKEN_ID, &ALICE), 0);
+			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 0);
 			assert_eq!(MockDustRemoval::accumulated_dust(), 1);
 		});
 }
@@ -73,8 +73,8 @@ fn transfer_all_should_work() {
 		.build()
 		.execute_with(|| {
 			assert_ok!(Tokens::transfer_all(Some(ALICE).into(), BOB, TEST_TOKEN_ID));
-			assert_eq!(Tokens::balance(TEST_TOKEN_ID, &ALICE), 0);
-			assert_eq!(Tokens::balance(TEST_TOKEN_ID, &BOB), 200);
+			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 0);
+			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &BOB), 200);
 
 			let transferred_event = TestEvent::tokens(RawEvent::Transferred(TEST_TOKEN_ID, ALICE, BOB, 100));
 			assert!(System::events().iter().any(|record| record.event == transferred_event));
@@ -88,7 +88,7 @@ fn deposit_should_work() {
 		.build()
 		.execute_with(|| {
 			assert_ok!(Tokens::deposit(TEST_TOKEN_ID, &ALICE, 100));
-			assert_eq!(Tokens::balance(TEST_TOKEN_ID, &ALICE), 200);
+			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 200);
 			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 300);
 
 			assert_noop!(
@@ -105,7 +105,7 @@ fn deposit_enforces_existential_rule() {
 		.build()
 		.execute_with(|| {
 			assert_ok!(Tokens::deposit(TEST_TOKEN_ID, &CHARLIE, 1));
-			assert_eq!(Tokens::balance(TEST_TOKEN_ID, &CHARLIE), 0);
+			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &CHARLIE), 0);
 			assert_eq!(MockDustRemoval::accumulated_dust(), 0);
 		});
 }
@@ -117,7 +117,7 @@ fn withdraw_should_work() {
 		.build()
 		.execute_with(|| {
 			assert_ok!(Tokens::withdraw(TEST_TOKEN_ID, &ALICE, 50));
-			assert_eq!(Tokens::balance(TEST_TOKEN_ID, &ALICE), 50);
+			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 50);
 			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 150);
 
 			assert_noop!(
@@ -134,7 +134,7 @@ fn withdraw_enforces_existential_rule() {
 		.build()
 		.execute_with(|| {
 			assert_ok!(Tokens::withdraw(TEST_TOKEN_ID, &ALICE, 99));
-			assert_eq!(Tokens::balance(TEST_TOKEN_ID, &ALICE), 0);
+			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 0);
 			assert_eq!(MockDustRemoval::accumulated_dust(), 1);
 			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 100);
 		});
@@ -148,12 +148,12 @@ fn slash_should_work() {
 		.execute_with(|| {
 			// slashed_amount < amount
 			assert_eq!(Tokens::slash(TEST_TOKEN_ID, &ALICE, 50), 0);
-			assert_eq!(Tokens::balance(TEST_TOKEN_ID, &ALICE), 50);
+			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 50);
 			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 150);
 
 			// slashed_amount == amount
 			assert_eq!(Tokens::slash(TEST_TOKEN_ID, &ALICE, 51), 1);
-			assert_eq!(Tokens::balance(TEST_TOKEN_ID, &ALICE), 0);
+			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 0);
 			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 100);
 		});
 }
@@ -165,7 +165,7 @@ fn slash_enforces_existential_rule() {
 		.build()
 		.execute_with(|| {
 			assert_eq!(Tokens::slash(TEST_TOKEN_ID, &ALICE, 99), 0);
-			assert_eq!(Tokens::balance(TEST_TOKEN_ID, &ALICE), 0);
+			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 0);
 			assert_eq!(MockDustRemoval::accumulated_dust(), 1);
 		});
 }
@@ -177,11 +177,11 @@ fn update_balance_should_work() {
 		.build()
 		.execute_with(|| {
 			assert_ok!(Tokens::update_balance(TEST_TOKEN_ID, &ALICE, 50));
-			assert_eq!(Tokens::balance(TEST_TOKEN_ID, &ALICE), 150);
+			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 150);
 			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 250);
 
 			assert_ok!(Tokens::update_balance(TEST_TOKEN_ID, &BOB, -50));
-			assert_eq!(Tokens::balance(TEST_TOKEN_ID, &BOB), 50);
+			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &BOB), 50);
 			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 200);
 
 			assert_noop!(
@@ -203,7 +203,7 @@ fn ensure_can_withdraw_should_work() {
 			);
 
 			assert_ok!(Tokens::ensure_can_withdraw(TEST_TOKEN_ID, &ALICE, 1));
-			assert_eq!(Tokens::balance(TEST_TOKEN_ID, &ALICE), 100);
+			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 100);
 		});
 }
 
