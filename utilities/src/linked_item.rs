@@ -172,7 +172,7 @@ mod tests {
 
 	decl_storage! {
 		trait Store for Module<T: Trait> as Test {
-			pub TestItem get(linked_list): map hasher(blake2_256) (Key, Option<Value>) => Option<TestLinkedItem>;
+			pub TestItem get(linked_list): map hasher(twox_64_concat) (Key, Option<Value>) => Option<TestLinkedItem>;
 		}
 	}
 
