@@ -172,6 +172,19 @@ impl Fixed128 {
 	pub fn is_zero(&self) -> bool {
 		self.0 == 0
 	}
+
+	/// Saturating absolute value. Returning MAX if `parts` == i128::MIN instead of overflowing.
+	pub fn saturating_abs(&self) -> Self {
+		if self.0 == i128::min_value() {
+			return Fixed128::max_value();
+		}
+
+		if self.0.is_negative() {
+			Fixed128::from_parts(self.0 * -1)
+		} else {
+			*self
+		}
+	}
 }
 
 impl Saturating for Fixed128 {
@@ -529,5 +542,15 @@ mod tests {
 		assert_eq!(serialized, "\"-2500000000000000000\"");
 		let deserialized: Fixed128 = serde_json::from_str(&serialized).unwrap();
 		assert_eq!(deserialized, minus_two_point_five);
+	}
+
+	#[test]
+	fn saturating_abs_should_work() {
+		// normal
+		assert_eq!(Fixed128::from_parts(1).saturating_abs(), Fixed128::from_parts(1));
+		assert_eq!(Fixed128::from_parts(-1).saturating_abs(), Fixed128::from_parts(1));
+
+		// saturating
+		assert_eq!(Fixed128::min_value().saturating_abs(), Fixed128::max_value());
 	}
 }
