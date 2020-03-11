@@ -36,6 +36,7 @@
 use codec::{Decode, Encode};
 use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, traits::Get, Parameter};
 use rstd::convert::{TryFrom, TryInto};
+use rstd::prelude::*;
 use sp_runtime::{
 	traits::{AtLeast32Bit, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, Saturating, StaticLookup, Zero},
 	DispatchError, DispatchResult, RuntimeDebug,
