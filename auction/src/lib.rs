@@ -49,7 +49,7 @@ decl_module! {
 
 		fn deposit_event() = default;
 
-		pub fn bid(origin, id: T::AuctionId, value: T::Balance) {
+		pub fn bid(origin, id: T::AuctionId, #[compact] value: T::Balance) {
 			let from = ensure_signed(origin)?;
 
 			let mut auction = <Auctions<T>>::get(id).ok_or(Error::<T>::AuctionNotExist)?;
