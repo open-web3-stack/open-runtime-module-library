@@ -185,6 +185,14 @@ impl Fixed128 {
 			*self
 		}
 	}
+
+	pub fn is_positive(&self) -> bool {
+		self.0.is_positive()
+	}
+
+	pub fn is_negative(&self) -> bool {
+		self.0.is_negative()
+	}
 }
 
 impl Saturating for Fixed128 {
@@ -552,5 +560,20 @@ mod tests {
 
 		// saturating
 		assert_eq!(Fixed128::min_value().saturating_abs(), Fixed128::max_value());
+	}
+
+	#[test]
+	fn is_positive_negative_should_work() {
+		let positive = Fixed128::from_parts(1);
+		assert!(positive.is_positive());
+		assert!(!positive.is_negative());
+
+		let negative = Fixed128::from_parts(-1);
+		assert!(!negative.is_positive());
+		assert!(negative.is_negative());
+
+		let zero = Fixed128::zero();
+		assert!(!zero.is_positive());
+		assert!(!zero.is_negative());
 	}
 }
