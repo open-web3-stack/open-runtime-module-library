@@ -252,11 +252,13 @@ impl<T: Trait> Module<T> {
 		if locks.is_empty() {
 			<Locks<T>>::remove(currency_id, who);
 			if existed {
+				// decrease account ref count when destruct lock
 				system::Module::<T>::dec_ref(who);
 			}
 		} else {
 			<Locks<T>>::insert(currency_id, who, locks);
 			if !existed {
+				// increase account ref count when initialize lock
 				system::Module::<T>::inc_ref(who);
 			}
 		}

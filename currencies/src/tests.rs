@@ -42,6 +42,54 @@ fn multi_reservable_currency_should_work() {
 }
 
 #[test]
+fn native_currency_lockable_should_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			NativeCurrency::set_lock(ID_1, &ALICE, 10);
+			assert_eq!(PalletBalances::locks(&ALICE).len(), 1);
+			NativeCurrency::remove_lock(ID_1, &ALICE);
+			assert_eq!(PalletBalances::locks(&ALICE).len(), 0);
+		});
+}
+
+#[test]
+fn native_currency_reservable_should_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_ok!(NativeCurrency::reserve(&ALICE, 50));
+			assert_eq!(NativeCurrency::reserved_balance(&ALICE), 50);
+		});
+}
+
+#[test]
+fn basic_currency_adapting_pallet_balances_lockable() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			AdaptedBasicCurrency::set_lock(ID_1, &ALICE, 10);
+			assert_eq!(PalletBalances::locks(&ALICE).len(), 1);
+			AdaptedBasicCurrency::remove_lock(ID_1, &ALICE);
+			assert_eq!(PalletBalances::locks(&ALICE).len(), 0);
+		});
+}
+
+#[test]
+fn basic_currency_adapting_pallet_balances_reservable() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_ok!(AdaptedBasicCurrency::reserve(&ALICE, 50));
+			assert_eq!(AdaptedBasicCurrency::reserved_balance(&ALICE), 50);
+		});
+}
+
+#[test]
 fn multi_currency_should_work() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
