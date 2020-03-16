@@ -97,6 +97,8 @@ pub const TEST_TOKEN_ID: CurrencyId = 1;
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const CHARLIE: AccountId = 3;
+pub const ID_1: LockIdentifier = *b"1       ";
+pub const ID_2: LockIdentifier = *b"2       ";
 
 pub struct ExtBuilder {
 	endowed_accounts: Vec<(AccountId, CurrencyId, Balance)>,
