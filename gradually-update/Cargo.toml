@@ -5,7 +5,7 @@ authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2018"
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "1.0.0", default-features = false }
+codec = { package = "parity-scale-codec", version = "1.2.0", default-features = false }
 
 frame-support = { version = "2.0.0-alpha.3", default-features = false }
 frame-system = { version = "2.0.0-alpha.3", default-features = false }
