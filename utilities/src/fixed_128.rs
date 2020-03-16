@@ -228,7 +228,8 @@ impl Bounded for Fixed128 {
 impl rstd::fmt::Debug for Fixed128 {
 	#[cfg(feature = "std")]
 	fn fmt(&self, f: &mut rstd::fmt::Formatter) -> rstd::fmt::Result {
-		write!(f, "Fixed128({},{})", self.0 / DIV, self.0 % DIV)
+		let fractional = format!("{:0>18}", (self.0 % DIV).abs());
+		write!(f, "Fixed128({},{})", self.0 / DIV, fractional)
 	}
 
 	#[cfg(not(feature = "std"))]
@@ -575,5 +576,15 @@ mod tests {
 		let zero = Fixed128::zero();
 		assert!(!zero.is_positive());
 		assert!(!zero.is_negative());
+	}
+
+	#[test]
+	fn fmt_should_work() {
+		let positive = Fixed128::from_parts(1000000000000000001);
+		assert_eq!(format!("{:?}", positive), "Fixed128(1,000000000000000001)");
+		let negative = Fixed128::from_parts(-1000000000000000001);
+		assert_eq!(format!("{:?}", negative), "Fixed128(-1,000000000000000001)");
+		let zero = Fixed128::zero();
+		assert_eq!(format!("{:?}", zero), "Fixed128(0,000000000000000000)");
 	}
 }
