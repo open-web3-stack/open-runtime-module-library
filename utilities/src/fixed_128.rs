@@ -92,6 +92,10 @@ impl Fixed128 {
 		if rhs.0.signum() == 0 {
 			return None;
 		}
+		if self.0 == 0 {
+			return Some(*self);
+		}
+
 		let signum = self.0.signum() / rhs.0.signum();
 		let mut lhs: i128 = self.0;
 		if lhs.is_negative() {
@@ -424,6 +428,14 @@ mod tests {
 	fn checked_div_int_with_zero_should_be_none() {
 		let a = Fixed128::from_natural(1);
 		assert_eq!(a.checked_div_int(&0i32), None);
+	}
+
+	#[test]
+	fn checked_div_with_zero_dividend_should_be_zero() {
+		let a = Fixed128::zero();
+		let b = Fixed128::from_parts(1);
+
+		assert_eq!(a.checked_div(&b), Some(Fixed128::zero()));
 	}
 
 	#[test]
