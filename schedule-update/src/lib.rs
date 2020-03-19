@@ -66,8 +66,10 @@ decl_error! {
 decl_storage! {
 	trait Store for Module<T: Trait> as ScheduleUpdate {
 		pub NextId get(fn next_id): DispatchId;
-		pub DelayedNormalDispatches get(fn delayed_normal_dispatches): double_map hasher(twox_64_concat) T::BlockNumber, hasher(twox_64_concat) DispatchId => Option<(Option<T::AccountId>, CallOf<T>, DispatchId)>;
-		pub DelayedOperationalDispatches get(fn delayed_operational_dispatches): double_map hasher(twox_64_concat) T::BlockNumber, hasher(twox_64_concat) DispatchId => Option<(Option<T::AccountId>, CallOf<T>, DispatchId)>;
+		pub DelayedNormalDispatches get(fn delayed_normal_dispatches):
+			double_map hasher(twox_64_concat) T::BlockNumber, hasher(twox_64_concat) DispatchId => Option<(Option<T::AccountId>, CallOf<T>, DispatchId)>;
+		pub DelayedOperationalDispatches get(fn delayed_operational_dispatches):
+			double_map hasher(twox_64_concat) T::BlockNumber, hasher(twox_64_concat) DispatchId => Option<(Option<T::AccountId>, CallOf<T>, DispatchId)>;
 	}
 }
 
