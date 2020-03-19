@@ -31,12 +31,6 @@ impl_outer_dispatch! {
 	}
 }
 
-impl Default for Call {
-	fn default() -> Call {
-		Default::default()
-	}
-}
-
 // Workaround for https://github.com/rust-lang/rust/issues/26925 . Remove when sorted.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Runtime;

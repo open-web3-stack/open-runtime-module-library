@@ -30,7 +30,7 @@ type CallOf<T> = <T as Trait>::Call;
 
 pub trait Trait: frame_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
-	type Call: Parameter + Default + Dispatchable<Origin = <Self as frame_system::Trait>::Origin> + GetDispatchInfo;
+	type Call: Parameter + Dispatchable<Origin = <Self as frame_system::Trait>::Origin> + GetDispatchInfo;
 	type MaxScheduleDispatchWeight: Get<Weight>;
 }
 
@@ -66,8 +66,10 @@ decl_error! {
 decl_storage! {
 	trait Store for Module<T: Trait> as ScheduleUpdate {
 		pub NextId get(fn next_id): DispatchId;
-		pub DelayedNormalDispatches get(fn delayed_normal_dispatches): double_map hasher(twox_64_concat) T::BlockNumber, hasher(twox_64_concat) DispatchId => (Option<T::AccountId>, CallOf<T>, DispatchId);
-		pub DelayedOperationalDispatches get(fn delayed_operational_dispatches): double_map hasher(twox_64_concat) T::BlockNumber, hasher(twox_64_concat) DispatchId => (Option<T::AccountId>, CallOf<T>, DispatchId);
+		pub DelayedNormalDispatches get(fn delayed_normal_dispatches):
+			double_map hasher(twox_64_concat) T::BlockNumber, hasher(twox_64_concat) DispatchId => Option<(Option<T::AccountId>, CallOf<T>, DispatchId)>;
+		pub DelayedOperationalDispatches get(fn delayed_operational_dispatches):
+			double_map hasher(twox_64_concat) T::BlockNumber, hasher(twox_64_concat) DispatchId => Option<(Option<T::AccountId>, CallOf<T>, DispatchId)>;
 	}
 }
 
@@ -115,22 +117,16 @@ decl_module! {
 		pub fn cancel_deplayed_dispatch(origin, at: T::BlockNumber, id: DispatchId) {
 			let is_root = ensure_root(origin.clone()).is_ok();
 
-			if <DelayedNormalDispatches<T>>::contains_key(at, id) {
+			if let Some((who, _, _)) = <DelayedNormalDispatches<T>>::get(at, id) {
 				if !is_root {
 					let w = ensure_signed(origin)?;
-					let (who, _, _) = <DelayedNormalDispatches<T>>::get(at, id);
-					if Some(w) != who {
-						return Err(Error::<T>::NoPermission.into());
-					}
+					ensure!(Some(w) == who, Error::<T>::NoPermission);
 				}
 				<DelayedNormalDispatches<T>>::remove(at, id);
-			} else if <DelayedOperationalDispatches<T>>::contains_key(at, id) {
+			} else if let Some((who, _, _)) = <DelayedOperationalDispatches<T>>::get(at, id) {
 				if !is_root {
 					let w = ensure_signed(origin)?;
-					let (who, _, _) = <DelayedOperationalDispatches<T>>::get(at, id);
-					if Some(w) != who {
-						return Err(Error::<T>::NoPermission.into());
-					}
+					ensure!(Some(w) == who, Error::<T>::NoPermission);
 				}
 				<DelayedOperationalDispatches<T>>::remove(at, id);
 			} else {
