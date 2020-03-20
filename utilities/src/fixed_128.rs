@@ -106,7 +106,7 @@ impl Fixed128 {
 			.checked_mul(U256::from(DIV))
 			.and_then(|n| n.checked_div(U256::from(rhs)))
 			.and_then(|n| TryInto::<i128>::try_into(n).ok())
-			.map(|n| Self(n / signum))
+			.map(|n| Self(n * signum))
 	}
 
 	/// Checked mul for int type `N`.
