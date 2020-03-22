@@ -92,6 +92,10 @@ impl Fixed128 {
 		if rhs.0.signum() == 0 {
 			return None;
 		}
+		if self.0 == 0 {
+			return Some(*self);
+		}
+
 		let signum = self.0.signum() / rhs.0.signum();
 		let mut lhs: i128 = self.0;
 		if lhs.is_negative() {
@@ -185,6 +189,14 @@ impl Fixed128 {
 			*self
 		}
 	}
+
+	pub fn is_positive(&self) -> bool {
+		self.0.is_positive()
+	}
+
+	pub fn is_negative(&self) -> bool {
+		self.0.is_negative()
+	}
 }
 
 impl Saturating for Fixed128 {
@@ -220,7 +232,8 @@ impl Bounded for Fixed128 {
 impl rstd::fmt::Debug for Fixed128 {
 	#[cfg(feature = "std")]
 	fn fmt(&self, f: &mut rstd::fmt::Formatter) -> rstd::fmt::Result {
-		write!(f, "Fixed128({},{})", self.0 / DIV, self.0 % DIV)
+		let fractional = format!("{:0>18}", (self.0 % DIV).abs());
+		write!(f, "Fixed128({},{})", self.0 / DIV, fractional)
 	}
 
 	#[cfg(not(feature = "std"))]
@@ -421,6 +434,14 @@ mod tests {
 	}
 
 	#[test]
+	fn checked_div_with_zero_dividend_should_be_zero() {
+		let a = Fixed128::zero();
+		let b = Fixed128::from_parts(1);
+
+		assert_eq!(a.checked_div(&b), Some(Fixed128::zero()));
+	}
+
+	#[test]
 	fn under_flow_should_be_none() {
 		let b = Fixed128::from_natural(1);
 		assert_eq!(min().checked_sub(&b), None);
@@ -555,5 +576,30 @@ mod tests {
 
 		// saturating
 		assert_eq!(Fixed128::min_value().saturating_abs(), Fixed128::max_value());
+	}
+
+	#[test]
+	fn is_positive_negative_should_work() {
+		let positive = Fixed128::from_parts(1);
+		assert!(positive.is_positive());
+		assert!(!positive.is_negative());
+
+		let negative = Fixed128::from_parts(-1);
+		assert!(!negative.is_positive());
+		assert!(negative.is_negative());
+
+		let zero = Fixed128::zero();
+		assert!(!zero.is_positive());
+		assert!(!zero.is_negative());
+	}
+
+	#[test]
+	fn fmt_should_work() {
+		let positive = Fixed128::from_parts(1000000000000000001);
+		assert_eq!(format!("{:?}", positive), "Fixed128(1,000000000000000001)");
+		let negative = Fixed128::from_parts(-1000000000000000001);
+		assert_eq!(format!("{:?}", negative), "Fixed128(-1,000000000000000001)");
+		let zero = Fixed128::zero();
+		assert_eq!(format!("{:?}", zero), "Fixed128(0,000000000000000000)");
 	}
 }
