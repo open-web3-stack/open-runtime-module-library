@@ -422,12 +422,15 @@ mod tests {
 		let a = Fixed128::from_natural(1);
 		let b = Fixed128::from_natural(0);
 		assert_eq!(a.checked_div(&b), None);
+		assert_eq!(b.checked_div(&a), Some(b));
 	}
 
 	#[test]
 	fn checked_div_int_with_zero_should_be_none() {
 		let a = Fixed128::from_natural(1);
 		assert_eq!(a.checked_div_int(&0i32), None);
+		let a = Fixed128::from_natural(0);
+		assert_eq!(a.checked_div_int(&1i32), Some(0));
 	}
 
 	#[test]
