@@ -1,8 +1,8 @@
 pub use num_traits::{
 	Bounded, CheckedAdd, CheckedDiv, CheckedMul, CheckedShl, CheckedShr, CheckedSub, One, Signed, Zero,
 };
-use rstd::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Rem, RemAssign, Shl, Shr, Sub, SubAssign};
-use rstd::{
+use sp_std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Rem, RemAssign, Shl, Shr, Sub, SubAssign};
+use sp_std::{
 	self,
 	convert::{TryFrom, TryInto},
 };

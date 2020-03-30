@@ -1,12 +1,12 @@
 use codec::{Decode, Encode};
-use primitives::U256;
-use rstd::{
-	convert::{Into, TryFrom, TryInto},
-	num::NonZeroI128,
-};
+use sp_core::U256;
 use sp_runtime::{
 	traits::{Bounded, Saturating, UniqueSaturatedInto},
 	PerThing,
+};
+use sp_std::{
+	convert::{Into, TryFrom, TryInto},
+	num::NonZeroI128,
 };
 
 #[cfg(feature = "std")]
@@ -229,15 +229,15 @@ impl Bounded for Fixed128 {
 	}
 }
 
-impl rstd::fmt::Debug for Fixed128 {
+impl sp_std::fmt::Debug for Fixed128 {
 	#[cfg(feature = "std")]
-	fn fmt(&self, f: &mut rstd::fmt::Formatter) -> rstd::fmt::Result {
+	fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
 		let fractional = format!("{:0>18}", (self.0 % DIV).abs());
 		write!(f, "Fixed128({},{})", self.0 / DIV, fractional)
 	}
 
 	#[cfg(not(feature = "std"))]
-	fn fmt(&self, _: &mut rstd::fmt::Formatter) -> rstd::fmt::Result {
+	fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
 		Ok(())
 	}
 }

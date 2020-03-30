@@ -4,7 +4,7 @@
 
 use frame_support::{impl_outer_event, impl_outer_origin, parameter_types};
 use orml_traits::OnNewBidResult;
-use primitives::H256;
+use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
 use super::*;
@@ -98,7 +98,7 @@ impl Default for ExtBuilder {
 }
 
 impl ExtBuilder {
-	pub fn build(self) -> runtime_io::TestExternalities {
+	pub fn build(self) -> sp_io::TestExternalities {
 		let t = frame_system::GenesisConfig::default()
 			.build_storage::<Runtime>()
 			.unwrap();

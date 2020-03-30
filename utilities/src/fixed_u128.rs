@@ -1,10 +1,10 @@
 use codec::{Decode, Encode};
-use primitives::U256;
-use rstd::convert::{Into, TryFrom, TryInto};
+use sp_core::U256;
 use sp_runtime::{
 	traits::{Bounded, Saturating, UniqueSaturatedInto},
 	PerThing,
 };
+use sp_std::convert::{Into, TryFrom, TryInto};
 
 #[cfg(feature = "std")]
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
@@ -183,14 +183,14 @@ impl Bounded for FixedU128 {
 	}
 }
 
-impl rstd::fmt::Debug for FixedU128 {
+impl sp_std::fmt::Debug for FixedU128 {
 	#[cfg(feature = "std")]
-	fn fmt(&self, f: &mut rstd::fmt::Formatter) -> rstd::fmt::Result {
+	fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
 		write!(f, "FixedU128({},{})", self.0 / DIV, (self.0 % DIV) / 1000)
 	}
 
 	#[cfg(not(feature = "std"))]
-	fn fmt(&self, _: &mut rstd::fmt::Formatter) -> rstd::fmt::Result {
+	fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
 		Ok(())
 	}
 }

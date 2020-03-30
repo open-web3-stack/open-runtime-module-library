@@ -3,7 +3,7 @@
 use super::*;
 
 use frame_support::{impl_outer_dispatch, impl_outer_origin, parameter_types, weights::Weight};
-use primitives::H256;
+use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
@@ -102,7 +102,7 @@ impl Trait for Test {
 pub type ModuleOracle = Module<Test>;
 // This function basically just builds a genesis storage key/value store according to
 // our desired mockup.
-pub fn new_test_ext() -> runtime_io::TestExternalities {
+pub fn new_test_ext() -> sp_io::TestExternalities {
 	let r = frame_system::GenesisConfig::default().build_storage::<Test>();
 
 	r.unwrap().into()
