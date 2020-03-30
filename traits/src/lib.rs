@@ -6,16 +6,16 @@ pub mod auction;
 pub use auction::{Auction, AuctionHandler, AuctionInfo, OnNewBidResult};
 use codec::{Codec, FullCodec};
 pub use frame_support::traits::{BalanceStatus, LockIdentifier};
-use rstd::{
+use sp_runtime::{
+	traits::{AtLeast32Bit, MaybeSerializeDeserialize},
+	DispatchError, DispatchResult,
+};
+use sp_std::{
 	cmp::{Eq, PartialEq},
 	convert::{TryFrom, TryInto},
 	fmt::Debug,
 	prelude::Vec,
 	result,
-};
-use sp_runtime::{
-	traits::{AtLeast32Bit, MaybeSerializeDeserialize},
-	DispatchError, DispatchResult,
 };
 
 /// Abstraction over a fungible multi-currency system.

@@ -38,11 +38,11 @@ use frame_support::{
 		ReservableCurrency as PalletReservableCurrency, WithdrawReason,
 	},
 };
-use rstd::{convert::TryInto, marker};
 use sp_runtime::{
 	traits::{CheckedSub, StaticLookup, Zero},
 	DispatchError, DispatchResult,
 };
+use sp_std::{convert::TryInto, marker, result};
 // FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
@@ -340,7 +340,7 @@ impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
 		beneficiary: &T::AccountId,
 		value: Self::Balance,
 		status: BalanceStatus,
-	) -> rstd::result::Result<Self::Balance, DispatchError> {
+	) -> result::Result<Self::Balance, DispatchError> {
 		if currency_id == T::GetNativeCurrencyId::get() {
 			T::NativeCurrency::repatriate_reserved(slashed, beneficiary, value, status)
 		} else {
@@ -457,7 +457,7 @@ where
 		beneficiary: &T::AccountId,
 		value: Self::Balance,
 		status: BalanceStatus,
-	) -> rstd::result::Result<Self::Balance, DispatchError> {
+	) -> result::Result<Self::Balance, DispatchError> {
 		<Module<T> as MultiReservableCurrency<T::AccountId>>::repatriate_reserved(
 			GetCurrencyId::get(),
 			slashed,
@@ -640,7 +640,7 @@ where
 		beneficiary: &AccountId,
 		value: Self::Balance,
 		status: BalanceStatus,
-	) -> rstd::result::Result<Self::Balance, DispatchError> {
+	) -> result::Result<Self::Balance, DispatchError> {
 		Currency::repatriate_reserved(slashed, beneficiary, BalanceConvert::from(value).into(), status.into())
 			.map(|a| BalanceConvert::from(a).into())
 	}

@@ -21,7 +21,7 @@ use sp_runtime::{
 	traits::{Member, SignedExtension},
 	DispatchResult,
 };
-use sp_std::{prelude::*, vec};
+use sp_std::{fmt, marker, prelude::*, result, vec};
 // FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
@@ -143,22 +143,22 @@ impl<T: Trait> Module<T> {
 }
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq)]
-pub struct CheckOperator<T: Trait + Send + Sync>(sp_std::marker::PhantomData<T>);
+pub struct CheckOperator<T: Trait + Send + Sync>(marker::PhantomData<T>);
 
 impl<T: Trait + Send + Sync> CheckOperator<T> {
 	pub fn new() -> Self {
-		Self(sp_std::marker::PhantomData)
+		Self(marker::PhantomData)
 	}
 }
 
-impl<T: Trait + Send + Sync> sp_std::fmt::Debug for CheckOperator<T> {
+impl<T: Trait + Send + Sync> fmt::Debug for CheckOperator<T> {
 	#[cfg(feature = "std")]
-	fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		write!(f, "CheckOperator")
 	}
 
 	#[cfg(not(feature = "std"))]
-	fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
+	fn fmt(&self, _: &mut fmt::Formatter) -> fmt::Result {
 		Ok(())
 	}
 }
@@ -171,7 +171,7 @@ impl<T: Trait + Send + Sync> SignedExtension for CheckOperator<T> {
 	type Pre = ();
 	type DispatchInfo = DispatchInfo;
 
-	fn additional_signed(&self) -> sp_std::result::Result<(), TransactionValidityError> {
+	fn additional_signed(&self) -> result::Result<(), TransactionValidityError> {
 		Ok(())
 	}
 

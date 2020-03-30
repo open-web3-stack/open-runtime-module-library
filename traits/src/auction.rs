@@ -1,12 +1,12 @@
 use codec::FullCodec;
 use codec::{Decode, Encode};
-use rstd::{
-	cmp::{Eq, PartialEq},
-	fmt::Debug,
-};
 use sp_runtime::{
 	traits::{AtLeast32Bit, MaybeSerializeDeserialize},
 	DispatchResult, RuntimeDebug,
+};
+use sp_std::{
+	cmp::{Eq, PartialEq},
+	fmt::Debug,
 };
 
 /// Auction info.

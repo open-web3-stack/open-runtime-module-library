@@ -1,7 +1,7 @@
 use codec::{Decode, Encode};
 use frame_support::{Parameter, StorageMap};
-use rstd::{iter, marker, prelude::*};
 use sp_runtime::{traits::Member, RuntimeDebug};
+use sp_std::{iter, marker, prelude::*};
 
 #[derive(RuntimeDebug, PartialEq, Eq, Encode, Decode)]
 pub struct LinkedItem<Item> {
@@ -15,7 +15,7 @@ impl<Item> Default for LinkedItem<Item> {
 	}
 }
 
-pub struct LinkedList<Storage, Key, Item>(rstd::marker::PhantomData<(Storage, Key, Item)>);
+pub struct LinkedList<Storage, Key, Item>(marker::PhantomData<(Storage, Key, Item)>);
 
 impl<Storage, Key, Value> LinkedList<Storage, Key, Value>
 where
@@ -161,7 +161,7 @@ mod tests {
 	use super::*;
 	use frame_support::{decl_module, decl_storage, impl_outer_origin, parameter_types, StorageMap};
 	use frame_system as system;
-	use primitives::H256;
+	use sp_core::H256;
 	use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
 	type Key = u64;
@@ -220,7 +220,7 @@ mod tests {
 
 	type TestLinkedList = LinkedList<TestItem, Key, Value>;
 
-	pub fn new_test_ext() -> runtime_io::TestExternalities {
+	pub fn new_test_ext() -> sp_io::TestExternalities {
 		frame_system::GenesisConfig::default()
 			.build_storage::<Test>()
 			.unwrap()

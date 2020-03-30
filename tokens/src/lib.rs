@@ -35,11 +35,14 @@
 
 use codec::{Decode, Encode};
 use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, traits::Get, Parameter};
-use rstd::convert::{TryFrom, TryInto};
-use rstd::prelude::*;
 use sp_runtime::{
 	traits::{AtLeast32Bit, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, Saturating, StaticLookup, Zero},
 	DispatchError, DispatchResult, RuntimeDebug,
+};
+use sp_std::{
+	convert::{TryFrom, TryInto},
+	prelude::*,
+	result,
 };
 // FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
@@ -47,7 +50,7 @@ use sp_runtime::{
 use frame_system::{self as system, ensure_signed};
 
 #[cfg(feature = "std")]
-use rstd::collections::btree_map::BTreeMap;
+use sp_std::collections::btree_map::BTreeMap;
 
 use orml_traits::{
 	arithmetic::{self, Signed},
@@ -551,7 +554,7 @@ impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
 		beneficiary: &T::AccountId,
 		value: Self::Balance,
 		status: BalanceStatus,
-	) -> rstd::result::Result<Self::Balance, DispatchError> {
+	) -> result::Result<Self::Balance, DispatchError> {
 		if value.is_zero() {
 			return Ok(Zero::zero());
 		}

@@ -4,7 +4,7 @@
 
 use frame_support::{impl_outer_event, impl_outer_origin, parameter_types};
 use pallet_balances;
-use primitives::H256;
+use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
 use tokens;
@@ -138,7 +138,7 @@ impl ExtBuilder {
 		])
 	}
 
-	pub fn build(self) -> runtime_io::TestExternalities {
+	pub fn build(self) -> sp_io::TestExternalities {
 		let mut t = frame_system::GenesisConfig::default()
 			.build_storage::<Runtime>()
 			.unwrap();
