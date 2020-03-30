@@ -6,6 +6,7 @@ use sp_runtime::{
 };
 use sp_std::{
 	convert::{Into, TryFrom, TryInto},
+	fmt,
 	num::NonZeroI128,
 };
 
@@ -229,15 +230,15 @@ impl Bounded for Fixed128 {
 	}
 }
 
-impl sp_std::fmt::Debug for Fixed128 {
+impl fmt::Debug for Fixed128 {
 	#[cfg(feature = "std")]
-	fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		let fractional = format!("{:0>18}", (self.0 % DIV).abs());
 		write!(f, "Fixed128({},{})", self.0 / DIV, fractional)
 	}
 
 	#[cfg(not(feature = "std"))]
-	fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
+	fn fmt(&self, _: &mut fmt::Formatter) -> fmt::Result {
 		Ok(())
 	}
 }

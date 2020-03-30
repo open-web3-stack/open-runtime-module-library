@@ -15,7 +15,7 @@ impl<Item> Default for LinkedItem<Item> {
 	}
 }
 
-pub struct LinkedList<Storage, Key, Item>(sp_std::marker::PhantomData<(Storage, Key, Item)>);
+pub struct LinkedList<Storage, Key, Item>(marker::PhantomData<(Storage, Key, Item)>);
 
 impl<Storage, Key, Value> LinkedList<Storage, Key, Value>
 where

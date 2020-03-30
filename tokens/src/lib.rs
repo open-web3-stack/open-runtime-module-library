@@ -39,8 +39,11 @@ use sp_runtime::{
 	traits::{AtLeast32Bit, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, Saturating, StaticLookup, Zero},
 	DispatchError, DispatchResult, RuntimeDebug,
 };
-use sp_std::convert::{TryFrom, TryInto};
-use sp_std::prelude::*;
+use sp_std::{
+	convert::{TryFrom, TryInto},
+	prelude::*,
+	result,
+};
 // FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
@@ -551,7 +554,7 @@ impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
 		beneficiary: &T::AccountId,
 		value: Self::Balance,
 		status: BalanceStatus,
-	) -> sp_std::result::Result<Self::Balance, DispatchError> {
+	) -> result::Result<Self::Balance, DispatchError> {
 		if value.is_zero() {
 			return Ok(Zero::zero());
 		}

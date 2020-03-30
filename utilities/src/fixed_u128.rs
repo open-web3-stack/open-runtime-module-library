@@ -4,7 +4,10 @@ use sp_runtime::{
 	traits::{Bounded, Saturating, UniqueSaturatedInto},
 	PerThing,
 };
-use sp_std::convert::{Into, TryFrom, TryInto};
+use sp_std::{
+	convert::{Into, TryFrom, TryInto},
+	fmt,
+};
 
 #[cfg(feature = "std")]
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
@@ -183,14 +186,14 @@ impl Bounded for FixedU128 {
 	}
 }
 
-impl sp_std::fmt::Debug for FixedU128 {
+impl fmt::Debug for FixedU128 {
 	#[cfg(feature = "std")]
-	fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		write!(f, "FixedU128({},{})", self.0 / DIV, (self.0 % DIV) / 1000)
 	}
 
 	#[cfg(not(feature = "std"))]
-	fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
+	fn fmt(&self, _: &mut fmt::Formatter) -> fmt::Result {
 		Ok(())
 	}
 }
