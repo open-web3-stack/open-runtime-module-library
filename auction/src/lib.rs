@@ -1,14 +1,12 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, Parameter};
+use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, IterableStorageDoubleMap, Parameter};
 use frame_system::{self as system, ensure_signed};
-use orml_utilities::{LinkedItem, LinkedList};
+use orml_traits::{Auction, AuctionHandler, AuctionInfo};
 use sp_runtime::{
 	traits::{AtLeast32Bit, MaybeSerializeDeserialize, Member, One, Zero},
 	DispatchResult,
 };
-
-use orml_traits::{Auction, AuctionHandler, AuctionInfo};
 
 mod mock;
 mod tests;
@@ -20,9 +18,6 @@ pub trait Trait: frame_system::Trait {
 	type Handler: AuctionHandler<Self::AccountId, Self::Balance, Self::BlockNumber, Self::AuctionId>;
 }
 
-type AuctionEndTimeList<T> =
-	LinkedList<AuctionEndTime<T>, <T as frame_system::Trait>::BlockNumber, <T as Trait>::AuctionId>;
-
 decl_event!(
 	pub enum Event<T> where
 		<T as frame_system::Trait>::AccountId,
@@ -33,13 +28,11 @@ decl_event!(
 	}
 );
 
-type AuctionIdLinkedItem<T> = LinkedItem<<T as Trait>::AuctionId>;
-
 decl_storage! {
 	trait Store for Module<T: Trait> as Auction {
 		pub Auctions get(fn auctions): map hasher(twox_64_concat) T::AuctionId => Option<AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>>;
 		pub AuctionsIndex get(fn auctions_index): T::AuctionId;
-		pub AuctionEndTime get(fn auction_end_time): map hasher(twox_64_concat) (T::BlockNumber, Option<T::AuctionId>) => Option<AuctionIdLinkedItem<T>>;
+		pub AuctionEndTime get(fn auction_end_time): double_map hasher(twox_64_concat) T::BlockNumber, hasher(twox_64_concat) T::AuctionId => Option<()>;
 	}
 }
 
@@ -74,10 +67,10 @@ decl_module! {
 			ensure!(bid_result.accept_bid, Error::<T>::BidNotAccepted);
 			if let Some(new_end) = bid_result.auction_end {
 				if let Some(old_end_block) = auction.end {
-					<AuctionEndTimeList<T>>::remove(&old_end_block, id);
+					<AuctionEndTime<T>>::remove(&old_end_block, id);
 				}
 				if let Some(new_end_block) = new_end {
-					<AuctionEndTimeList<T>>::append(&new_end_block, id);
+					<AuctionEndTime<T>>::insert(&new_end_block, id, ());
 				}
 				auction.end = new_end;
 			}
@@ -104,12 +97,11 @@ decl_error! {
 
 impl<T: Trait> Module<T> {
 	fn _on_finalize(now: T::BlockNumber) {
-		let ended_auctions = <AuctionEndTimeList<T>>::take_all(&now);
-		ended_auctions.for_each(|auction_id| {
+		for (auction_id, _) in <AuctionEndTime<T>>::drain(&now) {
 			if let Some(auction) = <Auctions<T>>::take(&auction_id) {
 				T::Handler::on_auction_ended(auction_id, auction.bid.clone());
 			}
-		});
+		}
 	}
 }
 
@@ -127,10 +119,10 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber> for Module<T> {
 	) -> DispatchResult {
 		let auction = <Auctions<T>>::get(id).ok_or(Error::<T>::AuctionNotExist)?;
 		if let Some(old_end) = auction.end {
-			<AuctionEndTimeList<T>>::remove(&old_end, id);
+			<AuctionEndTime<T>>::remove(&old_end, id);
 		}
 		if let Some(new_end) = info.end {
-			<AuctionEndTimeList<T>>::append(&new_end, id);
+			<AuctionEndTime<T>>::insert(&new_end, id, ());
 		}
 		<Auctions<T>>::insert(id, info);
 		Ok(())
@@ -142,7 +134,7 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber> for Module<T> {
 		<AuctionsIndex<T>>::mutate(|n| *n += Self::AuctionId::one());
 		<Auctions<T>>::insert(auction_id, auction);
 		if let Some(end_block) = end {
-			<AuctionEndTimeList<T>>::append(&end_block, auction_id);
+			<AuctionEndTime<T>>::insert(&end_block, auction_id, ());
 		}
 
 		auction_id
@@ -151,7 +143,7 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber> for Module<T> {
 	fn remove_auction(id: Self::AuctionId) {
 		if let Some(auction) = <Auctions<T>>::take(&id) {
 			if let Some(end_block) = auction.end {
-				<AuctionEndTimeList<T>>::remove(&end_block, id);
+				<AuctionEndTime<T>>::remove(&end_block, id);
 			}
 		}
 	}

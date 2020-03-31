@@ -77,10 +77,10 @@ fn remove_auction_should_work() {
 		assert_eq!(AuctionModule::new_auction(10, Some(100)), 0);
 		assert_eq!(AuctionModule::auctions_index(), 1);
 		assert_eq!(AuctionModule::auctions(0).is_some(), true);
-		assert_eq!(AuctionModule::auction_end_time((100, Some(0))).is_some(), true);
+		assert_eq!(AuctionModule::auction_end_time(100, 0), Some(()));
 		AuctionModule::remove_auction(0);
 		assert_eq!(AuctionModule::auctions(0), None);
-		assert_eq!(AuctionModule::auction_end_time((100, Some(0))), None);
+		assert_eq!(AuctionModule::auction_end_time(100, 0), None);
 	});
 }
 
@@ -93,11 +93,23 @@ fn cleanup_auction_should_work() {
 		assert_eq!(AuctionModule::auctions_index(), 2);
 		assert_eq!(AuctionModule::auctions(0).is_some(), true);
 		assert_eq!(AuctionModule::auctions(1).is_some(), true);
+
+		assert_eq!(<AuctionEndTime<Runtime>>::iter_prefix(0).count(), 0);
+		assert_eq!(<AuctionEndTime<Runtime>>::iter_prefix(50).count(), 1);
+		assert_eq!(<AuctionEndTime<Runtime>>::iter_prefix(100).count(), 1);
+
 		AuctionModule::on_finalize(50);
 		assert_eq!(AuctionModule::auctions(0).is_some(), true);
 		assert_eq!(AuctionModule::auctions(1).is_some(), false);
+		assert_eq!(<AuctionEndTime<Runtime>>::iter_prefix(0).count(), 0);
+		assert_eq!(<AuctionEndTime<Runtime>>::iter_prefix(50).count(), 0);
+		assert_eq!(<AuctionEndTime<Runtime>>::iter_prefix(100).count(), 1);
+
 		AuctionModule::on_finalize(100);
 		assert_eq!(AuctionModule::auctions(0).is_some(), false);
 		assert_eq!(AuctionModule::auctions(1).is_some(), false);
+		assert_eq!(<AuctionEndTime<Runtime>>::iter_prefix(0).count(), 0);
+		assert_eq!(<AuctionEndTime<Runtime>>::iter_prefix(50).count(), 0);
+		assert_eq!(<AuctionEndTime<Runtime>>::iter_prefix(100).count(), 0);
 	});
 }
