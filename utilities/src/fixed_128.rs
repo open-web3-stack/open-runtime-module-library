@@ -233,8 +233,13 @@ impl Bounded for Fixed128 {
 impl fmt::Debug for Fixed128 {
 	#[cfg(feature = "std")]
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		let integral = {
+			let int = self.0 / DIV;
+			let signum_for_zero = if int == 0 && self.is_negative() { "-" } else { "" };
+			format!("{}{}", signum_for_zero, int)
+		};
 		let fractional = format!("{:0>18}", (self.0 % DIV).abs());
-		write!(f, "Fixed128({},{})", self.0 / DIV, fractional)
+		write!(f, "Fixed128({}.{})", integral, fractional)
 	}
 
 	#[cfg(not(feature = "std"))]
@@ -597,10 +602,16 @@ mod tests {
 	#[test]
 	fn fmt_should_work() {
 		let positive = Fixed128::from_parts(1000000000000000001);
-		assert_eq!(format!("{:?}", positive), "Fixed128(1,000000000000000001)");
+		assert_eq!(format!("{:?}", positive), "Fixed128(1.000000000000000001)");
 		let negative = Fixed128::from_parts(-1000000000000000001);
-		assert_eq!(format!("{:?}", negative), "Fixed128(-1,000000000000000001)");
+		assert_eq!(format!("{:?}", negative), "Fixed128(-1.000000000000000001)");
+
+		let positive_fractional = Fixed128::from_parts(1);
+		assert_eq!(format!("{:?}", positive_fractional), "Fixed128(0.000000000000000001)");
+		let negative_fractional = Fixed128::from_parts(-1);
+		assert_eq!(format!("{:?}", negative_fractional), "Fixed128(-0.000000000000000001)");
+
 		let zero = Fixed128::zero();
-		assert_eq!(format!("{:?}", zero), "Fixed128(0,000000000000000000)");
+		assert_eq!(format!("{:?}", zero), "Fixed128(0.000000000000000000)");
 	}
 }
