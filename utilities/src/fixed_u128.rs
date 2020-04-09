@@ -1,4 +1,4 @@
-use codec::{Decode, Encode};
+use codec::{Compact, CompactAs, Decode, Encode};
 use sp_core::U256;
 use sp_runtime::{
 	traits::{Bounded, Saturating, UniqueSaturatedInto},
@@ -195,6 +195,22 @@ impl fmt::Debug for FixedU128 {
 	#[cfg(not(feature = "std"))]
 	fn fmt(&self, _: &mut fmt::Formatter) -> fmt::Result {
 		Ok(())
+	}
+}
+
+impl CompactAs for FixedU128 {
+	type As = u128;
+	fn encode_as(&self) -> &Self::As {
+		&0
+	}
+	fn decode_from(val: Self::As) -> Self {
+		FixedU128(val)
+	}
+}
+
+impl From<Compact<FixedU128>> for FixedU128 {
+	fn from(val: Compact<FixedU128>) -> Self {
+		val.0
 	}
 }
 
