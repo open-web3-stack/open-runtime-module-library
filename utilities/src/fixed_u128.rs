@@ -1,8 +1,8 @@
-use codec::{Decode, Encode};
+use codec::{CompactAs, Decode, Encode};
 use sp_core::U256;
 use sp_runtime::{
 	traits::{Bounded, Saturating, UniqueSaturatedInto},
-	PerThing,
+	PerThing, Perbill, Percent, Permill, Perquintill,
 };
 use sp_std::{
 	convert::{Into, TryFrom, TryInto},
@@ -14,7 +14,7 @@ use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
 /// An unsigned fixed point number. Can hold any value in the range [0, 340_282_366_920_938_463_464]
 /// with fixed point accuracy of 10 ** 18.
-#[derive(Encode, Decode, Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Encode, Decode, Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, CompactAs)]
 pub struct FixedU128(u128);
 
 const DIV: u128 = 1_000_000_000_000_000_000;
@@ -198,9 +198,27 @@ impl fmt::Debug for FixedU128 {
 	}
 }
 
-impl<P: PerThing> From<P> for FixedU128 {
-	fn from(val: P) -> Self {
-		FixedU128::from_rational(val.deconstruct(), P::ACCURACY)
+impl From<Permill> for FixedU128 {
+	fn from(val: Permill) -> Self {
+		FixedU128::from_rational(val.deconstruct(), Permill::ACCURACY)
+	}
+}
+
+impl From<Percent> for FixedU128 {
+	fn from(val: Percent) -> Self {
+		FixedU128::from_rational(val.deconstruct(), Percent::ACCURACY)
+	}
+}
+
+impl From<Perbill> for FixedU128 {
+	fn from(val: Perbill) -> Self {
+		FixedU128::from_rational(val.deconstruct(), Perbill::ACCURACY)
+	}
+}
+
+impl From<Perquintill> for FixedU128 {
+	fn from(val: Perquintill) -> Self {
+		FixedU128::from_rational(val.deconstruct(), Perquintill::ACCURACY)
 	}
 }
 
