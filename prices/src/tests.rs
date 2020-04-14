@@ -34,5 +34,6 @@ fn price_is_none_should_not_panic() {
 #[test]
 fn price_is_zero_should_not_panic() {
 	assert_eq!(TestPriceProvider::get_price(0, 0), None);
-	assert_eq!(TestPriceProvider::get_price(1, 0), Some(Price::from_parts(0)));
+	assert_eq!(TestPriceProvider::get_price(1, 0), None);
+	assert_eq!(TestPriceProvider::get_price(0, 1), Some(Price::from_parts(0)));
 }
