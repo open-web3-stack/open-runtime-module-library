@@ -13,12 +13,12 @@ use frame_support::{
 	dispatch::Dispatchable,
 	ensure,
 	traits::Time,
-	weights::{DispatchClass, DispatchInfo, FunctionOf, TransactionPriority},
+	weights::{DispatchClass, FunctionOf, TransactionPriority},
 	IsSubType, Parameter,
 };
 pub use operator_provider::OperatorProvider;
 use sp_runtime::{
-	traits::{Member, SignedExtension},
+	traits::{DispatchInfoOf, Member, SignedExtension},
 	DispatchResult,
 };
 use sp_std::{fmt, marker, prelude::*, result, vec};
@@ -169,7 +169,6 @@ impl<T: Trait + Send + Sync> SignedExtension for CheckOperator<T> {
 	type Call = <T as Trait>::Call;
 	type AdditionalSigned = ();
 	type Pre = ();
-	type DispatchInfo = DispatchInfo;
 
 	fn additional_signed(&self) -> result::Result<(), TransactionValidityError> {
 		Ok(())
@@ -179,7 +178,7 @@ impl<T: Trait + Send + Sync> SignedExtension for CheckOperator<T> {
 		&self,
 		who: &T::AccountId,
 		call: &Self::Call,
-		_info: Self::DispatchInfo,
+		_info: &DispatchInfoOf<Self::Call>,
 		_len: usize,
 	) -> TransactionValidity {
 		let call = match call.is_sub_type() {

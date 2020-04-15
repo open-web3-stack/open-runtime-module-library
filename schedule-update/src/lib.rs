@@ -2,11 +2,9 @@
 
 use codec::{Decode, Encode};
 use frame_support::{
-	decl_error, decl_event, decl_module, decl_storage,
-	dispatch::Weight,
-	ensure,
+	decl_error, decl_event, decl_module, decl_storage, ensure,
 	traits::Get,
-	weights::{DispatchClass, GetDispatchInfo},
+	weights::{DispatchClass, GetDispatchInfo, SimpleDispatchInfo, WeighData, Weight},
 	Parameter,
 };
 use frame_system::{self as system, ensure_root, ensure_signed};
@@ -82,6 +80,7 @@ decl_module! {
 		const MaxScheduleDispatchWeight: Weight = T::MaxScheduleDispatchWeight::get();
 
 		/// Add schedule_update at block_number
+		#[weight = frame_support::weights::SimpleDispatchInfo::default()]
 		pub fn schedule_dispatch(origin, call: CallOf<T>, when: DelayedDispatchTime<T::BlockNumber>) {
 			let who = match origin.into() {
 				Ok(frame_system::RawOrigin::Root) => None,
@@ -106,7 +105,7 @@ decl_module! {
 				DispatchClass::Normal => {
 					<DelayedNormalDispatches<T>>::insert(block_number, id, (who, call, id));
 				},
-				DispatchClass::Operational => {
+				DispatchClass::Operational | DispatchClass::Mandatory => {
 					<DelayedOperationalDispatches<T>>::insert(block_number, id, (who, call, id));
 				},
 			}
@@ -114,6 +113,7 @@ decl_module! {
 		}
 
 		/// Cancel schedule_update
+		#[weight = frame_support::weights::SimpleDispatchInfo::default()]
 		pub fn cancel_deplayed_dispatch(origin, at: T::BlockNumber, id: DispatchId) {
 			let is_root = ensure_root(origin.clone()).is_ok();
 
@@ -135,12 +135,12 @@ decl_module! {
 			Self::deposit_event(RawEvent::CancelDeplayedDispatch(id));
 		}
 
-		fn on_initialize(now: T::BlockNumber) {
+		fn on_initialize(now: T::BlockNumber) -> Weight {
 			let mut weight: Weight = 0;
 			let total_weight = T::MaxScheduleDispatchWeight::get();
 			let next_block_number = match now.checked_add(&One::one()) {
 				Some(block_number) => block_number,
-				_ => return
+				_ => return SimpleDispatchInfo::default().weigh_data(())
 			};
 
 			// Operational calls are dispatched first and then normal calls
@@ -161,7 +161,7 @@ decl_module! {
 
 				let result = call.dispatch(origin.clone());
 				if let Err(e) = result {
-					 Self::deposit_event(RawEvent::ScheduleDispatchFail(id, e));
+					 Self::deposit_event(RawEvent::ScheduleDispatchFail(id, e.error));
 				} else {
 					 Self::deposit_event(RawEvent::ScheduleDispatchSuccess(now, id));
 				}
@@ -185,7 +185,7 @@ decl_module! {
 
 				let result = call.dispatch(origin.clone());
 				if let Err(e) = result {
-					Self::deposit_event(RawEvent::ScheduleDispatchFail(id, e));
+					Self::deposit_event(RawEvent::ScheduleDispatchFail(id, e.error));
 				} else {
 					Self::deposit_event(RawEvent::ScheduleDispatchSuccess(now, id));
 				}
@@ -206,6 +206,8 @@ decl_module! {
 				<DelayedNormalDispatches<T>>::insert(next_block_number, id, (who, call, id));
 				<DelayedNormalDispatches<T>>::remove(now, id);
 			});
+
+			SimpleDispatchInfo::default().weigh_data(())
 		}
 	}
 }

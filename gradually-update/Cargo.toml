@@ -7,12 +7,12 @@ edition = "2018"
 [dependencies]
 codec = { package = "parity-scale-codec", version = "1.3.0", default-features = false }
 
-frame-support = { version = "2.0.0-alpha.5", default-features = false }
-frame-system = { version = "2.0.0-alpha.5", default-features = false }
-sp-io = { version = "2.0.0-alpha.5", default-features = false }
-sp-std = { version = "2.0.0-alpha.5", default-features = false }
-sp-core = { version = "2.0.0-alpha.5", default-features = false }
-sp-runtime = { version = "2.0.0-alpha.5", default-features = false }
+frame-support = { version = "2.0.0-alpha.6", default-features = false }
+frame-system = { version = "2.0.0-alpha.6", default-features = false }
+sp-io = { version = "2.0.0-alpha.6", default-features = false }
+sp-std = { version = "2.0.0-alpha.6", default-features = false }
+sp-core = { version = "2.0.0-alpha.6", default-features = false }
+sp-runtime = { version = "2.0.0-alpha.6", default-features = false }
 
 [dev-dependencies]
 orml-utilities = { path = "../utilities", default-features = false }

@@ -244,6 +244,8 @@ fn transfer_should_work() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
+			System::set_block_number(1);
+
 			assert_ok!(Tokens::transfer(Some(ALICE).into(), BOB, TEST_TOKEN_ID, 50));
 			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 50);
 			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &BOB), 150);
@@ -290,6 +292,8 @@ fn transfer_all_should_work() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
+			System::set_block_number(1);
+
 			assert_ok!(Tokens::transfer_all(Some(ALICE).into(), BOB, TEST_TOKEN_ID));
 			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 0);
 			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &BOB), 200);

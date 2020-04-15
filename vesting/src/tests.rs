@@ -10,6 +10,8 @@ use pallet_balances::{BalanceLock, Reasons};
 #[test]
 fn add_vesting_schedule_works() {
 	ExtBuilder::default().one_hundred_for_alice().build().execute_with(|| {
+		System::set_block_number(1);
+
 		let schedule = VestingSchedule {
 			start: 0u64,
 			period: 10u64,

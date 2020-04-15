@@ -141,6 +141,7 @@ decl_module! {
 
 		fn deposit_event() = default;
 
+		#[weight = frame_support::weights::SimpleDispatchInfo::default()]
 		pub fn claim(origin) {
 			let who = ensure_signed(origin)?;
 			let locked_amount = Self::do_claim(&who);
@@ -148,6 +149,7 @@ decl_module! {
 			Self::deposit_event(RawEvent::Claimed(who, locked_amount));
 		}
 
+		#[weight = frame_support::weights::SimpleDispatchInfo::default()]
 		pub fn add_vesting_schedule(
 			origin,
 			dest: <T::Lookup as StaticLookup>::Source,
@@ -160,6 +162,7 @@ decl_module! {
 			Self::deposit_event(RawEvent::VestingScheduleAdded(from, to, schedule));
 		}
 
+		#[weight = frame_support::weights::SimpleDispatchInfo::default()]
 		pub fn update_vesting_schedules(
 			origin,
 			who: <T::Lookup as StaticLookup>::Source,
