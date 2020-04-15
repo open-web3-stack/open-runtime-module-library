@@ -3,13 +3,14 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{assert_noop, assert_ok};
+use frame_support::{assert_noop, assert_ok, traits::OnInitialize};
 use mock::{BalancesCall, Call, ExtBuilder, Origin, Runtime, ScheduleUpdateModule, System, TestEvent};
-use sp_runtime::traits::OnInitialize;
 
 #[test]
 fn schedule_dispatch_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
+		System::set_block_number(1);
+
 		// NormalDispatches
 		let call = Call::Balances(BalancesCall::transfer(2, 11));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
@@ -52,6 +53,8 @@ fn schedule_dispatch_should_fail() {
 #[test]
 fn cancel_deplayed_dispatch_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
+		System::set_block_number(1);
+
 		// NormalDispatches
 		let call = Call::Balances(BalancesCall::transfer(2, 11));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
@@ -117,6 +120,8 @@ fn cancel_deplayed_dispatch_should_work() {
 #[test]
 fn cancel_deplayed_dispatch_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
+		System::set_block_number(1);
+
 		assert_noop!(
 			ScheduleUpdateModule::cancel_deplayed_dispatch(Origin::signed(1), 2, 0),
 			Error::<Runtime>::DispatchNotExisted
@@ -163,6 +168,8 @@ fn cancel_deplayed_dispatch_should_fail() {
 #[test]
 fn on_initialize_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
+		System::set_block_number(1);
+
 		// NormalDispatches
 		let call = Call::Balances(BalancesCall::transfer(2, 11));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
@@ -178,20 +185,20 @@ fn on_initialize_should_work() {
 			DelayedDispatchTime::At(3)
 		));
 
-		assert_eq!(System::events().len(), 7);
+		assert_eq!(System::events().len(), 2);
 		ScheduleUpdateModule::on_initialize(1);
-		assert_eq!(System::events().len(), 7);
+		assert_eq!(System::events().len(), 2);
 
 		ScheduleUpdateModule::on_initialize(2);
 		println!("{:?}", System::events());
-		assert_eq!(System::events().len(), 9);
+		assert_eq!(System::events().len(), 4);
 		let schedule_dispatch_event = TestEvent::schedule_update(RawEvent::ScheduleDispatchSuccess(2, 0));
 		assert!(System::events()
 			.iter()
 			.any(|record| record.event == schedule_dispatch_event));
 
 		ScheduleUpdateModule::on_initialize(3);
-		assert_eq!(System::events().len(), 11);
+		assert_eq!(System::events().len(), 6);
 		let schedule_dispatch_event = TestEvent::schedule_update(RawEvent::ScheduleDispatchSuccess(3, 1));
 		assert!(System::events()
 			.iter()
@@ -222,20 +229,20 @@ fn on_initialize_should_work() {
 			.iter()
 			.any(|record| record.event == schedule_dispatch_event));
 
-		assert_eq!(System::events().len(), 13);
+		assert_eq!(System::events().len(), 8);
 		ScheduleUpdateModule::on_initialize(10);
-		assert_eq!(System::events().len(), 13);
+		assert_eq!(System::events().len(), 8);
 
 		ScheduleUpdateModule::on_initialize(11);
 		println!("{:?}", System::events());
-		assert_eq!(System::events().len(), 15);
+		assert_eq!(System::events().len(), 10);
 		let schedule_dispatch_event = TestEvent::schedule_update(RawEvent::ScheduleDispatchSuccess(11, 2));
 		assert!(System::events()
 			.iter()
 			.any(|record| record.event == schedule_dispatch_event));
 
 		ScheduleUpdateModule::on_initialize(13);
-		assert_eq!(System::events().len(), 17);
+		assert_eq!(System::events().len(), 12);
 		let schedule_dispatch_event = TestEvent::schedule_update(RawEvent::ScheduleDispatchSuccess(13, 3));
 		assert!(System::events()
 			.iter()
@@ -246,6 +253,8 @@ fn on_initialize_should_work() {
 #[test]
 fn on_initialize_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
+		System::set_block_number(1);
+
 		// NormalDispatches balance not enough
 		let call = Call::Balances(BalancesCall::transfer(2, 110));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
@@ -254,13 +263,13 @@ fn on_initialize_should_fail() {
 			DelayedDispatchTime::At(2)
 		));
 
-		assert_eq!(System::events().len(), 6);
+		assert_eq!(System::events().len(), 1);
 		ScheduleUpdateModule::on_initialize(1);
-		assert_eq!(System::events().len(), 6);
+		assert_eq!(System::events().len(), 1);
 
 		ScheduleUpdateModule::on_initialize(2);
 		println!("{:?}", System::events());
-		assert_eq!(System::events().len(), 7);
+		assert_eq!(System::events().len(), 2);
 		//TODO hold the error
 		let schedule_dispatch_event = TestEvent::schedule_update(RawEvent::ScheduleDispatchFail(
 			0,
@@ -282,13 +291,13 @@ fn on_initialize_should_fail() {
 			DelayedDispatchTime::After(10)
 		));
 
-		assert_eq!(System::events().len(), 8);
+		assert_eq!(System::events().len(), 3);
 		ScheduleUpdateModule::on_initialize(10);
-		assert_eq!(System::events().len(), 8);
+		assert_eq!(System::events().len(), 3);
 
 		ScheduleUpdateModule::on_initialize(11);
 		println!("{:?}", System::events());
-		assert_eq!(System::events().len(), 9);
+		assert_eq!(System::events().len(), 4);
 		let schedule_dispatch_event =
 			TestEvent::schedule_update(RawEvent::ScheduleDispatchFail(1, DispatchError::BadOrigin));
 		assert!(System::events()
@@ -300,6 +309,8 @@ fn on_initialize_should_fail() {
 #[test]
 fn on_initialize_weight_exceed() {
 	ExtBuilder::default().build().execute_with(|| {
+		System::set_block_number(1);
+
 		// NormalDispatches
 		let call = Call::Balances(BalancesCall::transfer(2, 11));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
@@ -322,13 +333,13 @@ fn on_initialize_weight_exceed() {
 			DelayedDispatchTime::At(2)
 		));
 
-		assert_eq!(System::events().len(), 8);
+		assert_eq!(System::events().len(), 3);
 		ScheduleUpdateModule::on_initialize(1);
-		assert_eq!(System::events().len(), 8);
+		assert_eq!(System::events().len(), 3);
 
 		ScheduleUpdateModule::on_initialize(2);
 		println!("{:?}", System::events());
-		assert_eq!(System::events().len(), 12);
+		assert_eq!(System::events().len(), 7);
 		// TODO on_initialize should be sorted
 		//let schedule_dispatch_event = TestEvent::schedule_update(RawEvent::ScheduleDispatchSuccess(0, 2));
 		//assert!(System::events().iter().any(|record| record.event == schedule_dispatch_event));
@@ -337,7 +348,7 @@ fn on_initialize_weight_exceed() {
 		//assert!(System::events().iter().any(|record| record.event == schedule_dispatch_event));
 
 		ScheduleUpdateModule::on_initialize(3);
-		assert_eq!(System::events().len(), 14);
+		assert_eq!(System::events().len(), 9);
 		//let schedule_dispatch_event = TestEvent::schedule_update(RawEvent::ScheduleDispatchSuccess(1, 3));
 		//assert!(System::events().iter().any(|record| record.event == schedule_dispatch_event));
 	});

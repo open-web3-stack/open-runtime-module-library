@@ -6,12 +6,10 @@ use crate::{
 };
 use frame_support::{
 	assert_noop, assert_ok,
+	traits::OnFinalize,
 	weights::{DispatchClass, DispatchInfo, GetDispatchInfo, TransactionPriority},
 };
-use sp_runtime::{
-	traits::{OnFinalize, SignedExtension},
-	transaction_validity::ValidTransaction,
-};
+use sp_runtime::{traits::SignedExtension, transaction_validity::ValidTransaction};
 
 #[test]
 fn should_feed_value() {
@@ -168,7 +166,7 @@ fn should_validate() {
 		let info = <Call as GetDispatchInfo>::get_dispatch_info(&call);
 
 		assert_eq!(
-			CheckOperator::<Test>(Default::default()).validate(&1, &call, info, 1),
+			CheckOperator::<Test>(Default::default()).validate(&1, &call, &info, 1),
 			Ok(ValidTransaction {
 				priority: TransactionPriority::max_value(),
 				..Default::default()

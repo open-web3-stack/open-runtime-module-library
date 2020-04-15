@@ -114,6 +114,7 @@ decl_module! {
 		fn deposit_event() = default;
 
 		/// Transfer some balance to another account.
+		#[weight = frame_support::weights::SimpleDispatchInfo::default()]
 		pub fn transfer(
 			origin,
 			dest: <T::Lookup as StaticLookup>::Source,
@@ -126,6 +127,7 @@ decl_module! {
 		}
 
 		/// Transfer native currency balance from one account to another.
+		#[weight = frame_support::weights::SimpleDispatchInfo::default()]
 		pub fn transfer_native_currency(
 			origin,
 			dest: <T::Lookup as StaticLookup>::Source,
@@ -139,6 +141,7 @@ decl_module! {
 		}
 
 		/// Update balance of an account. This is a root call.
+		#[weight = frame_support::weights::SimpleDispatchInfo::default()]
 		pub fn update_balance(
 			origin,
 			who: <T::Lookup as StaticLookup>::Source,

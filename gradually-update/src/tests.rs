@@ -3,10 +3,10 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{assert_noop, assert_ok};
+use frame_support::{assert_noop, assert_ok, traits::OnFinalize};
 use mock::{ExtBuilder, GraduallyUpdateModule, Origin, Runtime, System, TestEvent};
 use orml_utilities::FixedU128;
-use sp_runtime::{traits::OnFinalize, Permill};
+use sp_runtime::Permill;
 
 fn storage_set(key: &Vec<u8>, value: &Vec<u8>) {
 	storage::unhashed::put(key, value);
@@ -19,6 +19,8 @@ fn storage_get(key: &Vec<u8>) -> Vec<u8> {
 #[test]
 fn gradually_update_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
+		System::set_block_number(1);
+
 		let update = GraduallyUpdate {
 			key: vec![1],
 			target_value: vec![9],
@@ -79,6 +81,8 @@ fn gradually_update_should_fail() {
 #[test]
 fn cancel_gradually_update_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
+		System::set_block_number(1);
+
 		let update = GraduallyUpdate {
 			key: vec![1],
 			target_value: vec![9],
@@ -130,6 +134,8 @@ fn cancel_gradually_update_should_fail() {
 #[test]
 fn add_on_finalize_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
+		System::set_block_number(1);
+
 		let update = GraduallyUpdate {
 			key: vec![1],
 			target_value: vec![30],
@@ -173,6 +179,8 @@ fn add_on_finalize_should_work() {
 #[test]
 fn sub_on_finalize_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
+		System::set_block_number(1);
+
 		let update = GraduallyUpdate {
 			key: vec![1],
 			target_value: vec![5],

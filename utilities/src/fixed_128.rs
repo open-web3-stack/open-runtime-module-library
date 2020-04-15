@@ -218,6 +218,25 @@ impl Saturating for Fixed128 {
 			}
 		})
 	}
+
+	fn saturating_pow(self, exp: usize) -> Self {
+		if exp == 0 {
+			return Self::from_natural(1);
+		}
+
+		let exp = exp as u64;
+		let msb_pos = 64 - exp.leading_zeros();
+
+		let mut result = Self::from_natural(1);
+		let mut pow_val = self;
+		for i in 0..msb_pos {
+			if ((1 << i) & exp) > 0 {
+				result = result.saturating_mul(pow_val);
+			}
+			pow_val = pow_val.saturating_mul(pow_val);
+		}
+		result
+	}
 }
 
 impl Bounded for Fixed128 {

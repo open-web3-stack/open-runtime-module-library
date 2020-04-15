@@ -32,7 +32,7 @@ decl_storage! {
 	trait Store for Module<T: Trait> as Auction {
 		pub Auctions get(fn auctions): map hasher(twox_64_concat) T::AuctionId => Option<AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>>;
 		pub AuctionsIndex get(fn auctions_index): T::AuctionId;
-		pub AuctionEndTime get(fn auction_end_time): double_map hasher(twox_64_concat) T::BlockNumber, hasher(twox_64_concat) T::AuctionId => Option<()>;
+		pub AuctionEndTime get(fn auction_end_time): double_map hasher(twox_64_concat) T::BlockNumber, hasher(twox_64_concat) T::AuctionId => Option<bool>;
 	}
 }
 
@@ -42,6 +42,7 @@ decl_module! {
 
 		fn deposit_event() = default;
 
+		#[weight = frame_support::weights::SimpleDispatchInfo::default()]
 		pub fn bid(origin, id: T::AuctionId, #[compact] value: T::Balance) {
 			let from = ensure_signed(origin)?;
 
@@ -70,7 +71,7 @@ decl_module! {
 					<AuctionEndTime<T>>::remove(&old_end_block, id);
 				}
 				if let Some(new_end_block) = new_end {
-					<AuctionEndTime<T>>::insert(&new_end_block, id, ());
+					<AuctionEndTime<T>>::insert(&new_end_block, id, true);
 				}
 				auction.end = new_end;
 			}
@@ -122,7 +123,7 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber> for Module<T> {
 			<AuctionEndTime<T>>::remove(&old_end, id);
 		}
 		if let Some(new_end) = info.end {
-			<AuctionEndTime<T>>::insert(&new_end, id, ());
+			<AuctionEndTime<T>>::insert(&new_end, id, true);
 		}
 		<Auctions<T>>::insert(id, info);
 		Ok(())
@@ -134,7 +135,7 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber> for Module<T> {
 		<AuctionsIndex<T>>::mutate(|n| *n += Self::AuctionId::one());
 		<Auctions<T>>::insert(auction_id, auction);
 		if let Some(end_block) = end {
-			<AuctionEndTime<T>>::insert(&end_block, auction_id, ());
+			<AuctionEndTime<T>>::insert(&end_block, auction_id, true);
 		}
 
 		auction_id
