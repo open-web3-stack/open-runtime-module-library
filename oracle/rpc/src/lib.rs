@@ -1,13 +1,14 @@
-pub use self::gen_client::Client as OracleClient;
+use std::sync::Arc;
+
 use codec::Codec;
 use jsonrpc_core::{Error as RpcError, ErrorCode, Result};
 use jsonrpc_derive::rpc;
-pub use orml_oracle_rpc_runtime_api::OracleApi as OracleRuntimeApi;
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
 use sp_runtime::{generic::BlockId, traits::Block as BlockT};
-use std::sync::Arc;
-use sp_std::preluce::Vec;
+
+pub use orml_oracle_rpc_runtime_api::OracleApi as OracleRuntimeApi;
+pub use self::gen_client::Client as OracleClient;
 
 #[rpc]
 pub trait OracleApi<BlockHash, Key, Value> {
