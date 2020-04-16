@@ -14,7 +14,7 @@ use frame_support::{
 	ensure,
 	traits::Time,
 	weights::{DispatchClass, FunctionOf, TransactionPriority},
-	IsSubType, Parameter,
+	IsSubType, IterableStorageMap, Parameter,
 };
 pub use operator_provider::OperatorProvider;
 use sp_runtime::{
@@ -134,6 +134,13 @@ impl<T: Trait> Module<T> {
 		} else {
 			Self::values(key)
 		}
+	}
+
+	pub fn get_all_values() -> Vec<(T::OracleKey, Option<TimestampedValueOf<T>>)> {
+		<Values<T>>::iter()
+			.map(|(key, _)| key)
+			.map(|key| (key.clone(), Self::get_no_op(&key)))
+			.collect()
 	}
 
 	fn combined(key: &T::OracleKey) -> Option<TimestampedValueOf<T>> {
