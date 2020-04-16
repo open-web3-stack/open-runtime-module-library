@@ -206,3 +206,56 @@ fn multiple_calls_should_fail() {
 		assert_ok!(ModuleOracle::feed_value(Origin::signed(1), 1, 1200));
 	});
 }
+
+#[test]
+fn get_all_values_should_work() {
+	new_test_ext().execute_with(|| {
+		Timestamp::set_timestamp(12345);
+
+		let eur: u32 = 1;
+		let jpy: u32 = 2;
+
+		assert_eq!(ModuleOracle::get_all_values(), vec![]);
+
+		// feed eur & jpy
+		assert_ok!(ModuleOracle::feed_value(Origin::signed(1), eur, 1300));
+		assert_ok!(ModuleOracle::feed_value(Origin::signed(2), eur, 1000));
+		assert_ok!(ModuleOracle::feed_value(Origin::signed(3), jpy, 9000));
+
+		// not enough eur & jpy prices
+		assert_eq!(ModuleOracle::get(&eur), None);
+		assert_eq!(ModuleOracle::get(&jpy), None);
+		assert_eq!(ModuleOracle::get_all_values(), vec![]);
+
+		// finalize block
+		<ModuleOracle as OnFinalize<u64>>::on_finalize(1);
+
+		// feed eur & jpy
+		assert_ok!(ModuleOracle::feed_value(Origin::signed(3), eur, 1200));
+		assert_ok!(ModuleOracle::feed_value(Origin::signed(1), jpy, 8000));
+
+		// enough eur prices
+		let eur_price = Some(TimestampedValue {
+			value: 1200,
+			timestamp: 12345,
+		});
+		assert_eq!(ModuleOracle::get(&eur), eur_price);
+
+		// not enough jpy prices
+		assert_eq!(ModuleOracle::get(&jpy), None);
+
+		assert_eq!(ModuleOracle::get_all_values(), vec![(eur, eur_price)]);
+
+		// feed jpy
+		assert_ok!(ModuleOracle::feed_value(Origin::signed(2), jpy, 7000));
+
+		// enough jpy prices
+		let jpy_price = Some(TimestampedValue {
+			value: 8000,
+			timestamp: 12345,
+		});
+		assert_eq!(ModuleOracle::get(&jpy), jpy_price);
+
+		assert_eq!(ModuleOracle::get_all_values(), vec![(eur, eur_price), (jpy, jpy_price)]);
+	});
+}

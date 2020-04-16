@@ -1,17 +1,21 @@
-pub use self::gen_client::Client as OracleClient;
+use std::sync::Arc;
+
 use codec::Codec;
 use jsonrpc_core::{Error as RpcError, ErrorCode, Result};
 use jsonrpc_derive::rpc;
-pub use orml_oracle_rpc_runtime_api::OracleApi as OracleRuntimeApi;
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
 use sp_runtime::{generic::BlockId, traits::Block as BlockT};
-use std::sync::Arc;
+
+pub use orml_oracle_rpc_runtime_api::OracleApi as OracleRuntimeApi;
+pub use self::gen_client::Client as OracleClient;
 
 #[rpc]
 pub trait OracleApi<BlockHash, Key, Value> {
 	#[rpc(name = "oracle_getValue")]
 	fn get_value(&self, key: Key, at: Option<BlockHash>) -> Result<Option<Value>>;
+	#[rpc(name = "oracle_getAllValues")]
+	fn get_all_values(&self, at: Option<BlockHash>) -> Result<Vec<(Key, Option<Value>)>>;
 }
 
 /// A struct that implements the [`OracleApi`].
@@ -59,6 +63,20 @@ where
 			.map_err(|e| RpcError {
 				code: ErrorCode::ServerError(Error::RuntimeError.into()),
 				message: "Unable to get value.".into(),
+				data: Some(format!("{:?}", e).into()),
+			})
+			.into()
+	}
+
+	fn get_all_values(&self, at: Option<<Block as BlockT>::Hash>) -> Result<Vec<(Key, Option<Value>)>> {
+		let api = self.client.runtime_api();
+		let at = BlockId::hash(at.unwrap_or_else(||
+			// If the block hash is not supplied assume the best block.
+			self.client.info().best_hash));
+		api.get_all_values(&at)
+			.map_err(|e| RpcError {
+				code: ErrorCode::ServerError(Error::RuntimeError.into()),
+				message: "Unable to get all values.".into(),
 				data: Some(format!("{:?}", e).into()),
 			})
 			.into()
