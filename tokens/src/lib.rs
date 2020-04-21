@@ -75,7 +75,7 @@ pub trait Trait: frame_system::Trait {
 		+ MaybeSerializeDeserialize;
 	type CurrencyId: Parameter + Member + Copy + MaybeSerializeDeserialize + Ord;
 	type ExistentialDeposit: Get<Self::Balance>;
-	type DustRemoval: OnDustRemoval<Self::Balance>;
+	type DustRemoval: OnDustRemoval<Self::CurrencyId, Self::Balance>;
 }
 
 /// A single lock on a balance. There can be many of these on an account and they "overlap", so the
@@ -228,7 +228,7 @@ impl<T: Trait> Module<T> {
 	fn set_free_balance(currency_id: T::CurrencyId, who: &T::AccountId, balance: T::Balance) {
 		if balance < T::ExistentialDeposit::get() {
 			<Accounts<T>>::mutate(currency_id, who, |account_data| account_data.free = Zero::zero());
-			T::DustRemoval::on_dust_removal(balance);
+			T::DustRemoval::on_dust_removal(currency_id, balance);
 			<TotalIssuance<T>>::mutate(currency_id, |v| *v -= balance);
 		} else {
 			<Accounts<T>>::mutate(currency_id, who, |account_data| account_data.free = balance);
