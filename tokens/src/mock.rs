@@ -70,14 +70,14 @@ thread_local! {
 	static ACCUMULATED_DUST: RefCell<Balance> = RefCell::new(Zero::zero());
 }
 
-pub struct MockDustRemoval<Balance>(PhantomData<Balance>);
-impl MockDustRemoval<Balance> {
-	pub fn accumulated_dust() -> Balance {
+pub struct MockDustRemoval<CurrencyId, Balance>(PhantomData<(CurrencyId, Balance)>);
+impl MockDustRemoval<CurrencyId, Balance> {
+	pub fn accumulated_dust(_: CurrencyId) -> Balance {
 		ACCUMULATED_DUST.with(|v| *v.borrow_mut())
 	}
 }
-impl OnDustRemoval<Balance> for MockDustRemoval<Balance> {
-	fn on_dust_removal(balance: Balance) {
+impl OnDustRemoval<CurrencyId, Balance> for MockDustRemoval<CurrencyId, Balance> {
+	fn on_dust_removal(_: CurrencyId, balance: Balance) {
 		ACCUMULATED_DUST.with(|v| *v.borrow_mut() += balance);
 	}
 }
@@ -88,7 +88,7 @@ impl Trait for Runtime {
 	type Amount = i64;
 	type CurrencyId = CurrencyId;
 	type ExistentialDeposit = ExistentialDeposit;
-	type DustRemoval = MockDustRemoval<Balance>;
+	type DustRemoval = MockDustRemoval<CurrencyId, Balance>;
 }
 
 pub type Tokens = Module<Runtime>;

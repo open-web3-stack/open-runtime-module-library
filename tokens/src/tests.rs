@@ -282,7 +282,7 @@ fn transfer_enforces_existential_rule() {
 		.execute_with(|| {
 			assert_ok!(Tokens::transfer(Some(ALICE).into(), BOB, TEST_TOKEN_ID, 99));
 			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 0);
-			assert_eq!(MockDustRemoval::accumulated_dust(), 1);
+			assert_eq!(MockDustRemoval::accumulated_dust(TEST_TOKEN_ID), 1);
 		});
 }
 
@@ -328,7 +328,7 @@ fn deposit_enforces_existential_rule() {
 		.execute_with(|| {
 			assert_ok!(Tokens::deposit(TEST_TOKEN_ID, &CHARLIE, 1));
 			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &CHARLIE), 0);
-			assert_eq!(MockDustRemoval::accumulated_dust(), 0);
+			assert_eq!(MockDustRemoval::accumulated_dust(TEST_TOKEN_ID), 0);
 		});
 }
 
@@ -357,7 +357,7 @@ fn withdraw_enforces_existential_rule() {
 		.execute_with(|| {
 			assert_ok!(Tokens::withdraw(TEST_TOKEN_ID, &ALICE, 99));
 			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 0);
-			assert_eq!(MockDustRemoval::accumulated_dust(), 1);
+			assert_eq!(MockDustRemoval::accumulated_dust(TEST_TOKEN_ID), 1);
 			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 100);
 		});
 }
@@ -388,7 +388,7 @@ fn slash_enforces_existential_rule() {
 		.execute_with(|| {
 			assert_eq!(Tokens::slash(TEST_TOKEN_ID, &ALICE, 99), 0);
 			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 0);
-			assert_eq!(MockDustRemoval::accumulated_dust(), 1);
+			assert_eq!(MockDustRemoval::accumulated_dust(TEST_TOKEN_ID), 1);
 		});
 }
 

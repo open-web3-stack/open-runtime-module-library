@@ -318,12 +318,12 @@ pub trait CombineData<Key, TimestampedValue> {
 	) -> Option<TimestampedValue>;
 }
 
-pub trait OnDustRemoval<Balance> {
-	fn on_dust_removal(balance: Balance);
+pub trait OnDustRemoval<CurrencyId, Balance> {
+	fn on_dust_removal(currency_id: CurrencyId, balance: Balance);
 }
 
-impl<Balance> OnDustRemoval<Balance> for () {
-	fn on_dust_removal(_: Balance) {}
+impl<CurrencyId, Balance> OnDustRemoval<CurrencyId, Balance> for () {
+	fn on_dust_removal(_: CurrencyId, _: Balance) {}
 }
 
 #[impl_trait_for_tuples::impl_for_tuples(30)]
