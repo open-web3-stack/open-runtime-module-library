@@ -7,6 +7,7 @@ use frame_system as system;
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 use sp_std::{cell::RefCell, marker::PhantomData};
+use std::collections::HashMap;
 
 use super::*;
 
@@ -67,18 +68,28 @@ parameter_types! {
 }
 
 thread_local! {
-	static ACCUMULATED_DUST: RefCell<Balance> = RefCell::new(Zero::zero());
+	static ACCUMULATED_DUST: RefCell<HashMap<CurrencyId, Balance>> = RefCell::new(HashMap::new());
 }
 
 pub struct MockDustRemoval<CurrencyId, Balance>(PhantomData<(CurrencyId, Balance)>);
 impl MockDustRemoval<CurrencyId, Balance> {
-	pub fn accumulated_dust(_: CurrencyId) -> Balance {
-		ACCUMULATED_DUST.with(|v| *v.borrow_mut())
+	pub fn accumulated_dust(currency_id: CurrencyId) -> Balance {
+		ACCUMULATED_DUST.with(|v| *v.borrow().get(&currency_id).unwrap_or(&Zero::zero()))
 	}
 }
 impl OnDustRemoval<CurrencyId, Balance> for MockDustRemoval<CurrencyId, Balance> {
-	fn on_dust_removal(_: CurrencyId, balance: Balance) {
-		ACCUMULATED_DUST.with(|v| *v.borrow_mut() += balance);
+	fn on_dust_removal(currency_id: CurrencyId, balance: Balance) {
+		//ACCUMULATED_DUST.with(|v| *v.borrow_mut() += balance);
+		ACCUMULATED_DUST.with(|v| {
+			let mut old_map = v.borrow().clone();
+			if let Some(before) = old_map.get_mut(&currency_id) {
+				*before += balance;
+			} else {
+				old_map.insert(currency_id, balance);
+			};
+
+			*v.borrow_mut() = old_map;
+		});
 	}
 }
 
