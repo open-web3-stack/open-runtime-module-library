@@ -79,7 +79,6 @@ impl MockDustRemoval<CurrencyId, Balance> {
 }
 impl OnDustRemoval<CurrencyId, Balance> for MockDustRemoval<CurrencyId, Balance> {
 	fn on_dust_removal(currency_id: CurrencyId, balance: Balance) {
-		//ACCUMULATED_DUST.with(|v| *v.borrow_mut() += balance);
 		ACCUMULATED_DUST.with(|v| {
 			let mut old_map = v.borrow().clone();
 			if let Some(before) = old_map.get_mut(&currency_id) {
