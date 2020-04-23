@@ -7,8 +7,8 @@ use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
 use sp_runtime::{generic::BlockId, traits::Block as BlockT};
 
-pub use orml_oracle_rpc_runtime_api::OracleApi as OracleRuntimeApi;
 pub use self::gen_client::Client as OracleClient;
+pub use orml_oracle_rpc_runtime_api::OracleApi as OracleRuntimeApi;
 
 #[rpc]
 pub trait OracleApi<BlockHash, Key, Value> {
