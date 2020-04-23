@@ -19,6 +19,10 @@ The Open Runtime Module Library (ORML) is a community maintained collection of S
 	- Auction module that implements `Auction` trait.
 - [orml-vesting](./vesting)
     - Provides scheduled balance locking mechanism, in a *graded vesting* way.
+- [orml-gradually-update](./gradually-update)
+    - Provides why to adjuest numeric parameter gradually over a period of time.
+- [orml-schedule-update](./schedule-update)
+    - Provides way to schedule a call to be dispatched at later block.
 
 ## Installation
 
