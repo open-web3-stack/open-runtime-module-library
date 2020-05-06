@@ -30,6 +30,7 @@ jobs:
         toolchain: nightly-2020-02-18
         components: rustfmt
         target: wasm32-unknown-unknown
+        override: true
         default: true
     - name: Install Wasm toolchain
       run: rustup target add wasm32-unknown-unknown
