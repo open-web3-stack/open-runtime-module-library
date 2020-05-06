@@ -1,5 +1,6 @@
 [package]
 name = "orml-schedule-update"
+description = "Provides way to schedule a call to be dispatched at later block."
 version = "0.0.1"
 authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2018"

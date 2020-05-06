@@ -1,5 +1,6 @@
 [package]
 name = "orml-vesting"
+description = "Provides scheduled balance locking mechanism, in a *graded vesting* way."
 version = "0.0.1"
 authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2018"

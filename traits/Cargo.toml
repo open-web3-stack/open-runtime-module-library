@@ -1,5 +1,6 @@
 [package]
 name = "orml-traits"
+description = "Shared traits including `BasicCurrency`, `MultiCurrency`, `Auction` and more."
 version = "0.0.1"
 authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2018"

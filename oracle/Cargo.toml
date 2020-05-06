@@ -1,5 +1,6 @@
 [package]
 name = "orml-oracle"
+description = "Oracle module that makes off-chain data available on-chain."
 version = "0.0.1"
 authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2018"

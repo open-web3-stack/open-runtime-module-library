@@ -1,5 +1,6 @@
 [package]
 name = "orml-prices"
+description = "Provide basic asset price abstraction."
 version = "0.1.0"
 authors = ["Acala Developers"]
 edition = "2018"

@@ -1,5 +1,6 @@
 [package]
 name = "orml-tokens"
+description = "Fungible tokens module that implements `MultiCurrency` trait."
 version = "0.0.1"
 authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2018"

@@ -1,5 +1,6 @@
 [package]
 name = "orml-utilities"
+description = "Various utilities including `FixedU128` and `LinkedList`."
 version = "0.0.1"
 authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2018"

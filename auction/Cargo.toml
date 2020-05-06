@@ -1,5 +1,6 @@
 [package]
 name = "orml-auction"
+description = "Auction module that implements `Auction` trait."
 version = "0.0.1"
 authors = ["Acala Developers"]
 edition = "2018"
