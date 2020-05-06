@@ -19,7 +19,6 @@ orml-traits = { path = "../traits", default-features = false }
 [dev-dependencies]
 sp-core = { version = "2.0.0-alpha.6", default-features = false }
 
-clear_on_drop = { version = "0.2.3", features = ["no_cc"] }	# https://github.com/paritytech/substrate/issues/4179
 
 [features]
 default = ["std"]
