@@ -13,7 +13,7 @@ use frame_support::{
 	dispatch::Dispatchable,
 	ensure,
 	traits::Time,
-	weights::{DispatchClass, FunctionOf, TransactionPriority},
+	weights::{DispatchClass, FunctionOf, Pays, TransactionPriority},
 	IsSubType, IterableStorageMap, Parameter,
 };
 pub use operator_provider::OperatorProvider;
@@ -49,9 +49,9 @@ pub trait Trait: frame_system::Trait {
 
 decl_storage! {
 	trait Store for Module<T: Trait> as Oracle {
-		pub RawValues get(raw_values): double_map hasher(twox_64_concat) T::OracleKey, hasher(twox_64_concat) T::AccountId => Option<TimestampedValueOf<T>>;
-		pub HasUpdate get(has_update): map hasher(twox_64_concat) T::OracleKey => bool;
-		pub Values get(values): map hasher(twox_64_concat) T::OracleKey => Option<TimestampedValueOf<T>>;
+		pub RawValues get(fn raw_values): double_map hasher(twox_64_concat) T::OracleKey, hasher(twox_64_concat) T::AccountId => Option<TimestampedValueOf<T>>;
+		pub HasUpdate get(fn has_update): map hasher(twox_64_concat) T::OracleKey => bool;
+		pub Values get(fn values): map hasher(twox_64_concat) T::OracleKey => Option<TimestampedValueOf<T>>;
 		HasDispatched: Vec<T::AccountId>;
 	}
 }
@@ -75,13 +75,13 @@ decl_module! {
 		type Error = Error<T>;
 		fn deposit_event() = default;
 
-		#[weight = FunctionOf(|_: (&T::OracleKey, &T::OracleValue)| 0, DispatchClass::Operational, false)]
+		#[weight = FunctionOf(0, DispatchClass::Operational, Pays::No)]
 		pub fn feed_value(origin, key: T::OracleKey, value: T::OracleValue) {
 			let who = ensure_signed(origin)?;
 			Self::_feed_values(who, vec![(key, value)])?;
 		}
 
-		#[weight = FunctionOf(|_: (&Vec<(T::OracleKey, T::OracleValue)>,)| 0, DispatchClass::Operational, false)]
+		#[weight = FunctionOf(0, DispatchClass::Operational, Pays::No)]
 		pub fn feed_values(origin, values: Vec<(T::OracleKey, T::OracleValue)>) {
 			let who = ensure_signed(origin)?;
 			Self::_feed_values(who, values)?;
