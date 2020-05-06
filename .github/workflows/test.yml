@@ -37,6 +37,10 @@ jobs:
       run: make dev-format-check
     - name: Update
       run: cargo update
+    - name: Install cargo-unleash
+      run: cargo install cargo-unleash --version 1.0.0-alpha.10 #FIXME: change to release once it's ready
+    - name: Cargo unleash check
+      run: ./scripts/check.sh
     - name: Check for Wasm
       run: make dev-check
     - name: Run tests
