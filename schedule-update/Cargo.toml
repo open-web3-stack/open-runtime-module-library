@@ -28,5 +28,4 @@ std = [
 	"frame-system/std",
 	"sp-std/std",
 	"sp-runtime/std",
-	"pallet-balances/std",
 ]
