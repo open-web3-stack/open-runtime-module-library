@@ -1,6 +1,7 @@
 [package]
 name = "orml-prices"
 description = "Provide basic asset price abstraction."
+repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/prices"
 version = "0.1.0"
 authors = ["Acala Developers"]
 edition = "2018"

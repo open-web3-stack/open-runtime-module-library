@@ -1,6 +1,7 @@
 [package]
 name = "orml-utilities"
 description = "Various utilities including `FixedU128` and `LinkedList`."
+repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/utilities"
 version = "0.0.1"
 authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2018"
