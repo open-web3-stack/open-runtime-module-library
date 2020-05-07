@@ -98,10 +98,7 @@ decl_error! {
 
 impl<T: Trait> Module<T> {
 	fn _on_finalize(now: T::BlockNumber) {
-		for (block_number, auction_id, _) in <AuctionEndTime<T>>::drain() {
-			if block_number != now {
-				continue;
-			}
+		for (auction_id, _) in <AuctionEndTime<T>>::drain_prefix(&now) {
 			if let Some(auction) = <Auctions<T>>::take(&auction_id) {
 				T::Handler::on_auction_ended(auction_id, auction.bid.clone());
 			}
