@@ -7,7 +7,7 @@ use crate::{
 use frame_support::{
 	assert_noop, assert_ok,
 	traits::OnFinalize,
-	weights::{DispatchClass, DispatchInfo, GetDispatchInfo, TransactionPriority},
+	weights::{DispatchClass, DispatchInfo, GetDispatchInfo, Pays, TransactionPriority},
 };
 use sp_runtime::{traits::SignedExtension, transaction_validity::ValidTransaction};
 
@@ -187,7 +187,7 @@ fn should_be_free_operational() {
 				DispatchInfo {
 					weight: 0,
 					class: DispatchClass::Operational,
-					pays_fee: false,
+					pays_fee: Pays::No,
 				}
 			);
 		});
