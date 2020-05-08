@@ -178,7 +178,7 @@ decl_module! {
 		fn deposit_event() = default;
 
 		/// Transfer some balance to another account.
-		#[weight = frame_support::weights::SimpleDispatchInfo::default()]
+		#[weight = 0]
 		pub fn transfer(
 			origin,
 			dest: <T::Lookup as StaticLookup>::Source,
@@ -193,7 +193,7 @@ decl_module! {
 		}
 
 		/// Transfer all remaining balance to the given account.
-		#[weight = frame_support::weights::SimpleDispatchInfo::default()]
+		#[weight = 0]
 		pub fn transfer_all(
 			origin,
 			dest: <T::Lookup as StaticLookup>::Source,

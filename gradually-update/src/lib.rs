@@ -65,7 +65,7 @@ decl_module! {
 		const UpdateFrequency: T::BlockNumber = T::UpdateFrequency::get();
 
 		/// Add gradually_update to adjust numeric parameter. This is a root call.
-		#[weight = frame_support::weights::SimpleDispatchInfo::default()]
+		#[weight = 0]
 		pub fn gradually_update(origin, update: GraduallyUpdate) {
 			ensure_root(origin)?;
 
@@ -87,7 +87,7 @@ decl_module! {
 		}
 
 		/// Cancel gradually_update to adjust numeric parameter. This is a root call.
-		#[weight = frame_support::weights::SimpleDispatchInfo::default()]
+		#[weight = 0]
 		pub fn cancel_gradually_update(origin, key: StorageKey) {
 			ensure_root(origin)?;
 

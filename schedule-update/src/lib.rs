@@ -3,8 +3,9 @@
 use codec::{Decode, Encode};
 use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage, ensure,
+	storage::IterableStorageDoubleMap,
 	traits::Get,
-	weights::{DispatchClass, GetDispatchInfo, SimpleDispatchInfo, WeighData, Weight},
+	weights::{DispatchClass, GetDispatchInfo, Weight},
 	Parameter,
 };
 use frame_system::{self as system, ensure_root, ensure_signed};
@@ -80,7 +81,7 @@ decl_module! {
 		const MaxScheduleDispatchWeight: Weight = T::MaxScheduleDispatchWeight::get();
 
 		/// Add schedule_update at block_number
-		#[weight = frame_support::weights::SimpleDispatchInfo::default()]
+		#[weight = 0]
 		pub fn schedule_dispatch(origin, call: CallOf<T>, when: DelayedDispatchTime<T::BlockNumber>) {
 			let who = match origin.into() {
 				Ok(frame_system::RawOrigin::Root) => None,
@@ -113,7 +114,7 @@ decl_module! {
 		}
 
 		/// Cancel schedule_update
-		#[weight = frame_support::weights::SimpleDispatchInfo::default()]
+		#[weight = 0]
 		pub fn cancel_deplayed_dispatch(origin, at: T::BlockNumber, id: DispatchId) {
 			let is_root = ensure_root(origin.clone()).is_ok();
 
@@ -140,13 +141,13 @@ decl_module! {
 			let total_weight = T::MaxScheduleDispatchWeight::get();
 			let next_block_number = match now.checked_add(&One::one()) {
 				Some(block_number) => block_number,
-				_ => return SimpleDispatchInfo::default().weigh_data(())
+				_ => return weight
 			};
 
 			// Operational calls are dispatched first and then normal calls
 			// TODO: dispatches should be sorted
 			let mut operational_dispatches = <DelayedOperationalDispatches<T>>::iter_prefix(now);
-			let _ = operational_dispatches.try_for_each(|(who, call, id)| {
+			let _ = operational_dispatches.try_for_each(|(_, (who, call, id))| {
 				weight += call.get_dispatch_info().weight;
 				if weight > total_weight {
 					return Err(Error::<T>::ExceedMaxScheduleDispatchWeight);
@@ -170,7 +171,7 @@ decl_module! {
 			});
 
 			let mut normal_dispatches = <DelayedNormalDispatches<T>>::iter_prefix(now);
-			let _ = normal_dispatches.try_for_each(|(who, call, id)| {
+			let _ = normal_dispatches.try_for_each(|(_, (who, call, id))| {
 				weight += call.get_dispatch_info().weight;
 				if weight > total_weight {
 					return Err(Error::<T>::ExceedMaxScheduleDispatchWeight);
@@ -196,18 +197,18 @@ decl_module! {
 			// Check Call dispatch weight and ensure they don't exceed MaxScheduleDispatchWeight
 			// Extra ones are moved to next block
 			let operational_dispatches = <DelayedOperationalDispatches<T>>::iter_prefix(now);
-			operational_dispatches.for_each(|(who, call, id)| {
+			operational_dispatches.for_each(|(_, (who, call, id))| {
 				<DelayedOperationalDispatches<T>>::insert(next_block_number, id, (who, call, id));
 				<DelayedOperationalDispatches<T>>::remove(now, id);
 			});
 
 			let normal_dispatches = <DelayedNormalDispatches<T>>::iter_prefix(now);
-			normal_dispatches.for_each(|(who, call, id)| {
+			normal_dispatches.for_each(|(_, (who, call, id))| {
 				<DelayedNormalDispatches<T>>::insert(next_block_number, id, (who, call, id));
 				<DelayedNormalDispatches<T>>::remove(now, id);
 			});
 
-			SimpleDispatchInfo::default().weigh_data(())
+			0
 		}
 	}
 }

@@ -1,5 +1,8 @@
 [package]
 name = "orml-schedule-update"
+description = "Provides way to schedule a call to be dispatched at later block."
+repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/schedule-update"
+license-file = "../LICENSE"
 version = "0.0.1"
 authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2018"
@@ -15,7 +18,7 @@ sp-runtime = { version = "2.0.0-alpha.6", default-features = false }
 [dev-dependencies]
 sp-io = { version = "2.0.0-alpha.6", default-features = false }
 sp-core = { version = "2.0.0-alpha.6", default-features = false }
-pallet-balances = { version = "2.0.0-alpha.6", default-features = false }
+pallet-balances = { version = "2.0.0-alpha.6" }
 
 [features]
 default = ["std"]
@@ -25,5 +28,4 @@ std = [
 	"frame-system/std",
 	"sp-std/std",
 	"sp-runtime/std",
-	"pallet-balances/std",
 ]
