@@ -26,7 +26,7 @@ use sp_std::{fmt, marker, prelude::*, result, vec};
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
 use frame_system::{self as system, ensure_signed};
-pub use orml_traits::{CombineData, DataProvider, OnNewData, OnRedundantCall};
+pub use orml_traits::{CombineData, DataProvider, DataProviderExtended, OnNewData, OnRedundantCall};
 use sp_runtime::transaction_validity::{
 	InvalidTransaction, TransactionValidity, TransactionValidityError, ValidTransaction,
 };
@@ -211,6 +211,12 @@ impl<T: Trait + Send + Sync> SignedExtension for CheckOperator<T> {
 impl<T: Trait> DataProvider<T::OracleKey, T::OracleValue> for Module<T> {
 	fn get(key: &T::OracleKey) -> Option<T::OracleValue> {
 		Self::get(key).map(|timestamped_value| timestamped_value.value)
+	}
+}
+
+impl<T: Trait> DataProviderExtended<T::OracleKey, T::OracleValue, T::AccountId> for Module<T> {
+	fn feed_value(who: T::AccountId, key: T::OracleKey, value: T::OracleValue) -> DispatchResult {
+		Self::_feed_values(who, vec![(key, value)])
 	}
 }
 
