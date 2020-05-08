@@ -64,6 +64,9 @@ impl frame_system::Trait for Runtime {
 	type AccountData = pallet_balances::AccountData<u128>;
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
+	type DbWeight = ();
+	type BlockExecutionWeight = ();
+	type ExtrinsicBaseWeight = ();
 }
 pub type System = frame_system::Module<Runtime>;
 
@@ -80,7 +83,7 @@ impl pallet_balances::Trait for Runtime {
 }
 
 parameter_types! {
-	pub const MaxScheduleDispatchWeight: Weight = 2_000_000;
+	pub const MaxScheduleDispatchWeight: Weight = 150_000_000;
 }
 
 impl Trait for Runtime {

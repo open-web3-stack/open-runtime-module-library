@@ -159,7 +159,7 @@ impl<Key, Value, LinkedList> Drop for Enumerator<Key, Value, LinkedList> {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use frame_support::{decl_module, decl_storage, impl_outer_origin, parameter_types, StorageMap};
+	use frame_support::{decl_module, decl_storage, impl_outer_origin, parameter_types};
 	use frame_system as system;
 	use sp_core::H256;
 	use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
@@ -172,7 +172,7 @@ mod tests {
 
 	decl_storage! {
 		trait Store for Module<T: Trait> as Test {
-			pub TestItem get(linked_list): map hasher(blake2_128_concat) (Key, Option<Value>) => Option<TestLinkedItem>;
+			pub TestItem get(fn linked_list): map hasher(blake2_128_concat) (Key, Option<Value>) => Option<TestLinkedItem>;
 		}
 	}
 
@@ -216,6 +216,9 @@ mod tests {
 		type AccountData = ();
 		type OnNewAccount = ();
 		type OnKilledAccount = ();
+		type DbWeight = ();
+		type BlockExecutionWeight = ();
+		type ExtrinsicBaseWeight = ();
 	}
 
 	type TestLinkedList = LinkedList<TestItem, Key, Value>;

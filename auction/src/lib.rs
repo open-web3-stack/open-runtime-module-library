@@ -42,7 +42,7 @@ decl_module! {
 
 		fn deposit_event() = default;
 
-		#[weight = frame_support::weights::SimpleDispatchInfo::default()]
+		#[weight = 0]
 		pub fn bid(origin, id: T::AuctionId, #[compact] value: T::Balance) {
 			let from = ensure_signed(origin)?;
 
@@ -98,7 +98,7 @@ decl_error! {
 
 impl<T: Trait> Module<T> {
 	fn _on_finalize(now: T::BlockNumber) {
-		for (auction_id, _) in <AuctionEndTime<T>>::drain(&now) {
+		for (auction_id, _) in <AuctionEndTime<T>>::drain_prefix(&now) {
 			if let Some(auction) = <Auctions<T>>::take(&auction_id) {
 				T::Handler::on_auction_ended(auction_id, auction.bid.clone());
 			}
