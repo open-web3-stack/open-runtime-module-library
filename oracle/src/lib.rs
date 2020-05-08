@@ -208,9 +208,13 @@ impl<T: Trait + Send + Sync> SignedExtension for CheckOperator<T> {
 	}
 }
 
-impl<T: Trait> DataProvider<T::OracleKey, T::OracleValue> for Module<T> {
+impl<T: Trait> DataProvider<T::OracleKey, T::OracleValue, T::AccountId> for Module<T> {
 	fn get(key: &T::OracleKey) -> Option<T::OracleValue> {
 		Self::get(key).map(|timestamped_value| timestamped_value.value)
+	}
+
+	fn feed_value(who: T::AccountId, key: T::OracleKey, value: T::OracleValue) -> DispatchResult {
+		Self::_feed_values(who, vec![(key, value)])
 	}
 }
 

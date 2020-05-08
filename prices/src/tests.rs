@@ -5,7 +5,7 @@
 use super::*;
 
 pub struct MockDataProvider;
-impl DataProvider<u32, Price> for MockDataProvider {
+impl<AccountId> DataProvider<u32, Price, AccountId> for MockDataProvider {
 	fn get(currency: &u32) -> Option<Price> {
 		match currency {
 			0 => Some(Price::from_parts(0)),
@@ -14,9 +14,13 @@ impl DataProvider<u32, Price> for MockDataProvider {
 			_ => None,
 		}
 	}
+
+	fn feed_value(_: AccountId, _: u32, _: Price) -> sp_runtime::DispatchResult {
+		Ok(())
+	}
 }
 
-type TestPriceProvider = DefaultPriceProvider<u32, MockDataProvider>;
+type TestPriceProvider = DefaultPriceProvider<u32, MockDataProvider, u8>;
 
 #[test]
 fn get_price_should_work() {

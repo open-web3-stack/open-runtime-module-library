@@ -73,7 +73,7 @@ pub trait Trait: frame_system::Trait {
 		+ Default
 		+ Copy
 		+ MaybeSerializeDeserialize;
-	type CurrencyId: Parameter + Member + Copy + MaybeSerializeDeserialize + Ord;
+	type CurrencyId: Parameter + Member + Copy + MaybeSerializeDeserialize + Ord + TryInto<u16>;
 	type ExistentialDeposit: Get<Self::Balance>;
 	type DustRemoval: OnDustRemoval<Self::CurrencyId, Self::Balance>;
 }

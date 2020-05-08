@@ -10,12 +10,13 @@ pub type Price = FixedU128;
 
 mod tests;
 
-pub struct DefaultPriceProvider<CurrencyId, Source>(PhantomData<(CurrencyId, Source)>);
+pub struct DefaultPriceProvider<CurrencyId, Source, AccountId>(PhantomData<(CurrencyId, Source, AccountId)>);
 
-impl<CurrencyId, Source> PriceProvider<CurrencyId, Price> for DefaultPriceProvider<CurrencyId, Source>
+impl<CurrencyId, Source, AccountId> PriceProvider<CurrencyId, Price>
+	for DefaultPriceProvider<CurrencyId, Source, AccountId>
 where
 	CurrencyId: Parameter + Member + Copy + MaybeSerializeDeserialize,
-	Source: DataProvider<CurrencyId, Price>,
+	Source: DataProvider<CurrencyId, Price, AccountId>,
 {
 	fn get_price(base_currency_id: CurrencyId, quote_currency_id: CurrencyId) -> Option<Price> {
 		let base_price = Source::get(&base_currency_id)?;

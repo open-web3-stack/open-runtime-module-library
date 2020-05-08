@@ -21,7 +21,7 @@ use sp_std::{
 /// Abstraction over a fungible multi-currency system.
 pub trait MultiCurrency<AccountId> {
 	/// The currency identifier.
-	type CurrencyId: FullCodec + Eq + PartialEq + Copy + MaybeSerializeDeserialize + Debug;
+	type CurrencyId: FullCodec + Eq + PartialEq + Copy + MaybeSerializeDeserialize + Debug + TryInto<u16>;
 
 	/// The balance of an account.
 	type Balance: AtLeast32Bit + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default;
@@ -300,8 +300,9 @@ pub trait OnNewData<AccountId, Key, Value> {
 	fn on_new_data(who: &AccountId, key: &Key, value: &Value);
 }
 
-pub trait DataProvider<Key, Value> {
+pub trait DataProvider<Key, Value, AccountId> {
 	fn get(key: &Key) -> Option<Value>;
+	fn feed_value(who: AccountId, key: Key, value: Value) -> DispatchResult;
 }
 
 pub trait PriceProvider<CurrencyId, Price> {
