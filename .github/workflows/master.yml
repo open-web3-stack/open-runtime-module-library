@@ -1,9 +1,6 @@
-name: Test
+name: Master
 
 on:
-  pull_request:
-    branches:
-    - master
   push:
     branches:
     - master
@@ -32,13 +29,8 @@ jobs:
         target: wasm32-unknown-unknown
         override: true
         default: true
-    - name: Install Wasm toolchain
-      run: rustup target add wasm32-unknown-unknown
-    - name: Check format
-      run: make dev-format-check
-    - name: Update
-      run: cargo update
-    - name: Check for Wasm
-      run: make dev-check
-    - name: Run tests
-      run: make dev-test
+    - name: Install cargo-unleash
+      run: cargo install cargo-unleash --version 1.0.0-alpha.10 #FIXME: change to release once it's ready
+    - name: Cargo unleash check
+      run: ./scripts/unleash-check.sh
+
