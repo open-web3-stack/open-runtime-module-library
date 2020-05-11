@@ -27,5 +27,5 @@ jobs:
     - name: Install cargo-unleash
       run: cargo install cargo-unleash --version 1.0.0-alpha.10 #FIXME: change to release once it's ready
     - name: Cargo unleash check
-      run: ./scripts/unleash-check.sh
+      run: cargo-unleash check
 
