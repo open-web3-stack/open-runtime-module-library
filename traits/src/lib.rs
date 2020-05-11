@@ -304,6 +304,10 @@ pub trait DataProvider<Key, Value> {
 	fn get(key: &Key) -> Option<Value>;
 }
 
+pub trait DataProviderExtended<Key, Value, AccountId>: DataProvider<Key, Value> {
+	fn feed_value(who: AccountId, key: Key, value: Value) -> DispatchResult;
+}
+
 pub trait PriceProvider<CurrencyId, Price> {
 	fn get_price(base: CurrencyId, quote: CurrencyId) -> Option<Price>;
 }
