@@ -24,8 +24,11 @@ jobs:
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
+        toolchain: stable
+        override: true
+        default: true
     - name: Install cargo-unleash
       run: cargo install cargo-unleash --version 1.0.0-alpha.10 #FIXME: change to release once it's ready
     - name: Cargo unleash check
-      run: cargo-unleash check
+      run: cargo unleash check
 
