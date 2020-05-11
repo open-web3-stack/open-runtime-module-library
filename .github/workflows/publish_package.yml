@@ -13,8 +13,10 @@ jobs:
         with:
           toolchain: stable
           override: true
-      - run: cargo install cargo-unleash --version 1.0.0-alpha.9
-      - run: cargo unleash check
+      - uses: actions-rs/cargo@v1
+        with:
+          command: check 
+          args: --workspace 
   
   fmt:
     name: Rustfmt
