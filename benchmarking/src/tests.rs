@@ -6,7 +6,6 @@ use super::*;
 use codec::Decode;
 use frame_support::{
 	assert_err, assert_ok, decl_module, decl_storage, dispatch::DispatchResult, ensure, impl_outer_origin,
-	weights::SimpleDispatchInfo,
 };
 use frame_system::{ensure_none, ensure_signed, RawOrigin};
 use sp_runtime::{
@@ -23,14 +22,14 @@ decl_storage! {
 
 decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
-		#[weight = SimpleDispatchInfo::FixedNormal(10_000)]
+		#[weight = 0]
 		fn set_value(origin, n: u32) -> DispatchResult {
 			let _sender = ensure_signed(origin)?;
 			Value::put(n);
 			Ok(())
 		}
 
-		#[weight = SimpleDispatchInfo::FixedNormal(10_000)]
+		#[weight = 0]
 		fn dummy(origin, _n: u32) -> DispatchResult {
 			let _sender = ensure_none(origin)?;
 			Ok(())
@@ -67,6 +66,9 @@ impl frame_system::Trait for Test {
 	type Event = ();
 	type BlockHashCount = ();
 	type MaximumBlockWeight = ();
+	type DbWeight = ();
+	type BlockExecutionWeight = ();
+	type ExtrinsicBaseWeight = ();
 	type MaximumBlockLength = ();
 	type AvailableBlockRatio = ();
 	type Version = ();
