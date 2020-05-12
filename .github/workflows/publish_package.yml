@@ -60,6 +60,7 @@ jobs:
         with:
           toolchain: stable
           override: true
+      - run: cp Cargo.dev.toml Cargo.toml
       - run: rustup component add clippy
       - uses: actions-rs/cargo@v1
         with:
@@ -75,5 +76,6 @@ jobs:
         with:
           toolchain: stable
           override: true
+      - run: cp Cargo.dev.toml Cargo.toml
       - run: cargo install cargo-unleash --version 1.0.0-alpha.9
       - run: cargo unleash em-dragons --no-check 
