@@ -13,7 +13,7 @@ jobs:
         with:
           toolchain: stable
           override: true
-      - run: cp Config.dev.toml Config.toml
+      - run: ls
       - uses: actions-rs/cargo@v1
         with:
           command: check 
