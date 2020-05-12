@@ -4,13 +4,16 @@
 
 use super::*;
 use codec::Decode;
-use sp_std::prelude::*;
-use sp_runtime::{traits::{BlakeTwo256, IdentityLookup}, testing::{H256, Header}};
 use frame_support::{
-	dispatch::DispatchResult, weights::SimpleDispatchInfo,
-	decl_module, decl_storage, impl_outer_origin, assert_ok, assert_err, ensure
+	assert_err, assert_ok, decl_module, decl_storage, dispatch::DispatchResult, ensure, impl_outer_origin,
+	weights::SimpleDispatchInfo,
 };
-use frame_system::{RawOrigin, ensure_signed, ensure_none};
+use frame_system::{ensure_none, ensure_signed, RawOrigin};
+use sp_runtime::{
+	testing::{Header, H256},
+	traits::{BlakeTwo256, IdentityLookup},
+};
+use sp_std::prelude::*;
 
 decl_storage! {
 	trait Store for Module<T: Trait> as Test {
@@ -83,10 +86,13 @@ impl Trait for Test {
 // This function basically just builds a genesis storage key/value store according to
 // our desired mockup.
 fn new_test_ext() -> sp_io::TestExternalities {
-	frame_system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
+	frame_system::GenesisConfig::default()
+		.build_storage::<Test>()
+		.unwrap()
+		.into()
 }
 
-benchmarks!{
+benchmarks! {
 	{ Test, self }
 
 	_ {
@@ -143,10 +149,9 @@ fn benchmarks_macro_works() {
 	let components = <SelectedBenchmark as BenchmarkingSetup<Test>>::components(&selected_benchmark);
 	assert_eq!(components, vec![(BenchmarkParameter::b, 1, 1000)]);
 
-	let closure = <SelectedBenchmark as BenchmarkingSetup<Test>>::instance(
-		&selected_benchmark,
-		&[(BenchmarkParameter::b, 1)],
-	).expect("failed to create closure");
+	let closure =
+		<SelectedBenchmark as BenchmarkingSetup<Test>>::instance(&selected_benchmark, &[(BenchmarkParameter::b, 1)])
+			.expect("failed to create closure");
 
 	new_test_ext().execute_with(|| {
 		assert_eq!(closure(), Ok(()));
@@ -160,10 +165,9 @@ fn benchmarks_macro_rename_works() {
 	let components = <SelectedBenchmark as BenchmarkingSetup<Test>>::components(&selected_benchmark);
 	assert_eq!(components, vec![(BenchmarkParameter::b, 1, 1000)]);
 
-	let closure = <SelectedBenchmark as BenchmarkingSetup<Test>>::instance(
-		&selected_benchmark,
-		&[(BenchmarkParameter::b, 1)],
-	).expect("failed to create closure");
+	let closure =
+		<SelectedBenchmark as BenchmarkingSetup<Test>>::instance(&selected_benchmark, &[(BenchmarkParameter::b, 1)])
+			.expect("failed to create closure");
 
 	new_test_ext().execute_with(|| {
 		assert_ok!(closure());
@@ -177,10 +181,9 @@ fn benchmarks_macro_works_for_non_dispatchable() {
 	let components = <SelectedBenchmark as BenchmarkingSetup<Test>>::components(&selected_benchmark);
 	assert_eq!(components, vec![(BenchmarkParameter::x, 1, 10000)]);
 
-	let closure = <SelectedBenchmark as BenchmarkingSetup<Test>>::instance(
-		&selected_benchmark,
-		&[(BenchmarkParameter::x, 1)],
-	).expect("failed to create closure");
+	let closure =
+		<SelectedBenchmark as BenchmarkingSetup<Test>>::instance(&selected_benchmark, &[(BenchmarkParameter::x, 1)])
+			.expect("failed to create closure");
 
 	assert_eq!(closure(), Ok(()));
 }
@@ -190,10 +193,9 @@ fn benchmarks_macro_verify_works() {
 	// Check postcondition for benchmark `set_value` is valid.
 	let selected_benchmark = SelectedBenchmark::set_value;
 
-	let closure = <SelectedBenchmark as BenchmarkingSetup<Test>>::verify(
-		&selected_benchmark,
-		&[(BenchmarkParameter::b, 1)],
-	).expect("failed to create closure");
+	let closure =
+		<SelectedBenchmark as BenchmarkingSetup<Test>>::verify(&selected_benchmark, &[(BenchmarkParameter::b, 1)])
+			.expect("failed to create closure");
 
 	new_test_ext().execute_with(|| {
 		assert_ok!(closure());

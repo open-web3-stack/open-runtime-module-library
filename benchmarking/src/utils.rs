@@ -1,16 +1,41 @@
 //! Interfaces, types and utils for benchmarking a FRAME runtime.
 
-use codec::{Encode, Decode};
-use sp_std::{vec::Vec, prelude::Box};
+use codec::{Decode, Encode};
 use sp_io::hashing::blake2_256;
 use sp_runtime::RuntimeString;
+use sp_std::{prelude::Box, vec::Vec};
 
 /// An alphabet of possible parameters to use for benchmarking.
 #[derive(Encode, Decode, Clone, Copy, PartialEq, Debug)]
 #[allow(missing_docs)]
 #[allow(non_camel_case_types)]
 pub enum BenchmarkParameter {
-	a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z,
+	a,
+	b,
+	c,
+	d,
+	e,
+	f,
+	g,
+	h,
+	i,
+	j,
+	k,
+	l,
+	m,
+	n,
+	o,
+	p,
+	q,
+	r,
+	s,
+	t,
+	u,
+	v,
+	w,
+	x,
+	y,
+	z,
 }
 
 /// The results of a single of benchmark.
@@ -52,7 +77,8 @@ pub trait Benchmarking {
 	/// WARNING! This is a non-deterministic call. Do not use this within
 	/// consensus critical logic.
 	fn current_time() -> u128 {
-		std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH)
+		std::time::SystemTime::now()
+			.duration_since(std::time::SystemTime::UNIX_EPOCH)
 			.expect("Unix time doesn't go backwards; qed")
 			.as_nanos()
 	}
@@ -98,10 +124,16 @@ pub trait BenchmarkingSetup<T> {
 	fn components(&self) -> Vec<(BenchmarkParameter, u32, u32)>;
 
 	/// Set up the storage, and prepare a closure to run the benchmark.
-	fn instance(&self, components: &[(BenchmarkParameter, u32)]) -> Result<Box<dyn FnOnce() -> Result<(), &'static str>>, &'static str>;
+	fn instance(
+		&self,
+		components: &[(BenchmarkParameter, u32)],
+	) -> Result<Box<dyn FnOnce() -> Result<(), &'static str>>, &'static str>;
 
 	/// Set up the storage, and prepare a closure to test and verify the benchmark
-	fn verify(&self, components: &[(BenchmarkParameter, u32)]) -> Result<Box<dyn FnOnce() -> Result<(), &'static str>>, &'static str>;
+	fn verify(
+		&self,
+		components: &[(BenchmarkParameter, u32)],
+	) -> Result<Box<dyn FnOnce() -> Result<(), &'static str>>, &'static str>;
 }
 
 /// The required setup for creating a benchmark.
@@ -110,10 +142,16 @@ pub trait BenchmarkingSetupInstance<T, I> {
 	fn components(&self) -> Vec<(BenchmarkParameter, u32, u32)>;
 
 	/// Set up the storage, and prepare a closure to run the benchmark.
-	fn instance(&self, components: &[(BenchmarkParameter, u32)]) -> Result<Box<dyn FnOnce() -> Result<(), &'static str>>, &'static str>;
+	fn instance(
+		&self,
+		components: &[(BenchmarkParameter, u32)],
+	) -> Result<Box<dyn FnOnce() -> Result<(), &'static str>>, &'static str>;
 
 	/// Set up the storage, and prepare a closure to test and verify the benchmark
-	fn verify(&self, components: &[(BenchmarkParameter, u32)]) -> Result<Box<dyn FnOnce() -> Result<(), &'static str>>, &'static str>;
+	fn verify(
+		&self,
+		components: &[(BenchmarkParameter, u32)],
+	) -> Result<Box<dyn FnOnce() -> Result<(), &'static str>>, &'static str>;
 }
 
 /// Grab an account, seeded by a name and index.

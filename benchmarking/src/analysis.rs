@@ -1,8 +1,8 @@
 //! Tools for analysing the benchmark results.
 
-use std::collections::BTreeMap;
-use linregress::{FormulaRegressionBuilder, RegressionDataBuilder, RegressionModel};
 use crate::BenchmarkResults;
+use linregress::{FormulaRegressionBuilder, RegressionDataBuilder, RegressionModel};
+use std::collections::BTreeMap;
 
 pub struct Analysis {
 	base: u128,
@@ -14,52 +14,69 @@ pub struct Analysis {
 
 impl Analysis {
 	pub fn median_slopes(r: &Vec<BenchmarkResults>) -> Option<Self> {
-		let results = r[0].0.iter().enumerate().map(|(i, &(param, _))| {
-			let mut counted = BTreeMap::<Vec<u32>, usize>::new();
-			for (params, _, _) in r.iter() {
-				let mut p = params.iter().map(|x| x.1).collect::<Vec<_>>();
-				p[i] = 0;
-				*counted.entry(p).or_default() += 1;
-			}
-			let others: Vec<u32> = counted.iter().max_by_key(|i| i.1).expect("r is not empty; qed").0.clone();
-			let values = r.iter()
-				.filter(|v|
-					v.0.iter()
-						.map(|x| x.1)
-						.zip(others.iter())
-						.enumerate()
-						.all(|(j, (v1, v2))| j == i || v1 == *v2)
-				).map(|(ps, v, _)| (ps[i].1, *v))
-				.collect::<Vec<_>>();
-			(format!("{:?}", param), i, others, values)
-		}).collect::<Vec<_>>();
+		let results = r[0]
+			.0
+			.iter()
+			.enumerate()
+			.map(|(i, &(param, _))| {
+				let mut counted = BTreeMap::<Vec<u32>, usize>::new();
+				for (params, _, _) in r.iter() {
+					let mut p = params.iter().map(|x| x.1).collect::<Vec<_>>();
+					p[i] = 0;
+					*counted.entry(p).or_default() += 1;
+				}
+				let others: Vec<u32> = counted
+					.iter()
+					.max_by_key(|i| i.1)
+					.expect("r is not empty; qed")
+					.0
+					.clone();
+				let values = r
+					.iter()
+					.filter(|v| {
+						v.0.iter()
+							.map(|x| x.1)
+							.zip(others.iter())
+							.enumerate()
+							.all(|(j, (v1, v2))| j == i || v1 == *v2)
+					})
+					.map(|(ps, v, _)| (ps[i].1, *v))
+					.collect::<Vec<_>>();
+				(format!("{:?}", param), i, others, values)
+			})
+			.collect::<Vec<_>>();
 
-		let models = results.iter().map(|(_, _, _, ref values)| {
-			let mut slopes = vec![];
-			for (i, &(x1, y1)) in values.iter().enumerate() {
-				for &(x2, y2) in values.iter().skip(i + 1) {
-					if x1 != x2 {
-						slopes.push((y1 as f64 - y2 as f64) / (x1 as f64 - x2 as f64));
+		let models = results
+			.iter()
+			.map(|(_, _, _, ref values)| {
+				let mut slopes = vec![];
+				for (i, &(x1, y1)) in values.iter().enumerate() {
+					for &(x2, y2) in values.iter().skip(i + 1) {
+						if x1 != x2 {
+							slopes.push((y1 as f64 - y2 as f64) / (x1 as f64 - x2 as f64));
+						}
 					}
 				}
-			}
-			slopes.sort_by(|a, b| a.partial_cmp(b).expect("values well defined; qed"));
-			let slope = slopes[slopes.len() / 2];
+				slopes.sort_by(|a, b| a.partial_cmp(b).expect("values well defined; qed"));
+				let slope = slopes[slopes.len() / 2];
 
-			let mut offsets = vec![];
-			for &(x, y) in values.iter() {
-				offsets.push(y as f64 - slope * x as f64);
-			}
-			offsets.sort_by(|a, b| a.partial_cmp(b).expect("values well defined; qed"));
-			let offset = offsets[offsets.len() / 2];
+				let mut offsets = vec![];
+				for &(x, y) in values.iter() {
+					offsets.push(y as f64 - slope * x as f64);
+				}
+				offsets.sort_by(|a, b| a.partial_cmp(b).expect("values well defined; qed"));
+				let offset = offsets[offsets.len() / 2];
 
-			(offset, slope)
-		}).collect::<Vec<_>>();
+				(offset, slope)
+			})
+			.collect::<Vec<_>>();
 
-		let models = models.iter()
+		let models = models
+			.iter()
 			.zip(results.iter())
 			.map(|((offset, slope), (_, i, others, _))| {
-				let over = others.iter()
+				let over = others
+					.iter()
 					.enumerate()
 					.filter(|(j, _)| j != i)
 					.map(|(j, v)| models[j].1 * *v as f64)
@@ -92,21 +109,21 @@ impl Analysis {
 			*rs = rs[ql..rs.len() - ql].to_vec();
 		}
 
-		let mut data = vec![("Y", results.iter().flat_map(|x| x.1.iter().map(|v| *v as f64)).collect())];
+		let mut data = vec![(
+			"Y",
+			results.iter().flat_map(|x| x.1.iter().map(|v| *v as f64)).collect(),
+		)];
 
 		let names = r[0].0.iter().map(|x| format!("{:?}", x.0)).collect::<Vec<_>>();
-		data.extend(names.iter()
-			.enumerate()
-			.map(|(i, p)| (
+		data.extend(names.iter().enumerate().map(|(i, p)| {
+			(
 				p.as_str(),
-				results.iter()
-					.flat_map(|x| Some(x.0[i] as f64)
-						.into_iter()
-						.cycle()
-						.take(x.1.len())
-					).collect::<Vec<_>>()
-			))
-		);
+				results
+					.iter()
+					.flat_map(|x| Some(x.0[i] as f64).into_iter().cycle().take(x.1.len()))
+					.collect::<Vec<_>>(),
+			)
+		}));
 
 		let data = RegressionDataBuilder::new().build_from(data).ok()?;
 
@@ -116,25 +133,31 @@ impl Analysis {
 			.fit()
 			.ok()?;
 
-		let slopes = model.parameters.regressor_values.iter()
+		let slopes = model
+			.parameters
+			.regressor_values
+			.iter()
 			.enumerate()
 			.map(|(_, x)| (*x + 0.5) as u128)
 			.collect();
 
-		let value_dists = results.iter().map(|(p, vs)| {
-			// Avoid divide by zero
-			if vs.len() == 0 { return (p.clone(), 0, 0) }
-			let total = vs.iter()
-				.fold(0u128, |acc, v| acc + *v);
-			let mean = total / vs.len() as u128;
-			let sum_sq_diff = vs.iter()
-				.fold(0u128, |acc, v| {
+		let value_dists = results
+			.iter()
+			.map(|(p, vs)| {
+				// Avoid divide by zero
+				if vs.len() == 0 {
+					return (p.clone(), 0, 0);
+				}
+				let total = vs.iter().fold(0u128, |acc, v| acc + *v);
+				let mean = total / vs.len() as u128;
+				let sum_sq_diff = vs.iter().fold(0u128, |acc, v| {
 					let d = mean.max(*v) - mean.min(*v);
 					acc + d * d
 				});
-			let stddev = (sum_sq_diff as f64 / vs.len() as f64).sqrt() as u128;
-			(p.clone(), mean, stddev)
-		}).collect::<Vec<_>>();
+				let stddev = (sum_sq_diff as f64 / vs.len() as f64).sqrt() as u128;
+				(p.clone(), mean, stddev)
+			})
+			.collect::<Vec<_>>();
 
 		Some(Self {
 			base: (model.parameters.intercept_value + 0.5) as u128,
@@ -162,19 +185,39 @@ impl std::fmt::Display for Analysis {
 	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
 		if let Some(ref value_dists) = self.value_dists {
 			writeln!(f, "\nData points distribution:")?;
-			writeln!(f, "{}   mean µs  sigma µs       %", self.names.iter().map(|p| format!("{:>5}", p)).collect::<Vec<_>>().join(" "))?;
+			writeln!(
+				f,
+				"{}   mean µs  sigma µs       %",
+				self.names
+					.iter()
+					.map(|p| format!("{:>5}", p))
+					.collect::<Vec<_>>()
+					.join(" ")
+			)?;
 			for (param_values, mean, sigma) in value_dists.iter() {
 				if *mean == 0 {
-					writeln!(f, "{}  {:>8}  {:>8}  {:>3}.{}%",
-						param_values.iter().map(|v| format!("{:>5}", v)).collect::<Vec<_>>().join(" "),
+					writeln!(
+						f,
+						"{}  {:>8}  {:>8}  {:>3}.{}%",
+						param_values
+							.iter()
+							.map(|v| format!("{:>5}", v))
+							.collect::<Vec<_>>()
+							.join(" "),
 						ms(*mean),
 						ms(*sigma),
 						"?",
 						"?"
 					)?;
 				} else {
-					writeln!(f, "{}  {:>8}  {:>8}  {:>3}.{}%",
-						param_values.iter().map(|v| format!("{:>5}", v)).collect::<Vec<_>>().join(" "),
+					writeln!(
+						f,
+						"{}  {:>8}  {:>8}  {:>3}.{}%",
+						param_values
+							.iter()
+							.map(|v| format!("{:>5}", v))
+							.collect::<Vec<_>>()
+							.join(" "),
 						ms(*mean),
 						ms(*sigma),
 						(sigma * 100 / mean),
@@ -208,15 +251,48 @@ mod tests {
 	#[test]
 	fn analysis_median_slopes_should_work() {
 		let a = Analysis::median_slopes(&vec![
-			(vec![(BenchmarkParameter::n, 1), (BenchmarkParameter::m, 5)], 11_500_000, 0),
-			(vec![(BenchmarkParameter::n, 2), (BenchmarkParameter::m, 5)], 12_500_000, 0),
-			(vec![(BenchmarkParameter::n, 3), (BenchmarkParameter::m, 5)], 13_500_000, 0),
-			(vec![(BenchmarkParameter::n, 4), (BenchmarkParameter::m, 5)], 14_500_000, 0),
-			(vec![(BenchmarkParameter::n, 3), (BenchmarkParameter::m, 1)], 13_100_000, 0),
-			(vec![(BenchmarkParameter::n, 3), (BenchmarkParameter::m, 3)], 13_300_000, 0),
-			(vec![(BenchmarkParameter::n, 3), (BenchmarkParameter::m, 7)], 13_700_000, 0),
-			(vec![(BenchmarkParameter::n, 3), (BenchmarkParameter::m, 10)], 14_000_000, 0),
-		]).unwrap();
+			(
+				vec![(BenchmarkParameter::n, 1), (BenchmarkParameter::m, 5)],
+				11_500_000,
+				0,
+			),
+			(
+				vec![(BenchmarkParameter::n, 2), (BenchmarkParameter::m, 5)],
+				12_500_000,
+				0,
+			),
+			(
+				vec![(BenchmarkParameter::n, 3), (BenchmarkParameter::m, 5)],
+				13_500_000,
+				0,
+			),
+			(
+				vec![(BenchmarkParameter::n, 4), (BenchmarkParameter::m, 5)],
+				14_500_000,
+				0,
+			),
+			(
+				vec![(BenchmarkParameter::n, 3), (BenchmarkParameter::m, 1)],
+				13_100_000,
+				0,
+			),
+			(
+				vec![(BenchmarkParameter::n, 3), (BenchmarkParameter::m, 3)],
+				13_300_000,
+				0,
+			),
+			(
+				vec![(BenchmarkParameter::n, 3), (BenchmarkParameter::m, 7)],
+				13_700_000,
+				0,
+			),
+			(
+				vec![(BenchmarkParameter::n, 3), (BenchmarkParameter::m, 10)],
+				14_000_000,
+				0,
+			),
+		])
+		.unwrap();
 		assert_eq!(a.base, 10_000_000);
 		assert_eq!(a.slopes, vec![1_000_000, 100_000]);
 	}
@@ -224,15 +300,48 @@ mod tests {
 	#[test]
 	fn analysis_median_min_squares_should_work() {
 		let a = Analysis::min_squares_iqr(&vec![
-			(vec![(BenchmarkParameter::n, 1), (BenchmarkParameter::m, 5)], 11_500_000, 0),
-			(vec![(BenchmarkParameter::n, 2), (BenchmarkParameter::m, 5)], 12_500_000, 0),
-			(vec![(BenchmarkParameter::n, 3), (BenchmarkParameter::m, 5)], 13_500_000, 0),
-			(vec![(BenchmarkParameter::n, 4), (BenchmarkParameter::m, 5)], 14_500_000, 0),
-			(vec![(BenchmarkParameter::n, 3), (BenchmarkParameter::m, 1)], 13_100_000, 0),
-			(vec![(BenchmarkParameter::n, 3), (BenchmarkParameter::m, 3)], 13_300_000, 0),
-			(vec![(BenchmarkParameter::n, 3), (BenchmarkParameter::m, 7)], 13_700_000, 0),
-			(vec![(BenchmarkParameter::n, 3), (BenchmarkParameter::m, 10)], 14_000_000, 0),
-		]).unwrap();
+			(
+				vec![(BenchmarkParameter::n, 1), (BenchmarkParameter::m, 5)],
+				11_500_000,
+				0,
+			),
+			(
+				vec![(BenchmarkParameter::n, 2), (BenchmarkParameter::m, 5)],
+				12_500_000,
+				0,
+			),
+			(
+				vec![(BenchmarkParameter::n, 3), (BenchmarkParameter::m, 5)],
+				13_500_000,
+				0,
+			),
+			(
+				vec![(BenchmarkParameter::n, 4), (BenchmarkParameter::m, 5)],
+				14_500_000,
+				0,
+			),
+			(
+				vec![(BenchmarkParameter::n, 3), (BenchmarkParameter::m, 1)],
+				13_100_000,
+				0,
+			),
+			(
+				vec![(BenchmarkParameter::n, 3), (BenchmarkParameter::m, 3)],
+				13_300_000,
+				0,
+			),
+			(
+				vec![(BenchmarkParameter::n, 3), (BenchmarkParameter::m, 7)],
+				13_700_000,
+				0,
+			),
+			(
+				vec![(BenchmarkParameter::n, 3), (BenchmarkParameter::m, 10)],
+				14_000_000,
+				0,
+			),
+		])
+		.unwrap();
 		assert_eq!(a.base, 10_000_000);
 		assert_eq!(a.slopes, vec![1_000_000, 100_000]);
 	}
