@@ -1,20 +1,4 @@
-// Copyright 2020 Parity Technologies (UK) Ltd.
-// This file is part of Substrate.
-
-// Substrate is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-
-// Substrate is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with Substrate.  If not, see <http://www.gnu.org/licenses/>.
-
-//! Macro for benchmarking a FRAME runtime.
+//! Macro for benchmarking a Substrate runtime. A fork of `frame-benchmarking` pallet.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -28,7 +12,7 @@ pub use utils::*;
 pub use analysis::Analysis;
 #[doc(hidden)]
 pub use sp_io::storage::root as storage_root;
-pub use sp_runtime::traits::{Dispatchable, Zero};
+pub use sp_runtime::traits::{Dispatchable, Zero, One};
 pub use paste;
 
 /// Construct pallet benchmarks for weighing dispatchables.
@@ -83,6 +67,9 @@ pub use paste;
 /// Example:
 /// ```ignore
 /// benchmarks! {
+///   // The constructed runtime struct, and the pallet to benchmark.
+///   { MyRuntime, my_pallet }
+///
 ///   // common parameter; just one for this example.
 ///   // will be `1`, `MAX_LENGTH` or any value inbetween
 ///   _ {
@@ -908,7 +895,7 @@ macro_rules! impl_benchmark {
 
 							// Set the block number to at least 1 so events are deposited.
 							if $crate::Zero::is_zero(&frame_system::Module::<$runtime>::block_number()) {
-								frame_system::Module::<$runtime>::set_block_number(1.into());
+								frame_system::Module::<$runtime>::set_block_number($crate::One::one());
 							}
 
 							// Commit the externalities to the database, flushing the DB cache.
@@ -980,7 +967,7 @@ macro_rules! impl_benchmark_tests {
 
 							// Set the block number to at least 1 so events are deposited.
 							if $crate::Zero::is_zero(&frame_system::Module::<$runtime>::block_number()) {
-								frame_system::Module::<$runtime>::set_block_number(1.into());
+								frame_system::Module::<$runtime>::set_block_number($crate::One::one());
 							}
 
 							// Run verification
