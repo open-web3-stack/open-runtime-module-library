@@ -13,10 +13,10 @@ jobs:
         with:
           toolchain: stable
           override: true
+      - run: cp Config.dev.toml Config.toml
       - uses: actions-rs/cargo@v1
         with:
           command: check 
-          args: --workspace --manifest-path Cargo.dev.toml
   
   fmt:
     name: Rustfmt
