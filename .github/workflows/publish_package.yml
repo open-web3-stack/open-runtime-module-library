@@ -78,5 +78,5 @@ jobs:
       - run: cp Cargo.dev.toml Cargo.toml
       - run: cargo install cargo-unleash --version 1.0.0-alpha.10
       - run: cargo unleash em-dragons --no-check 
-      - env:
+        env:
           CRATES_TOKEN: ${{ secrets.CratesToken }}
