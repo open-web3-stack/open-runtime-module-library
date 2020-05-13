@@ -70,8 +70,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: clippy
     steps:
-      - env:
-          CRATES_TOKEN: ${{ secrets.CratesToken }}
       - uses: actions/checkout@v1
       - uses: actions-rs/toolchain@v1
         with:
@@ -80,3 +78,5 @@ jobs:
       - run: cp Cargo.dev.toml Cargo.toml
       - run: cargo install cargo-unleash --version 1.0.0-alpha.10
       - run: cargo unleash em-dragons --no-check 
+      - env:
+          CRATES_TOKEN: ${{ secrets.CratesToken }}
