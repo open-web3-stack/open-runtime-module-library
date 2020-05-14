@@ -10,4 +10,5 @@ members = [
 	"vesting",
 	"gradually-update",
 	"schedule-update",
+	"benchmarking",
 ]
