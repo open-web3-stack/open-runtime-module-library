@@ -3,17 +3,15 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 #[cfg(feature = "std")]
-mod analysis;
 mod tests;
-mod utils;
 
 #[cfg(feature = "std")]
-pub use analysis::Analysis;
+pub use frame_benchmarking::Analysis;
+pub use frame_benchmarking::{BenchmarkBatch, BenchmarkParameter, BenchmarkingSetup, Benchmarking, BenchmarkResults, benchmarking};
 pub use paste;
 #[doc(hidden)]
 pub use sp_io::storage::root as storage_root;
 pub use sp_runtime::traits::{Dispatchable, One, Zero};
-pub use utils::*;
 
 /// Construct pallet benchmarks for weighing dispatchables.
 ///
@@ -156,7 +154,7 @@ pub use utils::*;
 /// }
 /// ```
 #[macro_export]
-macro_rules! benchmarks {
+macro_rules! runtime_benchmarks {
 	(
 		{ $runtime:ident, $pallet:ident }
 		_ {
@@ -178,7 +176,7 @@ macro_rules! benchmarks {
 }
 
 #[macro_export]
-macro_rules! benchmarks_instance {
+macro_rules! runtime_benchmarks_instance {
 	(
 		{ $runtime:ident, $pallet:ident }
 		_ {

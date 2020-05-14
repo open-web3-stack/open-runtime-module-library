@@ -94,7 +94,7 @@ fn new_test_ext() -> sp_io::TestExternalities {
 		.into()
 }
 
-benchmarks! {
+runtime_benchmarks! {
 	{ Test, self }
 
 	_ {
