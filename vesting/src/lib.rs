@@ -21,7 +21,6 @@
 //! - `update_vesting_schedules` - Update all vesting schedules under an account, `root` origin required.
 
 #![cfg_attr(not(feature = "std"), no_std)]
-
 // Disable the following two lints since they originate from an external macro (namely decl_storage)
 #![allow(clippy::redundant_closure_call, clippy::string_lit_as_bytes)]
 
