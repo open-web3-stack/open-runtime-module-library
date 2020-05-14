@@ -22,6 +22,9 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+// Disable the following two lints since they originate from an external macro (namely decl_storage)
+#![allow(clippy::redundant_closure_call, clippy::string_lit_as_bytes)]
+
 use codec::{Decode, Encode, HasCompact};
 use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage, ensure,
@@ -87,6 +90,13 @@ impl<BlockNumber: AtLeast32Bit + Copy, Balance: AtLeast32Bit + Copy> VestingSche
 
 pub type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as frame_system::Trait>::AccountId>>::Balance;
 pub type VestingScheduleOf<T> = VestingSchedule<<T as frame_system::Trait>::BlockNumber, BalanceOf<T>>;
+pub type ScheduledItem<T> = (
+	<T as frame_system::Trait>::AccountId,
+	<T as frame_system::Trait>::BlockNumber,
+	<T as frame_system::Trait>::BlockNumber,
+	u32,
+	BalanceOf<T>,
+);
 
 pub trait Trait: frame_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
@@ -106,7 +116,7 @@ decl_storage! {
 	}
 
 	add_extra_genesis {
-		config(vesting): Vec<(T::AccountId, T::BlockNumber, T::BlockNumber, u32, BalanceOf<T>)>;
+		config(vesting): Vec<ScheduledItem<T>>;
 	}
 }
 
@@ -206,7 +216,7 @@ impl<T: Trait> Module<T> {
 	) -> DispatchResult {
 		let schedule_amount = Self::ensure_valid_vesting_schedule(&schedule)?;
 		let total_amount = Self::locked_balance(to)
-			.checked_add(&schedule_amount.into())
+			.checked_add(&schedule_amount)
 			.ok_or(Error::<T>::NumOverflow)?;
 
 		T::Currency::transfer(from, to, schedule_amount, ExistenceRequirement::AllowDeath)?;
