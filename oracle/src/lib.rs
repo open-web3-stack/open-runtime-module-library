@@ -1,4 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
+// Disable the following two lints since they originate from an external macro (namely decl_storage)
+#![allow(clippy::string_lit_as_bytes)]
 
 mod default_combine_data;
 mod mock;
@@ -149,7 +151,7 @@ impl<T: Trait> Module<T> {
 	}
 }
 
-#[derive(Encode, Decode, Clone, Eq, PartialEq)]
+#[derive(Encode, Decode, Clone, Eq, PartialEq, Default)]
 pub struct CheckOperator<T: Trait + Send + Sync>(marker::PhantomData<T>);
 
 impl<T: Trait + Send + Sync> CheckOperator<T> {
@@ -204,7 +206,7 @@ impl<T: Trait + Send + Sync> SignedExtension for CheckOperator<T> {
 				..Default::default()
 			});
 		}
-		return Ok(ValidTransaction::default());
+		Ok(ValidTransaction::default())
 	}
 }
 

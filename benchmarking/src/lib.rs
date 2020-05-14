@@ -133,15 +133,15 @@ pub use sp_runtime::traits::{Dispatchable, One, Zero};
 ///
 /// ```ignore
 /// sort_vector {
-/// 	let x in 1 .. 10000;
-/// 	let mut m = Vec::<u32>::new();
-/// 	for i in (0..x).rev() {
-/// 		m.push(i);
-/// 	}
+///     let x in 1 .. 10000;
+///     let mut m = Vec::<u32>::new();
+///     for i in (0..x).rev() {
+///         m.push(i);
+///     }
 /// }: {
-/// 	m.sort();
+///     m.sort();
 /// } verify {
-/// 	ensure!(m[0] == 0, "You forgot to sort!")
+///     ensure!(m[0] == 0, "You forgot to sort!")
 /// }
 /// ```
 ///

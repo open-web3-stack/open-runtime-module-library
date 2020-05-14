@@ -1,4 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
+// Disable the following two lints since they originate from an external macro (namely decl_storage)
+#![allow(clippy::string_lit_as_bytes)]
 
 use codec::{Decode, Encode};
 use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, storage, traits::Get};
@@ -116,6 +118,8 @@ impl<T: Trait> Module<T> {
 		}
 
 		let mut gradually_updates = GraduallyUpdates::get();
+
+		#[allow(clippy::redundant_clone)] // FIXME: This looks like a bug in clippy
 		for (i, update) in gradually_updates.clone().iter().enumerate() {
 			let current_value = storage::unhashed::get::<StorageValue>(&update.key).unwrap_or_default();
 			let current_value_u128 = u128::from_le_bytes(Self::convert_vec_to_u8(&current_value));
@@ -127,12 +131,11 @@ impl<T: Trait> Module<T> {
 
 			let target_u128 = u128::from_le_bytes(Self::convert_vec_to_u8(&update.target_value));
 
-			let new_value_u128: u128;
-			if current_value_u128 > target_u128 {
-				new_value_u128 = (current_value_u128.checked_sub(step_u128).unwrap()).max(target_u128);
+			let new_value_u128 = if current_value_u128 > target_u128 {
+				(current_value_u128.checked_sub(step_u128).unwrap()).max(target_u128)
 			} else {
-				new_value_u128 = (current_value_u128.checked_add(step_u128).unwrap()).min(target_u128);
-			}
+				(current_value_u128.checked_add(step_u128).unwrap()).min(target_u128)
+			};
 
 			// current_value equal target_value, remove gradually_update
 			if new_value_u128 == target_u128 {
@@ -155,10 +158,11 @@ impl<T: Trait> Module<T> {
 		GraduallyUpdateBlockNumber::<T>::put(now);
 	}
 
+	#[allow(clippy::ptr_arg)]
 	fn convert_vec_to_u8(input: &StorageValue) -> [u8; 16] {
 		let mut array: [u8; 16] = [0; 16];
 		for (i, v) in input.iter().enumerate() {
-			array[i] = v.clone();
+			array[i] = *v;
 		}
 		array
 	}

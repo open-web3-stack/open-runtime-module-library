@@ -32,7 +32,7 @@ where
 	}
 
 	fn read(key: &Key, value: Option<Value>) -> LinkedItem<Value> {
-		Storage::get(&(key.clone(), value)).unwrap_or_else(|| Default::default())
+		Storage::get(&(key.clone(), value)).unwrap_or_else(Default::default)
 	}
 
 	fn take(key: &Key, value: Value) -> LinkedItem<Value> {

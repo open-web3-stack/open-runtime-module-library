@@ -1,4 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
+// Disable the following two lints since they originate from an external macro (namely decl_storage)
+#![allow(clippy::string_lit_as_bytes)]
 
 use codec::{Decode, Encode};
 use frame_support::{
@@ -160,7 +162,7 @@ decl_module! {
 					origin = frame_system::RawOrigin::Root.into();
 				}
 
-				let result = call.dispatch(origin.clone());
+				let result = call.dispatch(origin);
 				if let Err(e) = result {
 					 Self::deposit_event(RawEvent::ScheduleDispatchFail(id, e.error));
 				} else {
@@ -184,7 +186,7 @@ decl_module! {
 					origin = frame_system::RawOrigin::Root.into();
 				}
 
-				let result = call.dispatch(origin.clone());
+				let result = call.dispatch(origin);
 				if let Err(e) = result {
 					Self::deposit_event(RawEvent::ScheduleDispatchFail(id, e.error));
 				} else {
