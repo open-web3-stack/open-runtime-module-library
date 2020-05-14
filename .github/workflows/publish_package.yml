@@ -24,7 +24,7 @@ jobs:
         with:
           toolchain: stable
           override: true
-      - run: cp Cargo.dev.toml Cargo.toml
+      - run: make Cargo.toml
       - run: cargo install cargo-unleash --version 1.0.0-alpha.10
       - run: cargo unleash check
   
@@ -39,7 +39,7 @@ jobs:
           toolchain: stable
           override: true
       - run: rustup component add rustfmt
-      - run: cp Cargo.dev.toml Cargo.toml
+      - run: make Cargo.toml
       - uses: actions-rs/cargo@v1
         with:
           command: fmt
@@ -55,7 +55,7 @@ jobs:
         with:
           toolchain: stable
           override: true
-      - run: cp Cargo.dev.toml Cargo.toml
+      - run: make Cargo.toml
       - uses: actions-rs/cargo@v1
         with:
           command: test
@@ -70,7 +70,7 @@ jobs:
         with:
           toolchain: stable
           override: true
-      - run: cp Cargo.dev.toml Cargo.toml
+      - run: make Cargo.toml
       - run: rustup component add clippy
       - uses: actions-rs/cargo@v1
         with:
@@ -96,7 +96,7 @@ jobs:
         with:
           toolchain: stable
           override: true
-      - run: cp Cargo.dev.toml Cargo.toml
+      - run: make Cargo.toml
       - run: cargo install cargo-unleash --version 1.0.0-alpha.10
       - run: cargo unleash em-dragons --no-check 
         env:
