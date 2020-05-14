@@ -1,5 +1,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+// Disable the following two lints since they originate from an external macro (namely decl_storage)
+#![allow(clippy::string_lit_as_bytes)]
+
 use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, IterableStorageDoubleMap, Parameter};
 use frame_system::{self as system, ensure_signed};
 use orml_traits::{Auction, AuctionHandler, AuctionInfo};
