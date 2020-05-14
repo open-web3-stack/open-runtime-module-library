@@ -24,12 +24,7 @@ where
 		let now = T::Time::now();
 		let mut valid_values = values
 			.into_iter()
-			.filter_map(|x| {
-				if x.timestamp + expires_in > now {
-					return Some(x);
-				}
-				None
-			})
+			.filter(|x| x.timestamp + expires_in > now)
 			.collect::<Vec<TimestampedValueOf<T>>>();
 
 		let count = valid_values.len() as u32;
@@ -41,6 +36,6 @@ where
 		valid_values.sort_by(|a, b| a.value.cmp(&b.value));
 
 		let median_index = count / 2;
-		return Some(valid_values[median_index as usize].clone());
+		Some(valid_values[median_index as usize].clone())
 	}
 }
