@@ -585,24 +585,24 @@ where
 
 	fn set_lock(lock_id: LockIdentifier, who: &AccountId, amount: Self::Balance) {
 		Currency::set_lock(
-			lock_id.into(),
+			lock_id,
 			who,
 			BalanceConvert::from(amount).into(),
-			(WithdrawReason::Transfer | WithdrawReason::Reserve).into(),
+			WithdrawReason::Transfer | WithdrawReason::Reserve,
 		);
 	}
 
 	fn extend_lock(lock_id: LockIdentifier, who: &AccountId, amount: Self::Balance) {
 		Currency::extend_lock(
-			lock_id.into(),
+			lock_id,
 			who,
 			BalanceConvert::from(amount).into(),
-			(WithdrawReason::Transfer | WithdrawReason::Reserve).into(),
+			WithdrawReason::Transfer | WithdrawReason::Reserve,
 		);
 	}
 
 	fn remove_lock(lock_id: LockIdentifier, who: &AccountId) {
-		Currency::remove_lock(lock_id.into(), who);
+		Currency::remove_lock(lock_id, who);
 	}
 }
 
@@ -644,7 +644,7 @@ where
 		value: Self::Balance,
 		status: BalanceStatus,
 	) -> result::Result<Self::Balance, DispatchError> {
-		Currency::repatriate_reserved(slashed, beneficiary, BalanceConvert::from(value).into(), status.into())
+		Currency::repatriate_reserved(slashed, beneficiary, BalanceConvert::from(value).into(), status)
 			.map(|a| BalanceConvert::from(a).into())
 	}
 }
