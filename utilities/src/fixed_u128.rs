@@ -274,7 +274,7 @@ impl<'de> Deserialize<'de> for FixedU128 {
 		D: Deserializer<'de>,
 	{
 		let s = String::deserialize(deserializer)?;
-		FixedU128::try_from_u128_str(&s).map_err(|err_str| de::Error::custom(err_str))
+		FixedU128::try_from_u128_str(&s).map_err(de::Error::custom)
 	}
 }
 
