@@ -64,7 +64,12 @@ pub use sp_runtime::traits::{Dispatchable, One, Zero};
 ///
 /// Example:
 /// ```ignore
-/// benchmarks! {
+/// use path_to_node_runtime::MyRuntime;
+/// use path_to_account_id::AccountId;
+/// use frame_benchmarking::account;
+/// use orml_benchmarking::runtime_benchmarks;
+///
+/// runtime_benchmarks! {
 ///   // The constructed runtime struct, and the pallet to benchmark.
 ///   { MyRuntime, my_pallet }
 ///
@@ -77,7 +82,7 @@ pub use sp_runtime::traits::{Dispatchable, One, Zero};
 ///   // first dispatchable: foo; this is a user dispatchable and operates on a `u8` vector of
 ///   // size `l`, which we allow to be initialized as usual.
 ///   foo {
-///     let caller = account::<T>(b"caller", 0, benchmarks_seed);
+///     let caller = account::<AccountId>(b"caller", 0, benchmarks_seed);
 ///     let l = ...;
 ///   }: _(Origin::Signed(caller), vec![0u8; l])
 ///
@@ -94,13 +99,13 @@ pub use sp_runtime::traits::{Dispatchable, One, Zero};
 ///   // of arms. Instancers of common params cannot optimistically draw upon hypothetical variables
 ///   // that the arm's pre-instancing code block might have declared.
 ///   baz1 {
-///     let caller = account::<T>(b"caller", 0, benchmarks_seed);
+///     let caller = account::<AccountId>(b"caller", 0, benchmarks_seed);
 ///     let c = 0 .. 10 => setup_c(&caller, c);
 ///   }: baz(Origin::Signed(caller))
 ///
 ///   // this is a second benchmark of the baz dispatchable with a different setup.
 ///   baz2 {
-///     let caller = account::<T>(b"caller", 0, benchmarks_seed);
+///     let caller = account::<AccountId>(b"caller", 0, benchmarks_seed);
 ///     let c = 0 .. 10 => setup_c_in_some_other_way(&caller, c);
 ///   }: baz(Origin::Signed(caller))
 ///
@@ -146,10 +151,10 @@ pub use sp_runtime::traits::{Dispatchable, One, Zero};
 /// #[test]
 /// fn test_benchmarks() {
 ///   new_test_ext().execute_with(|| {
-///     assert_ok!(test_benchmark_dummy::<Test>());
-///     assert_err!(test_benchmark_other_name::<Test>(), "Bad origin");
-///     assert_ok!(test_benchmark_sort_vector::<Test>());
-///     assert_err!(test_benchmark_broken_benchmark::<Test>(), "You forgot to sort!");
+///     assert_ok!(test_benchmark_dummy());
+///     assert_err!(test_benchmark_other_name(), "Bad origin");
+///     assert_ok!(test_benchmark_sort_vector());
+///     assert_err!(test_benchmark_broken_benchmark(), "You forgot to sort!");
 ///   });
 /// }
 /// ```
@@ -820,9 +825,7 @@ macro_rules! impl_benchmark {
 	) => {
 		pub struct Benchmark<I>($crate::sp_std::marker::PhantomData(I));
 
-		impl<I: Instance> $crate::Benchmarking<$crate::BenchmarkResults> for Benchmark<I>
-			where T: frame_system::Trait
-		{
+		impl<I: Instance> $crate::Benchmarking<$crate::BenchmarkResults> for Benchmark<I> {
 			fn benchmarks() -> Vec<&'static [u8]> {
 				vec![ $( stringify!($name).as_ref() ),* ]
 			}
