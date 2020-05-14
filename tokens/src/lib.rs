@@ -33,6 +33,9 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+// Disable the following two lints since they originate from an external macro (namely decl_storage)
+#![allow(clippy::redundant_closure_call, clippy::string_lit_as_bytes)]
+
 use codec::{Decode, Encode};
 use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, traits::Get, Parameter};
 use sp_runtime::{
@@ -431,7 +434,7 @@ impl<T: Trait> MultiLockableCurrency<T::AccountId> for Module<T> {
 		}
 		let mut new_lock = Some(BalanceLock {
 			id: lock_id,
-			amount: amount,
+			amount,
 		});
 		let mut locks = Self::locks(currency_id, who)
 			.into_iter()
@@ -457,7 +460,7 @@ impl<T: Trait> MultiLockableCurrency<T::AccountId> for Module<T> {
 		}
 		let mut new_lock = Some(BalanceLock {
 			id: lock_id,
-			amount: amount,
+			amount,
 		});
 		let mut locks = Self::locks(currency_id, who)
 			.into_iter()
