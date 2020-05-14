@@ -4,11 +4,11 @@
 
 use super::*;
 use codec::Decode;
+use frame_benchmarking::account;
 use frame_support::{
 	assert_err, assert_ok, decl_module, decl_storage, dispatch::DispatchResult, ensure, impl_outer_origin,
 };
 use frame_system::{ensure_none, ensure_signed, RawOrigin};
-use frame_benchmarking::account;
 use sp_runtime::{
 	testing::{Header, H256},
 	traits::{BlakeTwo256, IdentityLookup},

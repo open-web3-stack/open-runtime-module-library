@@ -7,7 +7,9 @@ mod tests;
 
 #[cfg(feature = "std")]
 pub use frame_benchmarking::Analysis;
-pub use frame_benchmarking::{BenchmarkBatch, BenchmarkParameter, BenchmarkingSetup, Benchmarking, BenchmarkResults, benchmarking};
+pub use frame_benchmarking::{
+	benchmarking, BenchmarkBatch, BenchmarkParameter, BenchmarkResults, Benchmarking, BenchmarkingSetup,
+};
 pub use paste;
 #[doc(hidden)]
 pub use sp_io::storage::root as storage_root;
