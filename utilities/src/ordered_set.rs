@@ -3,7 +3,7 @@ use sp_runtime::RuntimeDebug;
 use sp_std::prelude::*;
 
 #[derive(RuntimeDebug, PartialEq, Eq, Encode, Decode, Default)]
-pub struct OrderedSet<T>(Vec<T>);
+pub struct OrderedSet<T>(pub Vec<T>);
 
 impl<T: Ord> OrderedSet<T> {
 	pub fn new() -> Self {
