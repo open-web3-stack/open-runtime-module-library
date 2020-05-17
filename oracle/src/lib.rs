@@ -7,7 +7,7 @@ mod mock;
 mod tests;
 mod timestamped_value;
 
-use codec::Encode;
+use codec::{Decode, Encode};
 use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage,
 	dispatch::Dispatchable,
@@ -17,13 +17,13 @@ use frame_support::{
 	IsSubType, IterableStorageMap, Parameter,
 };
 use sp_runtime::{
-	traits::Member,
+	traits::{DispatchInfoOf, Member, SignedExtension},
 	transaction_validity::{
-		InvalidTransaction, TransactionPriority, TransactionSource, TransactionValidity, ValidTransaction,
+		InvalidTransaction, TransactionPriority, TransactionValidity, TransactionValidityError, ValidTransaction,
 	},
 	DispatchResult,
 };
-use sp_std::{prelude::*, vec};
+use sp_std::{fmt, prelude::*, result, vec};
 // FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
@@ -261,16 +261,50 @@ impl<T: Trait> DataProviderExtended<T::OracleKey, T::OracleValue, T::AccountId> 
 	}
 }
 
-impl<T: Trait> frame_support::unsigned::ValidateUnsigned for Module<T> {
-	type Call = Call<T>;
+#[derive(Encode, Decode, Clone, Eq, PartialEq, Default)]
+pub struct CheckOperator<T: Trait + Send + Sync>(sp_std::marker::PhantomData<T>);
 
-	fn validate_unsigned(_source: TransactionSource, call: &Self::Call) -> TransactionValidity {
+impl<T: Trait + Send + Sync> CheckOperator<T> {
+	pub fn new() -> Self {
+		Self(sp_std::marker::PhantomData)
+	}
+}
+
+impl<T: Trait + Send + Sync> fmt::Debug for CheckOperator<T> {
+	#[cfg(feature = "std")]
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		write!(f, "CheckOperator")
+	}
+
+	#[cfg(not(feature = "std"))]
+	fn fmt(&self, _: &mut fmt::Formatter) -> fmt::Result {
+		Ok(())
+	}
+}
+
+impl<T: Trait + Send + Sync> SignedExtension for CheckOperator<T> {
+	const IDENTIFIER: &'static str = "CheckOperator";
+	type AccountId = T::AccountId;
+	type Call = <T as Trait>::Call;
+	type AdditionalSigned = ();
+	type Pre = ();
+
+	fn additional_signed(&self) -> result::Result<(), TransactionValidityError> {
+		Ok(())
+	}
+
+	fn validate_unsigned(call: &Self::Call, _info: &DispatchInfoOf<Self::Call>, _len: usize) -> TransactionValidity {
+		let call = match call.is_sub_type() {
+			Some(call) => call,
+			None => return Ok(ValidTransaction::default()),
+		};
+
 		if let Call::feed_values(value, index, signature) = call {
-			let who = Self::members().0[*index as usize].clone();
+			let who = Module::<T>::members().0[*index as usize].clone();
 
-			let nonce = Self::nonces(&who);
+			let nonce = Module::<T>::nonces(&who);
 
-			let signature_valid = Self::session_keys(&who)
+			let signature_valid = Module::<T>::session_keys(&who)
 				.map(|session_key| (nonce, value).using_encoded(|payload| session_key.verify(&payload, &signature)))
 				.unwrap_or(false);
 

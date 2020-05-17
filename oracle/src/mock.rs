@@ -9,6 +9,7 @@ use sp_runtime::{
 	traits::{BlakeTwo256, IdentityLookup},
 	Perbill,
 };
+use std::cell::RefCell;
 
 impl_outer_origin! {
 	pub enum Origin for Test {}
@@ -62,45 +63,40 @@ type AccountId = u64;
 type Key = u32;
 type Value = u32;
 
-pub type Timestamp = pallet_timestamp::Module<Test>;
-
-parameter_types! {
-	pub const MinimumPeriod: u64 = 5;
+thread_local! {
+	static TIME: RefCell<u32> = RefCell::new(0);
 }
 
-impl pallet_timestamp::Trait for Test {
-	type Moment = u64;
-	type OnTimestampSet = ();
-	type MinimumPeriod = MinimumPeriod;
-}
+pub struct Timestamp;
+impl Time for Timestamp {
+	type Moment = u32;
 
-pub struct MockOperatorProvider;
-
-impl OperatorProvider<AccountId> for MockOperatorProvider {
-	fn can_feed_data(who: &AccountId) -> bool {
-		Self::operators().contains(who)
+	fn now() -> Self::Moment {
+		TIME.with(|v| *v.borrow())
 	}
+}
 
-	fn operators() -> Vec<AccountId> {
-		vec![1, 2, 3]
+impl Timestamp {
+	pub fn set_timestamp(val: u32) {
+		TIME.with(|v| *v.borrow() = val);
 	}
 }
 
 parameter_types! {
 	pub const MinimumCount: u32 = 3;
 	pub const ExpiresIn: u32 = 600;
+	pub const UnsignedPriority: TransactionPriority = 32.into();
 }
 
 impl Trait for Test {
 	type Event = ();
 	type Call = Call;
 	type OnNewData = ();
-	type OnRedundantCall = ();
-	type OperatorProvider = MockOperatorProvider;
 	type CombineData = DefaultCombineData<Self, MinimumCount, ExpiresIn>;
-	type Time = pallet_timestamp::Module<Self>;
+	type Time = Timestamp;
 	type OracleKey = Key;
 	type OracleValue = Value;
+	type UnsignedPriority = UnsignedPriority;
 }
 pub type ModuleOracle = Module<Test>;
 // This function basically just builds a genesis storage key/value store according to

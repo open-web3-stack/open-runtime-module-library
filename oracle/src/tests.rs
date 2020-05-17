@@ -12,26 +12,6 @@ use frame_support::{
 use sp_runtime::{traits::SignedExtension, transaction_validity::ValidTransaction};
 
 #[test]
-fn should_feed_value() {
-	new_test_ext().execute_with(|| {
-		let key: u32 = 1;
-		let account_id: u64 = 1;
-
-		Timestamp::set_timestamp(12345);
-
-		let expected = TimestampedValue {
-			value: 1000,
-			timestamp: 12345,
-		};
-
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(account_id), key, 1000));
-
-		let feed_data = ModuleOracle::raw_values(&key, &account_id).unwrap();
-		assert_eq!(feed_data, expected);
-	});
-}
-
-#[test]
 fn should_feed_values() {
 	new_test_ext().execute_with(|| {
 		let account_id: u64 = 1;
@@ -74,7 +54,7 @@ fn should_change_status_when_feeding() {
 	new_test_ext().execute_with(|| {
 		let key: u32 = 1;
 		assert_eq!(ModuleOracle::has_update(key), false);
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(1), key, 1000));
+		assert_ok!(ModuleOracle::feed_values(Origin::signed(1), vec![(key, 1000)]));
 		assert_eq!(ModuleOracle::has_update(key), true);
 	});
 }
@@ -100,8 +80,8 @@ fn should_read_raw_values() {
 			},
 		];
 
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(1), key, 1000));
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(2), key, 1200));
+		assert_ok!(ModuleOracle::feed_values(Origin::signed(1), vec![(key, 1000)]));
+		assert_ok!(ModuleOracle::feed_values(Origin::signed(2), vec![(key, 1200)]));
 
 		let raw_values = ModuleOracle::read_raw_values(&key);
 		assert_eq!(raw_values, expected);
@@ -120,9 +100,9 @@ fn should_combined_data() {
 
 		let key: u32 = 1;
 
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(1), key, 1300));
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(2), key, 1000));
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(3), key, 1200));
+		assert_ok!(ModuleOracle::feed_values(Origin::signed(1), vec![(key, 1300)]));
+		assert_ok!(ModuleOracle::feed_values(Origin::signed(2), vec![(key, 1000)]));
+		assert_ok!(ModuleOracle::feed_values(Origin::signed(3), vec![(key, 1200)]));
 		assert_eq!(ModuleOracle::get(&key), expected);
 	});
 }
@@ -139,9 +119,9 @@ fn should_return_prev_value() {
 
 		let key: u32 = 1;
 
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(1), key, 1300));
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(2), key, 1000));
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(3), key, 1200));
+		assert_ok!(ModuleOracle::feed_values(Origin::signed(1), vec![(key, 1300)]));
+		assert_ok!(ModuleOracle::feed_values(Origin::signed(2), vec![(key, 1000)]));
+		assert_ok!(ModuleOracle::feed_values(Origin::signed(3), vec![(key, 1200)]));
 		assert_eq!(ModuleOracle::get(&key), expected);
 
 		Timestamp::set_timestamp(23456);
@@ -178,32 +158,29 @@ fn should_validate() {
 #[test]
 fn should_be_free_operational() {
 	new_test_ext().execute_with(|| {
-		let feed_value = Call::ModuleOracle(OracleCall::feed_value(1, 1));
 		let feed_values = Call::ModuleOracle(OracleCall::feed_values(vec![(1, 1)]));
-		vec![feed_value, feed_values].iter().for_each(|f| {
-			let dispatch_info = <Call as GetDispatchInfo>::get_dispatch_info(&f);
-			assert_eq!(
-				dispatch_info,
-				DispatchInfo {
-					weight: 0,
-					class: DispatchClass::Operational,
-					pays_fee: Pays::No,
-				}
-			);
-		});
+		let dispatch_info = <Call as GetDispatchInfo>::get_dispatch_info(&feed_values);
+		assert_eq!(
+			dispatch_info,
+			DispatchInfo {
+				weight: 0,
+				class: DispatchClass::Operational,
+				pays_fee: Pays::No,
+			}
+		);
 	});
 }
 
 #[test]
 fn multiple_calls_should_fail() {
 	new_test_ext().execute_with(|| {
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(1), 1, 1000));
+		assert_ok!(ModuleOracle::feed_values(Origin::signed(1), vec![(1, 1000)]));
 		assert_noop!(
-			ModuleOracle::feed_value(Origin::signed(1), 1, 1200),
+			ModuleOracle::feed_values(Origin::signed(1), vec![(1, 1200)]),
 			Error::<Test>::UpdateAlreadyDispatched
 		);
 		<ModuleOracle as OnFinalize<u64>>::on_finalize(1);
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(1), 1, 1200));
+		assert_ok!(ModuleOracle::feed_values(Origin::signed(1), vec![(1, 1200)]));
 	});
 }
 
@@ -218,9 +195,9 @@ fn get_all_values_should_work() {
 		assert_eq!(ModuleOracle::get_all_values(), vec![]);
 
 		// feed eur & jpy
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(1), eur, 1300));
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(2), eur, 1000));
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(3), jpy, 9000));
+		assert_ok!(ModuleOracle::feed_values(Origin::signed(1), vec![(eur, 1300)]));
+		assert_ok!(ModuleOracle::feed_values(Origin::signed(2), vec![(eur, 1000)]));
+		assert_ok!(ModuleOracle::feed_values(Origin::signed(3), vec![(jpy, 9000)]));
 
 		// not enough eur & jpy prices
 		assert_eq!(ModuleOracle::get(&eur), None);
@@ -231,8 +208,8 @@ fn get_all_values_should_work() {
 		<ModuleOracle as OnFinalize<u64>>::on_finalize(1);
 
 		// feed eur & jpy
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(3), eur, 1200));
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(1), jpy, 8000));
+		assert_ok!(ModuleOracle::feed_values(Origin::signed(3), vec![(eur, 1200)]));
+		assert_ok!(ModuleOracle::feed_values(Origin::signed(1), vec![(jpy, 8000)]));
 
 		// enough eur prices
 		let eur_price = Some(TimestampedValue {
@@ -247,7 +224,7 @@ fn get_all_values_should_work() {
 		assert_eq!(ModuleOracle::get_all_values(), vec![(eur, eur_price)]);
 
 		// feed jpy
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(2), jpy, 7000));
+		assert_ok!(ModuleOracle::feed_values(Origin::signed(2), vec![(jpy, 7000)]));
 
 		// enough jpy prices
 		let jpy_price = Some(TimestampedValue {
