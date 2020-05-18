@@ -5,7 +5,7 @@ use super::*;
 use frame_support::{impl_outer_dispatch, impl_outer_origin, parameter_types, weights::Weight};
 use sp_core::H256;
 use sp_runtime::{
-	testing::Header,
+	testing::{Header, UintAuthorityId},
 	traits::{BlakeTwo256, IdentityLookup},
 	Perbill,
 };
@@ -22,6 +22,9 @@ impl_outer_dispatch! {
 }
 
 pub type OracleCall = super::Call<Test>;
+type AccountId = u64;
+type Key = u32;
+type Value = u32;
 
 // For testing the module, we construct most of a mock runtime. This means
 // first constructing a configuration type (`Test`) which `impl`s each of the
@@ -41,7 +44,7 @@ impl frame_system::Trait for Test {
 	type BlockNumber = u64;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
-	type AccountId = u64;
+	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
 	type Event = ();
@@ -59,10 +62,6 @@ impl frame_system::Trait for Test {
 	type ExtrinsicBaseWeight = ();
 }
 
-type AccountId = u64;
-type Key = u32;
-type Value = u32;
-
 thread_local! {
 	static TIME: RefCell<u32> = RefCell::new(0);
 }
@@ -78,14 +77,14 @@ impl Time for Timestamp {
 
 impl Timestamp {
 	pub fn set_timestamp(val: u32) {
-		TIME.with(|v| *v.borrow() = val);
+		TIME.with(|v| *v.borrow_mut() = val);
 	}
 }
 
 parameter_types! {
 	pub const MinimumCount: u32 = 3;
 	pub const ExpiresIn: u32 = 600;
-	pub const UnsignedPriority: TransactionPriority = 32.into();
+	pub const UnsignedPriority: TransactionPriority = 32u64;
 }
 
 impl Trait for Test {
@@ -97,12 +96,25 @@ impl Trait for Test {
 	type OracleKey = Key;
 	type OracleValue = Value;
 	type UnsignedPriority = UnsignedPriority;
+	type AuthorityId = UintAuthorityId;
 }
 pub type ModuleOracle = Module<Test>;
 // This function basically just builds a genesis storage key/value store according to
 // our desired mockup.
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	let r = frame_system::GenesisConfig::default().build_storage::<Test>();
+	let mut storage = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
 
-	r.unwrap().into()
+	let _ = GenesisConfig::<Test> {
+		members: vec![1, 2, 3, 4].into(),
+		session_keys: vec![(1, 10.into()), (2, 20.into()), (3, 30.into()), (4, 40.into())],
+	}
+	.assimilate_storage(&mut storage);
+
+	let mut t: sp_io::TestExternalities = storage.into();
+
+	t.execute_with(|| {
+		Timestamp::set_timestamp(12345);
+	});
+
+	t
 }

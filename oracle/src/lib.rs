@@ -69,6 +69,9 @@ pub trait Trait: frame_system::Trait {
 	/// This is exposed so that it can be tuned for particular runtime, when
 	/// multiple pallets send unsigned transactions.
 	type UnsignedPriority: Get<TransactionPriority>;
+
+	/// The identifier type for an authority.
+	type AuthorityId: Member + Parameter + RuntimeAppPublic + Default + Ord;
 }
 
 decl_storage! {
@@ -88,10 +91,10 @@ decl_storage! {
 
 		// TODO: this shouldn't be required https://github.com/paritytech/substrate/issues/6041
 		/// The current members of the collective. This is stored sorted (just by value).
-		pub Members get(fn members): OrderedSet<T::AccountId>;
+		pub Members get(fn members) config(): OrderedSet<T::AccountId>;
 
 		/// Session key for oracle operators
-		pub SessionKeys get(fn session_keys): map hasher(twox_64_concat) T::AccountId => Option<AuthorityId>;
+		pub SessionKeys get(fn session_keys) config(): map hasher(twox_64_concat) T::AccountId => Option<T::AuthorityId>;
 
 		pub Nonces get(fn nonces): map hasher(twox_64_concat) T::AccountId => u32;
 	}
@@ -122,7 +125,7 @@ decl_module! {
 			#[compact] index: u32,
 			// since signature verification is done in `validate_unsigned`
 			// we can skip doing it here again.
-			_signature: AuthoritySignature
+			_signature: <T::AuthorityId as RuntimeAppPublic>::Signature,
 		) {
 			ensure_none(origin)?;
 			let who = Self::members().0[index as usize].clone();
@@ -130,7 +133,7 @@ decl_module! {
 		}
 
 		#[weight = 10_000_000]
-		pub fn set_session_key(origin, key: AuthorityId) {
+		pub fn set_session_key(origin, key: T::AuthorityId) {
 			let who = ensure_signed(origin)?;
 			ensure!(Self::members().contains(&who), Error::<T>::NoPermission);
 
