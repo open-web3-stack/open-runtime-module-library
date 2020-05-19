@@ -105,8 +105,8 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut storage = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
 
 	let _ = GenesisConfig::<Test> {
-		members: vec![1, 2, 3, 4].into(),
-		session_keys: vec![(1, 10.into()), (2, 20.into()), (3, 30.into()), (4, 40.into())],
+		members: vec![1, 2, 3].into(),
+		session_keys: vec![(1, 10.into()), (2, 20.into()), (3, 30.into())],
 	}
 	.assimilate_storage(&mut storage);
 

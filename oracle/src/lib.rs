@@ -239,6 +239,7 @@ impl<T: Trait> ChangeMembers<T::AccountId> for Module<T> {
 		for removed in outgoing {
 			SessionKeys::<T>::remove(removed);
 			RawValues::<T>::remove_prefix(removed);
+			Nonces::<T>::remove(removed);
 		}
 
 		Members::<T>::put(OrderedSet::from_sorted_set(new.into()));
@@ -303,32 +304,36 @@ impl<T: Trait + Send + Sync> SignedExtension for CheckOperator<T> {
 		};
 
 		if let Call::feed_values(value, index, signature) = call {
-			let who = Module::<T>::members().0[*index as usize].clone();
+			let members = Module::<T>::members();
+			let who = members.0.get(*index as usize);
+			if let Some(who) = who {
+				let nonce = Module::<T>::nonces(&who);
 
-			let nonce = Module::<T>::nonces(&who);
+				let signature_valid = Module::<T>::session_keys(&who)
+					.map(|session_key| (nonce, value).using_encoded(|payload| session_key.verify(&payload, &signature)))
+					.unwrap_or(false);
 
-			let signature_valid = Module::<T>::session_keys(&who)
-				.map(|session_key| (nonce, value).using_encoded(|payload| session_key.verify(&payload, &signature)))
-				.unwrap_or(false);
+				if !signature_valid {
+					return InvalidTransaction::BadProof.into();
+				}
 
-			if !signature_valid {
-				return InvalidTransaction::BadProof.into();
+				// ensure account hasn't dispatched an updated yet
+				let ok = HasDispatched::<T>::mutate(|set| set.insert(who.clone()));
+				if !ok {
+					// we already received a feed for this operator
+					return Err(InvalidTransaction::Stale.into());
+				}
+
+				Nonces::<T>::insert(who, nonce + 1);
+
+				ValidTransaction::with_tag_prefix("Oracle")
+					.priority(T::UnsignedPriority::get())
+					.longevity(256)
+					.propagate(true)
+					.build()
+			} else {
+				InvalidTransaction::BadProof.into()
 			}
-
-			// ensure account hasn't dispatched an updated yet
-			let ok = HasDispatched::<T>::mutate(|set| set.insert(who.clone()));
-			if !ok {
-				// we already received a feed for this operator
-				return Err(InvalidTransaction::Stale.into());
-			}
-
-			Nonces::<T>::insert(who, nonce + 1);
-
-			ValidTransaction::with_tag_prefix("Oracle")
-				.priority(T::UnsignedPriority::get())
-				.longevity(256)
-				.propagate(true)
-				.build()
 		} else {
 			InvalidTransaction::Call.into()
 		}
