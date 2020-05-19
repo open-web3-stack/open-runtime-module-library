@@ -4,10 +4,7 @@
 
 use super::*;
 use frame_support::{assert_noop, assert_ok};
-use mock::{
-	Balance, ExtBuilder, MockDustRemoval, Runtime, System, TestEvent, Tokens, ALICE, BOB, CHARLIE, ID_1, ID_2,
-	TEST_TOKEN_ID,
-};
+use mock::{Balance, ExtBuilder, Runtime, System, TestEvent, Tokens, ALICE, BOB, ID_1, ID_2, TEST_TOKEN_ID};
 
 #[test]
 fn set_lock_should_work() {
@@ -262,31 +259,6 @@ fn transfer_should_work() {
 }
 
 #[test]
-fn transfer_fails_if_below_existential_deposit() {
-	ExtBuilder::default()
-		.one_hundred_for_alice_n_bob()
-		.build()
-		.execute_with(|| {
-			assert_noop!(
-				Tokens::transfer(Some(ALICE).into(), CHARLIE, TEST_TOKEN_ID, 1),
-				Error::<Runtime>::ExistentialDeposit
-			);
-		});
-}
-
-#[test]
-fn transfer_enforces_existential_rule() {
-	ExtBuilder::default()
-		.one_hundred_for_alice_n_bob()
-		.build()
-		.execute_with(|| {
-			assert_ok!(Tokens::transfer(Some(ALICE).into(), BOB, TEST_TOKEN_ID, 99));
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 0);
-			assert_eq!(MockDustRemoval::accumulated_dust(TEST_TOKEN_ID), 1);
-		});
-}
-
-#[test]
 fn transfer_all_should_work() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
@@ -321,18 +293,6 @@ fn deposit_should_work() {
 }
 
 #[test]
-fn deposit_enforces_existential_rule() {
-	ExtBuilder::default()
-		.one_hundred_for_alice_n_bob()
-		.build()
-		.execute_with(|| {
-			assert_ok!(Tokens::deposit(TEST_TOKEN_ID, &CHARLIE, 1));
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &CHARLIE), 0);
-			assert_eq!(MockDustRemoval::accumulated_dust(TEST_TOKEN_ID), 0);
-		});
-}
-
-#[test]
 fn withdraw_should_work() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
@@ -346,19 +306,6 @@ fn withdraw_should_work() {
 				Tokens::withdraw(TEST_TOKEN_ID, &ALICE, 60),
 				Error::<Runtime>::BalanceTooLow
 			);
-		});
-}
-
-#[test]
-fn withdraw_enforces_existential_rule() {
-	ExtBuilder::default()
-		.one_hundred_for_alice_n_bob()
-		.build()
-		.execute_with(|| {
-			assert_ok!(Tokens::withdraw(TEST_TOKEN_ID, &ALICE, 99));
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 0);
-			assert_eq!(MockDustRemoval::accumulated_dust(TEST_TOKEN_ID), 1);
-			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 100);
 		});
 }
 
@@ -377,18 +324,6 @@ fn slash_should_work() {
 			assert_eq!(Tokens::slash(TEST_TOKEN_ID, &ALICE, 51), 1);
 			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 0);
 			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 100);
-		});
-}
-
-#[test]
-fn slash_enforces_existential_rule() {
-	ExtBuilder::default()
-		.one_hundred_for_alice_n_bob()
-		.build()
-		.execute_with(|| {
-			assert_eq!(Tokens::slash(TEST_TOKEN_ID, &ALICE, 99), 0);
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 0);
-			assert_eq!(MockDustRemoval::accumulated_dust(TEST_TOKEN_ID), 1);
 		});
 }
 

@@ -66,16 +66,13 @@ pub type System = system::Module<Runtime>;
 type CurrencyId = u32;
 pub type Balance = u64;
 
-parameter_types! {
-	pub const ExistentialDeposit: u64 = 2;
-}
-
 thread_local! {
 	static ACCUMULATED_DUST: RefCell<HashMap<CurrencyId, Balance>> = RefCell::new(HashMap::new());
 }
 
 pub struct MockDustRemoval<CurrencyId, Balance>(PhantomData<(CurrencyId, Balance)>);
 impl MockDustRemoval<CurrencyId, Balance> {
+	#[allow(dead_code)]
 	pub fn accumulated_dust(currency_id: CurrencyId) -> Balance {
 		ACCUMULATED_DUST.with(|v| *v.borrow().get(&currency_id).unwrap_or(&Zero::zero()))
 	}
@@ -100,7 +97,6 @@ impl Trait for Runtime {
 	type Balance = Balance;
 	type Amount = i64;
 	type CurrencyId = CurrencyId;
-	type ExistentialDeposit = ExistentialDeposit;
 	type DustRemoval = MockDustRemoval<CurrencyId, Balance>;
 }
 
@@ -109,7 +105,6 @@ pub type Tokens = Module<Runtime>;
 pub const TEST_TOKEN_ID: CurrencyId = 1;
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
-pub const CHARLIE: AccountId = 3;
 pub const ID_1: LockIdentifier = *b"1       ";
 pub const ID_2: LockIdentifier = *b"2       ";
 
