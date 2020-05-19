@@ -208,7 +208,8 @@ impl Bounded for FixedU128 {
 impl fmt::Debug for FixedU128 {
 	#[cfg(feature = "std")]
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		write!(f, "FixedU128({},{})", self.0 / DIV, (self.0 % DIV) / 1000)
+		let fractional = format!("{:0>18}", self.0 % DIV);
+		write!(f, "FixedU128({}.{})", self.0 / DIV, fractional)
 	}
 
 	#[cfg(not(feature = "std"))]
