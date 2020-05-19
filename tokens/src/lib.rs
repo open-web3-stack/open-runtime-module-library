@@ -36,7 +36,7 @@
 #![allow(clippy::redundant_closure_call, clippy::string_lit_as_bytes)]
 
 use codec::{Decode, Encode};
-use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, traits::Get, Parameter};
+use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, Parameter};
 use sp_runtime::{
 	traits::{AtLeast32Bit, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, Saturating, StaticLookup, Zero},
 	DispatchError, DispatchResult, RuntimeDebug,
@@ -76,7 +76,6 @@ pub trait Trait: frame_system::Trait {
 		+ Copy
 		+ MaybeSerializeDeserialize;
 	type CurrencyId: Parameter + Member + Copy + MaybeSerializeDeserialize + Ord;
-	type ExistentialDeposit: Get<Self::Balance>;
 	type DustRemoval: OnDustRemoval<Self::CurrencyId, Self::Balance>;
 }
 
@@ -217,24 +216,16 @@ decl_error! {
 		BalanceTooLow,
 		TotalIssuanceOverflow,
 		AmountIntoBalanceFailed,
-		ExistentialDeposit,
 		LiquidityRestrictions,
 	}
 }
 
 impl<T: Trait> Module<T> {
-	/// Set free balance of `who` to a new value, meanwhile enforce existential rule.
+	/// Set free balance of `who` to a new value.
 	///
-	/// Note this will not maintain total issuance except balance is less to ExistentialDeposit,
-	/// and the caller is expected to do it.
+	/// Note this will not maintain total issuance.
 	fn set_free_balance(currency_id: T::CurrencyId, who: &T::AccountId, balance: T::Balance) {
-		if balance < T::ExistentialDeposit::get() {
-			<Accounts<T>>::mutate(currency_id, who, |account_data| account_data.free = Zero::zero());
-			T::DustRemoval::on_dust_removal(currency_id, balance);
-			<TotalIssuance<T>>::mutate(currency_id, |v| *v -= balance);
-		} else {
-			<Accounts<T>>::mutate(currency_id, who, |account_data| account_data.free = balance);
-		}
+		<Accounts<T>>::mutate(currency_id, who, |account_data| account_data.free = balance);
 	}
 
 	/// Set reserved balance of `who` to a new value, meanwhile enforce existential rule.
@@ -288,6 +279,9 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		Self::accounts(currency_id, who).free
 	}
 
+	// Ensure that an account can withdraw from their free balance given any existing withdrawal
+	// restrictions like locks and vesting balance.
+	// Is a no-op if amount to be withdrawn is zero.
 	fn ensure_can_withdraw(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
 		if amount.is_zero() {
 			return Ok(());
@@ -303,6 +297,8 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		Ok(())
 	}
 
+	// Transfer some free balance from `from` to `to`.
+	// Is a no-op if value to be transferred is zero or the `from` is the same as `to`.
 	fn transfer(
 		currency_id: Self::CurrencyId,
 		from: &T::AccountId,
@@ -316,38 +312,25 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 
 		let from_balance = Self::free_balance(currency_id, from);
 		let to_balance = Self::free_balance(currency_id, to);
-		ensure!(
-			to_balance + amount >= T::ExistentialDeposit::get(),
-			Error::<T>::ExistentialDeposit,
-		);
-
-		if from != to {
-			Self::set_free_balance(currency_id, from, from_balance - amount);
-			Self::set_free_balance(currency_id, to, to_balance + amount);
-		}
+		Self::set_free_balance(currency_id, from, from_balance - amount);
+		Self::set_free_balance(currency_id, to, to_balance + amount);
 
 		Ok(())
 	}
 
+	/// Deposit some `amount` into the free balance of account `who`.
+	///
+	/// Is a no-op if the `amount` to be deposited is zero.
 	fn deposit(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
 		if amount.is_zero() {
 			return Ok(());
 		}
 
-		ensure!(
-			Self::total_issuance(currency_id).checked_add(&amount).is_some(),
-			Error::<T>::TotalIssuanceOverflow,
-		);
-
-		let balance = Self::free_balance(currency_id, who);
-		// Nothing happens if deposition doesn't meet existential deposit rule,
-		// consistent behavior with pallet-balances.
-		if balance.is_zero() && amount < T::ExistentialDeposit::get() {
-			return Ok(());
-		}
-
-		<TotalIssuance<T>>::mutate(currency_id, |v| *v += amount);
-		Self::set_free_balance(currency_id, who, balance + amount);
+		let new_total = Self::total_issuance(currency_id)
+			.checked_add(&amount)
+			.ok_or(Error::<T>::TotalIssuanceOverflow)?;
+		<TotalIssuance<T>>::insert(currency_id, new_total);
+		Self::set_free_balance(currency_id, who, Self::free_balance(currency_id, who) + amount);
 
 		Ok(())
 	}
@@ -579,3 +562,5 @@ impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
 		Ok(value - actual)
 	}
 }
+
+// TODO: impl OnKilledAccount
