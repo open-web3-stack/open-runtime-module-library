@@ -2,33 +2,51 @@
 
 use crate::{
 	mock::{new_test_ext, Call, ModuleOracle, OracleCall, Origin, Test, Timestamp},
-	{CheckOperator, Error, TimestampedValue},
+	{CheckOperator, TimestampedValue},
 };
+use codec::Encode;
 use frame_support::{
-	assert_noop, assert_ok,
-	traits::OnFinalize,
-	weights::{DispatchClass, DispatchInfo, GetDispatchInfo, Pays, TransactionPriority},
+	assert_noop, assert_ok, dispatch,
+	traits::{ChangeMembers, OnFinalize},
+	weights::{DispatchClass, DispatchInfo, Pays},
 };
-use sp_runtime::{traits::SignedExtension, transaction_validity::ValidTransaction};
+use sp_runtime::{
+	testing::UintAuthorityId,
+	traits::SignedExtension,
+	transaction_validity::{InvalidTransaction, TransactionValidityError},
+	RuntimeAppPublic,
+};
 
-#[test]
-fn should_feed_value() {
-	new_test_ext().execute_with(|| {
-		let key: u32 = 1;
-		let account_id: u64 = 1;
+fn feed_values_from_session_key(
+	id: UintAuthorityId,
+	index: u32,
+	nonce: u32,
+	values: Vec<(u32, u32)>,
+) -> Result<dispatch::DispatchResult, TransactionValidityError> {
+	let sig = id.sign(&(nonce, &values).encode()).unwrap();
 
-		Timestamp::set_timestamp(12345);
+	CheckOperator::<Test>::validate_unsigned(
+		&Call::ModuleOracle(OracleCall::feed_values(values.clone(), index, sig.clone())),
+		&DispatchInfo {
+			weight: 0,
+			class: DispatchClass::Normal,
+			pays_fee: Pays::Yes,
+		},
+		0,
+	)?;
 
-		let expected = TimestampedValue {
-			value: 1000,
-			timestamp: 12345,
-		};
+	Ok(ModuleOracle::feed_values(Origin::NONE, values, index, sig))
+}
 
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(account_id), key, 1000));
+fn feed_values(
+	from: u64,
+	index: u32,
+	nonce: u32,
+	values: Vec<(u32, u32)>,
+) -> Result<dispatch::DispatchResult, TransactionValidityError> {
+	let id = ModuleOracle::session_keys(from).unwrap();
 
-		let feed_data = ModuleOracle::raw_values(&key, &account_id).unwrap();
-		assert_eq!(feed_data, expected);
-	});
+	feed_values_from_session_key(id, index, nonce, values)
 }
 
 #[test]
@@ -36,15 +54,10 @@ fn should_feed_values() {
 	new_test_ext().execute_with(|| {
 		let account_id: u64 = 1;
 
-		Timestamp::set_timestamp(12345);
-
-		assert_ok!(ModuleOracle::feed_values(
-			Origin::signed(account_id),
-			vec![(1, 1000), (2, 900), (3, 800)]
-		));
+		assert_ok!(feed_values(account_id, 0, 0, vec![(50, 1000), (51, 900), (52, 800)]));
 
 		assert_eq!(
-			ModuleOracle::raw_values(&1, &account_id),
+			ModuleOracle::raw_values(&account_id, &50),
 			Some(TimestampedValue {
 				value: 1000,
 				timestamp: 12345,
@@ -52,7 +65,7 @@ fn should_feed_values() {
 		);
 
 		assert_eq!(
-			ModuleOracle::raw_values(&2, &account_id),
+			ModuleOracle::raw_values(&account_id, &51),
 			Some(TimestampedValue {
 				value: 900,
 				timestamp: 12345,
@@ -60,7 +73,7 @@ fn should_feed_values() {
 		);
 
 		assert_eq!(
-			ModuleOracle::raw_values(&3, &account_id),
+			ModuleOracle::raw_values(&account_id, &52),
 			Some(TimestampedValue {
 				value: 800,
 				timestamp: 12345,
@@ -70,157 +83,151 @@ fn should_feed_values() {
 }
 
 #[test]
-fn should_change_status_when_feeding() {
+fn should_update_is_updated() {
 	new_test_ext().execute_with(|| {
-		let key: u32 = 1;
-		assert_eq!(ModuleOracle::has_update(key), false);
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(1), key, 1000));
-		assert_eq!(ModuleOracle::has_update(key), true);
+		let key: u32 = 50;
+		assert_eq!(ModuleOracle::is_updated(key), false);
+		assert_ok!(feed_values(1, 0, 0, vec![(key, 1000)]));
+		assert_ok!(feed_values(2, 1, 0, vec![(key, 1000)]));
+		assert_ok!(feed_values(3, 2, 0, vec![(key, 1000)]));
+		assert_eq!(ModuleOracle::is_updated(key), false);
+		assert_eq!(
+			ModuleOracle::get(&key).unwrap(),
+			TimestampedValue {
+				value: 1000,
+				timestamp: 12345
+			}
+		);
+		assert_eq!(ModuleOracle::is_updated(key), true);
+		ModuleOracle::on_finalize(1);
+		assert_ok!(feed_values(1, 0, 1, vec![(key, 1000)]));
+		assert_eq!(ModuleOracle::is_updated(key), false);
+	});
+}
+
+#[test]
+fn should_validate_index() {
+	new_test_ext().execute_with(|| {
+		assert_noop!(
+			feed_values(1, 1, 0, vec![(50, 1000)]),
+			TransactionValidityError::Invalid(InvalidTransaction::BadProof)
+		);
+
+		assert_noop!(
+			feed_values(2, 0, 0, vec![(50, 1000)]),
+			TransactionValidityError::Invalid(InvalidTransaction::BadProof)
+		);
+	});
+}
+
+#[test]
+fn should_validate_nonce() {
+	new_test_ext().execute_with(|| {
+		assert_noop!(
+			feed_values(1, 0, 1, vec![(50, 1000)]),
+			TransactionValidityError::Invalid(InvalidTransaction::BadProof)
+		);
+
+		assert_ok!(feed_values(1, 0, 0, vec![(50, 1000)]));
+
+		assert_eq!(ModuleOracle::nonces(&1), 1);
+		ModuleOracle::on_finalize(1);
+
+		assert_noop!(
+			feed_values(1, 0, 0, vec![(50, 1000)]),
+			TransactionValidityError::Invalid(InvalidTransaction::BadProof)
+		);
+
+		assert_ok!(feed_values(1, 0, 1, vec![(50, 1000)]));
+
+		assert_eq!(ModuleOracle::nonces(&1), 2);
 	});
 }
 
 #[test]
 fn should_read_raw_values() {
 	new_test_ext().execute_with(|| {
-		let key: u32 = 1;
+		let key: u32 = 50;
 
 		let raw_values = ModuleOracle::read_raw_values(&key);
 		assert_eq!(raw_values, vec![]);
 
-		Timestamp::set_timestamp(12345);
-
-		let expected = vec![
-			TimestampedValue {
-				value: 1000,
-				timestamp: 12345,
-			},
-			TimestampedValue {
-				value: 1200,
-				timestamp: 12345,
-			},
-		];
-
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(1), key, 1000));
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(2), key, 1200));
+		assert_ok!(feed_values(1, 0, 0, vec![(key, 1000)]));
+		assert_ok!(feed_values(2, 1, 0, vec![(key, 1200)]));
 
 		let raw_values = ModuleOracle::read_raw_values(&key);
-		assert_eq!(raw_values, expected);
+		assert_eq!(
+			raw_values,
+			vec![
+				TimestampedValue {
+					value: 1000,
+					timestamp: 12345,
+				},
+				TimestampedValue {
+					value: 1200,
+					timestamp: 12345,
+				},
+			]
+		);
 	});
 }
 
 #[test]
 fn should_combined_data() {
 	new_test_ext().execute_with(|| {
-		Timestamp::set_timestamp(12345);
+		let key: u32 = 50;
+
+		assert_ok!(feed_values(1, 0, 0, vec![(key, 1300)]));
+		assert_ok!(feed_values(2, 1, 0, vec![(key, 1000)]));
+		assert_ok!(feed_values(3, 2, 0, vec![(key, 1200)]));
 
 		let expected = Some(TimestampedValue {
 			value: 1200,
 			timestamp: 12345,
 		});
 
-		let key: u32 = 1;
-
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(1), key, 1300));
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(2), key, 1000));
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(3), key, 1200));
-		assert_eq!(ModuleOracle::get(&key), expected);
-	});
-}
-
-#[test]
-fn should_return_prev_value() {
-	new_test_ext().execute_with(|| {
-		Timestamp::set_timestamp(12345);
-
-		let expected = Some(TimestampedValue {
-			value: 1200,
-			timestamp: 12345,
-		});
-
-		let key: u32 = 1;
-
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(1), key, 1300));
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(2), key, 1000));
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(3), key, 1200));
 		assert_eq!(ModuleOracle::get(&key), expected);
 
 		Timestamp::set_timestamp(23456);
 
-		// should return prev_value
 		assert_eq!(ModuleOracle::get(&key), expected);
 	});
 }
 
 #[test]
-fn should_return_none() {
+fn should_return_none_for_non_exist_key() {
 	new_test_ext().execute_with(|| {
-		let key: u32 = 1;
-		assert_eq!(ModuleOracle::get(&key), None);
-	});
-}
-
-#[test]
-fn should_validate() {
-	new_test_ext().execute_with(|| {
-		let call = Call::ModuleOracle(OracleCall::feed_values(vec![(1, 1)]));
-		let info = <Call as GetDispatchInfo>::get_dispatch_info(&call);
-
-		assert_eq!(
-			CheckOperator::<Test>(Default::default()).validate(&1, &call, &info, 1),
-			Ok(ValidTransaction {
-				priority: TransactionPriority::max_value(),
-				..Default::default()
-			})
-		);
-	});
-}
-
-#[test]
-fn should_be_free_operational() {
-	new_test_ext().execute_with(|| {
-		let feed_value = Call::ModuleOracle(OracleCall::feed_value(1, 1));
-		let feed_values = Call::ModuleOracle(OracleCall::feed_values(vec![(1, 1)]));
-		vec![feed_value, feed_values].iter().for_each(|f| {
-			let dispatch_info = <Call as GetDispatchInfo>::get_dispatch_info(&f);
-			assert_eq!(
-				dispatch_info,
-				DispatchInfo {
-					weight: 0,
-					class: DispatchClass::Operational,
-					pays_fee: Pays::No,
-				}
-			);
-		});
+		assert_eq!(ModuleOracle::get(&50), None);
 	});
 }
 
 #[test]
 fn multiple_calls_should_fail() {
 	new_test_ext().execute_with(|| {
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(1), 1, 1000));
+		assert_ok!(feed_values(1, 0, 0, vec![(50, 1300)]));
 		assert_noop!(
-			ModuleOracle::feed_value(Origin::signed(1), 1, 1200),
-			Error::<Test>::UpdateAlreadyDispatched
+			feed_values(1, 0, 1, vec![(50, 1300)]),
+			TransactionValidityError::Invalid(InvalidTransaction::Stale)
 		);
-		<ModuleOracle as OnFinalize<u64>>::on_finalize(1);
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(1), 1, 1200));
+
+		ModuleOracle::on_finalize(1);
+
+		assert_ok!(feed_values(1, 0, 1, vec![(50, 1300)]));
 	});
 }
 
 #[test]
 fn get_all_values_should_work() {
 	new_test_ext().execute_with(|| {
-		Timestamp::set_timestamp(12345);
-
 		let eur: u32 = 1;
 		let jpy: u32 = 2;
 
 		assert_eq!(ModuleOracle::get_all_values(), vec![]);
 
 		// feed eur & jpy
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(1), eur, 1300));
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(2), eur, 1000));
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(3), jpy, 9000));
+		assert_ok!(feed_values(1, 0, 0, vec![(eur, 1300)]));
+		assert_ok!(feed_values(2, 1, 0, vec![(eur, 1000)]));
+		assert_ok!(feed_values(3, 2, 0, vec![(jpy, 9000)]));
 
 		// not enough eur & jpy prices
 		assert_eq!(ModuleOracle::get(&eur), None);
@@ -228,11 +235,11 @@ fn get_all_values_should_work() {
 		assert_eq!(ModuleOracle::get_all_values(), vec![]);
 
 		// finalize block
-		<ModuleOracle as OnFinalize<u64>>::on_finalize(1);
+		ModuleOracle::on_finalize(1);
 
 		// feed eur & jpy
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(3), eur, 1200));
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(1), jpy, 8000));
+		assert_ok!(feed_values(3, 2, 1, vec![(eur, 1200)]));
+		assert_ok!(feed_values(1, 0, 1, vec![(jpy, 8000)]));
 
 		// enough eur prices
 		let eur_price = Some(TimestampedValue {
@@ -247,7 +254,7 @@ fn get_all_values_should_work() {
 		assert_eq!(ModuleOracle::get_all_values(), vec![(eur, eur_price)]);
 
 		// feed jpy
-		assert_ok!(ModuleOracle::feed_value(Origin::signed(2), jpy, 7000));
+		assert_ok!(feed_values(2, 1, 1, vec![(jpy, 7000)]));
 
 		// enough jpy prices
 		let jpy_price = Some(TimestampedValue {
@@ -257,5 +264,90 @@ fn get_all_values_should_work() {
 		assert_eq!(ModuleOracle::get(&jpy), jpy_price);
 
 		assert_eq!(ModuleOracle::get_all_values(), vec![(eur, eur_price), (jpy, jpy_price)]);
+	});
+}
+
+#[test]
+fn bad_index() {
+	new_test_ext().execute_with(|| {
+		assert_noop!(
+			feed_values(1, 255, 0, vec![(50, 1000)]),
+			TransactionValidityError::Invalid(InvalidTransaction::BadProof)
+		);
+	});
+}
+
+#[test]
+fn change_member_should_work() {
+	new_test_ext().execute_with(|| {
+		<ModuleOracle as ChangeMembers<u64>>::change_members_sorted(&[4], &[1], &[2, 3, 4]);
+
+		assert_noop!(
+			feed_values_from_session_key(10.into(), 0, 0, vec![(50, 1000)]),
+			TransactionValidityError::Invalid(InvalidTransaction::BadProof)
+		);
+
+		assert_ok!(feed_values(2, 0, 0, vec![(50, 1000)]));
+
+		assert_noop!(
+			feed_values_from_session_key(40.into(), 2, 0, vec![(50, 1000)]),
+			TransactionValidityError::Invalid(InvalidTransaction::BadProof)
+		);
+
+		assert_eq!(ModuleOracle::session_keys(&4), None);
+
+		assert_ok!(ModuleOracle::set_session_key(Origin::signed(4), 40.into()));
+
+		assert_ok!(feed_values(4, 2, 0, vec![(50, 1000)]));
+	});
+}
+
+#[test]
+fn should_clear_is_updated_on_change_member() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(feed_values(1, 0, 0, vec![(50, 1000)]));
+		assert_ok!(feed_values(2, 1, 0, vec![(50, 1000)]));
+		assert_ok!(feed_values(3, 2, 0, vec![(50, 1000)]));
+
+		assert_eq!(
+			ModuleOracle::get(&50).unwrap(),
+			TimestampedValue {
+				value: 1000,
+				timestamp: 12345
+			}
+		);
+		assert_eq!(ModuleOracle::is_updated(50), true);
+
+		ModuleOracle::change_members_sorted(&[4], &[1], &[2, 3, 4]);
+
+		assert_eq!(ModuleOracle::is_updated(50), false);
+	});
+}
+
+#[test]
+fn should_clear_data_for_removed_members() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(feed_values(1, 0, 0, vec![(50, 1000)]));
+		assert_ok!(feed_values(2, 1, 0, vec![(50, 1000)]));
+
+		ModuleOracle::change_members_sorted(&[4], &[1], &[2, 3, 4]);
+
+		assert_eq!(ModuleOracle::raw_values(&1, 50), None);
+		assert_eq!(ModuleOracle::session_keys(&1), None);
+		assert_eq!(ModuleOracle::nonces(&1), 0);
+	});
+}
+
+#[test]
+fn change_session_key() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(ModuleOracle::set_session_key(Origin::signed(1), 11.into()));
+
+		assert_noop!(
+			feed_values_from_session_key(10.into(), 0, 0, vec![(50, 1000)]),
+			TransactionValidityError::Invalid(InvalidTransaction::BadProof)
+		);
+
+		assert_ok!(feed_values_from_session_key(11.into(), 0, 0, vec![(50, 1000)]));
 	});
 }

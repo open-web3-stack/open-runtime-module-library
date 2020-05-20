@@ -10,8 +10,10 @@ edition = "2018"
 [dependencies]
 serde = { version = "1.0.101", optional = true }
 codec = { package = "parity-scale-codec", version = "1.3.0", default-features = false }
-sp-runtime = { version = "2.0.0-alpha.8", default-features = false }
+
+sp-application-crypto = { version = "2.0.0-alpha.8", default-features = false }
 sp-io = { version = "2.0.0-alpha.8", default-features = false }
+sp-runtime = { version = "2.0.0-alpha.8", default-features = false }
 sp-std = { version = "2.0.0-alpha.8", default-features = false }
 
 frame-support = { version = "2.0.0-alpha.8", default-features = false }
@@ -22,7 +24,6 @@ orml-utilities = { path = "../utilities", version = "0.1.0", default-features = 
 
 [dev-dependencies]
 sp-core = { version = "2.0.0-alpha.8", default-features = false }
-pallet-timestamp = { version = "2.0.0-alpha.8" }
 
 clear_on_drop = { version = "0.2.3", features = ["no_cc"] }	# https://github.com/paritytech/substrate/issues/4179
 
@@ -31,8 +32,9 @@ default = ["std"]
 std = [
 	"serde",
 	"codec/std",
-	"sp-runtime/std",
+	"sp-application-crypto/std",
 	"sp-io/std",
+	"sp-runtime/std",
 	"sp-std/std",
 	"frame-support/std",
 	"frame-system/std",

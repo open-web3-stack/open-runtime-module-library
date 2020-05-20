@@ -6,3 +6,4 @@ pub mod ordered_set;
 
 pub use fixed_u128::FixedU128;
 pub use linked_item::{LinkedItem, LinkedList};
+pub use ordered_set::OrderedSet;
