@@ -107,7 +107,7 @@ parameter_types! {
 
 impl Trait for Runtime {
 	type Event = TestEvent;
-	type ScheduleOrigin = MockScheduleOrigin;
+	type DispatchOrigin = MockScheduleOrigin;
 	type Call = Call;
 	type MaxScheduleDispatchWeight = MaxScheduleDispatchWeight;
 }

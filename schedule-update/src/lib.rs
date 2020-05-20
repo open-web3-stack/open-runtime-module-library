@@ -31,7 +31,7 @@ type CallOf<T> = <T as Trait>::Call;
 
 pub trait Trait: frame_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
-	type ScheduleOrigin: EnsureOrigin<Self::Origin>;
+	type DispatchOrigin: EnsureOrigin<Self::Origin>;
 	type Call: Parameter + Dispatchable<Origin = <Self as frame_system::Trait>::Origin> + GetDispatchInfo;
 	type MaxScheduleDispatchWeight: Get<Weight>;
 }
@@ -86,7 +86,7 @@ decl_module! {
 		/// Add schedule_update at block_number
 		#[weight = 0]
 		pub fn schedule_dispatch(origin, call: Box<CallOf<T>>, when: DelayedDispatchTime<T::BlockNumber>) {
-			T::ScheduleOrigin::try_origin(origin.clone()).map(|_| ()).or_else(ensure_root)?;
+			T::DispatchOrigin::try_origin(origin.clone()).map(|_| ()).or_else(ensure_root)?;
 
 			let who = match origin.into() {
 				Ok(frame_system::RawOrigin::Root) => None,
