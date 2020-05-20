@@ -15,7 +15,7 @@ fn schedule_dispatch_should_work() {
 		let call = Call::Balances(BalancesCall::transfer(2, 11));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
 			Origin::signed(1),
-			call,
+			Box::new(call),
 			DelayedDispatchTime::At(2)
 		));
 
@@ -28,7 +28,7 @@ fn schedule_dispatch_should_work() {
 		let call = Call::Balances(BalancesCall::set_balance(1, 10, 11));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
 			Origin::ROOT,
-			call,
+			Box::new(call),
 			DelayedDispatchTime::After(3)
 		));
 
@@ -44,7 +44,7 @@ fn schedule_dispatch_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		let call = Call::Balances(BalancesCall::transfer(2, 11));
 		assert_noop!(
-			ScheduleUpdateModule::schedule_dispatch(Origin::signed(1), call, DelayedDispatchTime::At(0)),
+			ScheduleUpdateModule::schedule_dispatch(Origin::signed(1), Box::new(call), DelayedDispatchTime::At(0)),
 			Error::<Runtime>::InvalidDelayedDispatchTime
 		);
 	});
@@ -59,7 +59,7 @@ fn cancel_deplayed_dispatch_should_work() {
 		let call = Call::Balances(BalancesCall::transfer(2, 11));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
 			Origin::signed(1),
-			call,
+			Box::new(call),
 			DelayedDispatchTime::At(2)
 		));
 
@@ -79,7 +79,7 @@ fn cancel_deplayed_dispatch_should_work() {
 		let call = Call::Balances(BalancesCall::transfer(2, 12));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
 			Origin::signed(1),
-			call,
+			Box::new(call),
 			DelayedDispatchTime::After(3)
 		));
 
@@ -99,7 +99,7 @@ fn cancel_deplayed_dispatch_should_work() {
 		let call = Call::Balances(BalancesCall::set_balance(2, 10, 13));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
 			Origin::ROOT,
-			call,
+			Box::new(call),
 			DelayedDispatchTime::At(5)
 		));
 
@@ -131,7 +131,7 @@ fn cancel_deplayed_dispatch_should_fail() {
 		let call = Call::Balances(BalancesCall::transfer(2, 11));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
 			Origin::signed(1),
-			call,
+			Box::new(call),
 			DelayedDispatchTime::At(2)
 		));
 
@@ -149,7 +149,7 @@ fn cancel_deplayed_dispatch_should_fail() {
 		let call = Call::Balances(BalancesCall::set_balance(2, 10, 13));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
 			Origin::ROOT,
-			call,
+			Box::new(call),
 			DelayedDispatchTime::At(5)
 		));
 
@@ -174,14 +174,14 @@ fn on_initialize_should_work() {
 		let call = Call::Balances(BalancesCall::transfer(2, 11));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
 			Origin::signed(1),
-			call,
+			Box::new(call),
 			DelayedDispatchTime::At(2)
 		));
 
 		let call = Call::Balances(BalancesCall::transfer(2, 12));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
 			Origin::signed(1),
-			call,
+			Box::new(call),
 			DelayedDispatchTime::At(3)
 		));
 
@@ -208,7 +208,7 @@ fn on_initialize_should_work() {
 		let call = Call::Balances(BalancesCall::set_balance(3, 10, 11));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
 			Origin::ROOT,
-			call,
+			Box::new(call),
 			DelayedDispatchTime::After(10)
 		));
 
@@ -220,7 +220,7 @@ fn on_initialize_should_work() {
 		let call = Call::Balances(BalancesCall::set_balance(3, 20, 21));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
 			Origin::ROOT,
-			call,
+			Box::new(call),
 			DelayedDispatchTime::After(12)
 		));
 
@@ -259,7 +259,7 @@ fn on_initialize_should_fail() {
 		let call = Call::Balances(BalancesCall::transfer(2, 110));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
 			Origin::signed(1),
-			call,
+			Box::new(call),
 			DelayedDispatchTime::At(2)
 		));
 
@@ -287,7 +287,7 @@ fn on_initialize_should_fail() {
 		let call = Call::Balances(BalancesCall::set_balance(3, 10, 11));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
 			Origin::signed(1),
-			call,
+			Box::new(call),
 			DelayedDispatchTime::After(10)
 		));
 
@@ -315,21 +315,21 @@ fn on_initialize_weight_exceed() {
 		let call = Call::Balances(BalancesCall::transfer(2, 11));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
 			Origin::signed(1),
-			call,
+			Box::new(call),
 			DelayedDispatchTime::At(2)
 		));
 
 		let call = Call::Balances(BalancesCall::transfer(2, 12));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
 			Origin::signed(1),
-			call,
+			Box::new(call),
 			DelayedDispatchTime::At(2)
 		));
 
 		let call = Call::Balances(BalancesCall::transfer(2, 13));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
 			Origin::signed(1),
-			call,
+			Box::new(call),
 			DelayedDispatchTime::At(2)
 		));
 

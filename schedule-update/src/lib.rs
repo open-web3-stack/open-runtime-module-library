@@ -84,7 +84,7 @@ decl_module! {
 
 		/// Add schedule_update at block_number
 		#[weight = 0]
-		pub fn schedule_dispatch(origin, call: CallOf<T>, when: DelayedDispatchTime<T::BlockNumber>) {
+		pub fn schedule_dispatch(origin, call: Box<CallOf<T>>, when: DelayedDispatchTime<T::BlockNumber>) {
 			let who = match origin.into() {
 				Ok(frame_system::RawOrigin::Root) => None,
 				Ok(frame_system::RawOrigin::Signed(t)) => Some(t),
