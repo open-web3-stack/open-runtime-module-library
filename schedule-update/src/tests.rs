@@ -4,7 +4,7 @@
 
 use super::*;
 use frame_support::{assert_noop, assert_ok, traits::OnInitialize};
-use mock::{BalancesCall, Call, ExtBuilder, Origin, Runtime, ScheduleUpdateModule, System, TestEvent};
+use mock::{BalancesCall, Call, ExtBuilder, Origin, Runtime, ScheduleUpdateModule, System, TestEvent, ALICE, BOB};
 
 #[test]
 fn schedule_dispatch_should_work() {
@@ -14,7 +14,7 @@ fn schedule_dispatch_should_work() {
 		// NormalDispatches
 		let call = Call::Balances(BalancesCall::transfer(2, 11));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
-			Origin::signed(1),
+			Origin::signed(ALICE),
 			Box::new(call),
 			DelayedDispatchTime::At(2)
 		));
@@ -40,25 +40,48 @@ fn schedule_dispatch_should_work() {
 }
 
 #[test]
+fn schedule_dispatch_works_for_root_origin() {
+	ExtBuilder::default().build().execute_with(|| {
+		let call = Call::Balances(BalancesCall::transfer(2, 11));
+		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
+			Origin::ROOT,
+			Box::new(call),
+			DelayedDispatchTime::At(10)
+		));
+	});
+}
+
+#[test]
+fn schedule_dispatch_fails_if_not_allowed_origin() {
+	ExtBuilder::default().build().execute_with(|| {
+		let call = Call::Balances(BalancesCall::transfer(2, 11));
+		assert_noop!(
+			ScheduleUpdateModule::schedule_dispatch(Origin::signed(BOB), Box::new(call), DelayedDispatchTime::At(10)),
+			DispatchError::BadOrigin,
+		);
+	});
+}
+
+#[test]
 fn schedule_dispatch_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		let call = Call::Balances(BalancesCall::transfer(2, 11));
 		assert_noop!(
-			ScheduleUpdateModule::schedule_dispatch(Origin::signed(1), Box::new(call), DelayedDispatchTime::At(0)),
+			ScheduleUpdateModule::schedule_dispatch(Origin::signed(ALICE), Box::new(call), DelayedDispatchTime::At(0)),
 			Error::<Runtime>::InvalidDelayedDispatchTime
 		);
 	});
 }
 
 #[test]
-fn cancel_deplayed_dispatch_should_work() {
+fn cancel_delayed_dispatch_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		System::set_block_number(1);
 
 		// NormalDispatches
 		let call = Call::Balances(BalancesCall::transfer(2, 11));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
-			Origin::signed(1),
+			Origin::signed(ALICE),
 			Box::new(call),
 			DelayedDispatchTime::At(2)
 		));
@@ -68,9 +91,13 @@ fn cancel_deplayed_dispatch_should_work() {
 			.iter()
 			.any(|record| record.event == schedule_dispatch_event));
 
-		assert_ok!(ScheduleUpdateModule::cancel_deplayed_dispatch(Origin::signed(1), 2, 0));
+		assert_ok!(ScheduleUpdateModule::cancel_delayed_dispatch(
+			Origin::signed(ALICE),
+			2,
+			0
+		));
 
-		let schedule_dispatch_event = TestEvent::schedule_update(RawEvent::CancelDeplayedDispatch(0));
+		let schedule_dispatch_event = TestEvent::schedule_update(RawEvent::CancelDelayedDispatch(0));
 		assert!(System::events()
 			.iter()
 			.any(|record| record.event == schedule_dispatch_event));
@@ -78,7 +105,7 @@ fn cancel_deplayed_dispatch_should_work() {
 		// root cancel NormalDispatches
 		let call = Call::Balances(BalancesCall::transfer(2, 12));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
-			Origin::signed(1),
+			Origin::signed(ALICE),
 			Box::new(call),
 			DelayedDispatchTime::After(3)
 		));
@@ -88,9 +115,9 @@ fn cancel_deplayed_dispatch_should_work() {
 			.iter()
 			.any(|record| record.event == schedule_dispatch_event));
 
-		assert_ok!(ScheduleUpdateModule::cancel_deplayed_dispatch(Origin::ROOT, 4, 1));
+		assert_ok!(ScheduleUpdateModule::cancel_delayed_dispatch(Origin::ROOT, 4, 1));
 
-		let schedule_dispatch_event = TestEvent::schedule_update(RawEvent::CancelDeplayedDispatch(1));
+		let schedule_dispatch_event = TestEvent::schedule_update(RawEvent::CancelDelayedDispatch(1));
 		assert!(System::events()
 			.iter()
 			.any(|record| record.event == schedule_dispatch_event));
@@ -108,9 +135,9 @@ fn cancel_deplayed_dispatch_should_work() {
 			.iter()
 			.any(|record| record.event == schedule_dispatch_event));
 
-		assert_ok!(ScheduleUpdateModule::cancel_deplayed_dispatch(Origin::ROOT, 5, 2));
+		assert_ok!(ScheduleUpdateModule::cancel_delayed_dispatch(Origin::ROOT, 5, 2));
 
-		let schedule_dispatch_event = TestEvent::schedule_update(RawEvent::CancelDeplayedDispatch(2));
+		let schedule_dispatch_event = TestEvent::schedule_update(RawEvent::CancelDelayedDispatch(2));
 		assert!(System::events()
 			.iter()
 			.any(|record| record.event == schedule_dispatch_event));
@@ -118,19 +145,19 @@ fn cancel_deplayed_dispatch_should_work() {
 }
 
 #[test]
-fn cancel_deplayed_dispatch_should_fail() {
+fn cancel_delayed_dispatch_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		System::set_block_number(1);
 
 		assert_noop!(
-			ScheduleUpdateModule::cancel_deplayed_dispatch(Origin::signed(1), 2, 0),
+			ScheduleUpdateModule::cancel_delayed_dispatch(Origin::signed(ALICE), 2, 0),
 			Error::<Runtime>::DispatchNotExisted
 		);
 
 		// NormalDispatches
 		let call = Call::Balances(BalancesCall::transfer(2, 11));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
-			Origin::signed(1),
+			Origin::signed(ALICE),
 			Box::new(call),
 			DelayedDispatchTime::At(2)
 		));
@@ -141,7 +168,7 @@ fn cancel_deplayed_dispatch_should_fail() {
 			.any(|record| record.event == schedule_dispatch_event));
 
 		assert_noop!(
-			ScheduleUpdateModule::cancel_deplayed_dispatch(Origin::signed(2), 2, 0),
+			ScheduleUpdateModule::cancel_delayed_dispatch(Origin::signed(BOB), 2, 0),
 			Error::<Runtime>::NoPermission
 		);
 
@@ -159,7 +186,7 @@ fn cancel_deplayed_dispatch_should_fail() {
 			.any(|record| record.event == schedule_dispatch_event));
 
 		assert_noop!(
-			ScheduleUpdateModule::cancel_deplayed_dispatch(Origin::signed(2), 5, 1),
+			ScheduleUpdateModule::cancel_delayed_dispatch(Origin::signed(BOB), 5, 1),
 			Error::<Runtime>::NoPermission
 		);
 	});
@@ -173,14 +200,14 @@ fn on_initialize_should_work() {
 		// NormalDispatches
 		let call = Call::Balances(BalancesCall::transfer(2, 11));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
-			Origin::signed(1),
+			Origin::signed(ALICE),
 			Box::new(call),
 			DelayedDispatchTime::At(2)
 		));
 
 		let call = Call::Balances(BalancesCall::transfer(2, 12));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
-			Origin::signed(1),
+			Origin::signed(ALICE),
 			Box::new(call),
 			DelayedDispatchTime::At(3)
 		));
@@ -258,7 +285,7 @@ fn on_initialize_should_fail() {
 		// NormalDispatches balance not enough
 		let call = Call::Balances(BalancesCall::transfer(2, 110));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
-			Origin::signed(1),
+			Origin::signed(ALICE),
 			Box::new(call),
 			DelayedDispatchTime::At(2)
 		));
@@ -286,7 +313,7 @@ fn on_initialize_should_fail() {
 		// OperationalDispatches not root
 		let call = Call::Balances(BalancesCall::set_balance(3, 10, 11));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
-			Origin::signed(1),
+			Origin::signed(ALICE),
 			Box::new(call),
 			DelayedDispatchTime::After(10)
 		));
@@ -314,21 +341,21 @@ fn on_initialize_weight_exceed() {
 		// NormalDispatches
 		let call = Call::Balances(BalancesCall::transfer(2, 11));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
-			Origin::signed(1),
+			Origin::signed(ALICE),
 			Box::new(call),
 			DelayedDispatchTime::At(2)
 		));
 
 		let call = Call::Balances(BalancesCall::transfer(2, 12));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
-			Origin::signed(1),
+			Origin::signed(ALICE),
 			Box::new(call),
 			DelayedDispatchTime::At(2)
 		));
 
 		let call = Call::Balances(BalancesCall::transfer(2, 13));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
-			Origin::signed(1),
+			Origin::signed(ALICE),
 			Box::new(call),
 			DelayedDispatchTime::At(2)
 		));

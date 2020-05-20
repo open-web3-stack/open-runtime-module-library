@@ -6,7 +6,7 @@ use codec::{Decode, Encode};
 use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage, ensure,
 	storage::IterableStorageDoubleMap,
-	traits::Get,
+	traits::{EnsureOrigin, Get},
 	weights::{DispatchClass, GetDispatchInfo, Weight},
 	Parameter,
 };
@@ -31,6 +31,7 @@ type CallOf<T> = <T as Trait>::Call;
 
 pub trait Trait: frame_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
+	type DispatchOrigin: EnsureOrigin<Self::Origin>;
 	type Call: Parameter + Dispatchable<Origin = <Self as frame_system::Trait>::Origin> + GetDispatchInfo;
 	type MaxScheduleDispatchWeight: Get<Weight>;
 }
@@ -42,8 +43,8 @@ decl_event!(
 	{
 		/// Add schedule dispatch success (BlockNumber, DispatchId)
 		ScheduleDispatch(BlockNumber, DispatchId),
-		/// Cancel deplayed dispatch success (DispatchId)
-		CancelDeplayedDispatch(DispatchId),
+		/// Cancel delayed dispatch success (DispatchId)
+		CancelDelayedDispatch(DispatchId),
 		/// Schedule dispatch success (BlockNumber, DispatchId)
 		ScheduleDispatchSuccess(BlockNumber, DispatchId),
 		/// Schedule dispatch failed (DispatchId, DispatchError)
@@ -85,6 +86,8 @@ decl_module! {
 		/// Add schedule_update at block_number
 		#[weight = 0]
 		pub fn schedule_dispatch(origin, call: Box<CallOf<T>>, when: DelayedDispatchTime<T::BlockNumber>) {
+			T::DispatchOrigin::try_origin(origin.clone()).map(|_| ()).or_else(ensure_root)?;
+
 			let who = match origin.into() {
 				Ok(frame_system::RawOrigin::Root) => None,
 				Ok(frame_system::RawOrigin::Signed(t)) => Some(t),
@@ -117,7 +120,7 @@ decl_module! {
 
 		/// Cancel schedule_update
 		#[weight = 0]
-		pub fn cancel_deplayed_dispatch(origin, at: T::BlockNumber, id: DispatchId) {
+		pub fn cancel_delayed_dispatch(origin, at: T::BlockNumber, id: DispatchId) {
 			let is_root = ensure_root(origin.clone()).is_ok();
 
 			if let Some((who, _, _)) = <DelayedNormalDispatches<T>>::get(at, id) {
@@ -135,7 +138,7 @@ decl_module! {
 			} else {
 				return Err(Error::<T>::DispatchNotExisted.into());
 			}
-			Self::deposit_event(RawEvent::CancelDeplayedDispatch(id));
+			Self::deposit_event(RawEvent::CancelDelayedDispatch(id));
 		}
 
 		fn on_initialize(now: T::BlockNumber) -> Weight {
