@@ -43,8 +43,8 @@ decl_event!(
 	{
 		/// Add schedule dispatch success (BlockNumber, DispatchId)
 		ScheduleDispatch(BlockNumber, DispatchId),
-		/// Cancel deplayed dispatch success (DispatchId)
-		CancelDeplayedDispatch(DispatchId),
+		/// Cancel delayed dispatch success (DispatchId)
+		CancelDelayedDispatch(DispatchId),
 		/// Schedule dispatch success (BlockNumber, DispatchId)
 		ScheduleDispatchSuccess(BlockNumber, DispatchId),
 		/// Schedule dispatch failed (DispatchId, DispatchError)
@@ -120,7 +120,7 @@ decl_module! {
 
 		/// Cancel schedule_update
 		#[weight = 0]
-		pub fn cancel_deplayed_dispatch(origin, at: T::BlockNumber, id: DispatchId) {
+		pub fn cancel_delayed_dispatch(origin, at: T::BlockNumber, id: DispatchId) {
 			let is_root = ensure_root(origin.clone()).is_ok();
 
 			if let Some((who, _, _)) = <DelayedNormalDispatches<T>>::get(at, id) {
@@ -138,7 +138,7 @@ decl_module! {
 			} else {
 				return Err(Error::<T>::DispatchNotExisted.into());
 			}
-			Self::deposit_event(RawEvent::CancelDeplayedDispatch(id));
+			Self::deposit_event(RawEvent::CancelDelayedDispatch(id));
 		}
 
 		fn on_initialize(now: T::BlockNumber) -> Weight {

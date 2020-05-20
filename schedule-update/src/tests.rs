@@ -74,7 +74,7 @@ fn schedule_dispatch_should_fail() {
 }
 
 #[test]
-fn cancel_deplayed_dispatch_should_work() {
+fn cancel_delayed_dispatch_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		System::set_block_number(1);
 
@@ -91,13 +91,13 @@ fn cancel_deplayed_dispatch_should_work() {
 			.iter()
 			.any(|record| record.event == schedule_dispatch_event));
 
-		assert_ok!(ScheduleUpdateModule::cancel_deplayed_dispatch(
+		assert_ok!(ScheduleUpdateModule::cancel_delayed_dispatch(
 			Origin::signed(ALICE),
 			2,
 			0
 		));
 
-		let schedule_dispatch_event = TestEvent::schedule_update(RawEvent::CancelDeplayedDispatch(0));
+		let schedule_dispatch_event = TestEvent::schedule_update(RawEvent::CancelDelayedDispatch(0));
 		assert!(System::events()
 			.iter()
 			.any(|record| record.event == schedule_dispatch_event));
@@ -115,9 +115,9 @@ fn cancel_deplayed_dispatch_should_work() {
 			.iter()
 			.any(|record| record.event == schedule_dispatch_event));
 
-		assert_ok!(ScheduleUpdateModule::cancel_deplayed_dispatch(Origin::ROOT, 4, 1));
+		assert_ok!(ScheduleUpdateModule::cancel_delayed_dispatch(Origin::ROOT, 4, 1));
 
-		let schedule_dispatch_event = TestEvent::schedule_update(RawEvent::CancelDeplayedDispatch(1));
+		let schedule_dispatch_event = TestEvent::schedule_update(RawEvent::CancelDelayedDispatch(1));
 		assert!(System::events()
 			.iter()
 			.any(|record| record.event == schedule_dispatch_event));
@@ -135,9 +135,9 @@ fn cancel_deplayed_dispatch_should_work() {
 			.iter()
 			.any(|record| record.event == schedule_dispatch_event));
 
-		assert_ok!(ScheduleUpdateModule::cancel_deplayed_dispatch(Origin::ROOT, 5, 2));
+		assert_ok!(ScheduleUpdateModule::cancel_delayed_dispatch(Origin::ROOT, 5, 2));
 
-		let schedule_dispatch_event = TestEvent::schedule_update(RawEvent::CancelDeplayedDispatch(2));
+		let schedule_dispatch_event = TestEvent::schedule_update(RawEvent::CancelDelayedDispatch(2));
 		assert!(System::events()
 			.iter()
 			.any(|record| record.event == schedule_dispatch_event));
@@ -145,12 +145,12 @@ fn cancel_deplayed_dispatch_should_work() {
 }
 
 #[test]
-fn cancel_deplayed_dispatch_should_fail() {
+fn cancel_delayed_dispatch_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		System::set_block_number(1);
 
 		assert_noop!(
-			ScheduleUpdateModule::cancel_deplayed_dispatch(Origin::signed(ALICE), 2, 0),
+			ScheduleUpdateModule::cancel_delayed_dispatch(Origin::signed(ALICE), 2, 0),
 			Error::<Runtime>::DispatchNotExisted
 		);
 
@@ -168,7 +168,7 @@ fn cancel_deplayed_dispatch_should_fail() {
 			.any(|record| record.event == schedule_dispatch_event));
 
 		assert_noop!(
-			ScheduleUpdateModule::cancel_deplayed_dispatch(Origin::signed(BOB), 2, 0),
+			ScheduleUpdateModule::cancel_delayed_dispatch(Origin::signed(BOB), 2, 0),
 			Error::<Runtime>::NoPermission
 		);
 
@@ -186,7 +186,7 @@ fn cancel_deplayed_dispatch_should_fail() {
 			.any(|record| record.event == schedule_dispatch_event));
 
 		assert_noop!(
-			ScheduleUpdateModule::cancel_deplayed_dispatch(Origin::signed(BOB), 5, 1),
+			ScheduleUpdateModule::cancel_delayed_dispatch(Origin::signed(BOB), 5, 1),
 			Error::<Runtime>::NoPermission
 		);
 	});
