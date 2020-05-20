@@ -3,7 +3,7 @@
 #![cfg(test)]
 
 use frame_support::{impl_outer_dispatch, impl_outer_event, impl_outer_origin, parameter_types};
-use frame_system as system;
+use frame_system::{self as system, ensure_signed};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
@@ -82,12 +82,32 @@ impl pallet_balances::Trait for Runtime {
 	type AccountStore = System;
 }
 
+pub const ALICE: AccountId = 1u64;
+pub const BOB: AccountId = 2u64;
+
+// A mock schedule origin where only `ALICE` has permission.
+pub struct MockScheduleOrigin;
+
+impl EnsureOrigin<Origin> for MockScheduleOrigin {
+	type Success = ();
+
+	fn try_origin(o: Origin) -> Result<Self::Success, Origin> {
+		let who = ensure_signed(o.clone()).map_err(|_| o.clone())?;
+		if who == ALICE {
+			Ok(())
+		} else {
+			Err(o)
+		}
+	}
+}
+
 parameter_types! {
 	pub const MaxScheduleDispatchWeight: Weight = 150_000_000;
 }
 
 impl Trait for Runtime {
 	type Event = TestEvent;
+	type ScheduleOrigin = MockScheduleOrigin;
 	type Call = Call;
 	type MaxScheduleDispatchWeight = MaxScheduleDispatchWeight;
 }
