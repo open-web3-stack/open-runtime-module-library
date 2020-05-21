@@ -89,7 +89,6 @@ parameter_types! {
 
 impl Trait for Test {
 	type Event = ();
-	type Call = Call;
 	type OnNewData = ();
 	type CombineData = DefaultCombineData<Self, MinimumCount, ExpiresIn>;
 	type Time = Timestamp;
