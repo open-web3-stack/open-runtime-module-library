@@ -157,7 +157,7 @@ decl_module! {
 		/// - Db reads: `VestingSchedules`, 3 items of orml_currencies
 		/// - Db writes: `VestingSchedules`, 3 items of orml_currencies
 		/// -------------------
-		/// Base Weight: 29.86 us
+		/// Base Weight: 29.86 µs
 		/// # </weight>
 		#[weight = 30_000_000 + T::DbWeight::get().reads_writes(2, 2)]
 		pub fn claim(origin) {
@@ -174,7 +174,7 @@ decl_module! {
 		/// - Db reads: `VestingSchedules`, 3 items of orml_currencies
 		/// - Db writes: `VestingSchedules`, 3 items of orml_currencies
 		/// -------------------
-		/// Base Weight: 47.26 us
+		/// Base Weight: 47.26 µs
 		/// # </weight>
 		#[weight = 48_000_000 + T::DbWeight::get().reads_writes(4, 4)]
 		pub fn add_vesting_schedule(
@@ -196,7 +196,7 @@ decl_module! {
 		/// - Db reads: `VestingSchedules`, 3 items of orml_currencies
 		/// - Db writes: `VestingSchedules`, 3 items of orml_currencies
 		/// -------------------
-		/// Base Weight: 27.96 us
+		/// Base Weight: 27.96 µs
 		/// # </weight>
 		#[weight = 28_000_000 + T::DbWeight::get().reads_writes(4, 4)]
 		pub fn update_vesting_schedules(

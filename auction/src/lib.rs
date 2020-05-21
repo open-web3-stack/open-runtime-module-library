@@ -56,14 +56,14 @@ decl_module! {
 		/// -------------------
 		/// Base Weight:
 		/// 	- collateral auction:
-		///				- best cases: 49.61 us
-		///				- worst cases: 83.65 us
+		///				- best cases: 49.61 µs
+		///				- worst cases: 83.65 µs
 		/// 	- surplus auction:
-		///				- best cases: 42.67 us
-		///				- worst cases: 49.76 us
+		///				- best cases: 42.67 µs
+		///				- worst cases: 49.76 µs
 		/// 	- debit auction:
-		///				- best cases: 45.96 us
-		///				- worst cases: 48.55 us
+		///				- best cases: 45.96 µs
+		///				- worst cases: 48.55 µs
 		/// # </weight>
 		#[weight = 84_000_000 + T::DbWeight::get().reads_writes(9, 9)]
 		pub fn bid(origin, id: T::AuctionId, #[compact] value: T::Balance) {

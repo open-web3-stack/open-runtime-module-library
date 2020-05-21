@@ -126,8 +126,8 @@ decl_module! {
 		/// - Db writes: 2 * `Accounts`
 		/// -------------------
 		/// Base Weight:
-		///		- non-native currency: 26.72 us
-		///		- native currency in worst case: 29.9 us
+		///		- non-native currency: 26.72 µs
+		///		- native currency in worst case: 29.9 µs
 		/// # </weight>
 		#[weight = 30_000_000 + T::DbWeight::get().reads_writes(2, 2)]
 		pub fn transfer(
@@ -153,7 +153,7 @@ decl_module! {
 		/// - Db reads: 2 * `Accounts`
 		/// - Db writes: 2 * `Accounts`
 		/// -------------------
-		/// Base Weight: 29.53 us
+		/// Base Weight: 29.53 µs
 		/// # </weight>
 		#[weight = 30_000_000 + T::DbWeight::get().reads_writes(2, 2)]
 		pub fn transfer_native_currency(
@@ -181,9 +181,9 @@ decl_module! {
 		/// - Db writes: `Accounts`
 		/// -------------------
 		/// Base Weight:
-		/// 	- non-native currency: 25.36 us
-		///		- native currency and killing account: 26.33 us
-		///		- native currency and create account: 27.39 us
+		/// 	- non-native currency: 25.36 µs
+		///		- native currency and killing account: 26.33 µs
+		///		- native currency and create account: 27.39 µs
 		/// # </weight>
 		#[weight = 27_000_000 + T::DbWeight::get().reads_writes(1, 1)]
 		pub fn update_balance(
