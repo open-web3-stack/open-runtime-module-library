@@ -1,7 +1,10 @@
 use codec::{Decode, Encode};
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
 use sp_runtime::RuntimeDebug;
 use sp_std::prelude::*;
 
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(RuntimeDebug, PartialEq, Eq, Encode, Decode, Default)]
 pub struct OrderedSet<T>(pub Vec<T>);
 
