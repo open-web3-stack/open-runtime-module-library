@@ -291,6 +291,7 @@ impl<T: Trait> frame_support::unsigned::ValidateUnsigned for Module<T> {
 
 				ValidTransaction::with_tag_prefix("orml-oracle")
 					.priority(T::UnsignedPriority::get())
+					.and_provides((who, nonce))
 					.longevity(256)
 					.propagate(true)
 					.build()
