@@ -7,23 +7,21 @@ mod mock;
 mod tests;
 mod timestamped_value;
 
-use codec::{Decode, Encode};
+use codec::Encode;
 use frame_support::{
-	decl_error, decl_event, decl_module, decl_storage,
-	dispatch::Dispatchable,
-	ensure,
+	decl_error, decl_event, decl_module, decl_storage, ensure,
 	traits::{ChangeMembers, Get, InitializeMembers, Time},
 	weights::{DispatchClass, FunctionOf, Pays},
-	IsSubType, IterableStorageMap, Parameter,
+	IterableStorageMap, Parameter,
 };
 use sp_runtime::{
-	traits::{DispatchInfoOf, Member, SignedExtension},
+	traits::Member,
 	transaction_validity::{
-		InvalidTransaction, TransactionPriority, TransactionValidity, TransactionValidityError, ValidTransaction,
+		InvalidTransaction, TransactionPriority, TransactionSource, TransactionValidity, ValidTransaction,
 	},
 	DispatchResult,
 };
-use sp_std::{fmt, prelude::*, result, vec};
+use sp_std::{prelude::*, vec};
 // FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
@@ -57,7 +55,6 @@ pub type TimestampedValueOf<T> = TimestampedValue<<T as Trait>::OracleValue, Mom
 
 pub trait Trait: frame_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
-	type Call: Parameter + Dispatchable<Origin = <Self as frame_system::Trait>::Origin> + IsSubType<Module<Self>, Self>;
 	type OnNewData: OnNewData<Self::AccountId, Self::OracleKey, Self::OracleValue>;
 	type CombineData: CombineData<Self::OracleKey, TimestampedValueOf<Self>>;
 	type Time: Time;
@@ -265,44 +262,10 @@ impl<T: Trait> DataProviderExtended<T::OracleKey, T::OracleValue, T::AccountId> 
 	}
 }
 
-#[derive(Encode, Decode, Clone, Eq, PartialEq, Default)]
-pub struct CheckOperator<T: Trait + Send + Sync>(sp_std::marker::PhantomData<T>);
+impl<T: Trait> frame_support::unsigned::ValidateUnsigned for Module<T> {
+	type Call = Call<T>;
 
-impl<T: Trait + Send + Sync> CheckOperator<T> {
-	pub fn new() -> Self {
-		Self(sp_std::marker::PhantomData)
-	}
-}
-
-impl<T: Trait + Send + Sync> fmt::Debug for CheckOperator<T> {
-	#[cfg(feature = "std")]
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		write!(f, "CheckOperator")
-	}
-
-	#[cfg(not(feature = "std"))]
-	fn fmt(&self, _: &mut fmt::Formatter) -> fmt::Result {
-		Ok(())
-	}
-}
-
-impl<T: Trait + Send + Sync> SignedExtension for CheckOperator<T> {
-	const IDENTIFIER: &'static str = "CheckOperator";
-	type AccountId = T::AccountId;
-	type Call = <T as Trait>::Call;
-	type AdditionalSigned = ();
-	type Pre = ();
-
-	fn additional_signed(&self) -> result::Result<(), TransactionValidityError> {
-		Ok(())
-	}
-
-	fn validate_unsigned(call: &Self::Call, _info: &DispatchInfoOf<Self::Call>, _len: usize) -> TransactionValidity {
-		let call = match call.is_sub_type() {
-			Some(call) => call,
-			None => return Ok(ValidTransaction::default()),
-		};
-
+	fn validate_unsigned(_source: TransactionSource, call: &Self::Call) -> TransactionValidity {
 		if let Call::feed_values(value, index, signature) = call {
 			let members = Module::<T>::members();
 			let who = members.0.get(*index as usize);
@@ -326,8 +289,9 @@ impl<T: Trait + Send + Sync> SignedExtension for CheckOperator<T> {
 
 				Nonces::<T>::insert(who, nonce + 1);
 
-				ValidTransaction::with_tag_prefix("Oracle")
+				ValidTransaction::with_tag_prefix("orml-oracle")
 					.priority(T::UnsignedPriority::get())
+					.and_provides((who, nonce))
 					.longevity(256)
 					.propagate(true)
 					.build()

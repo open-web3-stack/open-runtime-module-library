@@ -1,19 +1,18 @@
 #![cfg(test)]
 
 use crate::{
-	mock::{new_test_ext, Call, ModuleOracle, OracleCall, Origin, Test, Timestamp},
-	{CheckOperator, TimestampedValue},
+	mock::{new_test_ext, ModuleOracle, OracleCall, Origin, Timestamp},
+	TimestampedValue,
 };
 use codec::Encode;
 use frame_support::{
 	assert_noop, assert_ok, dispatch,
 	traits::{ChangeMembers, OnFinalize},
-	weights::{DispatchClass, DispatchInfo, Pays},
+	unsigned::ValidateUnsigned,
 };
 use sp_runtime::{
 	testing::UintAuthorityId,
-	traits::SignedExtension,
-	transaction_validity::{InvalidTransaction, TransactionValidityError},
+	transaction_validity::{InvalidTransaction, TransactionSource, TransactionValidityError},
 	RuntimeAppPublic,
 };
 
@@ -25,14 +24,9 @@ fn feed_values_from_session_key(
 ) -> Result<dispatch::DispatchResult, TransactionValidityError> {
 	let sig = id.sign(&(nonce, &values).encode()).unwrap();
 
-	CheckOperator::<Test>::validate_unsigned(
-		&Call::ModuleOracle(OracleCall::feed_values(values.clone(), index, sig.clone())),
-		&DispatchInfo {
-			weight: 0,
-			class: DispatchClass::Normal,
-			pays_fee: Pays::Yes,
-		},
-		0,
+	<ModuleOracle as ValidateUnsigned>::validate_unsigned(
+		TransactionSource::External,
+		&OracleCall::feed_values(values.clone(), index, sig.clone()),
 	)?;
 
 	Ok(ModuleOracle::feed_values(Origin::NONE, values, index, sig))
