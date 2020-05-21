@@ -27,7 +27,7 @@
 use codec::{Decode, Encode, HasCompact};
 use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage, ensure,
-	traits::{Currency, ExistenceRequirement, LockIdentifier, LockableCurrency, WithdrawReasons},
+	traits::{Currency, ExistenceRequirement, Get, LockIdentifier, LockableCurrency, WithdrawReasons},
 };
 use sp_std::{
 	cmp::{Eq, PartialEq},
@@ -150,7 +150,16 @@ decl_module! {
 
 		fn deposit_event() = default;
 
-		#[weight = 0]
+		/// # <weight>
+		/// - Preconditions:
+		/// 	- T::Currency is orml_currencies
+		/// - Complexity: `O(1)`
+		/// - Db reads: `VestingSchedules`, 3 items of orml_currencies
+		/// - Db writes: `VestingSchedules`, 3 items of orml_currencies
+		/// -------------------
+		/// Base Weight: 29.86 us
+		/// # </weight>
+		#[weight = 30_000_000 + T::DbWeight::get().reads_writes(2, 2)]
 		pub fn claim(origin) {
 			let who = ensure_signed(origin)?;
 			let locked_amount = Self::do_claim(&who);
@@ -158,7 +167,16 @@ decl_module! {
 			Self::deposit_event(RawEvent::Claimed(who, locked_amount));
 		}
 
-		#[weight = 0]
+		/// # <weight>
+		/// - Preconditions:
+		/// 	- T::Currency is orml_currencies
+		/// - Complexity: `O(1)`
+		/// - Db reads: `VestingSchedules`, 3 items of orml_currencies
+		/// - Db writes: `VestingSchedules`, 3 items of orml_currencies
+		/// -------------------
+		/// Base Weight: 47.26 us
+		/// # </weight>
+		#[weight = 48_000_000 + T::DbWeight::get().reads_writes(4, 4)]
 		pub fn add_vesting_schedule(
 			origin,
 			dest: <T::Lookup as StaticLookup>::Source,
@@ -171,7 +189,16 @@ decl_module! {
 			Self::deposit_event(RawEvent::VestingScheduleAdded(from, to, schedule));
 		}
 
-		#[weight = 0]
+		/// # <weight>
+		/// - Preconditions:
+		/// 	- T::Currency is orml_currencies
+		/// - Complexity: `O(1)`
+		/// - Db reads: `VestingSchedules`, 3 items of orml_currencies
+		/// - Db writes: `VestingSchedules`, 3 items of orml_currencies
+		/// -------------------
+		/// Base Weight: 27.96 us
+		/// # </weight>
+		#[weight = 28_000_000 + T::DbWeight::get().reads_writes(4, 4)]
 		pub fn update_vesting_schedules(
 			origin,
 			who: <T::Lookup as StaticLookup>::Source,
