@@ -36,7 +36,7 @@
 #![allow(clippy::redundant_closure_call, clippy::string_lit_as_bytes)]
 
 use codec::{Decode, Encode};
-use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, Parameter};
+use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, traits::Get, Parameter};
 use sp_runtime::{
 	traits::{AtLeast32Bit, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, Saturating, StaticLookup, Zero},
 	DispatchError, DispatchResult, RuntimeDebug,
@@ -179,7 +179,17 @@ decl_module! {
 		fn deposit_event() = default;
 
 		/// Transfer some balance to another account.
-		#[weight = 0]
+		///
+		/// The dispatch origin for this call must be `Signed` by the transactor.
+		///
+		/// # <weight>
+		/// - Complexity: `O(1)`
+		/// - Db reads: 2 * `Accounts`
+		/// - Db writes: 2 * `Accounts`
+		/// -------------------
+		/// Base Weight: 26.65 µs
+		/// # </weight>
+		#[weight = 27_000_000 + T::DbWeight::get().reads_writes(2, 2)]
 		pub fn transfer(
 			origin,
 			dest: <T::Lookup as StaticLookup>::Source,
@@ -194,7 +204,17 @@ decl_module! {
 		}
 
 		/// Transfer all remaining balance to the given account.
-		#[weight = 0]
+		///
+		/// The dispatch origin for this call must be `Signed` by the transactor.
+		///
+		/// # <weight>
+		/// - Complexity: `O(1)`
+		/// - Db reads: 2 * `Accounts`
+		/// - Db writes: 2 * `Accounts`
+		/// -------------------
+		/// Base Weight: 26.99 µs
+		/// # </weight>
+		#[weight = 27_000_000 + T::DbWeight::get().reads_writes(2, 2)]
 		pub fn transfer_all(
 			origin,
 			dest: <T::Lookup as StaticLookup>::Source,

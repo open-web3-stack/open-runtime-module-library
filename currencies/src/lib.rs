@@ -113,8 +113,23 @@ decl_module! {
 
 		fn deposit_event() = default;
 
-		/// Transfer some balance to another account.
-		#[weight = 0]
+		/// Transfer some balance to another account under `currency_id`.
+		///
+		/// The dispatch origin for this call must be `Signed` by the transactor.
+		///
+		/// # <weight>
+		/// - Preconditions:
+		/// 	- T::MultiCurrency is orml_tokens
+		///		- T::NativeCurrency is pallet_balances
+		/// - Complexity: `O(1)`
+		/// - Db reads: 2 * `Accounts`
+		/// - Db writes: 2 * `Accounts`
+		/// -------------------
+		/// Base Weight:
+		///		- non-native currency: 26.72 µs
+		///		- native currency in worst case: 29.9 µs
+		/// # </weight>
+		#[weight = 30_000_000 + T::DbWeight::get().reads_writes(2, 2)]
 		pub fn transfer(
 			origin,
 			dest: <T::Lookup as StaticLookup>::Source,
@@ -126,8 +141,21 @@ decl_module! {
 			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, &from, &to, amount)?;
 		}
 
-		/// Transfer native currency balance from one account to another.
-		#[weight = 0]
+		/// Transfer some native currency to another account.
+		///
+		/// The dispatch origin for this call must be `Signed` by the transactor.
+		///
+		/// # <weight>
+		/// - Preconditions:
+		/// 	- T::MultiCurrency is orml_tokens
+		///		- T::NativeCurrency is pallet_balances
+		/// - Complexity: `O(1)`
+		/// - Db reads: 2 * `Accounts`
+		/// - Db writes: 2 * `Accounts`
+		/// -------------------
+		/// Base Weight: 29.53 µs
+		/// # </weight>
+		#[weight = 30_000_000 + T::DbWeight::get().reads_writes(2, 2)]
 		pub fn transfer_native_currency(
 			origin,
 			dest: <T::Lookup as StaticLookup>::Source,
@@ -140,8 +168,24 @@ decl_module! {
 			Self::deposit_event(RawEvent::Transferred(T::GetNativeCurrencyId::get(), from, to, amount));
 		}
 
-		/// Update balance of an account. This is a root call.
-		#[weight = 0]
+		/// update amount of account `who` under `currency_id`.
+		///
+		/// The dispatch origin of this call must be _Root_.
+		///
+		/// # <weight>
+		/// - Preconditions:
+		/// 	- T::MultiCurrency is orml_tokens
+		///		- T::NativeCurrency is pallet_balances
+		/// - Complexity: `O(1)`
+		/// - Db reads: `Accounts`
+		/// - Db writes: `Accounts`
+		/// -------------------
+		/// Base Weight:
+		/// 	- non-native currency: 25.36 µs
+		///		- native currency and killing account: 26.33 µs
+		///		- native currency and create account: 27.39 µs
+		/// # </weight>
+		#[weight = 27_000_000 + T::DbWeight::get().reads_writes(1, 1)]
 		pub fn update_balance(
 			origin,
 			who: <T::Lookup as StaticLookup>::Source,

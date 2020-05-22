@@ -2,7 +2,9 @@
 // Disable the following two lints since they originate from an external macro (namely decl_storage)
 #![allow(clippy::string_lit_as_bytes)]
 
-use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, IterableStorageDoubleMap, Parameter};
+use frame_support::{
+	decl_error, decl_event, decl_module, decl_storage, ensure, traits::Get, IterableStorageDoubleMap, Parameter,
+};
 use frame_system::{self as system, ensure_signed};
 use orml_traits::{Auction, AuctionHandler, AuctionInfo};
 use sp_runtime::{
@@ -44,7 +46,26 @@ decl_module! {
 
 		fn deposit_event() = default;
 
-		#[weight = 0]
+		/// # <weight>
+		/// - Preconditions:
+		/// 	- T::Handler is module_auction_manager of Acala
+		///		- Indirectly needs orml_currencies and module_cdp_treasury of Acala
+		/// - Complexity: `O(1)`
+		/// - Db reads: `Auctions`, 2 items of module_auction_manager, 4 items of orml_currencies, 2 items of module_cdp_treasury
+		/// - Db writes: `Auctions`, 2 items of module_auction_manager, 4 items of orml_currencies, 2 items of module_cdp_treasury
+		/// -------------------
+		/// Base Weight:
+		/// 	- collateral auction:
+		///				- best cases: 49.61 µs
+		///				- worst cases: 83.65 µs
+		/// 	- surplus auction:
+		///				- best cases: 42.67 µs
+		///				- worst cases: 49.76 µs
+		/// 	- debit auction:
+		///				- best cases: 45.96 µs
+		///				- worst cases: 48.55 µs
+		/// # </weight>
+		#[weight = 84_000_000 + T::DbWeight::get().reads_writes(9, 9)]
 		pub fn bid(origin, id: T::AuctionId, #[compact] value: T::Balance) {
 			let from = ensure_signed(origin)?;
 
