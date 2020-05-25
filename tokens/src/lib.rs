@@ -57,7 +57,7 @@ use sp_std::collections::btree_map::BTreeMap;
 use orml_traits::{
 	arithmetic::{self, Signed},
 	BalanceStatus, LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency,
-	MultiReservableCurrency, OnDustRemoval,
+	MultiReservableCurrency, OnDustRemoval, OnReceived,
 };
 
 mod mock;
@@ -77,6 +77,7 @@ pub trait Trait: frame_system::Trait {
 		+ MaybeSerializeDeserialize;
 	type CurrencyId: Parameter + Member + Copy + MaybeSerializeDeserialize + Ord;
 	type DustRemoval: OnDustRemoval<Self::CurrencyId, Self::Balance>;
+	type OnReceived: OnReceived<Self::AccountId, Self::CurrencyId, Self::Balance>;
 }
 
 /// A single lock on a balance. There can be many of these on an account and they "overlap", so the
@@ -317,8 +318,8 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		Ok(())
 	}
 
-	// Transfer some free balance from `from` to `to`.
-	// Is a no-op if value to be transferred is zero or the `from` is the same as `to`.
+	/// Transfer some free balance from `from` to `to`.
+	/// Is a no-op if value to be transferred is zero or the `from` is the same as `to`.
 	fn transfer(
 		currency_id: Self::CurrencyId,
 		from: &T::AccountId,
@@ -334,6 +335,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		let to_balance = Self::free_balance(currency_id, to);
 		Self::set_free_balance(currency_id, from, from_balance - amount);
 		Self::set_free_balance(currency_id, to, to_balance + amount);
+		T::OnReceived::on_received(to.clone(), currency_id, amount);
 
 		Ok(())
 	}
@@ -351,6 +353,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 			.ok_or(Error::<T>::TotalIssuanceOverflow)?;
 		<TotalIssuance<T>>::insert(currency_id, new_total);
 		Self::set_free_balance(currency_id, who, Self::free_balance(currency_id, who) + amount);
+		T::OnReceived::on_received(who.clone(), currency_id, amount);
 
 		Ok(())
 	}

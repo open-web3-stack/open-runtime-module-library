@@ -4,7 +4,10 @@
 
 use super::*;
 use frame_support::{assert_noop, assert_ok};
-use mock::{Balance, ExtBuilder, Runtime, System, TestEvent, Tokens, ALICE, BOB, ID_1, ID_2, TEST_TOKEN_ID};
+use mock::{
+	Balance, ExtBuilder, Runtime, System, TestEvent, Tokens, ACCUMULATED_RECEIVED, ALICE, BOB, ID_1, ID_2,
+	TEST_TOKEN_ID,
+};
 
 #[test]
 fn set_lock_should_work() {
@@ -247,6 +250,10 @@ fn transfer_should_work() {
 			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 50);
 			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &BOB), 150);
 			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 200);
+			assert_eq!(
+				ACCUMULATED_RECEIVED.with(|v| *v.borrow().get(&(BOB, TEST_TOKEN_ID)).unwrap()),
+				50
+			);
 
 			let transferred_event = TestEvent::tokens(RawEvent::Transferred(TEST_TOKEN_ID, ALICE, BOB, 50));
 			assert!(System::events().iter().any(|record| record.event == transferred_event));
