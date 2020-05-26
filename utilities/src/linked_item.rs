@@ -219,6 +219,7 @@ mod tests {
 		type DbWeight = ();
 		type BlockExecutionWeight = ();
 		type ExtrinsicBaseWeight = ();
+		type MaximumExtrinsicWeight = ();
 	}
 
 	type TestLinkedList = LinkedList<TestItem, Key, Value>;
