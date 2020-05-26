@@ -4,7 +4,10 @@
 
 use super::*;
 use frame_support::{assert_noop, assert_ok};
-use mock::{Balance, ExtBuilder, Runtime, System, TestEvent, Tokens, ALICE, BOB, ID_1, ID_2, TEST_TOKEN_ID};
+use mock::{
+	Balance, ExtBuilder, Runtime, System, TestEvent, Tokens, ACCUMULATED_RECEIVED, ALICE, BOB, ID_1, ID_2,
+	TEST_TOKEN_ID,
+};
 
 #[test]
 fn set_lock_should_work() {
@@ -13,15 +16,15 @@ fn set_lock_should_work() {
 		.build()
 		.execute_with(|| {
 			Tokens::set_lock(ID_1, TEST_TOKEN_ID, &ALICE, 10);
-			assert_eq!(Tokens::accounts(TEST_TOKEN_ID, &ALICE).frozen, 10);
-			assert_eq!(Tokens::accounts(TEST_TOKEN_ID, &ALICE).frozen(), 10);
-			assert_eq!(Tokens::locks(TEST_TOKEN_ID, ALICE).len(), 1);
+			assert_eq!(Tokens::accounts(&ALICE, TEST_TOKEN_ID).frozen, 10);
+			assert_eq!(Tokens::accounts(&ALICE, TEST_TOKEN_ID).frozen(), 10);
+			assert_eq!(Tokens::locks(ALICE, TEST_TOKEN_ID).len(), 1);
 			Tokens::set_lock(ID_1, TEST_TOKEN_ID, &ALICE, 50);
-			assert_eq!(Tokens::accounts(TEST_TOKEN_ID, &ALICE).frozen, 50);
-			assert_eq!(Tokens::locks(TEST_TOKEN_ID, ALICE).len(), 1);
+			assert_eq!(Tokens::accounts(&ALICE, TEST_TOKEN_ID).frozen, 50);
+			assert_eq!(Tokens::locks(ALICE, TEST_TOKEN_ID).len(), 1);
 			Tokens::set_lock(ID_2, TEST_TOKEN_ID, &ALICE, 60);
-			assert_eq!(Tokens::accounts(TEST_TOKEN_ID, &ALICE).frozen, 60);
-			assert_eq!(Tokens::locks(TEST_TOKEN_ID, ALICE).len(), 2);
+			assert_eq!(Tokens::accounts(&ALICE, TEST_TOKEN_ID).frozen, 60);
+			assert_eq!(Tokens::locks(ALICE, TEST_TOKEN_ID).len(), 2);
 		});
 }
 
@@ -32,14 +35,14 @@ fn extend_lock_should_work() {
 		.build()
 		.execute_with(|| {
 			Tokens::set_lock(ID_1, TEST_TOKEN_ID, &ALICE, 10);
-			assert_eq!(Tokens::locks(TEST_TOKEN_ID, ALICE).len(), 1);
-			assert_eq!(Tokens::accounts(TEST_TOKEN_ID, &ALICE).frozen, 10);
+			assert_eq!(Tokens::locks(ALICE, TEST_TOKEN_ID).len(), 1);
+			assert_eq!(Tokens::accounts(&ALICE, TEST_TOKEN_ID).frozen, 10);
 			Tokens::extend_lock(ID_1, TEST_TOKEN_ID, &ALICE, 20);
-			assert_eq!(Tokens::locks(TEST_TOKEN_ID, ALICE).len(), 1);
-			assert_eq!(Tokens::accounts(TEST_TOKEN_ID, &ALICE).frozen, 20);
+			assert_eq!(Tokens::locks(ALICE, TEST_TOKEN_ID).len(), 1);
+			assert_eq!(Tokens::accounts(&ALICE, TEST_TOKEN_ID).frozen, 20);
 			Tokens::extend_lock(ID_2, TEST_TOKEN_ID, &ALICE, 10);
 			Tokens::extend_lock(ID_1, TEST_TOKEN_ID, &ALICE, 20);
-			assert_eq!(Tokens::locks(TEST_TOKEN_ID, ALICE).len(), 2);
+			assert_eq!(Tokens::locks(ALICE, TEST_TOKEN_ID).len(), 2);
 		});
 }
 
@@ -51,9 +54,9 @@ fn remove_lock_should_work() {
 		.execute_with(|| {
 			Tokens::set_lock(ID_1, TEST_TOKEN_ID, &ALICE, 10);
 			Tokens::set_lock(ID_2, TEST_TOKEN_ID, &ALICE, 20);
-			assert_eq!(Tokens::locks(TEST_TOKEN_ID, ALICE).len(), 2);
+			assert_eq!(Tokens::locks(ALICE, TEST_TOKEN_ID).len(), 2);
 			Tokens::remove_lock(ID_2, TEST_TOKEN_ID, &ALICE);
-			assert_eq!(Tokens::locks(TEST_TOKEN_ID, ALICE).len(), 1);
+			assert_eq!(Tokens::locks(ALICE, TEST_TOKEN_ID).len(), 1);
 		});
 }
 
@@ -247,6 +250,10 @@ fn transfer_should_work() {
 			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 50);
 			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &BOB), 150);
 			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 200);
+			assert_eq!(
+				ACCUMULATED_RECEIVED.with(|v| *v.borrow().get(&(BOB, TEST_TOKEN_ID)).unwrap()),
+				50
+			);
 
 			let transferred_event = TestEvent::tokens(RawEvent::Transferred(TEST_TOKEN_ID, ALICE, BOB, 50));
 			assert!(System::events().iter().any(|record| record.event == transferred_event));

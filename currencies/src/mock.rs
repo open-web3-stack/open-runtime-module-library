@@ -89,6 +89,7 @@ impl tokens::Trait for Runtime {
 	type Amount = i64;
 	type CurrencyId = CurrencyId;
 	type DustRemoval = ();
+	type OnReceived = ();
 }
 pub type Tokens = tokens::Module<Runtime>;
 

@@ -93,12 +93,33 @@ impl OnDustRemoval<CurrencyId, Balance> for MockDustRemoval<CurrencyId, Balance>
 	}
 }
 
+thread_local! {
+	pub static ACCUMULATED_RECEIVED: RefCell<HashMap<(AccountId, CurrencyId), Balance>> = RefCell::new(HashMap::new());
+}
+
+pub struct MockOnReceived;
+impl OnReceived<AccountId, CurrencyId, Balance> for MockOnReceived {
+	fn on_received(who: AccountId, currency_id: CurrencyId, amount: Balance) {
+		ACCUMULATED_RECEIVED.with(|v| {
+			let mut old_map = v.borrow().clone();
+			if let Some(before) = old_map.get_mut(&(who, currency_id)) {
+				*before += amount;
+			} else {
+				old_map.insert((who, currency_id), amount);
+			};
+
+			*v.borrow_mut() = old_map;
+		});
+	}
+}
+
 impl Trait for Runtime {
 	type Event = TestEvent;
 	type Balance = Balance;
 	type Amount = i64;
 	type CurrencyId = CurrencyId;
 	type DustRemoval = MockDustRemoval<CurrencyId, Balance>;
+	type OnReceived = MockOnReceived;
 }
 
 pub type Tokens = Module<Runtime>;

@@ -17,7 +17,7 @@ fn multi_lockable_currency_should_work() {
 		.build()
 		.execute_with(|| {
 			Currencies::set_lock(ID_1, X_TOKEN_ID, &ALICE, 50);
-			assert_eq!(Tokens::locks(X_TOKEN_ID, &ALICE).len(), 1);
+			assert_eq!(Tokens::locks(&ALICE, X_TOKEN_ID).len(), 1);
 			Currencies::set_lock(ID_1, NATIVE_CURRENCY_ID, &ALICE, 50);
 			assert_eq!(PalletBalances::locks(&ALICE).len(), 1);
 		});

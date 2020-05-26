@@ -57,7 +57,7 @@ use sp_std::collections::btree_map::BTreeMap;
 use orml_traits::{
 	arithmetic::{self, Signed},
 	BalanceStatus, LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency,
-	MultiReservableCurrency, OnDustRemoval,
+	MultiReservableCurrency, OnDustRemoval, OnReceived,
 };
 
 mod mock;
@@ -77,6 +77,7 @@ pub trait Trait: frame_system::Trait {
 		+ MaybeSerializeDeserialize;
 	type CurrencyId: Parameter + Member + Copy + MaybeSerializeDeserialize + Ord;
 	type DustRemoval: OnDustRemoval<Self::CurrencyId, Self::Balance>;
+	type OnReceived: OnReceived<Self::AccountId, Self::CurrencyId, Self::Balance>;
 }
 
 /// A single lock on a balance. There can be many of these on an account and they "overlap", so the
@@ -141,21 +142,21 @@ decl_storage! {
 
 		/// Any liquidity locks of a token type under an account.
 		/// NOTE: Should only be accessed when setting, changing and freeing a lock.
-		pub Locks get(fn locks): double_map hasher(twox_64_concat) T::CurrencyId, hasher(blake2_128_concat) T::AccountId => Vec<BalanceLock<T::Balance>>;
+		pub Locks get(fn locks): double_map hasher(twox_64_concat) T::AccountId, hasher(blake2_128_concat) T::CurrencyId => Vec<BalanceLock<T::Balance>>;
 
 		/// The balance of a token type under an account.
 		///
 		/// NOTE: If the total is ever zero, decrease account ref account.
 		///
 		/// NOTE: This is only used in the case that this module is used to store balances.
-		pub Accounts get(fn accounts): double_map hasher(twox_64_concat) T::CurrencyId, hasher(blake2_128_concat) T::AccountId => AccountData<T::Balance>;
+		pub Accounts get(fn accounts): double_map hasher(twox_64_concat) T::AccountId, hasher(blake2_128_concat) T::CurrencyId => AccountData<T::Balance>;
 	}
 	add_extra_genesis {
 		config(endowed_accounts): Vec<(T::AccountId, T::CurrencyId, T::Balance)>;
 
 		build(|config: &GenesisConfig<T>| {
 			config.endowed_accounts.iter().for_each(|(account_id, currency_id, initial_balance)| {
-				<Accounts<T>>::mutate(currency_id, account_id, |account_data| account_data.free = *initial_balance)
+				<Accounts<T>>::mutate(account_id, currency_id, |account_data| account_data.free = *initial_balance)
 			})
 		})
 	}
@@ -245,20 +246,20 @@ impl<T: Trait> Module<T> {
 	///
 	/// Note this will not maintain total issuance.
 	fn set_free_balance(currency_id: T::CurrencyId, who: &T::AccountId, balance: T::Balance) {
-		<Accounts<T>>::mutate(currency_id, who, |account_data| account_data.free = balance);
+		<Accounts<T>>::mutate(who, currency_id, |account_data| account_data.free = balance);
 	}
 
 	/// Set reserved balance of `who` to a new value, meanwhile enforce existential rule.
 	///
 	/// Note this will not maintain total issuance, and the caller is expected to do it.
 	fn set_reserved_balance(currency_id: T::CurrencyId, who: &T::AccountId, balance: T::Balance) {
-		<Accounts<T>>::mutate(currency_id, who, |account_data| account_data.reserved = balance);
+		<Accounts<T>>::mutate(who, currency_id, |account_data| account_data.reserved = balance);
 	}
 
 	/// Update the account entry for `who` under `currency_id`, given the locks.
 	fn update_locks(currency_id: T::CurrencyId, who: &T::AccountId, locks: &[BalanceLock<T::Balance>]) {
 		// update account data
-		<Accounts<T>>::mutate(currency_id, who, |account_data| {
+		<Accounts<T>>::mutate(who, currency_id, |account_data| {
 			account_data.frozen = Zero::zero();
 			for lock in locks.iter() {
 				account_data.frozen = account_data.frozen.max(lock.amount);
@@ -266,15 +267,15 @@ impl<T: Trait> Module<T> {
 		});
 
 		// update locks
-		let existed = <Locks<T>>::contains_key(currency_id, who);
+		let existed = <Locks<T>>::contains_key(who, currency_id);
 		if locks.is_empty() {
-			<Locks<T>>::remove(currency_id, who);
+			<Locks<T>>::remove(who, currency_id);
 			if existed {
 				// decrease account ref count when destruct lock
 				system::Module::<T>::dec_ref(who);
 			}
 		} else {
-			<Locks<T>>::insert(currency_id, who, locks);
+			<Locks<T>>::insert(who, currency_id, locks);
 			if !existed {
 				// increase account ref count when initialize lock
 				system::Module::<T>::inc_ref(who);
@@ -292,11 +293,11 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	}
 
 	fn total_balance(currency_id: Self::CurrencyId, who: &T::AccountId) -> Self::Balance {
-		Self::accounts(currency_id, who).total()
+		Self::accounts(who, currency_id).total()
 	}
 
 	fn free_balance(currency_id: Self::CurrencyId, who: &T::AccountId) -> Self::Balance {
-		Self::accounts(currency_id, who).free
+		Self::accounts(who, currency_id).free
 	}
 
 	// Ensure that an account can withdraw from their free balance given any existing withdrawal
@@ -311,14 +312,14 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 			.checked_sub(&amount)
 			.ok_or(Error::<T>::BalanceTooLow)?;
 		ensure!(
-			new_balance >= Self::accounts(currency_id, who).frozen(),
+			new_balance >= Self::accounts(who, currency_id).frozen(),
 			Error::<T>::LiquidityRestrictions
 		);
 		Ok(())
 	}
 
-	// Transfer some free balance from `from` to `to`.
-	// Is a no-op if value to be transferred is zero or the `from` is the same as `to`.
+	/// Transfer some free balance from `from` to `to`.
+	/// Is a no-op if value to be transferred is zero or the `from` is the same as `to`.
 	fn transfer(
 		currency_id: Self::CurrencyId,
 		from: &T::AccountId,
@@ -334,6 +335,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		let to_balance = Self::free_balance(currency_id, to);
 		Self::set_free_balance(currency_id, from, from_balance - amount);
 		Self::set_free_balance(currency_id, to, to_balance + amount);
+		T::OnReceived::on_received(to.clone(), currency_id, amount);
 
 		Ok(())
 	}
@@ -351,6 +353,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 			.ok_or(Error::<T>::TotalIssuanceOverflow)?;
 		<TotalIssuance<T>>::insert(currency_id, new_total);
 		Self::set_free_balance(currency_id, who, Self::free_balance(currency_id, who) + amount);
+		T::OnReceived::on_received(who.clone(), currency_id, amount);
 
 		Ok(())
 	}
@@ -386,7 +389,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 			return amount;
 		}
 
-		let account = Self::accounts(currency_id, who);
+		let account = Self::accounts(who, currency_id);
 		let free_slashed_amount = account.free.min(amount);
 		let mut remaining_slash = amount - free_slashed_amount;
 
@@ -435,7 +438,7 @@ impl<T: Trait> MultiLockableCurrency<T::AccountId> for Module<T> {
 			return;
 		}
 		let mut new_lock = Some(BalanceLock { id: lock_id, amount });
-		let mut locks = Self::locks(currency_id, who)
+		let mut locks = Self::locks(who, currency_id)
 			.into_iter()
 			.filter_map(|lock| {
 				if lock.id == lock_id {
@@ -458,7 +461,7 @@ impl<T: Trait> MultiLockableCurrency<T::AccountId> for Module<T> {
 			return;
 		}
 		let mut new_lock = Some(BalanceLock { id: lock_id, amount });
-		let mut locks = Self::locks(currency_id, who)
+		let mut locks = Self::locks(who, currency_id)
 			.into_iter()
 			.filter_map(|lock| {
 				if lock.id == lock_id {
@@ -478,7 +481,7 @@ impl<T: Trait> MultiLockableCurrency<T::AccountId> for Module<T> {
 	}
 
 	fn remove_lock(lock_id: LockIdentifier, currency_id: Self::CurrencyId, who: &T::AccountId) {
-		let mut locks = Self::locks(currency_id, who);
+		let mut locks = Self::locks(who, currency_id);
 		locks.retain(|lock| lock.id != lock_id);
 		Self::update_locks(currency_id, who, &locks[..]);
 	}
@@ -511,7 +514,7 @@ impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
 	}
 
 	fn reserved_balance(currency_id: Self::CurrencyId, who: &T::AccountId) -> Self::Balance {
-		Self::accounts(currency_id, who).reserved
+		Self::accounts(who, currency_id).reserved
 	}
 
 	/// Move `value` from the free balance from `who` to their reserved balance.
@@ -523,7 +526,7 @@ impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
 		}
 		Self::ensure_can_withdraw(currency_id, who, value)?;
 
-		let account = Self::accounts(currency_id, who);
+		let account = Self::accounts(who, currency_id);
 		Self::set_free_balance(currency_id, who, account.free - value);
 		Self::set_reserved_balance(currency_id, who, account.reserved + value);
 		Ok(())
@@ -537,7 +540,7 @@ impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
 			return Zero::zero();
 		}
 
-		let account = Self::accounts(currency_id, who);
+		let account = Self::accounts(who, currency_id);
 		let actual = account.reserved.min(value);
 		Self::set_reserved_balance(currency_id, who, account.reserved - actual);
 		Self::set_free_balance(currency_id, who, account.free + actual);
@@ -567,8 +570,8 @@ impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
 			};
 		}
 
-		let from_account = Self::accounts(currency_id, slashed);
-		let to_account = Self::accounts(currency_id, beneficiary);
+		let from_account = Self::accounts(slashed, currency_id);
+		let to_account = Self::accounts(beneficiary, currency_id);
 		let actual = from_account.reserved.min(value);
 		match status {
 			BalanceStatus::Free => {
