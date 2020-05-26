@@ -16,15 +16,15 @@ fn set_lock_should_work() {
 		.build()
 		.execute_with(|| {
 			Tokens::set_lock(ID_1, TEST_TOKEN_ID, &ALICE, 10);
-			assert_eq!(Tokens::accounts(TEST_TOKEN_ID, &ALICE).frozen, 10);
-			assert_eq!(Tokens::accounts(TEST_TOKEN_ID, &ALICE).frozen(), 10);
-			assert_eq!(Tokens::locks(TEST_TOKEN_ID, ALICE).len(), 1);
+			assert_eq!(Tokens::accounts(&ALICE, TEST_TOKEN_ID).frozen, 10);
+			assert_eq!(Tokens::accounts(&ALICE, TEST_TOKEN_ID).frozen(), 10);
+			assert_eq!(Tokens::locks(ALICE, TEST_TOKEN_ID).len(), 1);
 			Tokens::set_lock(ID_1, TEST_TOKEN_ID, &ALICE, 50);
-			assert_eq!(Tokens::accounts(TEST_TOKEN_ID, &ALICE).frozen, 50);
-			assert_eq!(Tokens::locks(TEST_TOKEN_ID, ALICE).len(), 1);
+			assert_eq!(Tokens::accounts(&ALICE, TEST_TOKEN_ID).frozen, 50);
+			assert_eq!(Tokens::locks(ALICE, TEST_TOKEN_ID).len(), 1);
 			Tokens::set_lock(ID_2, TEST_TOKEN_ID, &ALICE, 60);
-			assert_eq!(Tokens::accounts(TEST_TOKEN_ID, &ALICE).frozen, 60);
-			assert_eq!(Tokens::locks(TEST_TOKEN_ID, ALICE).len(), 2);
+			assert_eq!(Tokens::accounts(&ALICE, TEST_TOKEN_ID).frozen, 60);
+			assert_eq!(Tokens::locks(ALICE, TEST_TOKEN_ID).len(), 2);
 		});
 }
 
@@ -35,14 +35,14 @@ fn extend_lock_should_work() {
 		.build()
 		.execute_with(|| {
 			Tokens::set_lock(ID_1, TEST_TOKEN_ID, &ALICE, 10);
-			assert_eq!(Tokens::locks(TEST_TOKEN_ID, ALICE).len(), 1);
-			assert_eq!(Tokens::accounts(TEST_TOKEN_ID, &ALICE).frozen, 10);
+			assert_eq!(Tokens::locks(ALICE, TEST_TOKEN_ID).len(), 1);
+			assert_eq!(Tokens::accounts(&ALICE, TEST_TOKEN_ID).frozen, 10);
 			Tokens::extend_lock(ID_1, TEST_TOKEN_ID, &ALICE, 20);
-			assert_eq!(Tokens::locks(TEST_TOKEN_ID, ALICE).len(), 1);
-			assert_eq!(Tokens::accounts(TEST_TOKEN_ID, &ALICE).frozen, 20);
+			assert_eq!(Tokens::locks(ALICE, TEST_TOKEN_ID).len(), 1);
+			assert_eq!(Tokens::accounts(&ALICE, TEST_TOKEN_ID).frozen, 20);
 			Tokens::extend_lock(ID_2, TEST_TOKEN_ID, &ALICE, 10);
 			Tokens::extend_lock(ID_1, TEST_TOKEN_ID, &ALICE, 20);
-			assert_eq!(Tokens::locks(TEST_TOKEN_ID, ALICE).len(), 2);
+			assert_eq!(Tokens::locks(ALICE, TEST_TOKEN_ID).len(), 2);
 		});
 }
 
@@ -54,9 +54,9 @@ fn remove_lock_should_work() {
 		.execute_with(|| {
 			Tokens::set_lock(ID_1, TEST_TOKEN_ID, &ALICE, 10);
 			Tokens::set_lock(ID_2, TEST_TOKEN_ID, &ALICE, 20);
-			assert_eq!(Tokens::locks(TEST_TOKEN_ID, ALICE).len(), 2);
+			assert_eq!(Tokens::locks(ALICE, TEST_TOKEN_ID).len(), 2);
 			Tokens::remove_lock(ID_2, TEST_TOKEN_ID, &ALICE);
-			assert_eq!(Tokens::locks(TEST_TOKEN_ID, ALICE).len(), 1);
+			assert_eq!(Tokens::locks(ALICE, TEST_TOKEN_ID).len(), 1);
 		});
 }
 
