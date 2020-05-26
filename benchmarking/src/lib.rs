@@ -9,6 +9,7 @@ mod tests;
 pub use frame_benchmarking::Analysis;
 pub use frame_benchmarking::{
 	benchmarking, BenchmarkBatch, BenchmarkParameter, BenchmarkResults, Benchmarking, BenchmarkingSetup,
+	BenchmarkingSetupInstance,
 };
 pub use paste;
 #[doc(hidden)]
@@ -185,7 +186,7 @@ macro_rules! runtime_benchmarks {
 #[macro_export]
 macro_rules! runtime_benchmarks_instance {
 	(
-		{ $runtime:ident, $pallet:ident }
+		{ $runtime:ident, $pallet:ident, $instance:ident }
 		_ {
 			$(
 				let $common:ident in $common_from:tt .. $common_to:expr => $common_instancer:expr;
@@ -194,7 +195,7 @@ macro_rules! runtime_benchmarks_instance {
 		$( $rest:tt )*
 	) => {
 		$crate::benchmarks_iter!(
-			INSTANCE
+			$instance
 			$runtime
 			$pallet
 			{ $( { $common , $common_from , $common_to , $common_instancer } )* }
@@ -255,7 +256,7 @@ macro_rules! benchmarks_iter {
 	};
 	// instance mutation arm:
 	(
-		INSTANCE
+		$instance:ident
 		$runtime:ident
 		$pallet:ident
 		{ $( $common:tt )* }
@@ -265,13 +266,13 @@ macro_rules! benchmarks_iter {
 		$( $rest:tt )*
 	) => {
 		$crate::benchmarks_iter! {
-			INSTANCE
+			$instance
 			$runtime
 			$pallet
 			{ $( $common )* }
 			( $( $names )* )
 			$name { $( $code )* }: {
-				<$pallet::Call<$runtime, I> as $crate::Dispatchable>::dispatch($pallet::Call::<$runtime, I>::$dispatch($($arg),*), $origin.into())?;
+				<$pallet::Call<$runtime, $instance> as $crate::Dispatchable>::dispatch($pallet::Call::<$runtime, $instance>::$dispatch($($arg),*), $origin.into())?;
 			}
 			verify $postcode
 			$( $rest )*
@@ -567,7 +568,7 @@ macro_rules! benchmark_backend {
 		}
 	};
 	// instance actioning arm
-	(INSTANCE $runtime:ident $pallet:ident $name:ident {
+	($instance:ident $runtime:ident $pallet:ident $name:ident {
 		$( { $common:ident , $common_from:tt , $common_to:expr , $common_instancer:expr } )*
 	} {
 		$( PRE { $pre_id:tt , $pre_ty:ty , $pre_ex:expr } )*
@@ -576,7 +577,7 @@ macro_rules! benchmark_backend {
 		#[allow(non_camel_case_types)]
 		struct $name;
 		#[allow(unused_variables)]
-		impl<I: Instance> $crate::BenchmarkingSetupInstance<$runtime, I> for $name {
+		impl $crate::BenchmarkingSetupInstance<$runtime, $instance> for $name {
 			fn components(&self) -> Vec<($crate::BenchmarkParameter, u32, u32)> {
 				vec! [
 					$(
@@ -677,7 +678,7 @@ macro_rules! selected_benchmark {
 		}
 	};
 	(
-		INSTANCE $runtime:ident $pallet:ident $( $bench:ident ),*
+		$instance:ident $runtime:ident $pallet:ident $( $bench:ident ),*
 	) => {
 		// The list of available benchmarks for this pallet.
 		#[allow(non_camel_case_types)]
@@ -686,10 +687,10 @@ macro_rules! selected_benchmark {
 		}
 
 		// Allow us to select a benchmark from the list of available benchmarks.
-		impl<I: Instance> $crate::BenchmarkingSetupInstance<$runtime, I> for SelectedBenchmark {
+		impl $crate::BenchmarkingSetupInstance<$runtime, $instance> for SelectedBenchmark {
 			fn components(&self) -> Vec<($crate::BenchmarkParameter, u32, u32)> {
 				match self {
-					$( Self::$bench => <$bench as $crate::BenchmarkingSetupInstance<$runtime, I>>::components(&$bench), )*
+					$( Self::$bench => <$bench as $crate::BenchmarkingSetupInstance<$runtime, $instance>>::components(&$bench), )*
 				}
 			}
 
@@ -697,7 +698,7 @@ macro_rules! selected_benchmark {
 				-> Result<Box<dyn FnOnce() -> Result<(), &'static str>>, &'static str>
 			{
 				match self {
-					$( Self::$bench => <$bench as $crate::BenchmarkingSetupInstance<$runtime, I>>::instance(&$bench, components), )*
+					$( Self::$bench => <$bench as $crate::BenchmarkingSetupInstance<$runtime, $instance>>::instance(&$bench, components), )*
 				}
 			}
 
@@ -705,7 +706,7 @@ macro_rules! selected_benchmark {
 				-> Result<Box<dyn FnOnce() -> Result<(), &'static str>>, &'static str>
 			{
 				match self {
-					$( Self::$bench => <$bench as $crate::BenchmarkingSetupInstance<$runtime, I>>::verify(&$bench, components), )*
+					$( Self::$bench => <$bench as $crate::BenchmarkingSetupInstance<$runtime, $instance>>::verify(&$bench, components), )*
 				}
 			}
 		}
@@ -823,11 +824,11 @@ macro_rules! impl_benchmark {
 		}
 	};
 	(
-		INSTANCE $runtime:ident $pallet:ident $( $name:ident ),*
+		$instance:ident $runtime:ident $pallet:ident $( $name:ident ),*
 	) => {
-		pub struct Benchmark<I>($crate::sp_std::marker::PhantomData(I));
+		pub struct Benchmark;
 
-		impl<I: Instance> $crate::Benchmarking<$crate::BenchmarkResults> for Benchmark<I> {
+		impl $crate::Benchmarking<$crate::BenchmarkResults> for Benchmark {
 			fn benchmarks() -> Vec<&'static [u8]> {
 				vec![ $( stringify!($name).as_ref() ),* ]
 			}
@@ -851,7 +852,7 @@ macro_rules! impl_benchmark {
 				$crate::benchmarking::commit_db();
 				$crate::benchmarking::wipe_db();
 
-				let components = <SelectedBenchmark as $crate::BenchmarkingSetupInstance<$runtime, I>>::components(&selected_benchmark);
+				let components = <SelectedBenchmark as $crate::BenchmarkingSetupInstance<$runtime, $instance>>::components(&selected_benchmark);
 				let mut results: Vec<$crate::BenchmarkResults> = Vec::new();
 
 				// Default number of steps for a component.
@@ -894,7 +895,7 @@ macro_rules! impl_benchmark {
 						// Run the benchmark `repeat` times.
 						for _ in 0..repeat {
 							// Set up the externalities environment for the setup we want to benchmark.
-							let closure_to_benchmark = <SelectedBenchmark as $crate::BenchmarkingSetupInstance<$runtime, I>>::instance(&selected_benchmark, &c)?;
+							let closure_to_benchmark = <SelectedBenchmark as $crate::BenchmarkingSetupInstance<$runtime, $instance>>::instance(&selected_benchmark, &c)?;
 
 							// Set the block number to at least 1 so events are deposited.
 							if $crate::Zero::is_zero(&frame_system::Module::<$runtime>::block_number()) {
@@ -986,7 +987,7 @@ macro_rules! impl_benchmark_tests {
 		)*
 	};
 	(
-		INSTANCE
+		$instance:ident
 		$runtime:ident
 		$pallet:ident
 		$( $name:ident ),*
@@ -996,7 +997,7 @@ macro_rules! impl_benchmark_tests {
 				fn [<test_benchmark_ $name>] () -> Result<(), &'static str>
 				{
 					let selected_benchmark = SelectedBenchmark::$name;
-					let components = <SelectedBenchmark as $crate::BenchmarkingSetupInstance<$runtime, _>>::components(&selected_benchmark);
+					let components = <SelectedBenchmark as $crate::BenchmarkingSetupInstance<$runtime, $instance>>::components(&selected_benchmark);
 
 					for (_, (name, low, high)) in components.iter().enumerate() {
 						// Test only the low and high value, assuming values in the middle won't break
@@ -1014,11 +1015,11 @@ macro_rules! impl_benchmark_tests {
 								.collect();
 
 							// Set up the verification state
-							let closure_to_verify = <SelectedBenchmark as $crate::BenchmarkingSetupInstance<$runtime, _>>::verify(&selected_benchmark, &c)?;
+							let closure_to_verify = <SelectedBenchmark as $crate::BenchmarkingSetupInstance<$runtime, $instance>>::verify(&selected_benchmark, &c)?;
 
 							// Set the block number to at least 1 so events are deposited.
 							if $crate::Zero::is_zero(&frame_system::Module::<$runtime>::block_number()) {
-								frame_system::Module::<$runtime>::set_block_number(1.into());
+								frame_system::Module::<$runtime>::set_block_number($crate::One::one());
 							}
 
 							// Run verification
