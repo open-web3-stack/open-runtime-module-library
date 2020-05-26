@@ -21,7 +21,7 @@ use sp_runtime::{
 	},
 	DispatchResult,
 };
-use sp_std::{prelude::*, vec};
+use sp_std::{convert::TryInto, prelude::*, vec};
 // FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
@@ -289,8 +289,12 @@ impl<T: Trait> frame_support::unsigned::ValidateUnsigned for Module<T> {
 
 				Nonces::<T>::insert(who, nonce + 1);
 
+				let now = <frame_system::Module<T>>::block_number();
+				// make priority less likely to overflow.
+				let add_priority = TryInto::<TransactionPriority>::try_into(now % 1000.into()).unwrap_or(0);
+
 				ValidTransaction::with_tag_prefix("orml-oracle")
-					.priority(T::UnsignedPriority::get())
+					.priority(T::UnsignedPriority::get().saturating_add(add_priority))
 					.and_provides((who, nonce))
 					.longevity(256)
 					.propagate(true)
