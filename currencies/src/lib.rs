@@ -35,7 +35,7 @@ use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage,
 	traits::{
 		Currency as PalletCurrency, ExistenceRequirement, Get, LockableCurrency as PalletLockableCurrency,
-		ReservableCurrency as PalletReservableCurrency, WithdrawReason,
+		ReservableCurrency as PalletReservableCurrency, WithdrawReasons,
 	},
 };
 use sp_runtime::{
@@ -555,7 +555,7 @@ where
 			BalanceConvert::from(new_balance).into()
 		};
 		let amount_pallet = BalanceConvert::from(amount).into();
-		Currency::ensure_can_withdraw(who, amount_pallet, WithdrawReason::Transfer.into(), new_balance_pallet)
+		Currency::ensure_can_withdraw(who, amount_pallet, WithdrawReasons::all(), new_balance_pallet)
 	}
 
 	fn transfer(from: &AccountId, to: &AccountId, amount: Self::Balance) -> DispatchResult {
@@ -572,7 +572,7 @@ where
 		Currency::withdraw(
 			who,
 			BalanceConvert::from(amount).into(),
-			WithdrawReason::Transfer.into(),
+			WithdrawReasons::all(),
 			ExistenceRequirement::AllowDeath,
 		)
 		.map(|_| ())
@@ -632,7 +632,7 @@ where
 			lock_id,
 			who,
 			BalanceConvert::from(amount).into(),
-			WithdrawReason::Transfer | WithdrawReason::Reserve,
+			WithdrawReasons::all(),
 		);
 	}
 
@@ -641,7 +641,7 @@ where
 			lock_id,
 			who,
 			BalanceConvert::from(amount).into(),
-			WithdrawReason::Transfer | WithdrawReason::Reserve,
+			WithdrawReasons::all(),
 		);
 	}
 
