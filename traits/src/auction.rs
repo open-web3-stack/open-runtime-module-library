@@ -49,7 +49,7 @@ pub enum AuctionEndChange<BlockNumber> {
 pub struct OnNewBidResult<BlockNumber> {
 	/// Indicates if the bid was accepted
 	pub accept_bid: bool,
-	/// The auction deadline change.
+	/// The auction end change.
 	pub auction_end_change: AuctionEndChange<BlockNumber>,
 }
 
