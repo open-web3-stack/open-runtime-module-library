@@ -38,6 +38,7 @@ pub trait Auction<AccountId, BlockNumber> {
 	fn remove_auction(id: Self::AuctionId);
 }
 
+#[derive(Eq, PartialEq, RuntimeDebug)]
 pub enum AuctionEndChange<BlockNumber> {
 	/// No change.
 	NoChange,
