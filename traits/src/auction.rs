@@ -38,12 +38,19 @@ pub trait Auction<AccountId, BlockNumber> {
 	fn remove_auction(id: Self::AuctionId);
 }
 
+pub enum AuctionEndChange<BlockNumber> {
+	/// No change.
+	NoChange,
+	/// Changed to a new end.
+	Changed(Option<BlockNumber>),
+}
+
 /// The result of bid handling.
 pub struct OnNewBidResult<BlockNumber> {
 	/// Indicates if the bid was accepted
 	pub accept_bid: bool,
-	/// `None` means don't change, `Some(None)` means no more auction end time, `Some(Some(number))` means set auction end time to this block
-	pub auction_end: Option<Option<BlockNumber>>,
+	/// The auction end change.
+	pub auction_end_change: AuctionEndChange<BlockNumber>,
 }
 
 /// Hooks for auction to handle bids.

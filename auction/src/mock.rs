@@ -76,7 +76,7 @@ impl AuctionHandler<AccountId, Balance, BlockNumber, AuctionId> for Handler {
 	) -> OnNewBidResult<BlockNumber> {
 		OnNewBidResult {
 			accept_bid: true,
-			auction_end: None,
+			auction_end_change: AuctionEndChange::NoChange,
 		}
 	}
 
