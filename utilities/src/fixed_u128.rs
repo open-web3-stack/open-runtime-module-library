@@ -146,9 +146,9 @@ pub trait FixedUnSignedNumber:
 	/// Checked mul for int type `N`. Equal to `self *  n`.
 	///
 	/// Returns `None` if the result does not fit in `N`.
-	fn checked_mul_int<N: FixedPointOperand>(&self, other: &N) -> Option<N> {
+	fn checked_mul_int<N: FixedPointOperand>(&self, other: N) -> Option<N> {
 		let lhs: U256 = self.into_inner().into();
-		let rhs: u128 = (*other).try_into().ok()?;
+		let rhs: u128 = other.try_into().ok()?;
 		let rhs: U256 = U256::from(rhs);
 
 		lhs.checked_mul(rhs)
@@ -160,16 +160,16 @@ pub trait FixedUnSignedNumber:
 	/// Saturating multiplication for integer type `N`. Equal to `self * n`.
 	///
 	/// Returns `N::min` or `N::max` if the result does not fit in `N`.
-	fn saturating_mul_int<N: FixedPointOperand>(self, n: &N) -> N {
-		self.checked_mul_int(n).unwrap_or(to_bound(self.into_inner(), *n))
+	fn saturating_mul_int<N: FixedPointOperand>(self, n: N) -> N {
+		self.checked_mul_int(n).unwrap_or(to_bound(self.into_inner(), n))
 	}
 
 	/// Checked division for integer type `N`. Equal to `self / d`.
 	///
 	/// Returns `None` if the result does not fit in `N` or `d == 0`.
-	fn checked_div_int<N: FixedPointOperand>(&self, other: &N) -> Option<N> {
+	fn checked_div_int<N: FixedPointOperand>(&self, other: N) -> Option<N> {
 		let lhs: u128 = self.into_inner().into();
-		let rhs: u128 = (*other).try_into().ok()?;
+		let rhs: u128 = other.try_into().ok()?;
 
 		lhs.checked_div(rhs)
 			.and_then(|n| n.checked_div(Self::DIV.unique_saturated_into()))
@@ -179,11 +179,11 @@ pub trait FixedUnSignedNumber:
 	/// Saturating division for integer type `N`. Equal to `self / d`.
 	///
 	/// Panics if `d == 0`. Returns `N::min` or `N::max` if the result does not fit in `N`.
-	fn saturating_div_int<N: FixedPointOperand>(self, d: &N) -> N {
-		if *d == N::zero() {
+	fn saturating_div_int<N: FixedPointOperand>(self, d: N) -> N {
+		if d == N::zero() {
 			panic!("attempt to divide by zero")
 		}
-		self.checked_div_int(d).unwrap_or(to_bound(self.into_inner(), *d))
+		self.checked_div_int(d).unwrap_or(to_bound(self.into_inner(), d))
 	}
 
 	/// Saturating multiplication for integer type `N`, adding the result back.
@@ -191,7 +191,7 @@ pub trait FixedUnSignedNumber:
 	///
 	/// Returns `N::min` or `N::max` if the multiplication or final result does not fit in `N`.
 	fn saturating_mul_acc_int<N: FixedPointOperand>(self, n: N) -> N {
-		self.saturating_mul_int(&n).saturating_add(n)
+		self.saturating_mul_int(n).saturating_add(n)
 	}
 
 	/// Takes the reciprocal (inverse). Equal to `1 / self`.
@@ -217,9 +217,8 @@ pub trait FixedUnSignedNumber:
 	/// except in the case where the integer part is zero.
 	fn frac(self) -> Self {
 		let integer = self.trunc();
-		let fractional = self.saturating_sub(integer);
 
-		fractional
+		self.saturating_sub(integer)
 	}
 
 	/// Returns the smallest integer greater than or equal to a number.
@@ -615,19 +614,19 @@ mod tests {
 
 		let a = FixedU128::from_natural(120);
 		let b = 2i32;
-		assert_eq!(a.checked_div_int::<i32>(&b), Some(60));
+		assert_eq!(a.checked_div_int::<i32>(b), Some(60));
 
 		let a = FixedU128::saturating_from_rational(20, 1);
 		let b = 2i32;
-		assert_eq!(a.checked_div_int::<i32>(&b), Some(10));
+		assert_eq!(a.checked_div_int::<i32>(b), Some(10));
 
 		let a = FixedU128::from_natural(120);
 		let b = 2i32;
-		assert_eq!(a.checked_mul_int::<i32>(&b), Some(240));
+		assert_eq!(a.checked_mul_int::<i32>(b), Some(240));
 
 		let a = FixedU128::saturating_from_rational(1, 2);
 		let b = 20i32;
-		assert_eq!(a.checked_mul_int::<i32>(&b), Some(10));
+		assert_eq!(a.checked_mul_int::<i32>(b), Some(10));
 	}
 
 	#[test]
@@ -727,13 +726,6 @@ mod tests {
 		let a = FixedU128::saturating_from_rational(1, 2);
 		let b = FixedU128::saturating_from_rational(5, 3);
 		assert_eq!(FixedU128::saturating_from_rational(3, 10), a / b);
-	}
-
-	#[test]
-	fn checked_div_int_with_zero_should_be_none() {
-		let a = FixedU128::from_natural(1);
-		let b = 0i32;
-		assert_eq!(a.checked_div_int(&b), None);
 	}
 
 	#[test]
@@ -868,84 +860,118 @@ mod tests {
 	fn checked_mul_int_works() {
 		let a = FixedU128::saturating_from_rational(10, 1);
 		let b = u32::max_value() / 5;
-		assert_eq!(a.checked_mul_int(&b), None);
+		assert_eq!(a.checked_mul_int(b), None);
 
 		let a = FixedU128::saturating_from_integer(120);
 		let b = 2i32;
-		assert_eq!(a.checked_mul_int::<i32>(&b), Some(240));
+		assert_eq!(a.checked_mul_int::<i32>(b), Some(240));
 
 		let a = FixedU128::saturating_from_rational(1, 2);
 		let b = 20i32;
-		assert_eq!(a.checked_mul_int::<i32>(&b), Some(10));
+		assert_eq!(a.checked_mul_int::<i32>(b), Some(10));
 
 		// Case where the integer is negative should return None
 		let a = FixedU128::saturating_from_rational(1, 2);
 		let b = -20i32;
-		assert_eq!(a.checked_mul_int::<i32>(&b), None);
+		assert_eq!(a.checked_mul_int::<i32>(b), None);
 	}
 
 	#[test]
 	fn saturating_mul_int_works() {
-		let a = FixedU128::saturating_from_rational(10, 1);
-		let b = u32::max_value() / 5;
-		assert_eq!(a.saturating_mul_int(&b), u32::max_value());
+		let a = FixedU128::saturating_from_integer(2);
+		// Max - 1.
+		assert_eq!(a.saturating_mul_int((i128::max_value() - 1) / 2), i128::max_value() - 1);
+		// Max.
+		assert_eq!(a.saturating_mul_int(i128::max_value() / 2), i128::max_value() - 1);
+		// Max + 1 => saturates to max.
+		assert_eq!(a.saturating_mul_int(i128::max_value() / 2 + 1), i128::max_value());
 
-		let a = FixedU128::saturating_from_rational(10, 1);
-		let b = 123;
-		assert_eq!(a.saturating_mul_int(&b), 1230);
+		// Min - 1 => 0.
+		assert_eq!(a.saturating_mul_int((i128::min_value() + 1) / 2), 0i128);
+		// Min => 0.
+		assert_eq!(a.saturating_mul_int(i128::min_value() / 2), 0i128);
+		// Min + 1 => 0
+		assert_eq!(a.saturating_mul_int(i128::min_value() / 2 - 1), 0i128);
+		// Negative => 0
 
-		// Case where the integer is negative should return zero
 		let a = FixedU128::saturating_from_rational(1, 2);
-		let b = -20i32;
-		assert_eq!(a.saturating_mul_int::<i32>(&b), 0);
+		assert_eq!(a.saturating_mul_int(42i32), 21);
+		assert_eq!(a.saturating_mul_int(i128::max_value()), i128::max_value() / 2);
+		assert_eq!(a.saturating_mul_int(i128::min_value() / 2), 0i128);
+
+		let c = FixedU128::saturating_from_integer(255);
+		assert_eq!(c.saturating_mul_int(2i8), i8::max_value());
+		assert_eq!(c.saturating_mul_int(i128::max_value()), i128::max_value());
+		assert_eq!(c.saturating_mul_int(i128::min_value()), 0i128);
+
+		// Mulity negative => 0
+		assert_eq!(a.saturating_mul_int(-2i8), 0i8);
 	}
 
 	#[test]
 	fn checked_div_int_works() {
-		let a = FixedU128::max_value();
-		let b = 5u32;
-		assert_eq!(a.checked_div_int(&b), None);
+		let inner_max = <FixedU128 as FixedUnSignedNumber>::Inner::max_value();
+		let inner_min = <FixedU128 as FixedUnSignedNumber>::Inner::min_value();
+		let accuracy = FixedU128::accuracy();
 
-		let a = FixedU128::saturating_from_integer(120);
-		let b = -2i32;
-		assert_eq!(a.checked_div_int::<i32>(&b), None);
+		let a = FixedU128::from_inner(inner_max);
+		let b = FixedU128::from_inner(inner_min);
+		let c = FixedU128::zero();
+		let d = FixedU128::one();
+		let e = FixedU128::saturating_from_integer(6);
+		let f = FixedU128::saturating_from_integer(5);
 
-		let a = FixedU128::saturating_from_rational(1, 2);
-		let b = 20i32;
-		assert_eq!(a.checked_div_int::<i32>(&b), Some(0));
+		assert_eq!(e.checked_div_int(2.into()), Some(3));
+		assert_eq!(f.checked_div_int(2.into()), Some(2));
 
-		let a = FixedU128::saturating_from_integer(100);
-		let b = 10u8;
-		assert_eq!(a.checked_div_int(&b), Some(10u8));
+		assert_eq!(a.checked_div_int(i128::max_value()), Some(0));
+		assert_eq!(a.checked_div_int(2), Some(inner_max / (2 * accuracy)));
+		assert_eq!(a.checked_div_int(inner_max / accuracy), Some(1));
+		assert_eq!(a.checked_div_int(1i8), None);
 
-		// Case where the integer is negative should return None
-		let a = FixedU128::saturating_from_integer(100);
-		let b = -10;
-		assert_eq!(a.checked_div_int(&b), None);
+		assert_eq!(b.checked_div_int(2), Some(0));
+		assert_eq!(b.checked_div_int(1i8), Some(0));
 
-		let a = FixedU128::saturating_from_integer(100);
-		let b = 10;
-		assert_eq!(a.checked_div_int(&b), Some(10));
+		assert_eq!(c.checked_div_int(1), Some(0));
+		assert_eq!(c.checked_div_int(i128::max_value()), Some(0));
+		assert_eq!(c.checked_div_int(1i8), Some(0));
+
+		assert_eq!(d.checked_div_int(1), Some(1));
+		assert_eq!(d.checked_div_int(i32::max_value()), Some(0));
+
+		assert_eq!(d.checked_div_int(1i8), Some(1));
+
+		assert_eq!(a.checked_div_int(0), None);
+		assert_eq!(b.checked_div_int(0), None);
+		assert_eq!(c.checked_div_int(0), None);
+		assert_eq!(d.checked_div_int(0), None);
+	}
+
+	#[test]
+	fn checked_div_int_with_zero_should_be_none() {
+		let a = FixedU128::from_natural(1);
+		let b = 0i32;
+		assert_eq!(a.checked_div_int(b), None);
 	}
 
 	#[test]
 	fn saturating_div_int_works() {
 		let a = FixedU128::max_value();
 		let b = 5u32;
-		assert_eq!(a.saturating_div_int(&b), u32::max_value());
+		assert_eq!(a.saturating_div_int(b), u32::max_value());
 
 		let a = FixedU128::saturating_from_integer(100);
 		let b = 10u8;
-		assert_eq!(a.saturating_div_int(&b), 10u8);
+		assert_eq!(a.saturating_div_int(b), 10u8);
 
 		// Case where the integer is negative should return zero
 		let a = FixedU128::saturating_from_integer(100);
 		let b = -10;
-		assert_eq!(a.saturating_div_int(&b), 0);
+		assert_eq!(a.saturating_div_int(b), 0);
 
 		let a = FixedU128::saturating_from_integer(100);
 		let b = 10;
-		assert_eq!(a.saturating_div_int(&b), 10);
+		assert_eq!(a.saturating_div_int(b), 10);
 	}
 
 	#[test]
@@ -1138,7 +1164,7 @@ mod tests {
 		assert_eq!(a.reciprocal(), Some(FixedU128::saturating_from_rational(1, 2)));
 
 		let a = FixedU128::from_natural(2);
-		assert_eq!(a.reciprocal().unwrap().checked_mul_int(&4i32), Some(2i32));
+		assert_eq!(a.reciprocal().unwrap().checked_mul_int(4i32), Some(2i32));
 
 		let a = FixedU128::saturating_from_rational(100, 121);
 		assert_eq!(a.reciprocal(), Some(FixedU128::saturating_from_rational(121, 100)));
