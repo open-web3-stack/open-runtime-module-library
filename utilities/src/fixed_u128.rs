@@ -105,7 +105,7 @@ pub trait FixedUnSignedNumber:
 	///
 	/// Returns `None` if `int` exceeds accuracy.
 	fn checked_from_integer(int: Self::Inner) -> Option<Self> {
-		int.checked_mul(&Self::DIV).map(|inner| Self::from_inner(inner))
+		int.checked_mul(&Self::DIV).map(Self::from_inner)
 	}
 
 	/// Creates `self` from a rational number. Equal to `n / d`.
@@ -115,7 +115,7 @@ pub trait FixedUnSignedNumber:
 		if d == D::zero() {
 			panic!("attempt to divide by zero")
 		}
-		Self::checked_from_rational(n, d).unwrap_or(to_bound(n, d))
+		Self::checked_from_rational(n, d).unwrap_or_else(|| to_bound(n, d))
 	}
 
 	/// Creates `self` from a rational number. Equal to `n / d`.
@@ -140,7 +140,7 @@ pub trait FixedUnSignedNumber:
 		n.checked_mul(U256::from(Self::DIV.unique_saturated_into()))
 			.and_then(|n| n.checked_div(d))
 			.and_then(|n| n.try_into().ok())
-			.and_then(|n| Some(Self::from_inner(n)))
+			.map(Self::from_inner)
 	}
 
 	/// Checked mul for int type `N`. Equal to `self *  n`.
@@ -154,14 +154,15 @@ pub trait FixedUnSignedNumber:
 		lhs.checked_mul(rhs)
 			.and_then(|n| n.checked_div(U256::from(Self::DIV.unique_saturated_into())))
 			.and_then(|n| n.try_into().ok())
-			.and_then(|n| from_u128(n))
+			.and_then(from_u128)
 	}
 
 	/// Saturating multiplication for integer type `N`. Equal to `self * n`.
 	///
 	/// Returns `N::min` or `N::max` if the result does not fit in `N`.
 	fn saturating_mul_int<N: FixedPointOperand>(self, n: N) -> N {
-		self.checked_mul_int(n).unwrap_or(to_bound(self.into_inner(), n))
+		self.checked_mul_int(n)
+			.unwrap_or_else(|| to_bound(self.into_inner(), n))
 	}
 
 	/// Checked division for integer type `N`. Equal to `self / d`.
@@ -173,7 +174,7 @@ pub trait FixedUnSignedNumber:
 
 		lhs.checked_div(rhs)
 			.and_then(|n| n.checked_div(Self::DIV.unique_saturated_into()))
-			.and_then(|n| from_u128(n))
+			.and_then(from_u128)
 	}
 
 	/// Saturating division for integer type `N`. Equal to `self / d`.
@@ -183,7 +184,8 @@ pub trait FixedUnSignedNumber:
 		if d == N::zero() {
 			panic!("attempt to divide by zero")
 		}
-		self.checked_div_int(d).unwrap_or(to_bound(self.into_inner(), d))
+		self.checked_div_int(d)
+			.unwrap_or_else(|| to_bound(self.into_inner(), d))
 	}
 
 	/// Saturating multiplication for integer type `N`, adding the result back.
@@ -207,7 +209,7 @@ pub trait FixedUnSignedNumber:
 			.checked_div(&Self::DIV)
 			.expect("panics only if DIV is zero, DIV is not zero; qed")
 			.checked_mul(&Self::DIV)
-			.map(|inner| Self::from_inner(inner))
+			.map(Self::from_inner)
 			.expect("can not overflow since fixed number is >= integer part")
 	}
 
@@ -418,7 +420,7 @@ impl CheckedMul for FixedU128 {
 			.checked_mul(U256::from(rhs.0))
 			.and_then(|n| n.checked_div(U256::from(DIV)))
 			.and_then(|n| TryInto::<u128>::try_into(n).ok())
-			.and_then(|n| Some(Self(n)))
+			.map(Self)
 	}
 }
 
@@ -428,7 +430,7 @@ impl CheckedDiv for FixedU128 {
 			.checked_mul(U256::from(DIV))
 			.and_then(|n| n.checked_div(U256::from(rhs.0)))
 			.and_then(|n| TryInto::<u128>::try_into(n).ok())
-			.and_then(|n| Some(Self(n)))
+			.map(Self)
 	}
 }
 
@@ -945,13 +947,6 @@ mod tests {
 		assert_eq!(b.checked_div_int(0), None);
 		assert_eq!(c.checked_div_int(0), None);
 		assert_eq!(d.checked_div_int(0), None);
-	}
-
-	#[test]
-	fn checked_div_int_with_zero_should_be_none() {
-		let a = FixedU128::from_natural(1);
-		let b = 0i32;
-		assert_eq!(a.checked_div_int(b), None);
 	}
 
 	#[test]
