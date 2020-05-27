@@ -3,7 +3,7 @@
 pub mod arithmetic;
 pub mod auction;
 
-pub use auction::{Auction, AuctionHandler, AuctionInfo, OnNewBidResult};
+pub use auction::{Auction, AuctionEndChange, AuctionHandler, AuctionInfo, OnNewBidResult};
 use codec::{Codec, FullCodec};
 pub use frame_support::traits::{BalanceStatus, LockIdentifier};
 use sp_runtime::{
