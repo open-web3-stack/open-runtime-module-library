@@ -34,7 +34,7 @@ parameter_types! {
 	pub const AvailableBlockRatio: Perbill = Perbill::one();
 }
 
-pub type AccountId = u64;
+pub type AccountId = u128;
 pub type Balance = u64;
 pub type BlockNumber = u64;
 pub type AuctionId = u64;
@@ -86,7 +86,7 @@ impl AuctionHandler<AccountId, Balance, BlockNumber, AuctionId> for Handler {
 impl Trait for Runtime {
 	type Event = TestEvent;
 	type Balance = Balance;
-	type AuctionId = AccountId;
+	type AuctionId = AuctionId;
 	type Handler = Handler;
 }
 pub type AuctionModule = Module<Runtime>;

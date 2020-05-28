@@ -203,7 +203,7 @@ mod tests {
 		type Call = ();
 		type Hash = H256;
 		type Hashing = ::sp_runtime::traits::BlakeTwo256;
-		type AccountId = u64;
+		type AccountId = u128;
 		type Lookup = IdentityLookup<Self::AccountId>;
 		type Header = Header;
 		type Event = ();
