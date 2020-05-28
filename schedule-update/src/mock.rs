@@ -41,7 +41,7 @@ parameter_types! {
 	pub const AvailableBlockRatio: Perbill = Perbill::one();
 }
 
-pub type AccountId = u64;
+pub type AccountId = u128;
 pub type BlockNumber = u64;
 
 impl frame_system::Trait for Runtime {
@@ -83,8 +83,8 @@ impl pallet_balances::Trait for Runtime {
 	type AccountStore = System;
 }
 
-pub const ALICE: AccountId = 1u64;
-pub const BOB: AccountId = 2u64;
+pub const ALICE: AccountId = 1;
+pub const BOB: AccountId = 2;
 
 // A mock schedule origin where only `ALICE` has permission.
 pub struct MockScheduleOrigin;

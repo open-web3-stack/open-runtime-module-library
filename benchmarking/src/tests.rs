@@ -49,7 +49,7 @@ pub trait Trait {
 	type Origin: From<frame_system::RawOrigin<Self::AccountId>> + Into<Result<RawOrigin<Self::AccountId>, Self::Origin>>;
 }
 
-type AccountId = u64;
+type AccountId = u128;
 
 #[derive(Clone, Eq, PartialEq)]
 pub struct Test;
@@ -84,7 +84,7 @@ impl Trait for Test {
 	type Event = ();
 	type BlockNumber = u32;
 	type Origin = Origin;
-	type AccountId = u64;
+	type AccountId = u128;
 }
 
 // This function basically just builds a genesis storage key/value store according to

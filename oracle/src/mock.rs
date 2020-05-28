@@ -22,7 +22,7 @@ impl_outer_dispatch! {
 }
 
 pub type OracleCall = super::Call<Test>;
-type AccountId = u64;
+pub type AccountId = u128;
 type Key = u32;
 type Value = u32;
 

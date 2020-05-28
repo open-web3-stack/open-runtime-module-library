@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use crate::{
-	mock::{new_test_ext, ModuleOracle, OracleCall, Origin, Timestamp},
+	mock::{new_test_ext, AccountId, ModuleOracle, OracleCall, Origin, Timestamp},
 	TimestampedValue,
 };
 use codec::Encode;
@@ -33,7 +33,7 @@ fn feed_values_from_session_key(
 }
 
 fn feed_values(
-	from: u64,
+	from: AccountId,
 	index: u32,
 	nonce: u32,
 	values: Vec<(u32, u32)>,
@@ -46,7 +46,7 @@ fn feed_values(
 #[test]
 fn should_feed_values() {
 	new_test_ext().execute_with(|| {
-		let account_id: u64 = 1;
+		let account_id: AccountId = 1;
 
 		assert_ok!(feed_values(account_id, 0, 0, vec![(50, 1000), (51, 900), (52, 800)]));
 
@@ -274,7 +274,7 @@ fn bad_index() {
 #[test]
 fn change_member_should_work() {
 	new_test_ext().execute_with(|| {
-		<ModuleOracle as ChangeMembers<u64>>::change_members_sorted(&[4], &[1], &[2, 3, 4]);
+		<ModuleOracle as ChangeMembers<AccountId>>::change_members_sorted(&[4], &[1], &[2, 3, 4]);
 
 		assert_noop!(
 			feed_values_from_session_key(10.into(), 0, 0, vec![(50, 1000)]),

@@ -36,7 +36,7 @@ parameter_types! {
 	pub const AvailableBlockRatio: Perbill = Perbill::one();
 }
 
-type AccountId = u64;
+type AccountId = u128;
 impl frame_system::Trait for Runtime {
 	type Origin = Origin;
 	type Call = ();
