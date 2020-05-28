@@ -71,6 +71,7 @@ parameter_types! {
 impl Trait for Runtime {
 	type Event = TestEvent;
 	type UpdateFrequency = UpdateFrequency;
+	type DispatchOrigin = system::EnsureRoot<AccountId>;
 }
 pub type GraduallyUpdateModule = Module<Runtime>;
 
