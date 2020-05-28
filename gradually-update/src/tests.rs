@@ -330,3 +330,54 @@ fn fixedu128_should_work() {
 		);
 	});
 }
+
+#[test]
+fn finish_multiple_on_finalize_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		System::set_block_number(1);
+
+		let update = GraduallyUpdate {
+			key: vec![10],
+			target_value: vec![30],
+			per_block: vec![1],
+		};
+		let update2 = GraduallyUpdate {
+			key: vec![20],
+			target_value: vec![60],
+			per_block: vec![2],
+		};
+		let update3 = GraduallyUpdate {
+			key: vec![30],
+			target_value: vec![100],
+			per_block: vec![3],
+		};
+		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::ROOT, update.clone()));
+		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::ROOT, update2.clone()));
+		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::ROOT, update3.clone()));
+
+		GraduallyUpdateModule::on_finalize(10);
+		assert_eq!(storage_get(&update.key), vec![10]);
+		assert_eq!(storage_get(&update2.key), vec![20]);
+		assert_eq!(storage_get(&update3.key), vec![30]);
+
+		GraduallyUpdateModule::on_finalize(15);
+		assert_eq!(storage_get(&update.key), vec![10]);
+		assert_eq!(storage_get(&update2.key), vec![20]);
+		assert_eq!(storage_get(&update3.key), vec![30]);
+
+		GraduallyUpdateModule::on_finalize(20);
+		assert_eq!(storage_get(&update.key), vec![20]);
+		assert_eq!(storage_get(&update2.key), vec![40]);
+		assert_eq!(storage_get(&update3.key), vec![60]);
+
+		GraduallyUpdateModule::on_finalize(40);
+		assert_eq!(storage_get(&update.key), vec![30]);
+		assert_eq!(storage_get(&update2.key), vec![60]);
+		assert_eq!(storage_get(&update3.key), vec![90]);
+
+		GraduallyUpdateModule::on_finalize(50);
+		assert_eq!(storage_get(&update.key), vec![30]);
+		assert_eq!(storage_get(&update2.key), vec![60]);
+		assert_eq!(storage_get(&update3.key), vec![100]);
+	});
+}

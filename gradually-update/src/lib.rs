@@ -3,7 +3,10 @@
 #![allow(clippy::string_lit_as_bytes)]
 
 use codec::{Decode, Encode};
-use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, storage, traits::Get};
+use frame_support::{
+	decl_error, decl_event, decl_module, decl_storage, ensure, storage,
+	traits::{EnsureOrigin, Get},
+};
 use frame_system::{self as system, ensure_root};
 
 use sp_runtime::{traits::SaturatedConversion, RuntimeDebug};
@@ -25,6 +28,7 @@ pub struct GraduallyUpdate {
 pub trait Trait: frame_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
 	type UpdateFrequency: Get<Self::BlockNumber>;
+	type DispatchOrigin: EnsureOrigin<Self::Origin>;
 }
 
 decl_storage! {
@@ -66,10 +70,10 @@ decl_module! {
 
 		const UpdateFrequency: T::BlockNumber = T::UpdateFrequency::get();
 
-		/// Add gradually_update to adjust numeric parameter. This is a root call.
+		/// Add gradually_update to adjust numeric parameter.
 		#[weight = 0]
 		pub fn gradually_update(origin, update: GraduallyUpdate) {
-			ensure_root(origin)?;
+			T::DispatchOrigin::try_origin(origin).map(|_| ()).or_else(ensure_root)?;
 
 			// Support max value is u128, ensure per_block and target_value <= 16 bytes.
 			ensure!(update.per_block.len() == update.target_value.len() && update.per_block.len() <= 16, Error::<T>::InvalidPerBlockOrTargetValue);
@@ -88,10 +92,10 @@ decl_module! {
 			Self::deposit_event(RawEvent::GraduallyUpdate(update.key, update.per_block, update.target_value));
 		}
 
-		/// Cancel gradually_update to adjust numeric parameter. This is a root call.
+		/// Cancel gradually_update to adjust numeric parameter.
 		#[weight = 0]
 		pub fn cancel_gradually_update(origin, key: StorageKey) {
-			ensure_root(origin)?;
+			T::DispatchOrigin::try_origin(origin).map(|_| ()).or_else(ensure_root)?;
 
 			let gradually_updates: Vec<GraduallyUpdate> = GraduallyUpdates::get()
 				.into_iter()
@@ -117,41 +121,47 @@ impl<T: Trait> Module<T> {
 			return;
 		}
 
-		let mut gradually_updates = GraduallyUpdates::get();
+		let gradually_updates = GraduallyUpdates::get();
+		let initial_count = gradually_updates.len();
 
-		#[allow(clippy::redundant_clone)] // FIXME: This looks like a bug in clippy
-		for (i, update) in gradually_updates.clone().iter().enumerate() {
-			let current_value = storage::unhashed::get::<StorageValue>(&update.key).unwrap_or_default();
-			let current_value_u128 = u128::from_le_bytes(Self::convert_vec_to_u8(&current_value));
+		let gradually_updates = gradually_updates
+			.into_iter()
+			.filter(|update| {
+				let mut keep = true;
+				let current_value = storage::unhashed::get::<StorageValue>(&update.key).unwrap_or_default();
+				let current_value_u128 = u128::from_le_bytes(Self::convert_vec_to_u8(&current_value));
 
-			let frequency_u128: u128 = T::UpdateFrequency::get().saturated_into();
+				let frequency_u128: u128 = T::UpdateFrequency::get().saturated_into();
 
-			let step = u128::from_le_bytes(Self::convert_vec_to_u8(&update.per_block));
-			let step_u128 = step.checked_mul(frequency_u128).unwrap();
+				let step = u128::from_le_bytes(Self::convert_vec_to_u8(&update.per_block));
+				let step_u128 = step.checked_mul(frequency_u128).unwrap();
 
-			let target_u128 = u128::from_le_bytes(Self::convert_vec_to_u8(&update.target_value));
+				let target_u128 = u128::from_le_bytes(Self::convert_vec_to_u8(&update.target_value));
 
-			let new_value_u128 = if current_value_u128 > target_u128 {
-				(current_value_u128.checked_sub(step_u128).unwrap()).max(target_u128)
-			} else {
-				(current_value_u128.checked_add(step_u128).unwrap()).min(target_u128)
-			};
+				let new_value_u128 = if current_value_u128 > target_u128 {
+					(current_value_u128.checked_sub(step_u128).unwrap()).max(target_u128)
+				} else {
+					(current_value_u128.checked_add(step_u128).unwrap()).min(target_u128)
+				};
 
-			// current_value equal target_value, remove gradually_update
-			if new_value_u128 == target_u128 {
-				gradually_updates.remove(i);
-			}
+				// current_value equal target_value, remove gradually_update
+				if new_value_u128 == target_u128 {
+					keep = false;
+				}
 
-			let mut value = new_value_u128.encode();
-			value.truncate(update.target_value.len());
+				let mut value = new_value_u128.encode();
+				value.truncate(update.target_value.len());
 
-			storage::unhashed::put(&update.key, &value);
+				storage::unhashed::put(&update.key, &value);
 
-			Self::deposit_event(RawEvent::GraduallyUpdateBlockNumber(now, update.key.clone(), value));
-		}
+				Self::deposit_event(RawEvent::GraduallyUpdateBlockNumber(now, update.key.clone(), value));
+
+				keep
+			})
+			.collect::<Vec<_>>();
 
 		// gradually_update has finished. Remove it from GraduallyUpdates.
-		if gradually_updates.len() < GraduallyUpdates::decode_len().unwrap_or_default() {
+		if gradually_updates.len() < initial_count {
 			GraduallyUpdates::put(gradually_updates);
 		}
 
