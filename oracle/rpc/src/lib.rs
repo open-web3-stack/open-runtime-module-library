@@ -59,12 +59,11 @@ where
 		let at = BlockId::hash(at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.
 			self.client.info().best_hash));
-		api.get_value(&at, key)
-			.map_err(|e| RpcError {
-				code: ErrorCode::ServerError(Error::RuntimeError.into()),
-				message: "Unable to get value.".into(),
-				data: Some(format!("{:?}", e).into()),
-			})
+		api.get_value(&at, key).map_err(|e| RpcError {
+			code: ErrorCode::ServerError(Error::RuntimeError.into()),
+			message: "Unable to get value.".into(),
+			data: Some(format!("{:?}", e).into()),
+		})
 	}
 
 	fn get_all_values(&self, at: Option<<Block as BlockT>::Hash>) -> Result<Vec<(Key, Option<Value>)>> {
@@ -72,11 +71,10 @@ where
 		let at = BlockId::hash(at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.
 			self.client.info().best_hash));
-		api.get_all_values(&at)
-			.map_err(|e| RpcError {
-				code: ErrorCode::ServerError(Error::RuntimeError.into()),
-				message: "Unable to get all values.".into(),
-				data: Some(format!("{:?}", e).into()),
-			})
+		api.get_all_values(&at).map_err(|e| RpcError {
+			code: ErrorCode::ServerError(Error::RuntimeError.into()),
+			message: "Unable to get all values.".into(),
+			data: Some(format!("{:?}", e).into()),
+		})
 	}
 }
