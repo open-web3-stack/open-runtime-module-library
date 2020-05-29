@@ -5,7 +5,7 @@
 use super::*;
 use frame_support::{assert_noop, assert_ok, traits::OnFinalize};
 use mock::{ExtBuilder, GraduallyUpdateModule, Origin, Runtime, System, TestEvent};
-use orml_utilities::FixedU128;
+use orml_utilities::{FixedU128, FixedUnsignedNumber};
 use sp_runtime::Permill;
 
 fn storage_set(key: &Vec<u8>, value: &Vec<u8>) {
@@ -303,8 +303,8 @@ fn fixedu128_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let update = GraduallyUpdate {
 			key: vec![1],
-			target_value: FixedU128::from_rational(30, 1).encode(),
-			per_block: FixedU128::from_rational(1, 1).encode(),
+			target_value: FixedU128::saturating_from_rational(30, 1).encode(),
+			per_block: FixedU128::saturating_from_rational(1, 1).encode(),
 		};
 		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::ROOT, update.clone()));
 		assert_eq!(storage_get(&update.key), vec![]);
