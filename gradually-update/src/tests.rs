@@ -5,7 +5,7 @@
 use super::*;
 use frame_support::{assert_noop, assert_ok, traits::OnFinalize};
 use mock::{ExtBuilder, GraduallyUpdateModule, Origin, Runtime, System, TestEvent};
-use orml_utilities::{FixedU128, FixedUnSignedNumber};
+use orml_utilities::{FixedU128, FixedUnsignedNumber};
 use sp_runtime::Permill;
 
 fn storage_set(key: &Vec<u8>, value: &Vec<u8>) {

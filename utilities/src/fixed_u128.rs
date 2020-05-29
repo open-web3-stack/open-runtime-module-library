@@ -47,7 +47,7 @@ impl FixedPointOperand for u16 {}
 impl FixedPointOperand for i8 {}
 impl FixedPointOperand for u8 {}
 
-pub trait FixedUnSignedNumber:
+pub trait FixedUnsignedNumber:
 	Sized
 	+ Copy
 	+ Default
@@ -253,7 +253,7 @@ pub trait FixedUnSignedNumber:
 	}
 }
 
-impl FixedUnSignedNumber for FixedU128 {
+impl FixedUnsignedNumber for FixedU128 {
 	type Inner = u128;
 
 	const DIV: Self::Inner = DIV;
@@ -268,25 +268,6 @@ impl FixedUnSignedNumber for FixedU128 {
 
 	fn into_inner(self) -> Self::Inner {
 		self.0
-	}
-}
-
-impl FixedU128 {
-	/// Creates self from a rational number. Equal to `n/d`.
-	///
-	/// Note that this might be lossy.
-	pub fn from_rational<N: UniqueSaturatedInto<u128>>(n: N, d: N) -> Self {
-		// this should really be `N: Into<U256>` or else might give wrong result
-		// TODO: Should have a better way to enforce this requirement
-		let n = n.unique_saturated_into();
-		let n = U256::from(n);
-		let d = d.unique_saturated_into();
-		let d = U256::from(d);
-		Self(
-			(n.saturating_mul(DIV.into()) / d.max(U256::one()))
-				.try_into()
-				.unwrap_or_else(|_| Bounded::max_value()),
-		)
 	}
 }
 
@@ -732,8 +713,8 @@ mod tests {
 
 	#[test]
 	fn saturation_from_integer_works() {
-		let inner_max = <FixedU128 as FixedUnSignedNumber>::Inner::max_value();
-		let inner_min = <FixedU128 as FixedUnSignedNumber>::Inner::min_value();
+		let inner_max = <FixedU128 as FixedUnsignedNumber>::Inner::max_value();
+		let inner_min = <FixedU128 as FixedUnsignedNumber>::Inner::min_value();
 		let accuracy = FixedU128::accuracy();
 
 		// Cases where integer fits.
@@ -758,8 +739,8 @@ mod tests {
 
 	#[test]
 	fn checked_from_integer_works() {
-		let inner_max = <FixedU128 as FixedUnSignedNumber>::Inner::max_value();
-		let inner_min = <FixedU128 as FixedUnSignedNumber>::Inner::min_value();
+		let inner_max = <FixedU128 as FixedUnsignedNumber>::Inner::max_value();
+		let inner_min = <FixedU128 as FixedUnsignedNumber>::Inner::min_value();
 		let accuracy = FixedU128::accuracy();
 
 		// Cases where integer fits.
@@ -780,16 +761,16 @@ mod tests {
 
 	#[test]
 	fn from_inner_works() {
-		let inner_max = <FixedU128 as FixedUnSignedNumber>::Inner::max_value();
-		let inner_min = <FixedU128 as FixedUnSignedNumber>::Inner::min_value();
+		let inner_max = <FixedU128 as FixedUnsignedNumber>::Inner::max_value();
+		let inner_min = <FixedU128 as FixedUnsignedNumber>::Inner::min_value();
 		assert_eq!(FixedU128::max_value(), FixedU128::from_inner(inner_max));
 		assert_eq!(FixedU128::min_value(), FixedU128::from_inner(inner_min));
 	}
 
 	#[test]
 	fn saturating_from_ration_works() {
-		let inner_max = <FixedU128 as FixedUnSignedNumber>::Inner::max_value();
-		let inner_min = <FixedU128 as FixedUnSignedNumber>::Inner::min_value();
+		let inner_max = <FixedU128 as FixedUnsignedNumber>::Inner::max_value();
+		let inner_min = <FixedU128 as FixedUnsignedNumber>::Inner::min_value();
 		let accuracy = FixedU128::accuracy();
 
 		// Cases where parameters fit.
@@ -822,8 +803,8 @@ mod tests {
 
 	#[test]
 	fn checked_from_rational_works() {
-		let inner_max = <FixedU128 as FixedUnSignedNumber>::Inner::max_value();
-		let inner_min = <FixedU128 as FixedUnSignedNumber>::Inner::min_value();
+		let inner_max = <FixedU128 as FixedUnsignedNumber>::Inner::max_value();
+		let inner_min = <FixedU128 as FixedUnsignedNumber>::Inner::min_value();
 		let accuracy = FixedU128::accuracy();
 
 		let a = FixedU128::checked_from_rational(3, 5).expect("3 * accuracy / 5 < inner_max, qed");
@@ -832,6 +813,9 @@ mod tests {
 		// Case: limit
 		let a = FixedU128::checked_from_rational(inner_min, 1).expect("inner_min / 1 = inner_min, qed");
 		assert_eq!(a.into_inner(), inner_min);
+
+		let a = FixedU128::saturating_from_rational(inner_max, 1);
+		assert_eq!(a.into_inner(), inner_max);
 
 		let a = FixedU128::checked_from_rational(inner_max / accuracy, 1)
 			.expect("inner_max / accuracy * accuracy < inner_max, qed");
@@ -883,37 +867,29 @@ mod tests {
 		let a = FixedU128::saturating_from_integer(2);
 		// Max - 1.
 		assert_eq!(a.saturating_mul_int((i128::max_value() - 1) / 2), i128::max_value() - 1);
-		// Max.
+		// Max
 		assert_eq!(a.saturating_mul_int(i128::max_value() / 2), i128::max_value() - 1);
 		// Max + 1 => saturates to max.
 		assert_eq!(a.saturating_mul_int(i128::max_value() / 2 + 1), i128::max_value());
 
-		// Min - 1 => 0.
-		assert_eq!(a.saturating_mul_int((i128::min_value() + 1) / 2), 0i128);
-		// Min => 0.
-		assert_eq!(a.saturating_mul_int(i128::min_value() / 2), 0i128);
-		// Min + 1 => 0
-		assert_eq!(a.saturating_mul_int(i128::min_value() / 2 - 1), 0i128);
-		// Negative => 0
-
 		let a = FixedU128::saturating_from_rational(1, 2);
 		assert_eq!(a.saturating_mul_int(42i32), 21);
 		assert_eq!(a.saturating_mul_int(i128::max_value()), i128::max_value() / 2);
-		assert_eq!(a.saturating_mul_int(i128::min_value() / 2), 0i128);
 
+		// Case: saturating max
 		let c = FixedU128::saturating_from_integer(255);
 		assert_eq!(c.saturating_mul_int(2i8), i8::max_value());
 		assert_eq!(c.saturating_mul_int(i128::max_value()), i128::max_value());
-		assert_eq!(c.saturating_mul_int(i128::min_value()), 0i128);
 
-		// Mulity negative => 0
+		// Case: negative => 0
 		assert_eq!(a.saturating_mul_int(-2i8), 0i8);
+		assert_eq!(a.saturating_mul_int(i128::min_value()), 0i128);
 	}
 
 	#[test]
 	fn checked_div_int_works() {
-		let inner_max = <FixedU128 as FixedUnSignedNumber>::Inner::max_value();
-		let inner_min = <FixedU128 as FixedUnSignedNumber>::Inner::min_value();
+		let inner_max = <FixedU128 as FixedUnsignedNumber>::Inner::max_value();
+		let inner_min = <FixedU128 as FixedUnsignedNumber>::Inner::min_value();
 		let accuracy = FixedU128::accuracy();
 
 		let a = FixedU128::from_inner(inner_max);
@@ -987,16 +963,12 @@ mod tests {
 			FixedU128::one().saturating_mul_acc_int(u128::max_value() / 2),
 			u128::max_value() - 1
 		);
-		assert_eq!(
-			FixedU128::one().saturating_mul_acc_int(u128::min_value()),
-			u128::min_value()
-		);
 	}
 
 	#[test]
 	fn checked_div_works() {
-		let inner_max = <FixedU128 as FixedUnSignedNumber>::Inner::max_value();
-		let inner_min = <FixedU128 as FixedUnSignedNumber>::Inner::min_value();
+		let inner_max = <FixedU128 as FixedUnsignedNumber>::Inner::max_value();
+		let inner_min = <FixedU128 as FixedUnsignedNumber>::Inner::min_value();
 
 		let a = FixedU128::from_inner(inner_max);
 		let b = FixedU128::from_inner(inner_min);

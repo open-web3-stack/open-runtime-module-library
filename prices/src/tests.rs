@@ -3,7 +3,7 @@
 #![cfg(test)]
 
 use super::*;
-use orml_utilities::FixedUnSignedNumber;
+use orml_utilities::FixedUnsignedNumber;
 
 pub struct MockDataProvider;
 impl DataProvider<u32, Price> for MockDataProvider {
@@ -21,8 +21,14 @@ type TestPriceProvider = DefaultPriceProvider<u32, MockDataProvider>;
 
 #[test]
 fn get_price_should_work() {
-	assert_eq!(TestPriceProvider::get_price(1, 2), Some(Price::from_rational(1, 2)));
-	assert_eq!(TestPriceProvider::get_price(2, 1), Some(Price::from_rational(2, 1)));
+	assert_eq!(
+		TestPriceProvider::get_price(1, 2),
+		Some(Price::saturating_from_rational(1, 2))
+	);
+	assert_eq!(
+		TestPriceProvider::get_price(2, 1),
+		Some(Price::saturating_from_rational(2, 1))
+	);
 }
 
 #[test]
