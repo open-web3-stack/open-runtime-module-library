@@ -2,6 +2,9 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+// The `too_many_arguments` warning originates from `decl_runtime_apis` macro.
+#![allow(clippy::too_many_arguments)]
+
 use codec::Codec;
 use sp_std::prelude::Vec;
 
