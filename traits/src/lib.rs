@@ -335,10 +335,7 @@ pub trait OnRedundantCall<AccountId> {
 	fn multiple_calls_per_block(who: &AccountId);
 }
 
+#[impl_trait_for_tuples::impl_for_tuples(30)]
 pub trait OnReceived<AccountId, CurrencyId, Balance> {
 	fn on_received(account: &AccountId, currency: CurrencyId, amount: Balance);
-}
-
-impl<AccountId, CurrencyId, Balance> OnReceived<AccountId, CurrencyId, Balance> for () {
-	fn on_received(_: &AccountId, _: CurrencyId, _: Balance) {}
 }
