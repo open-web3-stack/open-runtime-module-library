@@ -336,9 +336,9 @@ pub trait OnRedundantCall<AccountId> {
 }
 
 pub trait OnReceived<AccountId, CurrencyId, Balance> {
-	fn on_received(account: AccountId, currency: CurrencyId, amount: Balance);
+	fn on_received(account: &AccountId, currency: CurrencyId, amount: Balance);
 }
 
 impl<AccountId, CurrencyId, Balance> OnReceived<AccountId, CurrencyId, Balance> for () {
-	fn on_received(_: AccountId, _: CurrencyId, _: Balance) {}
+	fn on_received(_: &AccountId, _: CurrencyId, _: Balance) {}
 }

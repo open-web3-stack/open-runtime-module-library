@@ -333,7 +333,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		let to_balance = Self::free_balance(currency_id, to);
 		Self::set_free_balance(currency_id, from, from_balance - amount);
 		Self::set_free_balance(currency_id, to, to_balance + amount);
-		T::OnReceived::on_received(to.clone(), currency_id, amount);
+		T::OnReceived::on_received(to, currency_id, amount);
 
 		Ok(())
 	}
@@ -351,7 +351,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 			.ok_or(Error::<T>::TotalIssuanceOverflow)?;
 		<TotalIssuance<T>>::insert(currency_id, new_total);
 		Self::set_free_balance(currency_id, who, Self::free_balance(currency_id, who) + amount);
-		T::OnReceived::on_received(who.clone(), currency_id, amount);
+		T::OnReceived::on_received(who, currency_id, amount);
 
 		Ok(())
 	}
