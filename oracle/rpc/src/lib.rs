@@ -65,7 +65,6 @@ where
 				message: "Unable to get value.".into(),
 				data: Some(format!("{:?}", e).into()),
 			})
-			.into()
 	}
 
 	fn get_all_values(&self, at: Option<<Block as BlockT>::Hash>) -> Result<Vec<(Key, Option<Value>)>> {
@@ -79,6 +78,5 @@ where
 				message: "Unable to get all values.".into(),
 				data: Some(format!("{:?}", e).into()),
 			})
-			.into()
 	}
 }
