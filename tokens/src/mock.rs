@@ -99,13 +99,13 @@ thread_local! {
 
 pub struct MockOnReceived;
 impl OnReceived<AccountId, CurrencyId, Balance> for MockOnReceived {
-	fn on_received(who: AccountId, currency_id: CurrencyId, amount: Balance) {
+	fn on_received(who: &AccountId, currency_id: CurrencyId, amount: Balance) {
 		ACCUMULATED_RECEIVED.with(|v| {
 			let mut old_map = v.borrow().clone();
-			if let Some(before) = old_map.get_mut(&(who, currency_id)) {
+			if let Some(before) = old_map.get_mut(&(*who, currency_id)) {
 				*before += amount;
 			} else {
-				old_map.insert((who, currency_id), amount);
+				old_map.insert((*who, currency_id), amount);
 			};
 
 			*v.borrow_mut() = old_map;
