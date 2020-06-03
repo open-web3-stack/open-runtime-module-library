@@ -33,7 +33,7 @@ pub struct DelayedOrigin<BlockNumber, Origin> {
 
 /// Origin for the authority module.
 pub type Origin<T> =
-	DelayedOrigin<<T as system::Trait>::BlockNumber, system::RawOrigin<<T as frame_system::Trait>::AccountId>>;
+	DelayedOrigin<<T as system::Trait>::BlockNumber, system::RawOrigin<<T as system::Trait>::AccountId>>;
 
 pub struct EnsureDelayed<Delay, Inner, BlockNumber>(sp_std::marker::PhantomData<(Delay, Inner, BlockNumber)>);
 
