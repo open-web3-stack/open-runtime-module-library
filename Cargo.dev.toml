@@ -11,4 +11,5 @@ members = [
 	"gradually-update",
 	"schedule-update",
 	"benchmarking",
+	"authority",
 ]
