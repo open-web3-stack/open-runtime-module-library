@@ -12,7 +12,6 @@ use sp_runtime::{
 };
 
 use super::*;
-
 use crate as authority;
 
 pub type AccountId = u128;

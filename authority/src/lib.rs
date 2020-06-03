@@ -3,11 +3,13 @@
 #![allow(clippy::string_lit_as_bytes)]
 
 use frame_support::{
-	decl_error, decl_module,
+	decl_error,
+	decl_module,
 	dispatch::PostDispatchInfo,
 	ensure,
 	traits::{EnsureOrigin, Get},
 	weights::{FunctionOf, GetDispatchInfo, Pays},
+	//weights::{GetDispatchInfo},
 	Parameter,
 };
 use frame_system::{self as system};
@@ -28,7 +30,8 @@ pub struct DelayedOrigin<BlockNumber, Origin> {
 }
 
 /// Origin for the authority module.
-pub type Origin<T> = DelayedOrigin<<T as system::Trait>::BlockNumber, <T as frame_system::Trait>::Origin>;
+pub type Origin<T> =
+	DelayedOrigin<<T as system::Trait>::BlockNumber, system::RawOrigin<<T as frame_system::Trait>::AccountId>>;
 
 pub struct EnsureDelayed<Delay, Inner, BlockNumber>(sp_std::marker::PhantomData<(Delay, Inner, BlockNumber)>);
 
@@ -39,29 +42,21 @@ impl<
 		BlockNumber: PartialOrd,
 	> EnsureOrigin<O> for EnsureDelayed<Delay, Inner, BlockNumber>
 {
-	type Success = ();
+	type Success = Inner::Success;
 
 	fn try_origin(o: O) -> Result<Self::Success, O> {
 		o.into().and_then(|delayed_origin| {
 			if delayed_origin.delay >= Delay::get() {
-				Inner::try_origin(delayed_origin.origin).map(|_| ())
+				Inner::try_origin(delayed_origin.origin)
 			} else {
 				Err(delayed_origin.origin)
 			}
 		})
 	}
-
-	#[cfg(feature = "runtime-benchmarks")]
-	fn successful_origin() -> O {
-		O::from(DelayedOrigin {
-			delay: Delay::get(),
-			origin: system::RawOrigin::Root,
-		})
-	}
 }
 
 pub trait Trait: system::Trait {
-	type Origin: From<DelayedOrigin<Self::BlockNumber, <Self as system::Trait>::Origin>>
+	type Origin: From<DelayedOrigin<Self::BlockNumber, system::RawOrigin<Self::AccountId>>>
 		+ From<system::RawOrigin<Self::AccountId>>;
 	type Call: Parameter
 		+ Dispatchable<Origin = <Self as system::Trait>::Origin, PostInfo = PostDispatchInfo>
@@ -83,6 +78,8 @@ decl_error! {
 	}
 }
 
+type CallOf<T> = <T as Trait>::Call;
+
 decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: <T as system::Trait>::Origin {
 		type Error = Error<T>;
@@ -90,21 +87,21 @@ decl_module! {
 		const MinimumDelay: T::BlockNumber = T::MinimumDelay::get();
 
 		#[weight = FunctionOf(
-			|args: (&Box<<T as Trait>::Call>,)| args.0.get_dispatch_info().weight + 10_000,
-			|args: (&Box<<T as Trait>::Call>,)| args.0.get_dispatch_info().class,
+			|args: (&Box<CallOf<T>>,)| args.0.get_dispatch_info().weight + 10_000,
+			|args: (&Box<CallOf<T>>,)| args.0.get_dispatch_info().class,
 			Pays::Yes,
 		)]
-		fn dispatch_root(origin, call: Box<<T as Trait>::Call>) {
+		pub fn dispatch_root(origin, call: Box<CallOf<T>>) {
 			T::RootDispatchOrigin::try_origin(origin).map_err(|_| BadOrigin)?;
 			call.dispatch(frame_system::RawOrigin::Root.into()).map(|_| ()).map_err(|e| e.error)?;
 		}
 
 		#[weight = FunctionOf(
-			|args: (&Box<<T as Trait>::Call>, &DelayedDispatchTime<T::BlockNumber>)| args.0.get_dispatch_info().weight + 10_000,
-			|args: (&Box<<T as Trait>::Call>, &DelayedDispatchTime<T::BlockNumber>)| args.0.get_dispatch_info().class,
+			|args: (&Box<CallOf<T>>, &DelayedDispatchTime<T::BlockNumber>)| args.0.get_dispatch_info().weight + 10_000,
+			|args: (&Box<CallOf<T>>, &DelayedDispatchTime<T::BlockNumber>)| args.0.get_dispatch_info().class,
 			Pays::Yes,
 		)]
-		fn schedule_dispatch_root(origin, call: Box<<T as Trait>::Call>, when: DelayedDispatchTime<T::BlockNumber>) {
+		pub fn schedule_dispatch_root(origin, call: Box<CallOf<T>>, when: DelayedDispatchTime<T::BlockNumber>) {
 			let now = <frame_system::Module<T>>::block_number();
 			let when_block = match when {
 				DelayedDispatchTime::At(at_block) => {
@@ -127,11 +124,11 @@ decl_module! {
 		}
 
 		#[weight = FunctionOf(
-			|args: (&Box<<T as Trait>::Call>, &DelayedDispatchTime<T::BlockNumber>)| args.0.get_dispatch_info().weight + 10_000,
-			|args: (&Box<<T as Trait>::Call>, &DelayedDispatchTime<T::BlockNumber>)| args.0.get_dispatch_info().class,
+			|args: (&Box<CallOf<T>>, &DelayedDispatchTime<T::BlockNumber>)| args.0.get_dispatch_info().weight + 10_000,
+			|args: (&Box<CallOf<T>>, &DelayedDispatchTime<T::BlockNumber>)| args.0.get_dispatch_info().class,
 			Pays::Yes,
 		)]
-		fn schedule_dispatch_delayed(origin, call: Box<<T as Trait>::Call>, when: DelayedDispatchTime<T::BlockNumber>) {
+		pub fn schedule_dispatch_delayed(origin, call: Box<CallOf<T>>, when: DelayedDispatchTime<T::BlockNumber>) {
 			T::DelayedDispatchOrigin::try_origin(origin.clone()).map_err(|_| BadOrigin)?;
 
 			let now = <frame_system::Module<T>>::block_number();
@@ -145,9 +142,10 @@ decl_module! {
 				},
 			};
 
+			let raw_origin = origin.into().map_err(|_| BadOrigin)?;
 			let delayed_origin = DelayedOrigin{
 				delay: delay_block,
-				origin: origin
+				origin: raw_origin,
 			};
 
 			// dispatch call with DelayedOrigin
@@ -155,7 +153,7 @@ decl_module! {
 		}
 
 		#[weight = 0]
-		fn veto(origin, dispatch_id: DispatchId) {
+		pub fn veto(origin, dispatch_id: DispatchId) {
 			T::VetoOrigin::try_origin(origin).map_err(|_| BadOrigin)?;
 			T::Scheduler::cancel(dispatch_id);
 		}
