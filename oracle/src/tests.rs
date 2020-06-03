@@ -11,7 +11,7 @@ use frame_support::{
 	unsigned::ValidateUnsigned,
 };
 use sp_runtime::{
-	testing::UintAuthorityId,
+	testing::{TestSignature, UintAuthorityId},
 	transaction_validity::{InvalidTransaction, TransactionSource, TransactionValidityError},
 	RuntimeAppPublic,
 };
@@ -49,6 +49,44 @@ fn should_feed_values() {
 		let account_id: AccountId = 1;
 
 		assert_ok!(feed_values(account_id, 0, 0, vec![(50, 1000), (51, 900), (52, 800)]));
+
+		assert_eq!(
+			ModuleOracle::raw_values(&account_id, &50),
+			Some(TimestampedValue {
+				value: 1000,
+				timestamp: 12345,
+			})
+		);
+
+		assert_eq!(
+			ModuleOracle::raw_values(&account_id, &51),
+			Some(TimestampedValue {
+				value: 900,
+				timestamp: 12345,
+			})
+		);
+
+		assert_eq!(
+			ModuleOracle::raw_values(&account_id, &52),
+			Some(TimestampedValue {
+				value: 800,
+				timestamp: 12345,
+			})
+		);
+	});
+}
+
+#[test]
+fn should_feed_values_from_root() {
+	new_test_ext().execute_with(|| {
+		let account_id: AccountId = 1;
+
+		assert_ok!(ModuleOracle::feed_values(
+			Origin::ROOT,
+			vec![(50, 1000), (51, 900), (52, 800)],
+			0,
+			TestSignature(0, vec![])
+		));
 
 		assert_eq!(
 			ModuleOracle::raw_values(&account_id, &50),

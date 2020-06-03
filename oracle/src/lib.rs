@@ -8,6 +8,7 @@ mod tests;
 mod timestamped_value;
 
 use codec::Encode;
+pub use default_combine_data::DefaultCombineData;
 use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage, ensure,
 	traits::{ChangeMembers, Get, InitializeMembers, Time},
@@ -25,8 +26,7 @@ use sp_std::{convert::TryInto, prelude::*, vec};
 // FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
-pub use default_combine_data::DefaultCombineData;
-use frame_system::{self as system, ensure_none, ensure_signed};
+use frame_system::{self as system, ensure_none, ensure_root, ensure_signed};
 pub use orml_traits::{CombineData, DataProvider, DataProviderExtended, OnNewData, OnRedundantCall};
 use orml_utilities::OrderedSet;
 pub use timestamped_value::TimestampedValue;
@@ -124,7 +124,7 @@ decl_module! {
 			// we can skip doing it here again.
 			_signature: <T::AuthorityId as RuntimeAppPublic>::Signature,
 		) {
-			ensure_none(origin)?;
+			ensure_none(origin.clone()).or_else(|_| ensure_root(origin))?;
 			let who = Self::members().0[index as usize].clone();
 			Self::_feed_values(who, values)?;
 		}
