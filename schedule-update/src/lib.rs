@@ -2,7 +2,6 @@
 // Disable the following two lints since they originate from an external macro (namely decl_storage)
 #![allow(clippy::string_lit_as_bytes)]
 
-use codec::{Decode, Encode};
 use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage, ensure,
 	storage::IterableStorageDoubleMap,
@@ -11,22 +10,16 @@ use frame_support::{
 	Parameter,
 };
 use frame_system::{self as system, ensure_root, ensure_signed};
+use orml_traits::{DelayedDispatchTime, DispatchId};
 use sp_runtime::{
 	traits::{CheckedAdd, Dispatchable, One},
-	DispatchError, RuntimeDebug,
+	DispatchError,
 };
 use sp_std::{prelude::*, result};
 
 mod mock;
 mod tests;
 
-#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug)]
-pub enum DelayedDispatchTime<BlockNumber> {
-	At(BlockNumber),
-	After(BlockNumber),
-}
-
-type DispatchId = u32;
 type CallOf<T> = <T as Trait>::Call;
 
 pub trait Trait: frame_system::Trait {
