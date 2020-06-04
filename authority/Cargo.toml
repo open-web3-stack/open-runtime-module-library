@@ -3,7 +3,7 @@ name = "orml-authority"
 description = "Auction module that implements `Auction` trait."
 repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/auction"
 license = "Apache-2.0"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Acala Developers"]
 edition = "2018"
 
@@ -17,7 +17,7 @@ sp-std = { version = "2.0.0-rc2", default-features = false }
 frame-support = { version = "2.0.0-rc2", default-features = false }
 frame-system = { version = "2.0.0-rc2", default-features = false }
 
-orml-traits = { path = "../traits", version = "0.1.0", default-features = false }
+orml-traits = { path = "../traits", version = "0.1.1", default-features = false }
 
 [dev-dependencies]
 sp-core = { version = "2.0.0-rc2", default-features = false }
