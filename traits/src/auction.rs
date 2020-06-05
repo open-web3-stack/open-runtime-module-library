@@ -1,3 +1,4 @@
+use crate::Change;
 use codec::FullCodec;
 use codec::{Decode, Encode};
 use sp_runtime::{
@@ -38,20 +39,12 @@ pub trait Auction<AccountId, BlockNumber> {
 	fn remove_auction(id: Self::AuctionId);
 }
 
-#[derive(Eq, PartialEq, RuntimeDebug)]
-pub enum AuctionEndChange<BlockNumber> {
-	/// No change.
-	NoChange,
-	/// Changed to a new end.
-	Changed(Option<BlockNumber>),
-}
-
 /// The result of bid handling.
 pub struct OnNewBidResult<BlockNumber> {
 	/// Indicates if the bid was accepted
 	pub accept_bid: bool,
 	/// The auction end change.
-	pub auction_end_change: AuctionEndChange<BlockNumber>,
+	pub auction_end_change: Change<Option<BlockNumber>>,
 }
 
 /// Hooks for auction to handle bids.

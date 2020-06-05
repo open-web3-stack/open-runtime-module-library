@@ -6,7 +6,7 @@ use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage, ensure, traits::Get, IterableStorageDoubleMap, Parameter,
 };
 use frame_system::{self as system, ensure_signed};
-use orml_traits::{Auction, AuctionEndChange, AuctionHandler, AuctionInfo};
+use orml_traits::{Auction, AuctionHandler, AuctionInfo, Change};
 use sp_runtime::{
 	traits::{AtLeast32Bit, MaybeSerializeDeserialize, Member, One, Zero},
 	DispatchResult,
@@ -90,7 +90,7 @@ decl_module! {
 
 			ensure!(bid_result.accept_bid, Error::<T>::BidNotAccepted);
 			match bid_result.auction_end_change {
-				AuctionEndChange::Changed(new_end) => {
+				Change::NewValue(new_end) => {
 					if let Some(old_end_block) = auction.end {
 						<AuctionEndTime<T>>::remove(&old_end_block, id);
 					}
@@ -99,7 +99,7 @@ decl_module! {
 					}
 					auction.end = new_end;
 				},
-				AuctionEndChange::NoChange => {},
+				Change::NoChange => {},
 			}
 			auction.bid = Some((from.clone(), value));
 			<Auctions<T>>::insert(id, auction);

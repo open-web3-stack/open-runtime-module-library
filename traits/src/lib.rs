@@ -7,7 +7,7 @@ use sp_std::{
 	prelude::Vec,
 };
 
-pub use auction::{Auction, AuctionEndChange, AuctionHandler, AuctionInfo, OnNewBidResult};
+pub use auction::{Auction, AuctionHandler, AuctionInfo, OnNewBidResult};
 pub use currency::{
 	BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency, BasicReservableCurrency,
 	LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
@@ -64,4 +64,12 @@ pub trait Scheduler<BlockNumber> {
 
 	fn schedule(origin: Self::Origin, call: Self::Call, when: DelayedDispatchTime<BlockNumber>) -> DispatchId;
 	fn cancel(id: DispatchId);
+}
+
+#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
+pub enum Change<Value> {
+	/// No change.
+	NoChange,
+	/// Changed to new value.
+	NewValue(Value),
 }
