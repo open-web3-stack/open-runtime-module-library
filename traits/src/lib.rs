@@ -71,5 +71,5 @@ pub enum Change<Value> {
 	/// No change.
 	NoChange,
 	/// Changed to new value.
-	Changed(Value),
+	NewValue(Value),
 }

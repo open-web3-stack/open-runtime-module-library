@@ -90,7 +90,7 @@ decl_module! {
 
 			ensure!(bid_result.accept_bid, Error::<T>::BidNotAccepted);
 			match bid_result.auction_end_change {
-				Change::Changed(new_end) => {
+				Change::NewValue(new_end) => {
 					if let Some(old_end_block) = auction.end {
 						<AuctionEndTime<T>>::remove(&old_end_block, id);
 					}
