@@ -1,6 +1,6 @@
 [package]
 name = "orml-authority"
-description = "Auction module that implements `Auction` trait."
+description = "Utility pallet to perform ROOT calls in a PoA network"
 repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/auction"
 license = "Apache-2.0"
 version = "0.1.1"
