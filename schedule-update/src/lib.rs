@@ -12,7 +12,7 @@ use frame_support::{
 use frame_system::{self as system, ensure_root, ensure_signed};
 use orml_traits::{DelayedDispatchTime, DispatchId};
 use sp_runtime::{
-	traits::{CheckedAdd, Dispatchable, One},
+	traits::{CheckedAdd, Dispatchable, One, Zero},
 	DispatchError,
 };
 use sp_std::{prelude::*, result};
@@ -135,21 +135,23 @@ decl_module! {
 		}
 
 		fn on_initialize(now: T::BlockNumber) -> Weight {
-			let mut weight: Weight = 0;
-			let total_weight = T::MaxScheduleDispatchWeight::get();
+			let mut cumulative_weight: Weight = Zero::zero();
+			let weight_limit = T::MaxScheduleDispatchWeight::get();
 			let next_block_number = match now.checked_add(&One::one()) {
 				Some(block_number) => block_number,
-				_ => return weight
+				_ => return cumulative_weight
 			};
 
 			// Operational calls are dispatched first and then normal calls
 			// TODO: dispatches should be sorted
 			let mut operational_dispatches = <DelayedOperationalDispatches<T>>::iter_prefix(now);
 			let _ = operational_dispatches.try_for_each(|(_, (who, call, id))| {
-				weight += call.get_dispatch_info().weight;
-				if weight > total_weight {
+				let call_weight = call.get_dispatch_info().weight;
+				// allowed to handle at least one task when no one task has been handled in this block even if the weight exceeds `MaxScheduleDispatchWeight`
+				if cumulative_weight + call_weight > weight_limit && !cumulative_weight.is_zero() {
 					return Err(Error::<T>::ExceedMaxScheduleDispatchWeight);
 				}
+				cumulative_weight += call_weight;
 
 				let origin: T::Origin;
 				if let Some(w) = who {
@@ -170,10 +172,12 @@ decl_module! {
 
 			let mut normal_dispatches = <DelayedNormalDispatches<T>>::iter_prefix(now);
 			let _ = normal_dispatches.try_for_each(|(_, (who, call, id))| {
-				weight += call.get_dispatch_info().weight;
-				if weight > total_weight {
+				let call_weight = call.get_dispatch_info().weight;
+				// allowed to handle at least one task when no one task has been handled in this block even if the weight exceeds `MaxScheduleDispatchWeight`
+				if cumulative_weight + call_weight > weight_limit && !cumulative_weight.is_zero() {
 					return Err(Error::<T>::ExceedMaxScheduleDispatchWeight);
 				}
+				cumulative_weight += call_weight;
 
 				let origin: T::Origin;
 				if let Some(w) = who {
@@ -206,7 +210,7 @@ decl_module! {
 				<DelayedNormalDispatches<T>>::remove(now, id);
 			});
 
-			0
+			cumulative_weight
 		}
 	}
 }
