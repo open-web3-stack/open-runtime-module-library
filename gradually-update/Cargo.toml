@@ -3,22 +3,18 @@ name = "orml-gradually-update"
 description = "Provides way to adjust numeric parameter gradually over a period of time."
 repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/gradually-update"
 license = "Apache-2.0"
-version = "0.1.2-dev"
+version = "0.1.3-dev"
 authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2018"
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "1.3.0", default-features = false }
-
 frame-support = { version = "2.0.0-rc3", default-features = false }
 frame-system = { version = "2.0.0-rc3", default-features = false }
 sp-io = { version = "2.0.0-rc3", default-features = false }
 sp-std = { version = "2.0.0-rc3", default-features = false }
 sp-core = { version = "2.0.0-rc3", default-features = false }
 sp-runtime = { version = "2.0.0-rc3", default-features = false }
-
-[dev-dependencies]
-orml-utilities = { path = "../utilities", default-features = false }
 
 [features]
 default = ["std"]

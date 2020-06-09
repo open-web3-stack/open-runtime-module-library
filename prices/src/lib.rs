@@ -2,8 +2,10 @@
 
 use frame_support::Parameter;
 use orml_traits::{DataProvider, PriceProvider};
-use orml_utilities::FixedU128;
-use sp_runtime::traits::{CheckedDiv, MaybeSerializeDeserialize, Member};
+use sp_runtime::{
+	traits::{CheckedDiv, MaybeSerializeDeserialize, Member},
+	FixedU128,
+};
 use sp_std::marker::PhantomData;
 
 pub type Price = FixedU128;
