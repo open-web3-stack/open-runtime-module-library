@@ -6,7 +6,7 @@ The Open Runtime Module Library (ORML) is a community maintained collection of S
 - [orml-traits](./traits)
     - Shared traits including `BasicCurrency`, `MultiCurrency`, `Auction` and more.
 - [orml-utilities](./utilities)
-	- Various utilities including `FixedU128` and `LinkedList`.
+	- Various utilities including `OrderSet`.
 - [orml-tokens](./tokens)
     - Fungible tokens module that implements `MultiCurrency` trait.
 - [orml-currencies](./currencies)

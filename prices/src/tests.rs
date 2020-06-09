@@ -3,7 +3,7 @@
 #![cfg(test)]
 
 use super::*;
-use orml_utilities::FixedUnsignedNumber;
+use sp_runtime::FixedPointNumber;
 
 pub struct MockDataProvider;
 impl DataProvider<u32, Price> for MockDataProvider {
