@@ -4,7 +4,10 @@
 
 use super::*;
 use frame_support::{assert_noop, assert_ok, traits::OnInitialize};
-use mock::{BalancesCall, Call, ExtBuilder, Origin, Runtime, ScheduleUpdateModule, System, TestEvent, ALICE, BOB};
+use mock::{
+	BalancesCall, Call, ExtBuilder, LoggerCall, MaxScheduleDispatchWeight, Origin, Runtime, ScheduleUpdateModule,
+	System, TestEvent, ALICE, BOB,
+};
 
 #[test]
 fn schedule_dispatch_should_work() {
@@ -217,7 +220,6 @@ fn on_initialize_should_work() {
 		assert_eq!(System::events().len(), 2);
 
 		ScheduleUpdateModule::on_initialize(2);
-		println!("{:?}", System::events());
 		assert_eq!(System::events().len(), 4);
 		let schedule_dispatch_event = TestEvent::schedule_update(RawEvent::ScheduleDispatchSuccess(2, 0));
 		assert!(System::events()
@@ -261,7 +263,6 @@ fn on_initialize_should_work() {
 		assert_eq!(System::events().len(), 8);
 
 		ScheduleUpdateModule::on_initialize(11);
-		println!("{:?}", System::events());
 		assert_eq!(System::events().len(), 10);
 		let schedule_dispatch_event = TestEvent::schedule_update(RawEvent::ScheduleDispatchSuccess(11, 2));
 		assert!(System::events()
@@ -295,7 +296,6 @@ fn on_initialize_should_fail() {
 		assert_eq!(System::events().len(), 1);
 
 		ScheduleUpdateModule::on_initialize(2);
-		println!("{:?}", System::events());
 		assert_eq!(System::events().len(), 2);
 		//TODO hold the error
 		let schedule_dispatch_event = TestEvent::schedule_update(RawEvent::ScheduleDispatchFail(
@@ -323,7 +323,6 @@ fn on_initialize_should_fail() {
 		assert_eq!(System::events().len(), 3);
 
 		ScheduleUpdateModule::on_initialize(11);
-		println!("{:?}", System::events());
 		assert_eq!(System::events().len(), 4);
 		let schedule_dispatch_event =
 			TestEvent::schedule_update(RawEvent::ScheduleDispatchFail(1, DispatchError::BadOrigin));
@@ -339,24 +338,24 @@ fn on_initialize_weight_exceed() {
 		System::set_block_number(1);
 
 		// NormalDispatches
-		let call = Call::Balances(BalancesCall::transfer(2, 11));
+		let half_max_weight_call = Call::Logger(LoggerCall::log(1, MaxScheduleDispatchWeight::get() / 2));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
-			Origin::signed(ALICE),
-			Box::new(call),
+			Origin::ROOT,
+			Box::new(half_max_weight_call),
 			DelayedDispatchTime::At(2)
 		));
 
-		let call = Call::Balances(BalancesCall::transfer(2, 12));
+		let half_max_weight_call = Call::Logger(LoggerCall::log(2, MaxScheduleDispatchWeight::get() / 2));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
-			Origin::signed(ALICE),
-			Box::new(call),
+			Origin::ROOT,
+			Box::new(half_max_weight_call),
 			DelayedDispatchTime::At(2)
 		));
 
-		let call = Call::Balances(BalancesCall::transfer(2, 13));
+		let half_max_weight_call = Call::Logger(LoggerCall::log(3, MaxScheduleDispatchWeight::get() / 2));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
-			Origin::signed(ALICE),
-			Box::new(call),
+			Origin::ROOT,
+			Box::new(half_max_weight_call),
 			DelayedDispatchTime::At(2)
 		));
 
@@ -364,19 +363,33 @@ fn on_initialize_weight_exceed() {
 		ScheduleUpdateModule::on_initialize(1);
 		assert_eq!(System::events().len(), 3);
 
+		// execute 2 task
 		ScheduleUpdateModule::on_initialize(2);
-		println!("{:?}", System::events());
 		assert_eq!(System::events().len(), 7);
-		// TODO on_initialize should be sorted
-		//let schedule_dispatch_event = TestEvent::schedule_update(RawEvent::ScheduleDispatchSuccess(0, 2));
-		//assert!(System::events().iter().any(|record| record.event == schedule_dispatch_event));
 
-		//let schedule_dispatch_event = TestEvent::schedule_update(RawEvent::ScheduleDispatchSuccess(2, 2));
-		//assert!(System::events().iter().any(|record| record.event == schedule_dispatch_event));
-
+		// execute last task
 		ScheduleUpdateModule::on_initialize(3);
 		assert_eq!(System::events().len(), 9);
-		//let schedule_dispatch_event = TestEvent::schedule_update(RawEvent::ScheduleDispatchSuccess(1, 3));
-		//assert!(System::events().iter().any(|record| record.event == schedule_dispatch_event));
+	});
+}
+
+#[test]
+fn execute_at_least_one_task() {
+	ExtBuilder::default().build().execute_with(|| {
+		System::set_block_number(1);
+
+		let large_weight_call = Call::Logger(LoggerCall::log(42, MaxScheduleDispatchWeight::get() + 1));
+		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
+			Origin::ROOT,
+			Box::new(large_weight_call),
+			DelayedDispatchTime::At(2)
+		));
+
+		ScheduleUpdateModule::on_initialize(2);
+
+		let schedule_dispatch_event = TestEvent::schedule_update(RawEvent::ScheduleDispatchSuccess(2, 0));
+		assert!(System::events()
+			.iter()
+			.any(|record| record.event == schedule_dispatch_event));
 	});
 }

@@ -34,7 +34,10 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode};
-use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, traits::Get, Parameter};
+use frame_support::{
+	decl_error, decl_event, decl_module, decl_storage, ensure, traits::Get, weights::constants::WEIGHT_PER_MICROS,
+	Parameter,
+};
 use sp_runtime::{
 	traits::{AtLeast32Bit, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, Saturating, StaticLookup, Zero},
 	DispatchError, DispatchResult, RuntimeDebug,
@@ -188,7 +191,7 @@ decl_module! {
 		/// -------------------
 		/// Base Weight: 26.65 µs
 		/// # </weight>
-		#[weight = 27_000_000 + T::DbWeight::get().reads_writes(2, 2)]
+		#[weight = 27 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(2, 2)]
 		pub fn transfer(
 			origin,
 			dest: <T::Lookup as StaticLookup>::Source,
@@ -213,7 +216,7 @@ decl_module! {
 		/// -------------------
 		/// Base Weight: 26.99 µs
 		/// # </weight>
-		#[weight = 27_000_000 + T::DbWeight::get().reads_writes(2, 2)]
+		#[weight = 27 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(2, 2)]
 		pub fn transfer_all(
 			origin,
 			dest: <T::Lookup as StaticLookup>::Source,

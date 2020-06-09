@@ -26,6 +26,7 @@ use codec::{Decode, Encode, HasCompact};
 use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage, ensure,
 	traits::{Currency, ExistenceRequirement, Get, LockIdentifier, LockableCurrency, WithdrawReasons},
+	weights::constants::WEIGHT_PER_MICROS,
 };
 use sp_std::{
 	cmp::{Eq, PartialEq},
@@ -157,7 +158,7 @@ decl_module! {
 		/// -------------------
 		/// Base Weight: 29.86 µs
 		/// # </weight>
-		#[weight = 30_000_000 + T::DbWeight::get().reads_writes(2, 2)]
+		#[weight = 30 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(2, 2)]
 		pub fn claim(origin) {
 			let who = ensure_signed(origin)?;
 			let locked_amount = Self::do_claim(&who);
@@ -174,7 +175,7 @@ decl_module! {
 		/// -------------------
 		/// Base Weight: 47.26 µs
 		/// # </weight>
-		#[weight = 48_000_000 + T::DbWeight::get().reads_writes(4, 4)]
+		#[weight = 48 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(4, 4)]
 		pub fn add_vesting_schedule(
 			origin,
 			dest: <T::Lookup as StaticLookup>::Source,
@@ -196,7 +197,7 @@ decl_module! {
 		/// -------------------
 		/// Base Weight: 27.96 µs
 		/// # </weight>
-		#[weight = 28_000_000 + T::DbWeight::get().reads_writes(4, 4)]
+		#[weight = 28 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(4, 4)]
 		pub fn update_vesting_schedules(
 			origin,
 			who: <T::Lookup as StaticLookup>::Source,

@@ -37,6 +37,7 @@ use frame_support::{
 		Currency as PalletCurrency, ExistenceRequirement, Get, LockableCurrency as PalletLockableCurrency,
 		ReservableCurrency as PalletReservableCurrency, WithdrawReasons,
 	},
+	weights::constants::WEIGHT_PER_MICROS,
 };
 use sp_runtime::{
 	traits::{CheckedSub, StaticLookup, Zero},
@@ -129,7 +130,7 @@ decl_module! {
 		///		- non-native currency: 26.72 µs
 		///		- native currency in worst case: 29.9 µs
 		/// # </weight>
-		#[weight = 30_000_000 + T::DbWeight::get().reads_writes(2, 2)]
+		#[weight = 30 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(2, 2)]
 		pub fn transfer(
 			origin,
 			dest: <T::Lookup as StaticLookup>::Source,
@@ -155,7 +156,7 @@ decl_module! {
 		/// -------------------
 		/// Base Weight: 29.53 µs
 		/// # </weight>
-		#[weight = 30_000_000 + T::DbWeight::get().reads_writes(2, 2)]
+		#[weight = 30 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(2, 2)]
 		pub fn transfer_native_currency(
 			origin,
 			dest: <T::Lookup as StaticLookup>::Source,
@@ -185,7 +186,7 @@ decl_module! {
 		///		- native currency and killing account: 26.33 µs
 		///		- native currency and create account: 27.39 µs
 		/// # </weight>
-		#[weight = 27_000_000 + T::DbWeight::get().reads_writes(1, 1)]
+		#[weight = 27 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(1, 1)]
 		pub fn update_balance(
 			origin,
 			who: <T::Lookup as StaticLookup>::Source,

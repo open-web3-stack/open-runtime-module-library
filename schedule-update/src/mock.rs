@@ -2,12 +2,54 @@
 
 #![cfg(test)]
 
-use frame_support::{impl_outer_dispatch, impl_outer_event, impl_outer_origin, parameter_types};
-use frame_system::{self as system, ensure_signed};
+use frame_support::{
+	impl_outer_dispatch, impl_outer_event, impl_outer_origin, parameter_types,
+	weights::{FunctionOf, Pays},
+};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
 use super::*;
+
+mod logger {
+	use super::*;
+	use frame_system::ensure_root;
+	use std::cell::RefCell;
+
+	thread_local! {
+		static LOG: RefCell<Vec<u32>> = RefCell::new(Vec::new());
+	}
+	pub trait Trait: system::Trait {
+		type Event: From<Event> + Into<<Self as system::Trait>::Event>;
+	}
+	decl_storage! {
+		trait Store for Module<T: Trait> as Logger {
+		}
+	}
+	decl_event! {
+		pub enum Event {
+			Logged(u32, Weight),
+		}
+	}
+	decl_module! {
+		pub struct Module<T: Trait> for enum Call where origin: <T as system::Trait>::Origin {
+			fn deposit_event() = default;
+
+			#[weight = FunctionOf(
+				|args: (&u32, &Weight)| *args.1,
+				|_: (&u32, &Weight)| DispatchClass::Normal,
+				Pays::Yes,
+			)]
+			fn log(origin, i: u32, weight: Weight) {
+				ensure_root(origin)?;
+				Self::deposit_event(Event::Logged(i, weight));
+				LOG.with(|log| {
+					log.borrow_mut().push(i);
+				})
+			}
+		}
+	}
+}
 
 impl_outer_origin! {
 	pub enum Origin for Runtime {}
@@ -22,12 +64,15 @@ impl_outer_event! {
 		frame_system<T>,
 		schedule_update<T>,
 		pallet_balances<T>,
+		logger,
 	}
 }
 
 impl_outer_dispatch! {
 	pub enum Call for Runtime where origin: Origin {
+		system::System,
 		pallet_balances::Balances,
+		logger::Logger,
 	}
 }
 
@@ -82,9 +127,15 @@ impl pallet_balances::Trait for Runtime {
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
 }
+pub type Balances = pallet_balances::Module<Runtime>;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
+
+impl logger::Trait for Runtime {
+	type Event = TestEvent;
+}
+type Logger = logger::Module<Runtime>;
 
 // A mock schedule origin where only `ALICE` has permission.
 pub struct MockScheduleOrigin;
@@ -114,9 +165,8 @@ impl Trait for Runtime {
 }
 pub type ScheduleUpdateModule = Module<Runtime>;
 
-pub type Balances = pallet_balances::Module<Runtime>;
-
 pub type BalancesCall = pallet_balances::Call<Runtime>;
+pub type LoggerCall = logger::Call<Runtime>;
 
 pub struct ExtBuilder;
 

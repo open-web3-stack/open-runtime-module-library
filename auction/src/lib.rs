@@ -3,7 +3,8 @@
 #![allow(clippy::string_lit_as_bytes)]
 
 use frame_support::{
-	decl_error, decl_event, decl_module, decl_storage, ensure, traits::Get, IterableStorageDoubleMap, Parameter,
+	decl_error, decl_event, decl_module, decl_storage, ensure, traits::Get, weights::constants::WEIGHT_PER_MICROS,
+	IterableStorageDoubleMap, Parameter,
 };
 use frame_system::{self as system, ensure_signed};
 use orml_traits::{Auction, AuctionHandler, AuctionInfo, Change};
@@ -65,7 +66,7 @@ decl_module! {
 		///				- best cases: 45.96 µs
 		///				- worst cases: 48.55 µs
 		/// # </weight>
-		#[weight = 84_000_000 + T::DbWeight::get().reads_writes(9, 9)]
+		#[weight = 84 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(9, 9)]
 		pub fn bid(origin, id: T::AuctionId, #[compact] value: T::Balance) {
 			let from = ensure_signed(origin)?;
 
