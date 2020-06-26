@@ -29,7 +29,7 @@ fn feed_values_from_session_key(
 		&OracleCall::feed_values(values.clone(), index, sig.clone()),
 	)?;
 
-	Ok(ModuleOracle::feed_values(Origin::NONE, values, index, sig))
+	Ok(ModuleOracle::feed_values(Origin::none(), values, index, sig))
 }
 
 fn feed_values(
@@ -82,7 +82,7 @@ fn should_feed_values_from_root() {
 		let account_id: AccountId = 1;
 
 		assert_ok!(ModuleOracle::feed_values(
-			Origin::ROOT,
+			Origin::root(),
 			vec![(50, 1000), (51, 900), (52, 800)],
 			0,
 			TestSignature(0, vec![])

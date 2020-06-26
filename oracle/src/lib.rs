@@ -12,7 +12,7 @@ pub use default_combine_data::DefaultCombineData;
 use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage, ensure,
 	traits::{ChangeMembers, Get, InitializeMembers, Time},
-	weights::{DispatchClass, FunctionOf, Pays},
+	weights::{DispatchClass, Pays},
 	IterableStorageMap, Parameter,
 };
 use sp_runtime::{
@@ -115,7 +115,7 @@ decl_module! {
 
 		fn deposit_event() = default;
 
-		#[weight = FunctionOf(0, DispatchClass::Operational, Pays::No)]
+		#[weight = (0, DispatchClass::Operational, Pays::No)]
 		pub fn feed_values(
 			origin,
 			values: Vec<(T::OracleKey, T::OracleValue)>,
