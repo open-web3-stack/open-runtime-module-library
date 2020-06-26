@@ -25,7 +25,7 @@ fn gradually_update_should_work() {
 			target_value: vec![9],
 			per_block: vec![1],
 		};
-		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::ROOT, update.clone()));
+		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()));
 
 		let gradually_update_event = TestEvent::gradually_update(RawEvent::GraduallyUpdate(
 			update.key,
@@ -47,7 +47,7 @@ fn gradually_update_should_fail() {
 			per_block: 1u64.encode(),
 		};
 		assert_noop!(
-			GraduallyUpdateModule::gradually_update(Origin::ROOT, update.clone()),
+			GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()),
 			Error::<Runtime>::InvalidPerBlockOrTargetValue
 		);
 
@@ -56,7 +56,7 @@ fn gradually_update_should_fail() {
 			target_value: 90u32.encode(),
 			per_block: 1u32.encode(),
 		};
-		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::ROOT, update.clone()));
+		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()));
 
 		GraduallyUpdateModule::on_finalize(20);
 
@@ -66,12 +66,12 @@ fn gradually_update_should_fail() {
 			per_block: 1u64.encode(),
 		};
 		assert_noop!(
-			GraduallyUpdateModule::gradually_update(Origin::ROOT, new_update.clone()),
+			GraduallyUpdateModule::gradually_update(Origin::root(), new_update.clone()),
 			Error::<Runtime>::InvalidTargetValue
 		);
 
 		assert_noop!(
-			GraduallyUpdateModule::gradually_update(Origin::ROOT, update.clone()),
+			GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()),
 			Error::<Runtime>::GraduallyUpdateHasExisted
 		);
 	});
@@ -87,7 +87,7 @@ fn cancel_gradually_update_should_work() {
 			target_value: vec![9],
 			per_block: vec![1],
 		};
-		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::ROOT, update.clone()));
+		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()));
 		let gradually_update_event = TestEvent::gradually_update(RawEvent::GraduallyUpdate(
 			update.key.clone(),
 			update.per_block,
@@ -98,7 +98,7 @@ fn cancel_gradually_update_should_work() {
 			.any(|record| record.event == gradually_update_event));
 
 		assert_ok!(GraduallyUpdateModule::cancel_gradually_update(
-			Origin::ROOT,
+			Origin::root(),
 			update.key.clone()
 		));
 		let cancel_gradually_update_event = TestEvent::gradually_update(RawEvent::CancelGraduallyUpdate(update.key));
@@ -117,14 +117,14 @@ fn cancel_gradually_update_should_fail() {
 			per_block: 1u32.encode(),
 		};
 		assert_noop!(
-			GraduallyUpdateModule::cancel_gradually_update(Origin::ROOT, update.key.clone()),
+			GraduallyUpdateModule::cancel_gradually_update(Origin::root(), update.key.clone()),
 			Error::<Runtime>::CancelGradullyUpdateNotExisted
 		);
 
-		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::ROOT, update.clone()));
+		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()));
 
 		assert_ok!(GraduallyUpdateModule::cancel_gradually_update(
-			Origin::ROOT,
+			Origin::root(),
 			update.key.clone()
 		));
 	});
@@ -140,7 +140,7 @@ fn add_on_finalize_should_work() {
 			target_value: vec![30],
 			per_block: vec![1],
 		};
-		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::ROOT, update.clone()));
+		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()));
 		assert_eq!(storage_get(&update.key), vec![]);
 
 		GraduallyUpdateModule::on_finalize(10);
@@ -187,7 +187,7 @@ fn sub_on_finalize_should_work() {
 		};
 
 		storage_set(&update.key, &vec![30]);
-		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::ROOT, update.clone()));
+		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()));
 		assert_eq!(storage_get(&update.key), vec![30]);
 
 		GraduallyUpdateModule::on_finalize(10);
@@ -230,7 +230,7 @@ fn u32_should_work() {
 			target_value: 30u32.encode(),
 			per_block: 1u32.encode(),
 		};
-		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::ROOT, update.clone()));
+		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()));
 		assert_eq!(storage_get(&update.key), vec![]);
 		GraduallyUpdateModule::on_finalize(10);
 		assert_eq!(storage_get(&update.key), vec![10, 0, 0, 0]);
@@ -251,7 +251,7 @@ fn u128_should_work() {
 			target_value: 30u128.encode(),
 			per_block: 1u128.encode(),
 		};
-		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::ROOT, update.clone()));
+		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()));
 		assert_eq!(storage_get(&update.key), vec![]);
 		GraduallyUpdateModule::on_finalize(10);
 		assert_eq!(
@@ -284,7 +284,7 @@ fn permill_should_work() {
 			target_value: Permill::from_percent(30).encode(),
 			per_block: Permill::from_percent(1).encode(),
 		};
-		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::ROOT, update.clone()));
+		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()));
 		assert_eq!(storage_get(&update.key), vec![]);
 		GraduallyUpdateModule::on_finalize(10);
 		assert_eq!(storage_get(&update.key), vec![160, 134, 1, 0]);
@@ -305,7 +305,7 @@ fn fixedu128_should_work() {
 			target_value: FixedU128::saturating_from_rational(30, 1).encode(),
 			per_block: FixedU128::saturating_from_rational(1, 1).encode(),
 		};
-		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::ROOT, update.clone()));
+		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()));
 		assert_eq!(storage_get(&update.key), vec![]);
 		GraduallyUpdateModule::on_finalize(10);
 		assert_eq!(
@@ -350,9 +350,9 @@ fn finish_multiple_on_finalize_should_work() {
 			target_value: vec![100],
 			per_block: vec![3],
 		};
-		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::ROOT, update.clone()));
-		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::ROOT, update2.clone()));
-		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::ROOT, update3.clone()));
+		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()));
+		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update2.clone()));
+		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update3.clone()));
 
 		GraduallyUpdateModule::on_finalize(10);
 		assert_eq!(storage_get(&update.key), vec![10]);

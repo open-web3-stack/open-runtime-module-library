@@ -30,7 +30,7 @@ fn schedule_dispatch_should_work() {
 		// OperationalDispatches
 		let call = Call::Balances(BalancesCall::set_balance(1, 10, 11));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
-			Origin::ROOT,
+			Origin::root(),
 			Box::new(call),
 			DelayedDispatchTime::After(3)
 		));
@@ -47,7 +47,7 @@ fn schedule_dispatch_works_for_root_origin() {
 	ExtBuilder::default().build().execute_with(|| {
 		let call = Call::Balances(BalancesCall::transfer(2, 11));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
-			Origin::ROOT,
+			Origin::root(),
 			Box::new(call),
 			DelayedDispatchTime::At(10)
 		));
@@ -118,7 +118,7 @@ fn cancel_delayed_dispatch_should_work() {
 			.iter()
 			.any(|record| record.event == schedule_dispatch_event));
 
-		assert_ok!(ScheduleUpdateModule::cancel_delayed_dispatch(Origin::ROOT, 4, 1));
+		assert_ok!(ScheduleUpdateModule::cancel_delayed_dispatch(Origin::root(), 4, 1));
 
 		let schedule_dispatch_event = TestEvent::schedule_update(RawEvent::CancelDelayedDispatch(1));
 		assert!(System::events()
@@ -128,7 +128,7 @@ fn cancel_delayed_dispatch_should_work() {
 		// OperationalDispatches
 		let call = Call::Balances(BalancesCall::set_balance(2, 10, 13));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
-			Origin::ROOT,
+			Origin::root(),
 			Box::new(call),
 			DelayedDispatchTime::At(5)
 		));
@@ -138,7 +138,7 @@ fn cancel_delayed_dispatch_should_work() {
 			.iter()
 			.any(|record| record.event == schedule_dispatch_event));
 
-		assert_ok!(ScheduleUpdateModule::cancel_delayed_dispatch(Origin::ROOT, 5, 2));
+		assert_ok!(ScheduleUpdateModule::cancel_delayed_dispatch(Origin::root(), 5, 2));
 
 		let schedule_dispatch_event = TestEvent::schedule_update(RawEvent::CancelDelayedDispatch(2));
 		assert!(System::events()
@@ -178,7 +178,7 @@ fn cancel_delayed_dispatch_should_fail() {
 		// OperationalDispatches
 		let call = Call::Balances(BalancesCall::set_balance(2, 10, 13));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
-			Origin::ROOT,
+			Origin::root(),
 			Box::new(call),
 			DelayedDispatchTime::At(5)
 		));
@@ -236,7 +236,7 @@ fn on_initialize_should_work() {
 		// OperationalDispatches
 		let call = Call::Balances(BalancesCall::set_balance(3, 10, 11));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
-			Origin::ROOT,
+			Origin::root(),
 			Box::new(call),
 			DelayedDispatchTime::After(10)
 		));
@@ -248,7 +248,7 @@ fn on_initialize_should_work() {
 
 		let call = Call::Balances(BalancesCall::set_balance(3, 20, 21));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
-			Origin::ROOT,
+			Origin::root(),
 			Box::new(call),
 			DelayedDispatchTime::After(12)
 		));
@@ -340,21 +340,21 @@ fn on_initialize_weight_exceed() {
 		// NormalDispatches
 		let half_max_weight_call = Call::Logger(LoggerCall::log(1, MaxScheduleDispatchWeight::get() / 2));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
-			Origin::ROOT,
+			Origin::root(),
 			Box::new(half_max_weight_call),
 			DelayedDispatchTime::At(2)
 		));
 
 		let half_max_weight_call = Call::Logger(LoggerCall::log(2, MaxScheduleDispatchWeight::get() / 2));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
-			Origin::ROOT,
+			Origin::root(),
 			Box::new(half_max_weight_call),
 			DelayedDispatchTime::At(2)
 		));
 
 		let half_max_weight_call = Call::Logger(LoggerCall::log(3, MaxScheduleDispatchWeight::get() / 2));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
-			Origin::ROOT,
+			Origin::root(),
 			Box::new(half_max_weight_call),
 			DelayedDispatchTime::At(2)
 		));
@@ -380,7 +380,7 @@ fn execute_at_least_one_task() {
 
 		let large_weight_call = Call::Logger(LoggerCall::log(42, MaxScheduleDispatchWeight::get() + 1));
 		assert_ok!(ScheduleUpdateModule::schedule_dispatch(
-			Origin::ROOT,
+			Origin::root(),
 			Box::new(large_weight_call),
 			DelayedDispatchTime::At(2)
 		));

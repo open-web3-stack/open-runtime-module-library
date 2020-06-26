@@ -5,13 +5,11 @@
 #![allow(clippy::borrowed_box)]
 
 use frame_support::{
-	decl_error,
-	decl_module,
+	decl_error, decl_module,
 	dispatch::PostDispatchInfo,
 	ensure,
 	traits::{EnsureOrigin, Get},
-	weights::{FunctionOf, GetDispatchInfo, Pays},
-	//weights::{GetDispatchInfo},
+	weights::GetDispatchInfo,
 	Parameter,
 };
 use frame_system::{self as system};
@@ -88,21 +86,13 @@ decl_module! {
 
 		const MinimumDelay: T::BlockNumber = T::MinimumDelay::get();
 
-		#[weight = FunctionOf(
-			|args: (&Box<CallOf<T>>,)| args.0.get_dispatch_info().weight + 10_000,
-			|args: (&Box<CallOf<T>>,)| args.0.get_dispatch_info().class,
-			Pays::Yes,
-		)]
+		#[weight = (call.get_dispatch_info().weight + 10_000, call.get_dispatch_info().class)]
 		pub fn dispatch_root(origin, call: Box<CallOf<T>>) {
 			T::RootDispatchOrigin::try_origin(origin).map_err(|_| BadOrigin)?;
 			call.dispatch(frame_system::RawOrigin::Root.into()).map(|_| ()).map_err(|e| e.error)?;
 		}
 
-		#[weight = FunctionOf(
-			|args: (&Box<CallOf<T>>, &DelayedDispatchTime<T::BlockNumber>)| args.0.get_dispatch_info().weight + 10_000,
-			|args: (&Box<CallOf<T>>, &DelayedDispatchTime<T::BlockNumber>)| args.0.get_dispatch_info().class,
-			Pays::Yes,
-		)]
+		#[weight = (call.get_dispatch_info().weight + 10_000, call.get_dispatch_info().class)]
 		pub fn schedule_dispatch_root(origin, call: Box<CallOf<T>>, when: DelayedDispatchTime<T::BlockNumber>) {
 			let now = <frame_system::Module<T>>::block_number();
 			let when_block = match when {
@@ -125,11 +115,7 @@ decl_module! {
 			let _ = T::Scheduler::schedule(frame_system::RawOrigin::Root.into(), *call, when);
 		}
 
-		#[weight = FunctionOf(
-			|args: (&Box<CallOf<T>>, &DelayedDispatchTime<T::BlockNumber>)| args.0.get_dispatch_info().weight + 10_000,
-			|args: (&Box<CallOf<T>>, &DelayedDispatchTime<T::BlockNumber>)| args.0.get_dispatch_info().class,
-			Pays::Yes,
-		)]
+		#[weight = (call.get_dispatch_info().weight + 10_000, call.get_dispatch_info().class)]
 		pub fn schedule_dispatch_delayed(origin, call: Box<CallOf<T>>, when: DelayedDispatchTime<T::BlockNumber>) {
 			T::DelayedDispatchOrigin::try_origin(origin.clone()).map_err(|_| BadOrigin)?;
 

@@ -39,7 +39,7 @@ parameter_types! {
 }
 impl frame_system::Trait for Test {
 	type Origin = Origin;
-	type Call = ();
+	type Call = Call;
 	type Index = u64;
 	type BlockNumber = u64;
 	type Hash = H256;
@@ -61,6 +61,7 @@ impl frame_system::Trait for Test {
 	type BlockExecutionWeight = ();
 	type ExtrinsicBaseWeight = ();
 	type MaximumExtrinsicWeight = ();
+	type BaseCallFilter = ();
 }
 
 thread_local! {

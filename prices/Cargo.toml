@@ -9,9 +9,9 @@ edition = "2018"
 
 [dependencies]
 serde = { version = "1.0.111", optional = true }
-sp-runtime = { version = "2.0.0-rc3", default-features = false }
-sp-std = { version = "2.0.0-rc3", default-features = false }
-frame-support = { version = "2.0.0-rc3", default-features = false }
+sp-runtime = { version = "2.0.0-rc4", default-features = false }
+sp-std = { version = "2.0.0-rc4", default-features = false }
+frame-support = { version = "2.0.0-rc4", default-features = false }
 orml-traits = { path = "../traits", version = "0.1.3-dev", default-features = false }
 
 [dev-dependencies]

@@ -223,10 +223,15 @@ fn update_balance_call_should_work() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
-			assert_ok!(Currencies::update_balance(Origin::ROOT, ALICE, NATIVE_CURRENCY_ID, -10));
+			assert_ok!(Currencies::update_balance(
+				Origin::root(),
+				ALICE,
+				NATIVE_CURRENCY_ID,
+				-10
+			));
 			assert_eq!(NativeCurrency::free_balance(&ALICE), 90);
 			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &ALICE), 100);
-			assert_ok!(Currencies::update_balance(Origin::ROOT, ALICE, X_TOKEN_ID, 10));
+			assert_ok!(Currencies::update_balance(Origin::root(), ALICE, X_TOKEN_ID, 10));
 			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &ALICE), 110);
 		});
 }

@@ -212,7 +212,7 @@ fn update_vesting_schedules_works() {
 			per_period: 10u64,
 		};
 		assert_ok!(Vesting::update_vesting_schedules(
-			Origin::ROOT,
+			Origin::root(),
 			BOB,
 			vec![updated_schedule]
 		));

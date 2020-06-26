@@ -2,10 +2,7 @@
 
 #![cfg(test)]
 
-use frame_support::{
-	impl_outer_dispatch, impl_outer_event, impl_outer_origin, parameter_types,
-	weights::{FunctionOf, Pays},
-};
+use frame_support::{impl_outer_dispatch, impl_outer_event, impl_outer_origin, parameter_types};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
@@ -35,11 +32,7 @@ mod logger {
 		pub struct Module<T: Trait> for enum Call where origin: <T as system::Trait>::Origin {
 			fn deposit_event() = default;
 
-			#[weight = FunctionOf(
-				|args: (&u32, &Weight)| *args.1,
-				|_: (&u32, &Weight)| DispatchClass::Normal,
-				Pays::Yes,
-			)]
+			#[weight = *weight]
 			fn log(origin, i: u32, weight: Weight) {
 				ensure_root(origin)?;
 				Self::deposit_event(Event::Logged(i, weight));
@@ -113,6 +106,7 @@ impl frame_system::Trait for Runtime {
 	type BlockExecutionWeight = ();
 	type ExtrinsicBaseWeight = ();
 	type MaximumExtrinsicWeight = ();
+	type BaseCallFilter = ();
 }
 pub type System = frame_system::Module<Runtime>;
 
