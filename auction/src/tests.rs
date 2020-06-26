@@ -76,7 +76,7 @@ fn remove_auction_should_work() {
 		assert_eq!(AuctionModule::new_auction(10, Some(100)), 0);
 		assert_eq!(AuctionModule::auctions_index(), 1);
 		assert_eq!(AuctionModule::auctions(0).is_some(), true);
-		assert_eq!(AuctionModule::auction_end_time(100, 0), Some(true));
+		assert_eq!(AuctionModule::auction_end_time(100, 0), Some(()));
 		AuctionModule::remove_auction(0);
 		assert_eq!(AuctionModule::auctions(0), None);
 		assert_eq!(AuctionModule::auction_end_time(100, 0), None);
