@@ -308,7 +308,7 @@ macro_rules! benchmarks_iter {
 		}
 
 		#[cfg(test)]
-		$crate::impl_benchmark_test!( $instance $runtime $pallet $name);
+		$crate::impl_benchmark_test!($instance $runtime $pallet $name);
 
 		$crate::benchmarks_iter!(
 			$instance
@@ -1036,10 +1036,10 @@ macro_rules! impl_benchmark_test {
 					SelectedBenchmark as $crate::BenchmarkingSetup<$runtime>
 				>::components(&selected_benchmark);
 
-				assert!(
-					components.len() != 0,
-					"You need to add components to your benchmark!",
-				);
+				// assert!(
+				// 	components.len() != 0,
+				// 	"You need to add components to your benchmark!",
+				// );
 				for (_, (name, low, high)) in components.iter().enumerate() {
 					// Test only the low and high value, assuming values in the middle won't break
 					for component_value in vec![low, high] {
@@ -1080,7 +1080,7 @@ macro_rules! impl_benchmark_test {
 		$instance:ident
 		$runtime:ident
 		$pallet:ident
-		$( $name:ident ),*
+		$name:ident
 	) => {
 		$crate::paste::item! {
 			fn [<test_benchmark_ $name>] () -> Result<(), &'static str>
