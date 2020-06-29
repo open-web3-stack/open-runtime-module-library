@@ -9,7 +9,7 @@ use frame_support::{
 };
 use frame_system::{self as system, ensure_root};
 
-use sp_runtime::{traits::SaturatedConversion, RuntimeDebug};
+use sp_runtime::{traits::SaturatedConversion, DispatchResult, RuntimeDebug};
 use sp_std::prelude::Vec;
 
 mod mock;
@@ -83,11 +83,13 @@ decl_module! {
 				ensure!(current_value.len() == update.target_value.len(), Error::<T>::InvalidTargetValue);
 			}
 
-			let mut gradually_updates = GraduallyUpdates::get();
-			ensure!(!gradually_updates.contains(&update), Error::<T>::GraduallyUpdateHasExisted);
+			GraduallyUpdates::try_mutate(|gradually_updates| -> DispatchResult {
+				ensure!(!gradually_updates.contains(&update), Error::<T>::GraduallyUpdateHasExisted);
 
-			gradually_updates.push(update.clone());
-			GraduallyUpdates::put(gradually_updates);
+				gradually_updates.push(update.clone());
+
+				Ok(())
+			})?;
 
 			Self::deposit_event(RawEvent::GraduallyUpdate(update.key, update.per_block, update.target_value));
 		}
@@ -97,13 +99,14 @@ decl_module! {
 		pub fn cancel_gradually_update(origin, key: StorageKey) {
 			T::DispatchOrigin::try_origin(origin).map(|_| ()).or_else(ensure_root)?;
 
-			let gradually_updates: Vec<GraduallyUpdate> = GraduallyUpdates::get()
-				.into_iter()
-				.filter(|item| item.key != key)
-				.collect();
+			GraduallyUpdates::try_mutate(|gradually_updates| -> DispatchResult {
+				let old_len = gradually_updates.len();
+				gradually_updates.retain(|item| item.key != key);
 
-			ensure!(GraduallyUpdates::decode_len().unwrap_or_default() - gradually_updates.len() == 1, Error::<T>::CancelGradullyUpdateNotExisted);
-			GraduallyUpdates::put(gradually_updates);
+				ensure!(gradually_updates.len() != old_len, Error::<T>::CancelGradullyUpdateNotExisted);
+
+				Ok(())
+			})?;
 
 			Self::deposit_event(RawEvent::CancelGraduallyUpdate(key));
 		}
@@ -121,44 +124,41 @@ impl<T: Trait> Module<T> {
 			return;
 		}
 
-		let gradually_updates = GraduallyUpdates::get();
+		let mut gradually_updates = GraduallyUpdates::get();
 		let initial_count = gradually_updates.len();
 
-		let gradually_updates = gradually_updates
-			.into_iter()
-			.filter(|update| {
-				let mut keep = true;
-				let current_value = storage::unhashed::get::<StorageValue>(&update.key).unwrap_or_default();
-				let current_value_u128 = u128::from_le_bytes(Self::convert_vec_to_u8(&current_value));
+		gradually_updates.retain(|update| {
+			let mut keep = true;
+			let current_value = storage::unhashed::get::<StorageValue>(&update.key).unwrap_or_default();
+			let current_value_u128 = u128::from_le_bytes(Self::convert_vec_to_u8(&current_value));
 
-				let frequency_u128: u128 = T::UpdateFrequency::get().saturated_into();
+			let frequency_u128: u128 = T::UpdateFrequency::get().saturated_into();
 
-				let step = u128::from_le_bytes(Self::convert_vec_to_u8(&update.per_block));
-				let step_u128 = step.checked_mul(frequency_u128).unwrap();
+			let step = u128::from_le_bytes(Self::convert_vec_to_u8(&update.per_block));
+			let step_u128 = step.checked_mul(frequency_u128).unwrap();
 
-				let target_u128 = u128::from_le_bytes(Self::convert_vec_to_u8(&update.target_value));
+			let target_u128 = u128::from_le_bytes(Self::convert_vec_to_u8(&update.target_value));
 
-				let new_value_u128 = if current_value_u128 > target_u128 {
-					(current_value_u128.checked_sub(step_u128).unwrap()).max(target_u128)
-				} else {
-					(current_value_u128.checked_add(step_u128).unwrap()).min(target_u128)
-				};
+			let new_value_u128 = if current_value_u128 > target_u128 {
+				(current_value_u128.checked_sub(step_u128).unwrap()).max(target_u128)
+			} else {
+				(current_value_u128.checked_add(step_u128).unwrap()).min(target_u128)
+			};
 
-				// current_value equal target_value, remove gradually_update
-				if new_value_u128 == target_u128 {
-					keep = false;
-				}
+			// current_value equal target_value, remove gradually_update
+			if new_value_u128 == target_u128 {
+				keep = false;
+			}
 
-				let mut value = new_value_u128.encode();
-				value.truncate(update.target_value.len());
+			let mut value = new_value_u128.encode();
+			value.truncate(update.target_value.len());
 
-				storage::unhashed::put(&update.key, &value);
+			storage::unhashed::put(&update.key, &value);
 
-				Self::deposit_event(RawEvent::GraduallyUpdateBlockNumber(now, update.key.clone(), value));
+			Self::deposit_event(RawEvent::GraduallyUpdateBlockNumber(now, update.key.clone(), value));
 
-				keep
-			})
-			.collect::<Vec<_>>();
+			keep
+		});
 
 		// gradually_update has finished. Remove it from GraduallyUpdates.
 		if gradually_updates.len() < initial_count {

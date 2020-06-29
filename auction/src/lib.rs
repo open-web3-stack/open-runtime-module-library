@@ -70,40 +70,44 @@ decl_module! {
 		pub fn bid(origin, id: T::AuctionId, #[compact] value: T::Balance) {
 			let from = ensure_signed(origin)?;
 
-			let mut auction = <Auctions<T>>::get(id).ok_or(Error::<T>::AuctionNotExist)?;
+			<Auctions<T>>::try_mutate_exists(id, |auction| -> DispatchResult {
+				let mut auction = auction.as_mut().ok_or(Error::<T>::AuctionNotExist)?;
 
-			let block_number = <frame_system::Module<T>>::block_number();
+				let block_number = <frame_system::Module<T>>::block_number();
 
-			// make sure auction is started
-			ensure!(block_number >= auction.start, Error::<T>::AuctionNotStarted);
+				// make sure auction is started
+				ensure!(block_number >= auction.start, Error::<T>::AuctionNotStarted);
 
-			if let Some(ref current_bid) = auction.bid {
-				ensure!(value > current_bid.1, Error::<T>::InvalidBidPrice);
-			} else {
-				ensure!(!value.is_zero(), Error::<T>::InvalidBidPrice);
-			}
-			let bid_result = T::Handler::on_new_bid(
-				block_number,
-				id,
-				(from.clone(), value),
-				auction.bid.clone(),
-			);
+				if let Some(ref current_bid) = auction.bid {
+					ensure!(value > current_bid.1, Error::<T>::InvalidBidPrice);
+				} else {
+					ensure!(!value.is_zero(), Error::<T>::InvalidBidPrice);
+				}
+				let bid_result = T::Handler::on_new_bid(
+					block_number,
+					id,
+					(from.clone(), value),
+					auction.bid.clone(),
+				);
 
-			ensure!(bid_result.accept_bid, Error::<T>::BidNotAccepted);
-			match bid_result.auction_end_change {
-				Change::NewValue(new_end) => {
-					if let Some(old_end_block) = auction.end {
-						<AuctionEndTime<T>>::remove(&old_end_block, id);
-					}
-					if let Some(new_end_block) = new_end {
-						<AuctionEndTime<T>>::insert(&new_end_block, id, ());
-					}
-					auction.end = new_end;
-				},
-				Change::NoChange => {},
-			}
-			auction.bid = Some((from.clone(), value));
-			<Auctions<T>>::insert(id, auction);
+				ensure!(bid_result.accept_bid, Error::<T>::BidNotAccepted);
+				match bid_result.auction_end_change {
+					Change::NewValue(new_end) => {
+						if let Some(old_end_block) = auction.end {
+							<AuctionEndTime<T>>::remove(&old_end_block, id);
+						}
+						if let Some(new_end_block) = new_end {
+							<AuctionEndTime<T>>::insert(&new_end_block, id, ());
+						}
+						auction.end = new_end;
+					},
+					Change::NoChange => {},
+				}
+				auction.bid = Some((from.clone(), value));
+
+				Ok(())
+			})?;
+
 			Self::deposit_event(RawEvent::Bid(id, from, value));
 		}
 
@@ -127,7 +131,7 @@ impl<T: Trait> Module<T> {
 	fn _on_finalize(now: T::BlockNumber) {
 		for (auction_id, _) in <AuctionEndTime<T>>::drain_prefix(&now) {
 			if let Some(auction) = <Auctions<T>>::take(&auction_id) {
-				T::Handler::on_auction_ended(auction_id, auction.bid.clone());
+				T::Handler::on_auction_ended(auction_id, auction.bid);
 			}
 		}
 	}
@@ -171,7 +175,7 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber> for Module<T> {
 	fn remove_auction(id: Self::AuctionId) {
 		if let Some(auction) = <Auctions<T>>::take(&id) {
 			if let Some(end_block) = auction.end {
-				<AuctionEndTime<T>>::remove(&end_block, id);
+				<AuctionEndTime<T>>::remove(end_block, id);
 			}
 		}
 	}
