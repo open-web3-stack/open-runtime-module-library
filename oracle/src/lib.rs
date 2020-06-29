@@ -5,9 +5,8 @@
 mod default_combine_data;
 mod mock;
 mod tests;
-mod timestamped_value;
 
-use codec::Encode;
+use codec::{Decode, Encode};
 pub use default_combine_data::DefaultCombineData;
 use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage, ensure,
@@ -15,12 +14,14 @@ use frame_support::{
 	weights::{DispatchClass, Pays},
 	IterableStorageMap, Parameter,
 };
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
 use sp_runtime::{
 	traits::Member,
 	transaction_validity::{
 		InvalidTransaction, TransactionPriority, TransactionSource, TransactionValidity, ValidTransaction,
 	},
-	DispatchResult,
+	DispatchResult, RuntimeDebug,
 };
 use sp_std::{convert::TryInto, prelude::*, vec};
 // FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
@@ -29,7 +30,6 @@ use sp_std::{convert::TryInto, prelude::*, vec};
 use frame_system::{self as system, ensure_none, ensure_root, ensure_signed};
 pub use orml_traits::{CombineData, DataProvider, DataProviderExtended, OnNewData, OnRedundantCall};
 use orml_utilities::OrderedSet;
-pub use timestamped_value::TimestampedValue;
 
 use sp_application_crypto::{KeyTypeId, RuntimeAppPublic};
 pub const ORACLE: KeyTypeId = KeyTypeId(*b"orac");
@@ -52,6 +52,13 @@ pub type AuthorityId = app_sr25519::Public;
 
 type MomentOf<T> = <<T as Trait>::Time as Time>::Moment;
 pub type TimestampedValueOf<T> = TimestampedValue<<T as Trait>::OracleValue, MomentOf<T>>;
+
+#[derive(Encode, Decode, RuntimeDebug, Eq, PartialEq, Clone, Copy)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct TimestampedValue<Value, Moment> {
+	pub value: Value,
+	pub timestamp: Moment,
+}
 
 pub trait Trait: frame_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
@@ -126,7 +133,7 @@ decl_module! {
 		) {
 			ensure_none(origin.clone()).or_else(|_| ensure_root(origin))?;
 			let who = Self::members().0[index as usize].clone();
-			Self::_feed_values(who, values)?;
+			Self::do_feed_values(who, values);
 		}
 
 		#[weight = 10_000_000]
@@ -192,7 +199,10 @@ impl<T: Trait> Module<T> {
 	pub fn get_all_values() -> Vec<(T::OracleKey, Option<TimestampedValueOf<T>>)> {
 		<Values<T>>::iter()
 			.map(|(key, _)| key)
-			.map(|key| (key.clone(), Self::get_no_op(&key)))
+			.map(|key| {
+				let v = Self::get_no_op(&key);
+				(key, v)
+			})
 			.collect()
 	}
 
@@ -201,7 +211,7 @@ impl<T: Trait> Module<T> {
 		T::CombineData::combine_data(key, values, Self::values(key))
 	}
 
-	fn _feed_values(who: T::AccountId, values: Vec<(T::OracleKey, T::OracleValue)>) -> DispatchResult {
+	fn do_feed_values(who: T::AccountId, values: Vec<(T::OracleKey, T::OracleValue)>) {
 		let now = T::Time::now();
 
 		for (key, value) in &values {
@@ -216,8 +226,6 @@ impl<T: Trait> Module<T> {
 		}
 
 		Self::deposit_event(RawEvent::NewFeedData(who, values));
-
-		Ok(())
 	}
 }
 
@@ -258,7 +266,8 @@ impl<T: Trait> DataProvider<T::OracleKey, T::OracleValue> for Module<T> {
 
 impl<T: Trait> DataProviderExtended<T::OracleKey, T::OracleValue, T::AccountId> for Module<T> {
 	fn feed_value(who: T::AccountId, key: T::OracleKey, value: T::OracleValue) -> DispatchResult {
-		Self::_feed_values(who, vec![(key, value)])
+		Self::do_feed_values(who, vec![(key, value)]);
+		Ok(())
 	}
 }
 

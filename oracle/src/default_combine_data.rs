@@ -17,25 +17,23 @@ where
 {
 	fn combine_data(
 		_key: &T::OracleKey,
-		values: Vec<TimestampedValueOf<T>>,
+		mut values: Vec<TimestampedValueOf<T>>,
 		prev_value: Option<TimestampedValueOf<T>>,
 	) -> Option<TimestampedValueOf<T>> {
 		let expires_in = ExpiresIn::get();
 		let now = T::Time::now();
-		let mut valid_values = values
-			.into_iter()
-			.filter(|x| x.timestamp + expires_in > now)
-			.collect::<Vec<TimestampedValueOf<T>>>();
 
-		let count = valid_values.len() as u32;
+		values.retain(|x| x.timestamp + expires_in > now);
+
+		let count = values.len() as u32;
 		let minimum_count = MinimumCount::get();
 		if count < minimum_count {
 			return prev_value;
 		}
 
-		valid_values.sort_by(|a, b| a.value.cmp(&b.value));
+		values.sort_by(|a, b| a.value.cmp(&b.value));
 
 		let median_index = count / 2;
-		Some(valid_values[median_index as usize].clone())
+		Some(values[median_index as usize].clone())
 	}
 }
