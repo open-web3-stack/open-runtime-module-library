@@ -13,7 +13,7 @@ pub use currency::{
 	LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
 	OnDustRemoval, OnReceived,
 };
-pub use price::{PriceProvider, DefaultPriceProvider};
+pub use price::{DefaultPriceProvider, PriceProvider};
 
 pub mod arithmetic;
 pub mod auction;

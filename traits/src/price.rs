@@ -1,8 +1,6 @@
-use frame_support::Parameter;
 use crate::DataProvider;
-use sp_runtime::{
-	traits::{CheckedDiv, MaybeSerializeDeserialize, Member},
-};
+use frame_support::Parameter;
+use sp_runtime::traits::{CheckedDiv, MaybeSerializeDeserialize, Member};
 use sp_std::marker::PhantomData;
 
 pub trait PriceProvider<CurrencyId, Price> {
@@ -71,5 +69,4 @@ mod test {
 		assert_eq!(TestPriceProvider::get_price(1, 0), None);
 		assert_eq!(TestPriceProvider::get_price(0, 1), Some(Price::from_inner(0)));
 	}
-
 }
