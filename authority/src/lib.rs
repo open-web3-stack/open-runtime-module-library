@@ -1,5 +1,5 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-// Disable the following two lints since they originate from an external macro (namely decl_storage)
+// Disable the following three lints since they originate from an external macro (namely decl_storage)
 #![allow(clippy::string_lit_as_bytes)]
 #![allow(clippy::boxed_local)]
 #![allow(clippy::borrowed_box)]
@@ -68,6 +68,7 @@ pub trait Trait: system::Trait {
 	type InstantDispatchOrigin: EnsureOrigin<<Self as system::Trait>::Origin>;
 	type Scheduler: Scheduler<Self::BlockNumber, Origin = <Self as Trait>::Origin, Call = <Self as Trait>::Call>;
 	type MinimumDelay: Get<Self::BlockNumber>;
+	type AsOrigin: Get<<Self as system::Trait>::Origin>;
 }
 
 decl_error! {
@@ -87,13 +88,13 @@ decl_module! {
 		const MinimumDelay: T::BlockNumber = T::MinimumDelay::get();
 
 		#[weight = (call.get_dispatch_info().weight + 10_000, call.get_dispatch_info().class)]
-		pub fn dispatch_root(origin, call: Box<CallOf<T>>) {
+		pub fn dispatch(origin, call: Box<CallOf<T>>) {
 			T::RootDispatchOrigin::try_origin(origin).map_err(|_| BadOrigin)?;
-			call.dispatch(frame_system::RawOrigin::Root.into()).map(|_| ()).map_err(|e| e.error)?;
+			call.dispatch(T::AsOrigin::get()).map(|_| ()).map_err(|e| e.error)?;
 		}
 
 		#[weight = (call.get_dispatch_info().weight + 10_000, call.get_dispatch_info().class)]
-		pub fn schedule_dispatch_root(origin, call: Box<CallOf<T>>, when: DelayedDispatchTime<T::BlockNumber>) {
+		pub fn schedule_dispatch(origin, call: Box<CallOf<T>>, when: DelayedDispatchTime<T::BlockNumber>) {
 			let now = <frame_system::Module<T>>::block_number();
 			let when_block = match when {
 				DelayedDispatchTime::At(at_block) => {
@@ -111,8 +112,10 @@ decl_module! {
 				T::InstantDispatchOrigin::try_origin(origin).map_err(|_| BadOrigin)?;
 			}
 
-			// schedule call with Root origin
-			let _ = T::Scheduler::schedule(frame_system::RawOrigin::Root.into(), *call, when);
+			let raw_origin: system::RawOrigin<T::AccountId> = T::AsOrigin::get().into().map_err(|_| BadOrigin)?;
+
+			// schedule call with as origin
+			let _ = T::Scheduler::schedule(raw_origin.into(), *call, when);
 		}
 
 		#[weight = (call.get_dispatch_info().weight + 10_000, call.get_dispatch_info().class)]

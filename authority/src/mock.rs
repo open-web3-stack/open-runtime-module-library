@@ -70,6 +70,7 @@ ord_parameter_types! {
 
 parameter_types! {
 	pub const MinimumDelay: BlockNumber = 10;
+	pub AsOrigin: Origin = Origin::root();
 }
 
 impl Trait for Runtime {
@@ -82,6 +83,7 @@ impl Trait for Runtime {
 	type InstantDispatchOrigin = EnsureSignedBy<Two, AccountId>;
 	type Scheduler = MockScheduler;
 	type MinimumDelay = MinimumDelay;
+	type AsOrigin = AsOrigin;
 }
 
 pub type Block = sp_runtime::generic::Block<Header, UncheckedExtrinsic>;
