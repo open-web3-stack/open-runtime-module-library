@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use crate::{
-	mock::{new_test_ext, AccountId, ModuleOracle, OracleCall, Origin, Timestamp},
+	mock::{new_test_ext, AccountId, ModuleOracle, OracleCall, Origin, Test, Timestamp},
 	TimestampedValue,
 };
 use codec::Encode;
@@ -22,14 +22,15 @@ fn feed_values_from_session_key(
 	nonce: u32,
 	values: Vec<(u32, u32)>,
 ) -> Result<dispatch::DispatchResult, TransactionValidityError> {
-	let sig = id.sign(&(nonce, &values).encode()).unwrap();
+	let now = <frame_system::Module<Test>>::block_number();
+	let sig = id.sign(&(nonce, now, &values).encode()).unwrap();
 
 	<ModuleOracle as ValidateUnsigned>::validate_unsigned(
 		TransactionSource::External,
-		&OracleCall::feed_values(values.clone(), index, sig.clone()),
+		&OracleCall::feed_values(values.clone(), index, now, sig.clone()),
 	)?;
 
-	Ok(ModuleOracle::feed_values(Origin::none(), values, index, sig))
+	Ok(ModuleOracle::feed_values(Origin::none(), values, index, now, sig))
 }
 
 fn feed_values(
@@ -84,6 +85,7 @@ fn should_feed_values_from_root() {
 		assert_ok!(ModuleOracle::feed_values(
 			Origin::root(),
 			vec![(50, 1000), (51, 900), (52, 800)],
+			0,
 			0,
 			TestSignature(0, vec![])
 		));
