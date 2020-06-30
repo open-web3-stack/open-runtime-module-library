@@ -13,8 +13,6 @@ The Open Runtime Module Library (ORML) is a community maintained collection of S
 	- Provide `MultiCurrency` implementation using `pallet-balances` and `orml-tokens` module.
 - [orml-oracle](./oracle)
     - Oracle module that makes off-chain data available on-chain.
-- [orml-prices](./prices)
-	- Provide basic asset price abstraction.
 - [orml-auction](./auction)
 	- Auction module that implements `Auction` trait.
 - [orml-vesting](./vesting)
