@@ -215,6 +215,55 @@ fn update_vesting_schedules_fails_if_unexpected_existing_locks() {
 	});
 }
 
-// TODO: check for MinVestedTransfer
-// check expired vesting schedules get removed
-// check storage get cleared when no more schedule left
+#[test]
+fn vested_transfer_check_for_min() {
+	ExtBuilder::default().one_hundred_for_alice().build().execute_with(|| {
+		let schedule = VestingSchedule {
+			start: 1u64,
+			period: 1u64,
+			period_count: 1u32,
+			per_period: 3u64,
+		};
+		assert_err!(
+			Vesting::vested_transfer(Origin::signed(BOB), ALICE, schedule.clone()),
+			Error::<Runtime>::AmountLow
+		);
+	});
+}
+
+#[test]
+fn multiple_vesting_schedule_claim_works() {
+	ExtBuilder::default().one_hundred_for_alice().build().execute_with(|| {
+		let schedule = VestingSchedule {
+			start: 0u64,
+			period: 10u64,
+			period_count: 2u32,
+			per_period: 10u64,
+		};
+		assert_ok!(Vesting::vested_transfer(Origin::signed(ALICE), BOB, schedule.clone()));
+
+		let schedule2 = VestingSchedule {
+			start: 0u64,
+			period: 10u64,
+			period_count: 3u32,
+			per_period: 10u64,
+		};
+		assert_ok!(Vesting::vested_transfer(Origin::signed(ALICE), BOB, schedule2.clone()));
+
+		assert_eq!(Vesting::vesting_schedules(&BOB), vec![schedule, schedule2.clone()]);
+
+		System::set_block_number(21);
+
+		assert_ok!(Vesting::claim(Origin::signed(BOB)));
+
+		assert_eq!(Vesting::vesting_schedules(&BOB), vec![schedule2]);
+
+		System::set_block_number(31);
+
+		assert_ok!(Vesting::claim(Origin::signed(BOB)));
+
+		assert_eq!(VestingSchedules::<Runtime>::contains_key(&BOB), false);
+
+		assert_eq!(PalletBalances::locks(&BOB), vec![]);
+	});
+}
