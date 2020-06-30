@@ -1,15 +1,14 @@
 [workspace]
 members = [
+	"auction",
+	"authority",
+	"benchmarking",
+	"currencies",
+	"gradually-update",
 	"oracle",
+	"schedule-update",
 	"tokens",
 	"traits",
-	"prices",
 	"utilities",
-	"currencies",
-	"auction",
 	"vesting",
-	"gradually-update",
-	"schedule-update",
-	"benchmarking",
-	"authority",
 ]

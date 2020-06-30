@@ -143,14 +143,14 @@ decl_storage! {
 
 		/// Any liquidity locks of a token type under an account.
 		/// NOTE: Should only be accessed when setting, changing and freeing a lock.
-		pub Locks get(fn locks): double_map hasher(twox_64_concat) T::AccountId, hasher(blake2_128_concat) T::CurrencyId => Vec<BalanceLock<T::Balance>>;
+		pub Locks get(fn locks): double_map hasher(blake2_128_concat) T::AccountId, hasher(twox_64_concat) T::CurrencyId => Vec<BalanceLock<T::Balance>>;
 
 		/// The balance of a token type under an account.
 		///
 		/// NOTE: If the total is ever zero, decrease account ref account.
 		///
 		/// NOTE: This is only used in the case that this module is used to store balances.
-		pub Accounts get(fn accounts): double_map hasher(twox_64_concat) T::AccountId, hasher(blake2_128_concat) T::CurrencyId => AccountData<T::Balance>;
+		pub Accounts get(fn accounts): double_map hasher(blake2_128_concat) T::AccountId, hasher(twox_64_concat) T::CurrencyId => AccountData<T::Balance>;
 	}
 	add_extra_genesis {
 		config(endowed_accounts): Vec<(T::AccountId, T::CurrencyId, T::Balance)>;
@@ -545,6 +545,7 @@ impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
 		let actual = account.reserved.min(value);
 		Self::set_reserved_balance(currency_id, who, account.reserved - actual);
 		Self::set_free_balance(currency_id, who, account.free + actual);
+		T::OnReceived::on_received(who, currency_id, actual);
 		value - actual
 	}
 
@@ -577,6 +578,7 @@ impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
 		match status {
 			BalanceStatus::Free => {
 				Self::set_free_balance(currency_id, beneficiary, to_account.free + actual);
+				T::OnReceived::on_received(beneficiary, currency_id, actual);
 			}
 			BalanceStatus::Reserved => {
 				Self::set_reserved_balance(currency_id, beneficiary, to_account.reserved + actual);
@@ -586,5 +588,3 @@ impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
 		Ok(value - actual)
 	}
 }
-
-// TODO: impl OnKilledAccount

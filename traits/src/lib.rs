@@ -13,10 +13,12 @@ pub use currency::{
 	LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
 	OnDustRemoval, OnReceived,
 };
+pub use price::{DefaultPriceProvider, PriceProvider};
 
 pub mod arithmetic;
 pub mod auction;
 pub mod currency;
+pub mod price;
 
 #[impl_trait_for_tuples::impl_for_tuples(30)]
 pub trait OnNewData<AccountId, Key, Value> {
@@ -29,10 +31,6 @@ pub trait DataProvider<Key, Value> {
 
 pub trait DataProviderExtended<Key, Value, AccountId>: DataProvider<Key, Value> {
 	fn feed_value(who: AccountId, key: Key, value: Value) -> DispatchResult;
-}
-
-pub trait PriceProvider<CurrencyId, Price> {
-	fn get_price(base: CurrencyId, quote: CurrencyId) -> Option<Price>;
 }
 
 /// Combine data provided by operators
