@@ -53,6 +53,9 @@ pub type AuthorityId = app_sr25519::Public;
 type MomentOf<T> = <<T as Trait>::Time as Time>::Moment;
 pub type TimestampedValueOf<T> = TimestampedValue<<T as Trait>::OracleValue, MomentOf<T>>;
 
+/// Number of blocks before an unconfirmed unsigned transaction expires.
+pub const EXTRINSIC_LONGVITY: u32 = 100;
+
 #[derive(Encode, Decode, RuntimeDebug, Eq, PartialEq, Clone, Copy)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct TimestampedValue<Value, Moment> {
@@ -127,11 +130,13 @@ decl_module! {
 			origin,
 			values: Vec<(T::OracleKey, T::OracleValue)>,
 			#[compact] index: u32,
+			_block: T::BlockNumber,
 			// since signature verification is done in `validate_unsigned`
 			// we can skip doing it here again.
 			_signature: <T::AuthorityId as RuntimeAppPublic>::Signature,
 		) {
 			ensure_none(origin.clone()).or_else(|_| ensure_root(origin))?;
+			// validate_unsigned already unsure index is valid
 			let who = Self::members().0[index as usize].clone();
 			Self::do_feed_values(who, values);
 		}
@@ -275,14 +280,25 @@ impl<T: Trait> frame_support::unsigned::ValidateUnsigned for Module<T> {
 	type Call = Call<T>;
 
 	fn validate_unsigned(_source: TransactionSource, call: &Self::Call) -> TransactionValidity {
-		if let Call::feed_values(value, index, signature) = call {
+		if let Call::feed_values(value, index, block, signature) = call {
+			let now = <frame_system::Module<T>>::block_number();
+
+			if now > *block + EXTRINSIC_LONGVITY.into() {
+				return Err(InvalidTransaction::Stale.into());
+			}
+			if now < *block {
+				return Err(InvalidTransaction::Future.into());
+			}
+
 			let members = Module::<T>::members();
 			let who = members.0.get(*index as usize);
 			if let Some(who) = who {
 				let nonce = Module::<T>::nonces(&who);
 
 				let signature_valid = Module::<T>::session_keys(&who)
-					.map(|session_key| (nonce, value).using_encoded(|payload| session_key.verify(&payload, &signature)))
+					.map(|session_key| {
+						(nonce, block, value).using_encoded(|payload| session_key.verify(&payload, &signature))
+					})
 					.unwrap_or(false);
 
 				if !signature_valid {
@@ -298,14 +314,14 @@ impl<T: Trait> frame_support::unsigned::ValidateUnsigned for Module<T> {
 
 				Nonces::<T>::insert(who, nonce + 1);
 
-				let now = <frame_system::Module<T>>::block_number();
 				// make priority less likely to overflow.
-				let add_priority = TryInto::<TransactionPriority>::try_into(now % 1000.into()).unwrap_or(0);
+				// this ensures tx sent later overrides old one
+				let add_priority = TryInto::<TransactionPriority>::try_into(*block % 1000.into()).unwrap_or(0);
 
 				ValidTransaction::with_tag_prefix("orml-oracle")
 					.priority(T::UnsignedPriority::get().saturating_add(add_priority))
 					.and_provides((who, nonce))
-					.longevity(256)
+					.longevity(EXTRINSIC_LONGVITY.into())
 					.propagate(true)
 					.build()
 			} else {
