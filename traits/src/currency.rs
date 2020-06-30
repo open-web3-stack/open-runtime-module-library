@@ -289,12 +289,9 @@ pub trait BasicReservableCurrency<AccountId>: BasicCurrency<AccountId> {
 	) -> result::Result<Self::Balance, DispatchError>;
 }
 
+#[impl_trait_for_tuples::impl_for_tuples(30)]
 pub trait OnDustRemoval<CurrencyId, Balance> {
 	fn on_dust_removal(currency_id: CurrencyId, balance: Balance);
-}
-
-impl<CurrencyId, Balance> OnDustRemoval<CurrencyId, Balance> for () {
-	fn on_dust_removal(_: CurrencyId, _: Balance) {}
 }
 
 #[impl_trait_for_tuples::impl_for_tuples(30)]

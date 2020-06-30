@@ -16,7 +16,7 @@
 //!
 //! ### Dispatchable Functions
 //!
-//! - `add_vesting_schedule` - Add a new vesting schedule for an account.
+//! - `vested_transfer` - Add a new vesting schedule for an account.
 //! - `claim` - Claim unlocked balances.
 //! - `update_vesting_schedules` - Update all vesting schedules under an account, `root` origin required.
 
@@ -37,12 +37,15 @@ use sp_std::{
 // #3295 https://github.com/paritytech/substrate/issues/3295
 use frame_system::{self as system, ensure_root, ensure_signed};
 use sp_runtime::{
-	traits::{AtLeast32Bit, CheckedAdd, StaticLookup, Zero},
+	traits::{AtLeast32Bit, CheckedAdd, Saturating, StaticLookup, Zero},
 	DispatchResult, RuntimeDebug,
 };
 
 mod mock;
 mod tests;
+
+/// The maximum number of vesting schedules an account can have.
+pub const MAX_VESTINGS: usize = 20;
 
 /// The vesting schedule.
 ///
@@ -60,6 +63,7 @@ pub struct VestingSchedule<BlockNumber, Balance: HasCompact> {
 impl<BlockNumber: AtLeast32Bit + Copy, Balance: AtLeast32Bit + Copy> VestingSchedule<BlockNumber, Balance> {
 	/// Returns the end of all periods, `None` if calculation overflows.
 	pub fn end(&self) -> Option<BlockNumber> {
+		// period * period_count + start
 		self.period
 			.checked_mul(&self.period_count.into())?
 			.checked_add(&self.start)
@@ -75,6 +79,9 @@ impl<BlockNumber: AtLeast32Bit + Copy, Balance: AtLeast32Bit + Copy> VestingSche
 	/// Note this func assumes schedule is a valid one(non-zero period and non-overflow total amount),
 	/// and it should be guaranteed by callers.
 	pub fn locked_amount(&self, time: BlockNumber) -> Balance {
+		// full = (time - start) / period
+		// unrealized = period_count - full
+		// per_period * unrealized
 		let full = time
 			.saturating_sub(self.start)
 			.checked_div(&self.period)
@@ -99,6 +106,9 @@ pub type ScheduledItem<T> = (
 pub trait Trait: frame_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
 	type Currency: LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
+
+	/// The minimum amount transferred to call `vested_transfer`.
+	type MinVestedTransfer: Get<BalanceOf<Self>>;
 }
 
 decl_storage! {
@@ -140,12 +150,17 @@ decl_error! {
 		ZeroVestingPeriodCount,
 		NumOverflow,
 		InsufficientBalanceToLock,
+		TooManyVestingSchedules,
+		AmountLow,
 	}
 }
 
 decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
 		type Error = Error<T>;
+
+		/// The minimum amount to be transferred to create a new vesting schedule.
+		const MinVestedTransfer: BalanceOf<T> = T::MinVestedTransfer::get();
 
 		fn deposit_event() = default;
 
@@ -176,14 +191,14 @@ decl_module! {
 		/// Base Weight: 47.26 µs
 		/// # </weight>
 		#[weight = 48 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(4, 4)]
-		pub fn add_vesting_schedule(
+		pub fn vested_transfer(
 			origin,
 			dest: <T::Lookup as StaticLookup>::Source,
 			schedule: VestingScheduleOf<T>,
 		) {
 			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
-			Self::do_add_vesting_schedule(&from, &to, schedule.clone())?;
+			Self::do_vested_transfer(&from, &to, schedule.clone())?;
 
 			Self::deposit_event(RawEvent::VestingScheduleAdded(from, to, schedule));
 		}
@@ -229,24 +244,40 @@ impl<T: Trait> Module<T> {
 	/// Returns locked balance based on current block number.
 	fn locked_balance(who: &T::AccountId) -> BalanceOf<T> {
 		let now = <frame_system::Module<T>>::block_number();
-		Self::vesting_schedules(who)
-			.iter()
-			.fold(Zero::zero(), |acc, s| acc + s.locked_amount(now))
+		<VestingSchedules<T>>::mutate_exists(who, |maybe_schedules| {
+			let total = if let Some(schedules) = maybe_schedules.as_mut() {
+				let mut total: BalanceOf<T> = Zero::zero();
+				schedules.retain(|s| {
+					let amount = s.locked_amount(now);
+					total = total.saturating_add(amount);
+					!amount.is_zero()
+				});
+				total
+			} else {
+				Zero::zero()
+			};
+			if total.is_zero() {
+				*maybe_schedules = None;
+			}
+			total
+		})
 	}
 
-	fn do_add_vesting_schedule(
-		from: &T::AccountId,
-		to: &T::AccountId,
-		schedule: VestingScheduleOf<T>,
-	) -> DispatchResult {
+	fn do_vested_transfer(from: &T::AccountId, to: &T::AccountId, schedule: VestingScheduleOf<T>) -> DispatchResult {
 		let schedule_amount = Self::ensure_valid_vesting_schedule(&schedule)?;
+
+		ensure!(
+			<VestingSchedules<T>>::decode_len(to).unwrap_or(0) < MAX_VESTINGS,
+			Error::<T>::TooManyVestingSchedules
+		);
+
 		let total_amount = Self::locked_balance(to)
 			.checked_add(&schedule_amount)
 			.ok_or(Error::<T>::NumOverflow)?;
 
 		T::Currency::transfer(from, to, schedule_amount, ExistenceRequirement::AllowDeath)?;
 		T::Currency::set_lock(VESTING_LOCK_ID, to, total_amount, WithdrawReasons::all());
-		<VestingSchedules<T>>::mutate(to, |v| (*v).push(schedule));
+		<VestingSchedules<T>>::append(to, schedule);
 
 		Ok(())
 	}
@@ -276,6 +307,10 @@ impl<T: Trait> Module<T> {
 		ensure!(!schedule.period_count.is_zero(), Error::<T>::ZeroVestingPeriodCount);
 		ensure!(schedule.end().is_some(), Error::<T>::NumOverflow);
 
-		schedule.total_amount().ok_or(Error::<T>::NumOverflow)
+		let total = schedule.total_amount().ok_or(Error::<T>::NumOverflow)?;
+
+		ensure!(total >= T::MinVestedTransfer::get(), Error::<T>::AmountLow);
+
+		Ok(total)
 	}
 }
