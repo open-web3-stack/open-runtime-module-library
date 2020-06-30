@@ -67,6 +67,7 @@ type Balance = u64;
 
 parameter_types! {
 	pub const ExistentialDeposit: u64 = 1;
+	pub const MinVestedTransfer: u64 = 5;
 }
 
 impl pallet_balances::Trait for Runtime {
@@ -81,6 +82,7 @@ pub type PalletBalances = pallet_balances::Module<Runtime>;
 impl Trait for Runtime {
 	type Event = TestEvent;
 	type Currency = PalletBalances;
+	type MinVestedTransfer = MinVestedTransfer;
 }
 pub type Vesting = Module<Runtime>;
 
