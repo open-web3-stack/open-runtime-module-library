@@ -66,10 +66,14 @@ impl Scheduler<BlockNumber> for MockScheduler {
 ord_parameter_types! {
 	pub const One: AccountId = 1;
 	pub const Two: AccountId = 2;
+	pub const Three: AccountId = 3;
 }
 
 parameter_types! {
 	pub const MinimumDelay: BlockNumber = 10;
+	pub const MinimumDelayForInstance1: BlockNumber = 20;
+	pub AsOrigin: Origin = Origin::root();
+	pub AsOriginForInstance1: Origin = system::RawOrigin::Signed(Three::get()).into();
 }
 
 impl Trait for Runtime {
@@ -82,6 +86,20 @@ impl Trait for Runtime {
 	type InstantDispatchOrigin = EnsureSignedBy<Two, AccountId>;
 	type Scheduler = MockScheduler;
 	type MinimumDelay = MinimumDelay;
+	type AsOrigin = AsOrigin;
+}
+
+impl Trait<Instance1> for Runtime {
+	type Origin = Origin;
+	type Call = Call;
+	type RootDispatchOrigin = EnsureSignedBy<One, AccountId>;
+	type DelayedRootDispatchOrigin = EnsureSignedBy<One, AccountId>;
+	type DelayedDispatchOrigin = EnsureSignedBy<One, AccountId>;
+	type VetoOrigin = EnsureSignedBy<One, AccountId>;
+	type InstantDispatchOrigin = EnsureSignedBy<Two, AccountId>;
+	type Scheduler = MockScheduler;
+	type MinimumDelay = MinimumDelayForInstance1;
+	type AsOrigin = AsOriginForInstance1;
 }
 
 pub type Block = sp_runtime::generic::Block<Header, UncheckedExtrinsic>;
@@ -95,6 +113,7 @@ frame_support::construct_runtime!(
 	{
 		System: frame_system::{Module, Call, Event<T>},
 		Authority: authority::{Module, Call, Origin<T>},
+		AuthorityInstance1: authority::<Instance1>::{Module, Call, Origin<T>},
 	}
 );
 

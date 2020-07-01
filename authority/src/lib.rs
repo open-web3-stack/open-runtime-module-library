@@ -1,11 +1,11 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-// Disable the following two lints since they originate from an external macro (namely decl_storage)
+// Disable the following three lints since they originate from an external macro
 #![allow(clippy::string_lit_as_bytes)]
 #![allow(clippy::boxed_local)]
 #![allow(clippy::borrowed_box)]
 
 use frame_support::{
-	decl_error, decl_module,
+	decl_error, decl_module, decl_storage,
 	dispatch::PostDispatchInfo,
 	ensure,
 	traits::{EnsureOrigin, Get},
@@ -15,7 +15,7 @@ use frame_support::{
 use frame_system::{self as system};
 use orml_traits::{DelayedDispatchTime, DispatchId, Scheduler};
 use sp_runtime::{
-	traits::{BadOrigin, CheckedAdd, CheckedSub, Dispatchable},
+	traits::{CheckedAdd, CheckedSub, Dispatchable},
 	RuntimeDebug,
 };
 use sp_std::prelude::*;
@@ -24,23 +24,20 @@ mod mock;
 mod tests;
 
 #[derive(PartialEq, Eq, Clone, RuntimeDebug)]
-pub struct DelayedOrigin<BlockNumber, Origin> {
+pub struct DelayedOrigin<BlockNumber, Origin, I> {
 	pub delay: BlockNumber,
 	pub origin: Origin,
+	_phantom: sp_std::marker::PhantomData<I>,
 }
 
-/// Origin for the authority module.
-pub type Origin<T> =
-	DelayedOrigin<<T as system::Trait>::BlockNumber, system::RawOrigin<<T as system::Trait>::AccountId>>;
-
-pub struct EnsureDelayed<Delay, Inner, BlockNumber>(sp_std::marker::PhantomData<(Delay, Inner, BlockNumber)>);
-
+pub struct EnsureDelayed<Delay, Inner, BlockNumber, I>(sp_std::marker::PhantomData<(Delay, Inner, BlockNumber, I)>);
 impl<
-		O: Into<Result<DelayedOrigin<BlockNumber, O>, O>> + From<DelayedOrigin<BlockNumber, O>>,
+		O: Into<Result<DelayedOrigin<BlockNumber, O, I>, O>> + From<DelayedOrigin<BlockNumber, O, I>>,
 		Delay: Get<BlockNumber>,
 		Inner: EnsureOrigin<O>,
 		BlockNumber: PartialOrd,
-	> EnsureOrigin<O> for EnsureDelayed<Delay, Inner, BlockNumber>
+		I,
+	> EnsureOrigin<O> for EnsureDelayed<Delay, Inner, BlockNumber, I>
 {
 	type Success = Inner::Success;
 
@@ -55,8 +52,13 @@ impl<
 	}
 }
 
-pub trait Trait: system::Trait {
-	type Origin: From<DelayedOrigin<Self::BlockNumber, system::RawOrigin<Self::AccountId>>>
+/// Origin for the authority module.
+pub type Origin<T, I = DefaultInstance> =
+	DelayedOrigin<<T as system::Trait>::BlockNumber, system::RawOrigin<<T as system::Trait>::AccountId>, I>;
+type CallOf<T, I = DefaultInstance> = <T as Trait<I>>::Call;
+
+pub trait Trait<I: Instance = DefaultInstance>: system::Trait {
+	type Origin: From<DelayedOrigin<Self::BlockNumber, system::RawOrigin<Self::AccountId>, I>>
 		+ From<system::RawOrigin<Self::AccountId>>;
 	type Call: Parameter
 		+ Dispatchable<Origin = <Self as system::Trait>::Origin, PostInfo = PostDispatchInfo>
@@ -66,74 +68,81 @@ pub trait Trait: system::Trait {
 	type DelayedDispatchOrigin: EnsureOrigin<<Self as system::Trait>::Origin>;
 	type VetoOrigin: EnsureOrigin<<Self as system::Trait>::Origin>;
 	type InstantDispatchOrigin: EnsureOrigin<<Self as system::Trait>::Origin>;
-	type Scheduler: Scheduler<Self::BlockNumber, Origin = <Self as Trait>::Origin, Call = <Self as Trait>::Call>;
+	type Scheduler: Scheduler<Self::BlockNumber, Origin = <Self as Trait<I>>::Origin, Call = <Self as Trait<I>>::Call>;
 	type MinimumDelay: Get<Self::BlockNumber>;
+	type AsOrigin: Get<<Self as system::Trait>::Origin>;
 }
 
 decl_error! {
 	/// Error for authority module.
-	pub enum Error for Module<T: Trait> {
+	pub enum Error for Module<T: Trait<I>, I: Instance> {
 		BlockNumberOverflow,
 		InvalidDelayedDispatchTime,
+		OriginConvertFailed,
 	}
 }
 
-type CallOf<T> = <T as Trait>::Call;
+decl_storage! {
+	trait Store for Module<T: Trait<I>, I: Instance=DefaultInstance> as Authority {}
+}
 
 decl_module! {
-	pub struct Module<T: Trait> for enum Call where origin: <T as system::Trait>::Origin {
-		type Error = Error<T>;
+	pub struct Module<T: Trait<I>, I: Instance = DefaultInstance> for enum Call where origin: <T as system::Trait>::Origin {
+		type Error = Error<T, I>;
 
 		const MinimumDelay: T::BlockNumber = T::MinimumDelay::get();
 
 		#[weight = (call.get_dispatch_info().weight + 10_000, call.get_dispatch_info().class)]
-		pub fn dispatch_root(origin, call: Box<CallOf<T>>) {
-			T::RootDispatchOrigin::try_origin(origin).map_err(|_| BadOrigin)?;
-			call.dispatch(frame_system::RawOrigin::Root.into()).map(|_| ()).map_err(|e| e.error)?;
+		pub fn dispatch(origin, call: Box<CallOf<T, I>>) {
+			T::RootDispatchOrigin::ensure_origin(origin)?;
+			call.dispatch(T::AsOrigin::get()).map(|_| ()).map_err(|e| e.error)?;
 		}
 
 		#[weight = (call.get_dispatch_info().weight + 10_000, call.get_dispatch_info().class)]
-		pub fn schedule_dispatch_root(origin, call: Box<CallOf<T>>, when: DelayedDispatchTime<T::BlockNumber>) {
+		pub fn schedule_dispatch(origin, call: Box<CallOf<T, I>>, when: DelayedDispatchTime<T::BlockNumber>) {
 			let now = <frame_system::Module<T>>::block_number();
 			let when_block = match when {
 				DelayedDispatchTime::At(at_block) => {
-					ensure!(at_block > now, Error::<T>::InvalidDelayedDispatchTime);
+					ensure!(at_block > now, Error::<T, I>::InvalidDelayedDispatchTime);
 					at_block
 				},
 				DelayedDispatchTime::After(after_block) => {
-					now.checked_add(&after_block).ok_or(Error::<T>::BlockNumberOverflow)?
+					now.checked_add(&after_block).ok_or(Error::<T, I>::BlockNumberOverflow)?
 				},
 			};
 
 			if when_block >= T::MinimumDelay::get() + now {
-				T::DelayedRootDispatchOrigin::try_origin(origin).map_err(|_| BadOrigin)?;
+				T::DelayedRootDispatchOrigin::ensure_origin(origin)?;
 			} else {
-				T::InstantDispatchOrigin::try_origin(origin).map_err(|_| BadOrigin)?;
+				T::InstantDispatchOrigin::ensure_origin(origin)?;
 			}
 
-			// schedule call with Root origin
-			let _ = T::Scheduler::schedule(frame_system::RawOrigin::Root.into(), *call, when);
+			let raw_origin: system::RawOrigin<T::AccountId> = T::AsOrigin::get().into().map_err(|_| Error::<T, I>::OriginConvertFailed)?;
+
+			// schedule call with as origin
+			let _ = T::Scheduler::schedule(raw_origin.into(), *call, when);
 		}
 
 		#[weight = (call.get_dispatch_info().weight + 10_000, call.get_dispatch_info().class)]
-		pub fn schedule_dispatch_delayed(origin, call: Box<CallOf<T>>, when: DelayedDispatchTime<T::BlockNumber>) {
-			T::DelayedDispatchOrigin::try_origin(origin.clone()).map_err(|_| BadOrigin)?;
+		pub fn schedule_dispatch_delayed(origin, call: Box<CallOf<T, I>>, when: DelayedDispatchTime<T::BlockNumber>) {
+			T::DelayedDispatchOrigin::ensure_origin(origin.clone())?;
 
 			let now = <frame_system::Module<T>>::block_number();
 			let delay_block = match when {
 				DelayedDispatchTime::At(at_block) => {
-					at_block.checked_sub(&now).ok_or(Error::<T>::InvalidDelayedDispatchTime)?
+					at_block.checked_sub(&now).ok_or(Error::<T, I>::InvalidDelayedDispatchTime)?
 				},
 				DelayedDispatchTime::After(after_block) => {
-					ensure!(after_block.checked_add(&now).is_some(), Error::<T>::BlockNumberOverflow);
+					ensure!(after_block.checked_add(&now).is_some(), Error::<T, I>::BlockNumberOverflow);
 					after_block
 				},
 			};
 
-			let raw_origin = origin.into().map_err(|_| BadOrigin)?;
+			let raw_origin = origin.into().map_err(|_| Error::<T, I>::OriginConvertFailed)?;
 			let delayed_origin = DelayedOrigin{
 				delay: delay_block,
 				origin: raw_origin,
+				_phantom: sp_std::marker::PhantomData,
 			};
 
 			// dispatch call with DelayedOrigin
@@ -142,7 +151,7 @@ decl_module! {
 
 		#[weight = 0]
 		pub fn veto(origin, dispatch_id: DispatchId) {
-			T::VetoOrigin::try_origin(origin).map_err(|_| BadOrigin)?;
+			T::VetoOrigin::ensure_origin(origin)?;
 			T::Scheduler::cancel(dispatch_id);
 		}
 	}
