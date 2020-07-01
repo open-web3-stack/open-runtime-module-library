@@ -5,7 +5,10 @@
 use super::*;
 use frame_support::{assert_noop, assert_ok};
 use mock::{Authority, AuthorityInstance1, Call, ExtBuilder, Origin, Runtime, System};
-use sp_runtime::{traits::Bounded, Perbill};
+use sp_runtime::{
+	traits::{BadOrigin, Bounded},
+	Perbill,
+};
 
 #[test]
 fn dispatch_work() {

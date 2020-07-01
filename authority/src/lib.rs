@@ -15,7 +15,7 @@ use frame_support::{
 use frame_system::{self as system};
 use orml_traits::{DelayedDispatchTime, DispatchId, Scheduler};
 use sp_runtime::{
-	traits::{BadOrigin, CheckedAdd, CheckedSub, Dispatchable},
+	traits::{CheckedAdd, CheckedSub, Dispatchable},
 	RuntimeDebug,
 };
 use sp_std::prelude::*;
@@ -78,6 +78,7 @@ decl_error! {
 	pub enum Error for Module<T: Trait<I>, I: Instance> {
 		BlockNumberOverflow,
 		InvalidDelayedDispatchTime,
+		OriginConvertFailed,
 	}
 }
 
@@ -93,7 +94,7 @@ decl_module! {
 
 		#[weight = (call.get_dispatch_info().weight + 10_000, call.get_dispatch_info().class)]
 		pub fn dispatch(origin, call: Box<CallOf<T, I>>) {
-			T::RootDispatchOrigin::try_origin(origin).map_err(|_| BadOrigin)?;
+			T::RootDispatchOrigin::ensure_origin(origin)?;
 			call.dispatch(T::AsOrigin::get()).map(|_| ()).map_err(|e| e.error)?;
 		}
 
@@ -111,12 +112,12 @@ decl_module! {
 			};
 
 			if when_block >= T::MinimumDelay::get() + now {
-				T::DelayedRootDispatchOrigin::try_origin(origin).map_err(|_| BadOrigin)?;
+				T::DelayedRootDispatchOrigin::ensure_origin(origin)?;
 			} else {
-				T::InstantDispatchOrigin::try_origin(origin).map_err(|_| BadOrigin)?;
+				T::InstantDispatchOrigin::ensure_origin(origin)?;
 			}
 
-			let raw_origin: system::RawOrigin<T::AccountId> = T::AsOrigin::get().into().map_err(|_| BadOrigin)?;
+			let raw_origin: system::RawOrigin<T::AccountId> = T::AsOrigin::get().into().map_err(|_| Error::<T, I>::OriginConvertFailed)?;
 
 			// schedule call with as origin
 			let _ = T::Scheduler::schedule(raw_origin.into(), *call, when);
@@ -124,7 +125,7 @@ decl_module! {
 
 		#[weight = (call.get_dispatch_info().weight + 10_000, call.get_dispatch_info().class)]
 		pub fn schedule_dispatch_delayed(origin, call: Box<CallOf<T, I>>, when: DelayedDispatchTime<T::BlockNumber>) {
-			T::DelayedDispatchOrigin::try_origin(origin.clone()).map_err(|_| BadOrigin)?;
+			T::DelayedDispatchOrigin::ensure_origin(origin.clone())?;
 
 			let now = <frame_system::Module<T>>::block_number();
 			let delay_block = match when {
@@ -137,7 +138,7 @@ decl_module! {
 				},
 			};
 
-			let raw_origin = origin.into().map_err(|_| BadOrigin)?;
+			let raw_origin = origin.into().map_err(|_| Error::<T, I>::OriginConvertFailed)?;
 			let delayed_origin = DelayedOrigin{
 				delay: delay_block,
 				origin: raw_origin,
@@ -150,7 +151,7 @@ decl_module! {
 
 		#[weight = 0]
 		pub fn veto(origin, dispatch_id: DispatchId) {
-			T::VetoOrigin::try_origin(origin).map_err(|_| BadOrigin)?;
+			T::VetoOrigin::ensure_origin(origin)?;
 			T::Scheduler::cancel(dispatch_id);
 		}
 	}
