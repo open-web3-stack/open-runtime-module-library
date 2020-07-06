@@ -1,3 +1,19 @@
+//! # Gradually Update
+//! A module for scheduling gradually updates to storage values.
+//!
+//! - [`Trait`](./trait.Trait.html)
+//! - [`Call`](./enum.Call.html)
+//! - [`Module`](./struct.Module.html)
+//!
+//! ## Overview
+//!
+//! This module exposes capabilities for scheduling updates to stroage values gradually.
+//! This is useful to change parameter values gradually to ensure a smooth transition.
+//! It is also possible to cancel an update before it reaches to target value.
+//!
+//! NOTE: Only unsigned integer value up to 128 bits are supported. But structs that
+//! only use an unsigned integer field could works too such as `Permill` and `FixedU128`.
+
 #![cfg_attr(not(feature = "std"), no_std)]
 // Disable the following two lints since they originate from an external macro (namely decl_storage)
 #![allow(clippy::string_lit_as_bytes)]
@@ -18,16 +34,23 @@ mod tests;
 type StorageKey = Vec<u8>;
 type StorageValue = Vec<u8>;
 
+/// Gradually update a value stored at `key` to `target_value`,
+/// change `per_block` * `UpdateFrequency` per `UpdateFrequency` blocks.
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub struct GraduallyUpdate {
+	/// The storage key of the value to update
 	key: StorageKey,
+	/// The target value
 	target_value: StorageValue,
+	/// The amount of the value to update per one block
 	per_block: StorageValue,
 }
 
 pub trait Trait: frame_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
+	/// The frequency of updating values between blocks
 	type UpdateFrequency: Get<Self::BlockNumber>;
+	/// The origin that can schedule an update
 	type DispatchOrigin: EnsureOrigin<Self::Origin>;
 }
 
@@ -55,9 +78,13 @@ decl_event!(
 decl_error! {
 	/// Error for gradually-update module.
 	pub enum Error for Module<T: Trait> {
+		/// The `per_block` or `target_value` is invalid.
 		InvalidPerBlockOrTargetValue,
+		/// The `target_value` is invalid.
 		InvalidTargetValue,
+		/// Another update is already been scheduled for this key.
 		GraduallyUpdateHasExisted,
+		/// No update exists to cancel.
 		CancelGradullyUpdateNotExisted,
 	}
 }

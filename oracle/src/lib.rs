@@ -1,3 +1,18 @@
+//! # Oracle
+//! A module to allow oracle operators to feed external data.
+//!
+//! - [`Trait`](./trait.Trait.html)
+//! - [`Call`](./enum.Call.html)
+//! - [`Module`](./struct.Module.html)
+//!
+//! ## Overview
+//!
+//! This module exposes capabilities for oracle operators to feed external offchain data.
+//! The raw values can be combined to provide an aggregated value.
+//!
+//! The data are submitted with unsigned transaction so it does not incure a transaction fee. However the data
+//! still needs to be signed by a session key to prevent spam and ensure the integrity.
+
 #![cfg_attr(not(feature = "std"), no_std)]
 // Disable the following two lints since they originate from an external macro (namely decl_storage)
 #![allow(clippy::string_lit_as_bytes)]
@@ -11,7 +26,7 @@ pub use default_combine_data::DefaultCombineData;
 use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage, ensure,
 	traits::{ChangeMembers, Get, InitializeMembers, Time},
-	weights::{DispatchClass, Pays},
+	weights::DispatchClass,
 	IterableStorageMap, Parameter,
 };
 #[cfg(feature = "std")]
@@ -65,10 +80,20 @@ pub struct TimestampedValue<Value, Moment> {
 
 pub trait Trait: frame_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
+
+	/// Hook on new data received
 	type OnNewData: OnNewData<Self::AccountId, Self::OracleKey, Self::OracleValue>;
+
+	/// Provide the implementation to combine raw values to produce aggregated value
 	type CombineData: CombineData<Self::OracleKey, TimestampedValueOf<Self>>;
+
+	/// Time provider
 	type Time: Time;
+
+	/// The data key type
 	type OracleKey: Parameter + Member;
+
+	/// The data value type
 	type OracleValue: Parameter + Member + Ord;
 
 	/// A configuration for base priority of unsigned transactions.
@@ -109,14 +134,9 @@ decl_storage! {
 
 decl_error! {
 	pub enum Error for Module<T: Trait> {
+		/// Sender does not have permission
 		NoPermission,
-		UpdateAlreadyDispatched,
 	}
-}
-
-#[repr(u8)]
-pub enum ValidityError {
-	NoPermission,
 }
 
 decl_module! {
@@ -125,7 +145,10 @@ decl_module! {
 
 		fn deposit_event() = default;
 
-		#[weight = (0, DispatchClass::Operational, Pays::No)]
+		/// Feed the external value.
+		///
+		/// Require unsigned. However a valid signature signed by session key is required along with payload.
+		#[weight = (0, DispatchClass::Operational)]
 		pub fn feed_values(
 			origin,
 			values: Vec<(T::OracleKey, T::OracleValue)>,
@@ -141,6 +164,7 @@ decl_module! {
 			Self::do_feed_values(who, values);
 		}
 
+		/// Update the session key.
 		#[weight = 10_000_000]
 		pub fn set_session_key(origin, key: T::AuthorityId) {
 			let who = ensure_signed(origin)?;

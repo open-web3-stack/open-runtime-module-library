@@ -101,7 +101,9 @@ decl_event!(
 decl_error! {
 	/// Error for currencies module.
 	pub enum Error for Module<T: Trait> {
+		/// Unable to convert the Amount type into Balance.
 		AmountIntoBalanceFailed,
+		/// Balance is too low.
 		BalanceTooLow,
 	}
 }
