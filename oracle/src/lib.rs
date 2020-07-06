@@ -43,7 +43,7 @@ use sp_std::{convert::TryInto, prelude::*, vec};
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
 use frame_system::{self as system, ensure_none, ensure_root, ensure_signed};
-pub use orml_traits::{CombineData, DataProvider, DataProviderExtended, OnNewData, OnRedundantCall};
+pub use orml_traits::{CombineData, DataProvider, DataProviderExtended, OnNewData};
 use orml_utilities::OrderedSet;
 
 use sp_application_crypto::{KeyTypeId, RuntimeAppPublic};

@@ -56,7 +56,9 @@ pub trait Trait: frame_system::Trait {
 
 decl_storage! {
 	trait Store for Module<T: Trait> as GraduallyUpdate {
+		/// All the on-going updates
 		pub GraduallyUpdates get(fn gradually_updates): Vec<GraduallyUpdate>;
+		/// The last updated block number
 		pub GraduallyUpdateBlockNumber get(fn gradually_update_block_number): T::BlockNumber;
 	}
 }
