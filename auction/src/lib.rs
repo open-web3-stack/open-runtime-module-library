@@ -1,3 +1,11 @@
+//! # Auction
+//!
+//! ## Overview
+//!
+//! This module provides a basic abstraction to implement on-chain auctioning feature.
+//!
+//! The auction logic can be customized by implement and supplying `AuctionHandler` trait.
+
 #![cfg_attr(not(feature = "std"), no_std)]
 // Disable the following two lints since they originate from an external macro (namely decl_storage)
 #![allow(clippy::string_lit_as_bytes)]
@@ -18,8 +26,14 @@ mod tests;
 
 pub trait Trait: frame_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
+
+	/// The balance type for bidding
 	type Balance: Parameter + Member + AtLeast32Bit + Default + Copy + MaybeSerializeDeserialize;
+
+	/// The auction ID type
 	type AuctionId: Parameter + Member + AtLeast32Bit + Default + Copy + MaybeSerializeDeserialize;
+
+	/// The `AuctionHandler` that allow custom bidding logic and handles auction result
 	type Handler: AuctionHandler<Self::AccountId, Self::Balance, Self::BlockNumber, Self::AuctionId>;
 }
 
@@ -29,14 +43,20 @@ decl_event!(
 		<T as Trait>::Balance,
 		<T as Trait>::AuctionId,
 	{
+		/// A bid is placed (auction_id, bidder, bidding_amount)
 		Bid(AuctionId, AccountId, Balance),
 	}
 );
 
 decl_storage! {
 	trait Store for Module<T: Trait> as Auction {
+		/// Stores on-going and future auctions. Closed auction are removed.
 		pub Auctions get(fn auctions): map hasher(twox_64_concat) T::AuctionId => Option<AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>>;
+
+		/// Track the next auction ID.
 		pub AuctionsIndex get(fn auctions_index): T::AuctionId;
+
+		/// Index auctions by end time.
 		pub AuctionEndTime get(fn auction_end_time): double_map hasher(twox_64_concat) T::BlockNumber, hasher(twox_64_concat) T::AuctionId => Option<()>;
 	}
 }

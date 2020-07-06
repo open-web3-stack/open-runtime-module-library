@@ -3,10 +3,12 @@ use frame_support::Parameter;
 use sp_runtime::traits::{CheckedDiv, MaybeSerializeDeserialize, Member};
 use sp_std::marker::PhantomData;
 
+/// A trait to provide relative price for two currencies
 pub trait PriceProvider<CurrencyId, Price> {
 	fn get_price(base: CurrencyId, quote: CurrencyId) -> Option<Price>;
 }
 
+/// A `PriceProvider` implementation based on price data from a `DataProvider`
 pub struct DefaultPriceProvider<CurrencyId, Source>(PhantomData<(CurrencyId, Source)>);
 
 impl<CurrencyId, Source, Price> PriceProvider<CurrencyId, Price> for DefaultPriceProvider<CurrencyId, Source>

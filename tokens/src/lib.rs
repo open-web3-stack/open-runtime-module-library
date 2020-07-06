@@ -58,7 +58,7 @@ use sp_std::collections::btree_map::BTreeMap;
 use orml_traits::{
 	arithmetic::{self, Signed},
 	BalanceStatus, LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency,
-	MultiReservableCurrency, OnDustRemoval, OnReceived,
+	MultiReservableCurrency, OnReceived,
 };
 
 mod mock;
@@ -66,7 +66,11 @@ mod tests;
 
 pub trait Trait: frame_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
+
+	/// The balance type
 	type Balance: Parameter + Member + AtLeast32Bit + Default + Copy + MaybeSerializeDeserialize;
+
+	/// The amount type, should be signed version of `Balance`
 	type Amount: Signed
 		+ TryInto<Self::Balance>
 		+ TryFrom<Self::Balance>
@@ -76,8 +80,11 @@ pub trait Trait: frame_system::Trait {
 		+ Default
 		+ Copy
 		+ MaybeSerializeDeserialize;
+
+	/// The currency ID type
 	type CurrencyId: Parameter + Member + Copy + MaybeSerializeDeserialize + Ord;
-	type DustRemoval: OnDustRemoval<Self::CurrencyId, Self::Balance>;
+
+	/// Hook when some fund is deposited into an account
 	type OnReceived: OnReceived<Self::AccountId, Self::CurrencyId, Self::Balance>;
 }
 
@@ -235,9 +242,13 @@ decl_module! {
 decl_error! {
 	/// Error for token module.
 	pub enum Error for Module<T: Trait> {
+		/// The balance is too low
 		BalanceTooLow,
+		/// This operation will cause total issuance to overflow
 		TotalIssuanceOverflow,
+		/// Cannot convert Amount into Balance type
 		AmountIntoBalanceFailed,
+		/// Failed because liquidity restrictions due to locking
 		LiquidityRestrictions,
 	}
 }

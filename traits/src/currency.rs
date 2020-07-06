@@ -289,12 +289,9 @@ pub trait BasicReservableCurrency<AccountId>: BasicCurrency<AccountId> {
 	) -> result::Result<Self::Balance, DispatchError>;
 }
 
-#[impl_trait_for_tuples::impl_for_tuples(30)]
-pub trait OnDustRemoval<CurrencyId, Balance> {
-	fn on_dust_removal(currency_id: CurrencyId, balance: Balance);
-}
-
+/// Handler when an account received some assets
 #[impl_trait_for_tuples::impl_for_tuples(30)]
 pub trait OnReceived<AccountId, CurrencyId, Balance> {
+	/// An account have received some assets
 	fn on_received(account: &AccountId, currency: CurrencyId, amount: Balance);
 }

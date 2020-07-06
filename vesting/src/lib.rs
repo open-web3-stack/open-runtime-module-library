@@ -53,9 +53,13 @@ pub const MAX_VESTINGS: usize = 20;
 /// after `start`.
 #[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug)]
 pub struct VestingSchedule<BlockNumber, Balance: HasCompact> {
+	/// Vesting starting block
 	pub start: BlockNumber,
+	/// Number of blocks between vest
 	pub period: BlockNumber,
+	/// Number of vest
 	pub period_count: u32,
+	/// Amount of tokens to release per vest
 	#[codec(compact)]
 	pub per_period: Balance,
 }
@@ -146,11 +150,17 @@ decl_event!(
 decl_error! {
 	/// Error for vesting module.
 	pub enum Error for Module<T: Trait> {
+		/// Vesting period is zero
 		ZeroVestingPeriod,
+		/// Number of vests is zero
 		ZeroVestingPeriodCount,
+		/// Arithmetic calculation overflow
 		NumOverflow,
+		/// Insufficient amount of balance to lock
 		InsufficientBalanceToLock,
+		/// This account have too many vesting schedules
 		TooManyVestingSchedules,
+		/// The vested transfer amount is too low
 		AmountLow,
 	}
 }

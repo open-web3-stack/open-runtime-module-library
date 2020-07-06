@@ -10,8 +10,7 @@ use sp_std::{
 pub use auction::{Auction, AuctionHandler, AuctionInfo, OnNewBidResult};
 pub use currency::{
 	BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency, BasicReservableCurrency,
-	LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
-	OnDustRemoval, OnReceived,
+	LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency, OnReceived,
 };
 pub use price::{DefaultPriceProvider, PriceProvider};
 
@@ -20,16 +19,22 @@ pub mod auction;
 pub mod currency;
 pub mod price;
 
+/// New data handler
 #[impl_trait_for_tuples::impl_for_tuples(30)]
 pub trait OnNewData<AccountId, Key, Value> {
+	/// New data is available
 	fn on_new_data(who: &AccountId, key: &Key, value: &Value);
 }
 
+/// A simple trait to provide data
 pub trait DataProvider<Key, Value> {
+	/// Get data by key
 	fn get(key: &Key) -> Option<Value>;
 }
 
+/// Data provider with ability to insert data
 pub trait DataProviderExtended<Key, Value, AccountId>: DataProvider<Key, Value> {
+	/// Provide a new value for a given key from an operator
 	fn feed_value(who: AccountId, key: Key, value: Value) -> DispatchResult;
 }
 
@@ -43,14 +48,12 @@ pub trait CombineData<Key, TimestampedValue> {
 	) -> Option<TimestampedValue>;
 }
 
-#[impl_trait_for_tuples::impl_for_tuples(30)]
-pub trait OnRedundantCall<AccountId> {
-	fn multiple_calls_per_block(who: &AccountId);
-}
-
+/// A time in future, either a relative value or absolute value
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug)]
 pub enum DelayedDispatchTime<BlockNumber> {
+	/// At specific block number
 	At(BlockNumber),
+	/// After specific block from now
 	After(BlockNumber),
 }
 
@@ -64,6 +67,7 @@ pub trait Scheduler<BlockNumber> {
 	fn cancel(id: DispatchId);
 }
 
+/// Indicate if should change a value
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub enum Change<Value> {
 	/// No change.
