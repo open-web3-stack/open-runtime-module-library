@@ -17,9 +17,10 @@ use frame_support::{
 use frame_system::{self as system, ensure_signed};
 use orml_traits::{Auction, AuctionHandler, AuctionInfo, Change};
 use sp_runtime::{
-	traits::{AtLeast32Bit, MaybeSerializeDeserialize, Member, One, Zero},
-	DispatchResult,
+	traits::{AtLeast32Bit, Bounded, MaybeSerializeDeserialize, Member, One, Zero},
+	DispatchError, DispatchResult,
 };
+use sp_std::result;
 
 mod mock;
 mod tests;
@@ -31,7 +32,7 @@ pub trait Trait: frame_system::Trait {
 	type Balance: Parameter + Member + AtLeast32Bit + Default + Copy + MaybeSerializeDeserialize;
 
 	/// The auction ID type
-	type AuctionId: Parameter + Member + AtLeast32Bit + Default + Copy + MaybeSerializeDeserialize;
+	type AuctionId: Parameter + Member + AtLeast32Bit + Default + Copy + MaybeSerializeDeserialize + Bounded;
 
 	/// The `AuctionHandler` that allow custom bidding logic and handles auction result
 	type Handler: AuctionHandler<Self::AccountId, Self::Balance, Self::BlockNumber, Self::AuctionId>;
@@ -144,6 +145,7 @@ decl_error! {
 		AuctionNotStarted,
 		BidNotAccepted,
 		InvalidBidPrice,
+		NoAvailableAuctionId,
 	}
 }
 
@@ -180,16 +182,23 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber> for Module<T> {
 		Ok(())
 	}
 
-	fn new_auction(start: T::BlockNumber, end: Option<T::BlockNumber>) -> Self::AuctionId {
+	fn new_auction(
+		start: T::BlockNumber,
+		end: Option<T::BlockNumber>,
+	) -> result::Result<Self::AuctionId, DispatchError> {
 		let auction = AuctionInfo { bid: None, start, end };
-		let auction_id = Self::auctions_index();
-		<AuctionsIndex<T>>::mutate(|n| *n += Self::AuctionId::one());
+		let auction_id = <AuctionsIndex<T>>::try_mutate(|n| -> result::Result<Self::AuctionId, DispatchError> {
+			let id = *n;
+			ensure!(id != Self::AuctionId::max_value(), Error::<T>::NoAvailableAuctionId);
+			*n += One::one();
+			Ok(id)
+		})?;
 		<Auctions<T>>::insert(auction_id, auction);
 		if let Some(end_block) = end {
 			<AuctionEndTime<T>>::insert(&end_block, auction_id, ());
 		}
 
-		auction_id
+		Ok(auction_id)
 	}
 
 	fn remove_auction(id: Self::AuctionId) {

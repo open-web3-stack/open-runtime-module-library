@@ -3,20 +3,20 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{assert_ok, traits::OnFinalize};
-use mock::{AuctionModule, ExtBuilder, Runtime, ALICE};
+use frame_support::{assert_noop, assert_ok, traits::OnFinalize};
+use mock::*;
 
 #[test]
 fn new_auction_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_eq!(AuctionModule::new_auction(10, Some(100)), 0);
+		assert_ok!(AuctionModule::new_auction(10, Some(100)), 0);
 	});
 }
 
 #[test]
 fn update_auction_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_eq!(AuctionModule::new_auction(10, Some(100)), 0);
+		assert_ok!(AuctionModule::new_auction(10, Some(100)), 0);
 		assert_ok!(AuctionModule::update_auction(
 			0,
 			AuctionInfo {
@@ -31,7 +31,7 @@ fn update_auction_should_work() {
 #[test]
 fn auction_info_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_eq!(AuctionModule::new_auction(10, Some(100)), 0);
+		assert_ok!(AuctionModule::new_auction(10, Some(100)), 0);
 		assert_eq!(
 			AuctionModule::auction_info(0),
 			Some(AuctionInfo {
@@ -46,7 +46,7 @@ fn auction_info_should_work() {
 #[test]
 fn bid_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_eq!(AuctionModule::new_auction(0, Some(100)), 0);
+		assert_ok!(AuctionModule::new_auction(0, Some(100)), 0);
 		assert_ok!(AuctionModule::bid(Some(ALICE).into(), 0, 20));
 		assert_eq!(
 			AuctionModule::auction_info(0),
@@ -62,7 +62,7 @@ fn bid_should_work() {
 #[test]
 fn bid_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_eq!(AuctionModule::new_auction(10, Some(100)), 0);
+		assert_ok!(AuctionModule::new_auction(10, Some(100)), 0);
 		assert_eq!(
 			AuctionModule::bid(Some(ALICE).into(), 0, 20),
 			Err(Error::<Runtime>::AuctionNotStarted.into())
@@ -73,7 +73,7 @@ fn bid_should_fail() {
 #[test]
 fn remove_auction_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_eq!(AuctionModule::new_auction(10, Some(100)), 0);
+		assert_ok!(AuctionModule::new_auction(10, Some(100)), 0);
 		assert_eq!(AuctionModule::auctions_index(), 1);
 		assert_eq!(AuctionModule::auctions(0).is_some(), true);
 		assert_eq!(AuctionModule::auction_end_time(100, 0), Some(()));
@@ -86,9 +86,9 @@ fn remove_auction_should_work() {
 #[test]
 fn cleanup_auction_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_eq!(AuctionModule::new_auction(10, Some(100)), 0);
+		assert_ok!(AuctionModule::new_auction(10, Some(100)), 0);
 		assert_eq!(AuctionModule::auctions_index(), 1);
-		assert_eq!(AuctionModule::new_auction(10, Some(50)), 1);
+		assert_ok!(AuctionModule::new_auction(10, Some(50)), 1);
 		assert_eq!(AuctionModule::auctions_index(), 2);
 		assert_eq!(AuctionModule::auctions(0).is_some(), true);
 		assert_eq!(AuctionModule::auctions(1).is_some(), true);
@@ -110,5 +110,16 @@ fn cleanup_auction_should_work() {
 		assert_eq!(<AuctionEndTime<Runtime>>::iter_prefix(0).count(), 0);
 		assert_eq!(<AuctionEndTime<Runtime>>::iter_prefix(50).count(), 0);
 		assert_eq!(<AuctionEndTime<Runtime>>::iter_prefix(100).count(), 0);
+	});
+}
+
+#[test]
+fn cannot_add_new_auction_when_no_available_id() {
+	ExtBuilder::default().build().execute_with(|| {
+		<AuctionsIndex<Runtime>>::put(AuctionId::max_value());
+		assert_noop!(
+			AuctionModule::new_auction(0, None),
+			Error::<Runtime>::NoAvailableAuctionId
+		);
 	});
 }
