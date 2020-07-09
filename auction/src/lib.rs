@@ -190,7 +190,6 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber> for Module<T> {
 			*n += One::one();
 			Ok(())
 		})?;
-		// <AuctionsIndex<T>>::mutate(|n| *n += Self::AuctionId::one());
 		<Auctions<T>>::insert(auction_id, auction);
 		if let Some(end_block) = end {
 			<AuctionEndTime<T>>::insert(&end_block, auction_id, ());
