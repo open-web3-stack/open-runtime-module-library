@@ -7,12 +7,12 @@
 //!
 //! ## Overview
 //!
-//! This module exposes capabilities for scheduling updates to stroage values gradually.
+//! This module exposes capabilities for scheduling updates to storage values gradually.
 //! This is useful to change parameter values gradually to ensure a smooth transition.
 //! It is also possible to cancel an update before it reaches to target value.
 //!
-//! NOTE: Only unsigned integer value up to 128 bits are supported. But structs that
-//! only use an unsigned integer field could works too such as `Permill` and `FixedU128`.
+//! NOTE: Only unsigned integer value up to 128 bits are supported. But a "newtype" pattern struct
+//! that wraps an unsigned integer works too such as `Permill` and `FixedU128`.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 // Disable the following two lints since they originate from an external macro (namely decl_storage)
@@ -35,7 +35,7 @@ type StorageKey = Vec<u8>;
 type StorageValue = Vec<u8>;
 
 /// Gradually update a value stored at `key` to `target_value`,
-/// change `per_block` * `UpdateFrequency` per `UpdateFrequency` blocks.
+/// change `per_block` * `T::UpdateFrequency` per `T::UpdateFrequency` blocks.
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub struct GraduallyUpdate {
 	/// The storage key of the value to update
@@ -59,7 +59,7 @@ decl_storage! {
 		/// All the on-going updates
 		pub GraduallyUpdates get(fn gradually_updates): Vec<GraduallyUpdate>;
 		/// The last updated block number
-		pub GraduallyUpdateBlockNumber get(fn gradually_update_block_number): T::BlockNumber;
+		pub LastUpdatedAt get(fn last_updated_at): T::BlockNumber;
 	}
 }
 
@@ -68,12 +68,12 @@ decl_event!(
 	pub enum Event<T> where
 	<T as frame_system::Trait>::BlockNumber,
 	{
-		/// Add gradually_update success (key, per_block, target_value)
-		GraduallyUpdate(StorageKey, StorageValue, StorageValue),
-		/// Cancel gradually_update success (key)
-		CancelGraduallyUpdate(StorageKey),
-		/// Update gradually_update success (blocknum, key, target_value)
-		GraduallyUpdateBlockNumber(BlockNumber, StorageKey, StorageValue),
+		/// Gradually update added (key, per_block, target_value)
+		GraduallyUpdateAdded(StorageKey, StorageValue, StorageValue),
+		/// Gradually update cancelled (key)
+		GraduallyUpdateCancelled(StorageKey),
+		/// Gradually update applied (block_number, key, target_value)
+		Updated(BlockNumber, StorageKey, StorageValue),
 	}
 );
 
@@ -87,7 +87,7 @@ decl_error! {
 		/// Another update is already been scheduled for this key.
 		GraduallyUpdateHasExisted,
 		/// No update exists to cancel.
-		CancelGradullyUpdateNotExisted,
+		GraduallyUpdateNotFound,
 	}
 }
 
@@ -120,7 +120,7 @@ decl_module! {
 				Ok(())
 			})?;
 
-			Self::deposit_event(RawEvent::GraduallyUpdate(update.key, update.per_block, update.target_value));
+			Self::deposit_event(RawEvent::GraduallyUpdateAdded(update.key, update.per_block, update.target_value));
 		}
 
 		/// Cancel gradually_update to adjust numeric parameter.
@@ -132,12 +132,12 @@ decl_module! {
 				let old_len = gradually_updates.len();
 				gradually_updates.retain(|item| item.key != key);
 
-				ensure!(gradually_updates.len() != old_len, Error::<T>::CancelGradullyUpdateNotExisted);
+				ensure!(gradually_updates.len() != old_len, Error::<T>::GraduallyUpdateNotFound);
 
 				Ok(())
 			})?;
 
-			Self::deposit_event(RawEvent::CancelGraduallyUpdate(key));
+			Self::deposit_event(RawEvent::GraduallyUpdateCancelled(key));
 		}
 
 		/// Update gradually_update to adjust numeric parameter.
@@ -149,7 +149,7 @@ decl_module! {
 
 impl<T: Trait> Module<T> {
 	fn _on_finalize(now: T::BlockNumber) {
-		if now < GraduallyUpdateBlockNumber::<T>::get() + T::UpdateFrequency::get() {
+		if now < Self::last_updated_at() + T::UpdateFrequency::get() {
 			return;
 		}
 
@@ -184,7 +184,7 @@ impl<T: Trait> Module<T> {
 
 			storage::unhashed::put(&update.key, &value);
 
-			Self::deposit_event(RawEvent::GraduallyUpdateBlockNumber(now, update.key.clone(), value));
+			Self::deposit_event(RawEvent::Updated(now, update.key.clone(), value));
 
 			keep
 		});
@@ -194,7 +194,7 @@ impl<T: Trait> Module<T> {
 			GraduallyUpdates::put(gradually_updates);
 		}
 
-		GraduallyUpdateBlockNumber::<T>::put(now);
+		LastUpdatedAt::<T>::put(now);
 	}
 
 	#[allow(clippy::ptr_arg)]
