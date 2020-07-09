@@ -3,8 +3,8 @@
 #![cfg(test)]
 
 use super::*;
+use frame_support::{assert_noop, assert_ok, traits::OnFinalize};
 use mock::*;
-use frame_support::{assert_ok, assert_noop, traits::OnFinalize};
 
 #[test]
 fn new_auction_should_work() {
@@ -117,6 +117,9 @@ fn cleanup_auction_should_work() {
 fn cannot_add_new_auction_when_no_available_id() {
 	ExtBuilder::default().build().execute_with(|| {
 		<AuctionsIndex<Runtime>>::put(AuctionId::max_value());
-		assert_noop!(AuctionModule::new_auction(0, None), Error::<Runtime>::NoAvailableAuctionId);
+		assert_noop!(
+			AuctionModule::new_auction(0, None),
+			Error::<Runtime>::NoAvailableAuctionId
+		);
 	});
 }

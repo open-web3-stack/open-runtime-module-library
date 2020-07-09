@@ -2,7 +2,7 @@ use crate::Change;
 use codec::FullCodec;
 use codec::{Decode, Encode};
 use sp_runtime::{
-	traits::{AtLeast32Bit, MaybeSerializeDeserialize, Bounded},
+	traits::{AtLeast32Bit, Bounded, MaybeSerializeDeserialize},
 	DispatchError, DispatchResult, RuntimeDebug,
 };
 use sp_std::{

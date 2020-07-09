@@ -17,7 +17,7 @@ use frame_support::{
 use frame_system::{self as system, ensure_signed};
 use orml_traits::{Auction, AuctionHandler, AuctionInfo, Change};
 use sp_runtime::{
-	traits::{AtLeast32Bit, MaybeSerializeDeserialize, Member, One, Zero, Bounded},
+	traits::{AtLeast32Bit, Bounded, MaybeSerializeDeserialize, Member, One, Zero},
 	DispatchError, DispatchResult,
 };
 use sp_std::result;
@@ -182,13 +182,16 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber> for Module<T> {
 		Ok(())
 	}
 
-	fn new_auction(start: T::BlockNumber, end: Option<T::BlockNumber>) -> result::Result<Self::AuctionId, DispatchError> {
+	fn new_auction(
+		start: T::BlockNumber,
+		end: Option<T::BlockNumber>,
+	) -> result::Result<Self::AuctionId, DispatchError> {
 		let auction = AuctionInfo { bid: None, start, end };
-		let auction_id = Self::auctions_index();
-		<AuctionsIndex<T>>::try_mutate(|n| -> DispatchResult {
-			ensure!(*n != Self::AuctionId::max_value(), Error::<T>::NoAvailableAuctionId);
+		let auction_id = <AuctionsIndex<T>>::try_mutate(|n| -> result::Result<Self::AuctionId, DispatchError> {
+			let id = *n;
+			ensure!(id != Self::AuctionId::max_value(), Error::<T>::NoAvailableAuctionId);
 			*n += One::one();
-			Ok(())
+			Ok(id)
 		})?;
 		<Auctions<T>>::insert(auction_id, auction);
 		if let Some(end_block) = end {
