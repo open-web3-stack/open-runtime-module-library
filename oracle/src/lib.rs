@@ -69,7 +69,7 @@ type MomentOf<T> = <<T as Trait>::Time as Time>::Moment;
 pub type TimestampedValueOf<T> = TimestampedValue<<T as Trait>::OracleValue, MomentOf<T>>;
 
 /// Number of blocks before an unconfirmed unsigned transaction expires.
-pub const EXTRINSIC_LONGVITY: u32 = 100;
+pub const EXTRINSIC_LONGEVITY: u32 = 100;
 
 #[derive(Encode, Decode, RuntimeDebug, Eq, PartialEq, Clone, Copy)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -160,7 +160,9 @@ decl_module! {
 		) {
 			ensure_none(origin.clone()).or_else(|_| ensure_root(origin))?;
 			// validate_unsigned already unsure index is valid
-			let who = Self::members().0[index as usize].clone();
+			let who = Self::members().0.get(index as usize)
+				.expect("`validate_unsigned` ensures index is in bound; qed`")
+				.clone();
 			Self::do_feed_values(who, values);
 		}
 
@@ -307,7 +309,7 @@ impl<T: Trait> frame_support::unsigned::ValidateUnsigned for Module<T> {
 		if let Call::feed_values(value, index, block, signature) = call {
 			let now = <frame_system::Module<T>>::block_number();
 
-			if now > *block + EXTRINSIC_LONGVITY.into() {
+			if now > *block + EXTRINSIC_LONGEVITY.into() {
 				return Err(InvalidTransaction::Stale.into());
 			}
 			if now < *block {
@@ -345,7 +347,7 @@ impl<T: Trait> frame_support::unsigned::ValidateUnsigned for Module<T> {
 				ValidTransaction::with_tag_prefix("orml-oracle")
 					.priority(T::UnsignedPriority::get().saturating_add(add_priority))
 					.and_provides((who, nonce))
-					.longevity(EXTRINSIC_LONGVITY.into())
+					.longevity(EXTRINSIC_LONGEVITY.into())
 					.propagate(true)
 					.build()
 			} else {
