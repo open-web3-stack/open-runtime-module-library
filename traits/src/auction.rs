@@ -51,7 +51,7 @@ pub struct OnNewBidResult<BlockNumber> {
 /// Hooks for auction to handle bids.
 pub trait AuctionHandler<AccountId, Balance, BlockNumber, AuctionId> {
 	/// Called when new bid is received.
-	/// The return value deteermine if the bid should be accepted and update auction end time.
+	/// The return value determines if the bid should be accepted and update auction end time.
 	/// Implementation should reserve money from current winner and refund previous winner.
 	fn on_new_bid(
 		now: BlockNumber,
