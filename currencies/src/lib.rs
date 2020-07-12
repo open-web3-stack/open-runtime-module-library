@@ -246,7 +246,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		to: &T::AccountId,
 		amount: Self::Balance,
 	) -> DispatchResult {
-		if amount.is_zero() {
+		if amount.is_zero() || from == to {
 			return Ok(());
 		}
 		if currency_id == T::GetNativeCurrencyId::get() {
