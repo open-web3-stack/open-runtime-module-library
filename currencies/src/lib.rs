@@ -31,6 +31,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use codec::{Codec, FullCodec};
 use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage,
 	traits::{
@@ -40,19 +41,23 @@ use frame_support::{
 	weights::constants::WEIGHT_PER_MICROS,
 };
 use sp_runtime::{
-	traits::{CheckedSub, StaticLookup, Zero},
+	traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize, StaticLookup, Zero},
 	DispatchError, DispatchResult,
 };
-use sp_std::{convert::TryInto, marker, result};
+use sp_std::{
+	convert::{TryFrom, TryInto},
+	fmt::Debug,
+	marker, result,
+};
 // FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
 // would cause compiling error in `decl_module!` and `construct_runtime!`
 // #3295 https://github.com/paritytech/substrate/issues/3295
 use frame_system::{self as system, ensure_root, ensure_signed};
 
 use orml_traits::{
-	arithmetic::Signed, BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency,
-	BasicReservableCurrency, LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency,
-	MultiReservableCurrency,
+	arithmetic::{Signed, SimpleArithmetic},
+	BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency, BasicReservableCurrency,
+	LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
 };
 
 mod mock;
@@ -521,22 +526,24 @@ where
 pub type NativeCurrencyOf<T> = Currency<T, <T as Trait>::GetNativeCurrencyId>;
 
 /// Adapt other currency traits implementation to `BasicCurrency`.
-pub struct BasicCurrencyAdapter<T, Currency, BalanceConvert>(marker::PhantomData<(T, Currency, BalanceConvert)>);
+pub struct BasicCurrencyAdapter<Currency, Balance, BalanceConvert, Amount, Moment>(
+	marker::PhantomData<(Currency, Balance, BalanceConvert, Amount, Moment)>,
+);
 
 type PalletBalanceOf<A, Currency> = <Currency as PalletCurrency<A>>::Balance;
 
 // Adapt `frame_support::traits::Currency`
-impl<AccountId, T, Currency, BalanceConvert> BasicCurrency<AccountId>
-	for BasicCurrencyAdapter<T, Currency, BalanceConvert>
+impl<AccountId, Currency, Balance, BalanceConvert, Amount, Moment> BasicCurrency<AccountId>
+	for BasicCurrencyAdapter<Currency, Balance, BalanceConvert, Amount, Moment>
 where
-	T: Trait,
 	Currency: PalletCurrency<AccountId>,
+	Balance: AtLeast32BitUnsigned + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default,
 	BalanceConvert: From<PalletBalanceOf<AccountId, Currency>>
 		+ Into<PalletBalanceOf<AccountId, Currency>>
-		+ From<BalanceOf<T>>
-		+ Into<BalanceOf<T>>,
+		+ From<Balance>
+		+ Into<Balance>,
 {
-	type Balance = BalanceOf<T>;
+	type Balance = Balance;
 
 	fn total_issuance() -> Self::Balance {
 		BalanceConvert::from(Currency::total_issuance()).into()
@@ -554,7 +561,7 @@ where
 		let new_balance_pallet = {
 			let new_balance = Self::free_balance(who)
 				.checked_sub(&amount)
-				.ok_or(Error::<T>::BalanceTooLow)?;
+				.ok_or("InsufficientBalance")?;
 			BalanceConvert::from(new_balance).into()
 		};
 		let amount_pallet = BalanceConvert::from(amount).into();
@@ -592,23 +599,29 @@ where
 }
 
 // Adapt `frame_support::traits::Currency`
-impl<AccountId, T, Currency, BalanceConvert> BasicCurrencyExtended<AccountId>
-	for BasicCurrencyAdapter<T, Currency, BalanceConvert>
+impl<AccountId, Currency, Balance, BalanceConvert, Amount, Moment> BasicCurrencyExtended<AccountId>
+	for BasicCurrencyAdapter<Currency, Balance, BalanceConvert, Amount, Moment>
 where
-	T: Trait,
+	Balance: AtLeast32BitUnsigned + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default,
+	Amount: Signed
+		+ TryInto<Balance>
+		+ TryFrom<Balance>
+		+ SimpleArithmetic
+		+ Codec
+		+ Copy
+		+ MaybeSerializeDeserialize
+		+ Debug
+		+ Default,
 	Currency: PalletCurrency<AccountId>,
 	BalanceConvert: From<PalletBalanceOf<AccountId, Currency>>
 		+ Into<PalletBalanceOf<AccountId, Currency>>
-		+ From<BalanceOf<T>>
-		+ Into<BalanceOf<T>>,
+		+ From<Balance>
+		+ Into<Balance>,
 {
-	type Amount = AmountOf<T>;
+	type Amount = Amount;
 
 	fn update_balance(who: &AccountId, by_amount: Self::Amount) -> DispatchResult {
-		let by_balance = by_amount
-			.abs()
-			.try_into()
-			.map_err(|_| Error::<T>::AmountIntoBalanceFailed)?;
+		let by_balance = by_amount.abs().try_into().map_err(|_| "AmountIntoBalanceFailed")?;
 		if by_amount.is_positive() {
 			Self::deposit(who, by_balance)
 		} else {
@@ -618,17 +631,17 @@ where
 }
 
 // Adapt `frame_support::traits::LockableCurrency`
-impl<AccountId, T, Currency, BalanceConvert> BasicLockableCurrency<AccountId>
-	for BasicCurrencyAdapter<T, Currency, BalanceConvert>
+impl<AccountId, Currency, Balance, BalanceConvert, Amount, Moment> BasicLockableCurrency<AccountId>
+	for BasicCurrencyAdapter<Currency, Balance, BalanceConvert, Amount, Moment>
 where
-	T: Trait,
+	Balance: AtLeast32BitUnsigned + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default,
 	Currency: PalletLockableCurrency<AccountId>,
 	BalanceConvert: From<PalletBalanceOf<AccountId, Currency>>
 		+ Into<PalletBalanceOf<AccountId, Currency>>
-		+ From<BalanceOf<T>>
-		+ Into<BalanceOf<T>>,
+		+ From<Balance>
+		+ Into<Balance>,
 {
-	type Moment = T::BlockNumber;
+	type Moment = Moment;
 
 	fn set_lock(lock_id: LockIdentifier, who: &AccountId, amount: Self::Balance) {
 		Currency::set_lock(
@@ -654,15 +667,15 @@ where
 }
 
 // Adapt `frame_support::traits::ReservableCurrency`
-impl<AccountId, T, Currency, BalanceConvert> BasicReservableCurrency<AccountId>
-	for BasicCurrencyAdapter<T, Currency, BalanceConvert>
+impl<AccountId, Currency, Balance, BalanceConvert, Amount, Moment> BasicReservableCurrency<AccountId>
+	for BasicCurrencyAdapter<Currency, Balance, BalanceConvert, Amount, Moment>
 where
-	T: Trait,
+	Balance: AtLeast32BitUnsigned + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default,
 	Currency: PalletReservableCurrency<AccountId>,
 	BalanceConvert: From<PalletBalanceOf<AccountId, Currency>>
 		+ Into<PalletBalanceOf<AccountId, Currency>>
-		+ From<BalanceOf<T>>
-		+ Into<BalanceOf<T>>,
+		+ From<Balance>
+		+ Into<Balance>,
 {
 	fn can_reserve(who: &AccountId, value: Self::Balance) -> bool {
 		Currency::can_reserve(who, BalanceConvert::from(value).into())
