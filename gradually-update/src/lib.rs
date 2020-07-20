@@ -68,11 +68,11 @@ decl_event!(
 	pub enum Event<T> where
 	<T as frame_system::Trait>::BlockNumber,
 	{
-		/// Gradually update added (key, per_block, target_value)
+		/// Gradually update added. [key, per_block, target_value]
 		GraduallyUpdateAdded(StorageKey, StorageValue, StorageValue),
-		/// Gradually update cancelled (key)
+		/// Gradually update cancelled. [key]
 		GraduallyUpdateCancelled(StorageKey),
-		/// Gradually update applied (block_number, key, target_value)
+		/// Gradually update applied. [block_number, key, target_value]
 		Updated(BlockNumber, StorageKey, StorageValue),
 	}
 );

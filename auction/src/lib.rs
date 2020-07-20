@@ -44,7 +44,7 @@ decl_event!(
 		<T as Trait>::Balance,
 		<T as Trait>::AuctionId,
 	{
-		/// A bid is placed (auction_id, bidder, bidding_amount)
+		/// A bid is placed. [auction_id, bidder, bidding_amount]
 		Bid(AuctionId, AccountId, Balance),
 	}
 );

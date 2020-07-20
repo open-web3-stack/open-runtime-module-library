@@ -176,7 +176,7 @@ decl_event!(
 		<T as Trait>::CurrencyId,
 		<T as Trait>::Balance
 	{
-		/// Token transfer success (currency_id, from, to, amount)
+		/// Token transfer success. [currency_id, from, to, amount]
 		Transferred(CurrencyId, AccountId, AccountId, Balance),
 	}
 );

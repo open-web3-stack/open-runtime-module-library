@@ -92,13 +92,13 @@ decl_event!(
 		Balance = BalanceOf<T>,
 		CurrencyId = CurrencyIdOf<T>
 	{
-		/// Currency transfer success (currency_id, from, to, amount)
+		/// Currency transfer success. [currency_id, from, to, amount]
 		Transferred(CurrencyId, AccountId, AccountId, Balance),
-		/// Update balance success (currency_id, who, amount)
+		/// Update balance success. [currency_id, who, amount]
 		BalanceUpdated(CurrencyId, AccountId, Amount),
-		/// Deposit success (currency_id, who, amount)
+		/// Deposit success. [currency_id, who, amount]
 		Deposited(CurrencyId, AccountId, Balance),
-		/// Withdraw success (currency_id, who, amount)
+		/// Withdraw success. [currency_id, who, amount]
 		Withdrawn(CurrencyId, AccountId, Balance),
 	}
 );
