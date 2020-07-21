@@ -34,13 +34,13 @@ decl_event!(
 	pub enum Event<T> where
 		<T as frame_system::Trait>::BlockNumber,
 	{
-		/// Add schedule dispatch success (BlockNumber, DispatchId)
+		/// Add schedule dispatch success. [block_number, dispatch_id]
 		ScheduleDispatch(BlockNumber, DispatchId),
-		/// Cancel delayed dispatch success (DispatchId)
+		/// Cancel delayed dispatch success. [dispatch_id]
 		CancelDelayedDispatch(DispatchId),
-		/// Schedule dispatch success (BlockNumber, DispatchId)
+		/// Schedule dispatch success. [block_number, dispatch_id]
 		ScheduleDispatchSuccess(BlockNumber, DispatchId),
-		/// Schedule dispatch failed (DispatchId, DispatchError)
+		/// Schedule dispatch failed. [dispatch_id, dispatch_error]
 		ScheduleDispatchFail(DispatchId, DispatchError),
 	}
 );

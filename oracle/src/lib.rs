@@ -188,7 +188,7 @@ decl_event!(
 		<T as Trait>::OracleKey,
 		<T as Trait>::OracleValue,
 	{
-		/// New feed data is submitted (sender, values)
+		/// New feed data is submitted. [sender, values]
 		NewFeedData(AccountId, Vec<(OracleKey, OracleValue)>),
 	}
 );

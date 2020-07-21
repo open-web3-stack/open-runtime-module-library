@@ -138,11 +138,11 @@ decl_event!(
 		Balance = BalanceOf<T>,
 		VestingSchedule = VestingScheduleOf<T>
 	{
-		/// Added new vesting schedule (from, to, vesting_schedule)
+		/// Added new vesting schedule. [from, to, vesting_schedule]
 		VestingScheduleAdded(AccountId, AccountId, VestingSchedule),
-		/// Claimed vesting (who, locked_amount)
+		/// Claimed vesting. [who, locked_amount]
 		Claimed(AccountId, Balance),
-		/// Updated vesting schedules (who)
+		/// Updated vesting schedules. [who]
 		VestingSchedulesUpdated(AccountId),
 	}
 );
