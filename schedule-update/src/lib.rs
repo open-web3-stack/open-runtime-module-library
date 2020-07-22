@@ -9,7 +9,7 @@ use frame_support::{
 	weights::{DispatchClass, GetDispatchInfo, Weight},
 	Parameter,
 };
-use frame_system::{self as system, ensure_root, ensure_signed};
+use frame_system::{ensure_root, ensure_signed};
 use orml_traits::{DelayedDispatchTime, DispatchId};
 use sp_runtime::{
 	traits::{CheckedAdd, Dispatchable, One, Zero},

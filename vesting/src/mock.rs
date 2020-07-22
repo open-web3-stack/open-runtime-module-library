@@ -60,6 +60,7 @@ impl frame_system::Trait for Runtime {
 	type ExtrinsicBaseWeight = ();
 	type MaximumExtrinsicWeight = ();
 	type BaseCallFilter = ();
+	type SystemWeightInfo = ();
 }
 pub type System = system::Module<Runtime>;
 
@@ -76,6 +77,7 @@ impl pallet_balances::Trait for Runtime {
 	type Event = TestEvent;
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = frame_system::Module<Runtime>;
+	type WeightInfo = ();
 }
 pub type PalletBalances = pallet_balances::Module<Runtime>;
 

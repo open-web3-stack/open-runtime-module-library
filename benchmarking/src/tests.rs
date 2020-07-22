@@ -79,6 +79,7 @@ impl frame_system::Trait for Test {
 	type OnKilledAccount = ();
 	type MaximumExtrinsicWeight = ();
 	type BaseCallFilter = ();
+	type SystemWeightInfo = ();
 }
 
 impl Trait for Test {
