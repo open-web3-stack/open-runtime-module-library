@@ -7,11 +7,13 @@
 //!
 //! ## Overview
 //!
-//! This module exposes capabilities for oracle operators to feed external offchain data.
-//! The raw values can be combined to provide an aggregated value.
+//! This module exposes capabilities for oracle operators to feed external
+//! offchain data. The raw values can be combined to provide an aggregated
+//! value.
 //!
-//! The data are submitted with unsigned transaction so it does not incure a transaction fee. However the data
-//! still needs to be signed by a session key to prevent spam and ensure the integrity.
+//! The data are submitted with unsigned transaction so it does not incure a
+//! transaction fee. However the data still needs to be signed by a session key
+//! to prevent spam and ensure the integrity.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 // Disable the following two lints since they originate from an external macro (namely decl_storage)
@@ -39,9 +41,9 @@ use sp_runtime::{
 	DispatchResult, RuntimeDebug,
 };
 use sp_std::{convert::TryInto, prelude::*, vec};
-// FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
-// would cause compiling error in `decl_module!` and `construct_runtime!`
-// #3295 https://github.com/paritytech/substrate/issues/3295
+// FIXME: `pallet/frame-` prefix should be used for all pallet modules, but
+// currently `frame_system` would cause compiling error in `decl_module!` and
+// `construct_runtime!` #3295 https://github.com/paritytech/substrate/issues/3295
 use frame_system::{self as system, ensure_none, ensure_root, ensure_signed};
 pub use orml_traits::{CombineData, DataProvider, DataProviderExtended, OnNewData};
 use orml_utilities::OrderedSet;
@@ -84,7 +86,8 @@ pub trait Trait: frame_system::Trait {
 	/// Hook on new data received
 	type OnNewData: OnNewData<Self::AccountId, Self::OracleKey, Self::OracleValue>;
 
-	/// Provide the implementation to combine raw values to produce aggregated value
+	/// Provide the implementation to combine raw values to produce aggregated
+	/// value
 	type CombineData: CombineData<Self::OracleKey, TimestampedValueOf<Self>>;
 
 	/// Time provider

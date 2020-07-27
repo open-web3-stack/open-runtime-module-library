@@ -1,4 +1,5 @@
-//! Macro for benchmarking a Substrate runtime. A fork of `frame-benchmarking` pallet.
+//! Macro for benchmarking a Substrate runtime. A fork of `frame-benchmarking`
+//! pallet.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -19,13 +20,15 @@ pub use sp_runtime::traits::{Dispatchable, One, Zero};
 
 /// Construct pallet benchmarks for weighing dispatchables.
 ///
-/// Works around the idea of complexity parameters, named by a single letter (which is usually
-/// upper cased in complexity notation but is lower-cased for use in this macro).
+/// Works around the idea of complexity parameters, named by a single letter
+/// (which is usually upper cased in complexity notation but is lower-cased for
+/// use in this macro).
 ///
-/// Complexity parameters ("parameters") have a range which is a `u32` pair. Every time a benchmark
-/// is prepared and run, this parameter takes a concrete value within the range. There is an
-/// associated instancing block, which is a single expression that is evaluated during
-/// preparation. It may use `?` (`i.e. `return Err(...)`) to bail with a string error. Here's a
+/// Complexity parameters ("parameters") have a range which is a `u32` pair.
+/// Every time a benchmark is prepared and run, this parameter takes a concrete
+/// value within the range. There is an associated instancing block, which is a
+/// single expression that is evaluated during preparation. It may use `?`
+/// (`i.e. `return Err(...)`) to bail with a string error. Here's a
 /// few examples:
 ///
 /// ```ignore
@@ -42,29 +45,32 @@ pub use sp_runtime::traits::{Dispatchable, One, Zero};
 /// }
 /// ```
 ///
-/// Note that due to parsing restrictions, if the `from` expression is not a single token (i.e. a
-/// literal or constant), then it must be parenthesised.
+/// Note that due to parsing restrictions, if the `from` expression is not a
+/// single token (i.e. a literal or constant), then it must be parenthesised.
 ///
-/// The macro allows for a number of "arms", each representing an individual benchmark. Using the
-/// simple syntax, the associated dispatchable function maps 1:1 with the benchmark and the name of
-/// the benchmark is the same as that of the associated function. However, extended syntax allows
-/// for arbitrary expresions to be evaluated in a benchmark (including for example,
-/// `on_initialize`).
+/// The macro allows for a number of "arms", each representing an individual
+/// benchmark. Using the simple syntax, the associated dispatchable function
+/// maps 1:1 with the benchmark and the name of the benchmark is the same as
+/// that of the associated function. However, extended syntax allows
+/// for arbitrary expresions to be evaluated in a benchmark (including for
+/// example, `on_initialize`).
 ///
-/// The macro allows for common parameters whose ranges and instancing expressions may be drawn upon
-/// (or not) by each arm. Syntax is available to allow for only the range to be drawn upon if
-/// desired, allowing an alternative instancing expression to be given.
+/// The macro allows for common parameters whose ranges and instancing
+/// expressions may be drawn upon (or not) by each arm. Syntax is available to
+/// allow for only the range to be drawn upon if desired, allowing an
+/// alternative instancing expression to be given.
 ///
-/// Note that the ranges are *inclusive* on both sides. This is in contrast to ranges in Rust which
-/// are left-inclusive right-exclusive.
+/// Note that the ranges are *inclusive* on both sides. This is in contrast to
+/// ranges in Rust which are left-inclusive right-exclusive.
 ///
-/// Each arm may also have a block of code which is run prior to any instancing and a block of code
-/// which is run afterwards. All code blocks may draw upon the specific value of each parameter
-/// at any time. Local variables are shared between the two pre- and post- code blocks, but do not
-/// leak from the interior of any instancing expressions.
+/// Each arm may also have a block of code which is run prior to any instancing
+/// and a block of code which is run afterwards. All code blocks may draw upon
+/// the specific value of each parameter at any time. Local variables are shared
+/// between the two pre- and post- code blocks, but do not leak from the
+/// interior of any instancing expressions.
 ///
-/// Any common parameters that are unused in an arm do not have their instancing expressions
-/// evaluated.
+/// Any common parameters that are unused in an arm do not have their instancing
+/// expressions evaluated.
 ///
 /// Example:
 /// ```ignore
@@ -124,14 +130,16 @@ pub use sp_runtime::traits::{Dispatchable, One, Zero};
 /// }
 /// ```
 ///
-/// Test functions are automatically generated for each benchmark and are accessible to you when you
-/// run `cargo test`. All tests are named `test_benchmark_<benchmark_name>`, expect you to pass them
-/// the Runtime Trait, and run them in a test externalities environment. The test function runs your
-/// benchmark just like a regular benchmark, but only testing at the lowest and highest values for
-/// each component. The function will return `Ok(())` if the benchmarks return no errors.
+/// Test functions are automatically generated for each benchmark and are
+/// accessible to you when you run `cargo test`. All tests are named
+/// `test_benchmark_<benchmark_name>`, expect you to pass them the Runtime
+/// Trait, and run them in a test externalities environment. The test function
+/// runs your benchmark just like a regular benchmark, but only testing at the
+/// lowest and highest values for each component. The function will return
+/// `Ok(())` if the benchmarks return no errors.
 ///
-/// You can optionally add a `verify` code block at the end of a benchmark to test any final state
-/// of your benchmark in a unit test. For example:
+/// You can optionally add a `verify` code block at the end of a benchmark to
+/// test any final state of your benchmark in a unit test. For example:
 ///
 /// ```ignore
 /// sort_vector {
@@ -648,7 +656,7 @@ macro_rules! benchmark_backend {
 // Every variant must implement [`BenchmarkingSetup`].
 //
 // ```nocompile
-//
+// 
 // struct Transfer;
 // impl BenchmarkingSetup for Transfer { ... }
 //
@@ -1142,8 +1150,8 @@ macro_rules! impl_benchmark_test {
 /// let mut batches = Vec::<BenchmarkBatch>::new();
 /// ````
 ///
-/// Then add the pallets you want to benchmark to this object, including the string
-/// you want to use target a particular pallet:
+/// Then add the pallets you want to benchmark to this object, including the
+/// string you want to use target a particular pallet:
 ///
 /// ```ignore
 /// add_benchmark!(params, batches, b"balances", Balances);

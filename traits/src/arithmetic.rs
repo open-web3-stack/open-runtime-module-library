@@ -9,9 +9,10 @@ use sp_std::{
 
 /// A meta trait for arithmetic.
 ///
-/// Arithmetic types do all the usual stuff you'd expect numbers to do. They are guaranteed to
-/// be able to represent at least `u32` values without loss, hence the trait implies `From<u32>`
-/// and smaller ints. All other conversions are fallible.
+/// Arithmetic types do all the usual stuff you'd expect numbers to do. They are
+/// guaranteed to be able to represent at least `u32` values without loss, hence
+/// the trait implies `From<u32>` and smaller ints. All other conversions are
+/// fallible.
 pub trait SimpleArithmetic:
 	Zero
 	+ One
