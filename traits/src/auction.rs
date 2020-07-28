@@ -34,7 +34,8 @@ pub trait Auction<AccountId, BlockNumber> {
 	fn auction_info(id: Self::AuctionId) -> Option<AuctionInfo<AccountId, Self::Balance, BlockNumber>>;
 	/// Update the auction info of `id` with `info`
 	fn update_auction(id: Self::AuctionId, info: AuctionInfo<AccountId, Self::Balance, BlockNumber>) -> DispatchResult;
-	/// Create new auction with specific startblock and endblock, return the id of the auction
+	/// Create new auction with specific startblock and endblock, return the id
+	/// of the auction
 	fn new_auction(start: BlockNumber, end: Option<BlockNumber>) -> result::Result<Self::AuctionId, DispatchError>;
 	/// Remove auction by `id`
 	fn remove_auction(id: Self::AuctionId);
@@ -51,8 +52,9 @@ pub struct OnNewBidResult<BlockNumber> {
 /// Hooks for auction to handle bids.
 pub trait AuctionHandler<AccountId, Balance, BlockNumber, AuctionId> {
 	/// Called when new bid is received.
-	/// The return value determines if the bid should be accepted and update auction end time.
-	/// Implementation should reserve money from current winner and refund previous winner.
+	/// The return value determines if the bid should be accepted and update
+	/// auction end time. Implementation should reserve money from current
+	/// winner and refund previous winner.
 	fn on_new_bid(
 		now: BlockNumber,
 		id: AuctionId,

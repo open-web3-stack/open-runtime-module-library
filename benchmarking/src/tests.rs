@@ -88,8 +88,8 @@ impl Trait for Test {
 	type AccountId = u128;
 }
 
-// This function basically just builds a genesis storage key/value store according to
-// our desired mockup.
+// This function basically just builds a genesis storage key/value store
+// according to our desired mockup.
 fn new_test_ext() -> sp_io::TestExternalities {
 	frame_system::GenesisConfig::default()
 		.build_storage::<Test>()

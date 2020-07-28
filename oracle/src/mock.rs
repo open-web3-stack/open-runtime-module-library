@@ -100,8 +100,8 @@ impl Trait for Test {
 	type AuthorityId = UintAuthorityId;
 }
 pub type ModuleOracle = Module<Test>;
-// This function basically just builds a genesis storage key/value store according to
-// our desired mockup.
+// This function basically just builds a genesis storage key/value store
+// according to our desired mockup.
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut storage = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
 

@@ -2,15 +2,18 @@
 //!
 //! ## Overview
 //!
-//! Vesting module provides a means of scheduled balance lock on an account. It uses the *graded vesting* way, which
-//! unlocks a specific amount of balance every period of time, until all balance unlocked.
+//! Vesting module provides a means of scheduled balance lock on an account. It
+//! uses the *graded vesting* way, which unlocks a specific amount of balance
+//! every period of time, until all balance unlocked.
 //!
 //! ### Vesting Schedule
 //!
-//! The schedule of a vesting is described by data structure `VestingSchedule`: from the block number of `start`, for
-//! every `period` amount of blocks, `per_period` amount of balance would unlocked, until number of periods
-//! `period_count` reached. Note in vesting schedules, *time* is measured by block number. All `VestingSchedule`s under
-//! an account could be queried in chain state.
+//! The schedule of a vesting is described by data structure `VestingSchedule`:
+//! from the block number of `start`, for every `period` amount of blocks,
+//! `per_period` amount of balance would unlocked, until number of periods
+//! `period_count` reached. Note in vesting schedules, *time* is measured by
+//! block number. All `VestingSchedule`s under an account could be queried in
+//! chain state.
 //!
 //! ## Interface
 //!
@@ -18,7 +21,8 @@
 //!
 //! - `vested_transfer` - Add a new vesting schedule for an account.
 //! - `claim` - Claim unlocked balances.
-//! - `update_vesting_schedules` - Update all vesting schedules under an account, `root` origin required.
+//! - `update_vesting_schedules` - Update all vesting schedules under an
+//!   account, `root` origin required.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -32,9 +36,9 @@ use sp_std::{
 	cmp::{Eq, PartialEq},
 	vec::Vec,
 };
-// FIXME: `pallet/frame-` prefix should be used for all pallet modules, but currently `frame_system`
-// would cause compiling error in `decl_module!` and `construct_runtime!`
-// #3295 https://github.com/paritytech/substrate/issues/3295
+// FIXME: `pallet/frame-` prefix should be used for all pallet modules, but
+// currently `frame_system` would cause compiling error in `decl_module!` and
+// `construct_runtime!` #3295 https://github.com/paritytech/substrate/issues/3295
 use frame_system::{self as system, ensure_root, ensure_signed};
 use sp_runtime::{
 	traits::{AtLeast32Bit, CheckedAdd, Saturating, StaticLookup, Zero},
@@ -49,8 +53,8 @@ pub const MAX_VESTINGS: usize = 20;
 
 /// The vesting schedule.
 ///
-/// Benefits would be granted gradually, `per_period` amount every `period` of blocks
-/// after `start`.
+/// Benefits would be granted gradually, `per_period` amount every `period` of
+/// blocks after `start`.
 #[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug)]
 pub struct VestingSchedule<BlockNumber, Balance: HasCompact> {
 	/// Vesting starting block
@@ -80,8 +84,8 @@ impl<BlockNumber: AtLeast32Bit + Copy, Balance: AtLeast32Bit + Copy> VestingSche
 
 	/// Returns locked amount for a given `time`.
 	///
-	/// Note this func assumes schedule is a valid one(non-zero period and non-overflow total amount),
-	/// and it should be guaranteed by callers.
+	/// Note this func assumes schedule is a valid one(non-zero period and
+	/// non-overflow total amount), and it should be guaranteed by callers.
 	pub fn locked_amount(&self, time: BlockNumber) -> Balance {
 		// full = (time - start) / period
 		// unrealized = period_count - full
