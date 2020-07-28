@@ -23,7 +23,7 @@ githooks: $(GITHOOK) $(GITHOOKS_DEST)
 init: githooks
 
 format:
-	./scripts/run.sh "+stable fmt"
+	./scripts/run.sh "fmt"
 
 
 # Standalone development workflow targets
@@ -33,10 +33,10 @@ Cargo.toml: Cargo.dev.toml
 	cp Cargo.dev.toml Cargo.toml
 
 dev-format: Cargo.toml
-	cargo +stable fmt --all
+	cargo fmt --all
 
 dev-format-check: Cargo.toml
-	cargo +stable fmt --all -- --check
+	cargo fmt --all -- --check
 
 # needs to use run.sh to check individual projects because
 #   --no-default-features is not allowed in the root of a virtual workspace
