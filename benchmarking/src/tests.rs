@@ -39,7 +39,7 @@ decl_module! {
 }
 
 impl_outer_origin! {
-	pub enum Origin for Test where system = frame_system {}
+	pub enum Origin for Test {}
 }
 
 pub trait Trait {
