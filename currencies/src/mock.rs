@@ -25,7 +25,7 @@ impl_outer_event! {
 }
 
 impl_outer_origin! {
-	pub enum Origin for Runtime where system = frame_system {}
+	pub enum Origin for Runtime {}
 }
 
 // Workaround for https://github.com/rust-lang/rust/issues/26925 . Remove when sorted.
