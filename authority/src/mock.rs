@@ -49,6 +49,7 @@ impl frame_system::Trait for Runtime {
 	type ExtrinsicBaseWeight = ();
 	type MaximumExtrinsicWeight = ();
 	type BaseCallFilter = ();
+	type SystemWeightInfo = ();
 }
 
 pub struct MockScheduler;
@@ -73,7 +74,7 @@ parameter_types! {
 	pub const MinimumDelay: BlockNumber = 10;
 	pub const MinimumDelayForInstance1: BlockNumber = 20;
 	pub AsOrigin: Origin = Origin::root();
-	pub AsOriginForInstance1: Origin = system::RawOrigin::Signed(Three::get()).into();
+	pub AsOriginForInstance1: Origin = frame_system::RawOrigin::Signed(Three::get()).into();
 }
 
 impl Trait for Runtime {

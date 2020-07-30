@@ -10,7 +10,7 @@ use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 use super::*;
 
 impl_outer_origin! {
-	pub enum Origin for Runtime where system = frame_system {}
+	pub enum Origin for Runtime {}
 }
 
 mod vesting {
@@ -60,8 +60,9 @@ impl frame_system::Trait for Runtime {
 	type ExtrinsicBaseWeight = ();
 	type MaximumExtrinsicWeight = ();
 	type BaseCallFilter = ();
+	type SystemWeightInfo = ();
 }
-pub type System = system::Module<Runtime>;
+pub type System = frame_system::Module<Runtime>;
 
 type Balance = u64;
 
@@ -76,6 +77,7 @@ impl pallet_balances::Trait for Runtime {
 	type Event = TestEvent;
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = frame_system::Module<Runtime>;
+	type WeightInfo = ();
 }
 pub type PalletBalances = pallet_balances::Module<Runtime>;
 

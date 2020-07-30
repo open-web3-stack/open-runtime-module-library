@@ -31,6 +31,9 @@ use frame_support::{
 	weights::DispatchClass,
 	IterableStorageMap, Parameter,
 };
+use frame_system::{ensure_none, ensure_root, ensure_signed};
+pub use orml_traits::{CombineData, DataProvider, DataProviderExtended, OnNewData};
+use orml_utilities::OrderedSet;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::{
@@ -41,12 +44,6 @@ use sp_runtime::{
 	DispatchResult, RuntimeDebug,
 };
 use sp_std::{convert::TryInto, prelude::*, vec};
-// FIXME: `pallet/frame-` prefix should be used for all pallet modules, but
-// currently `frame_system` would cause compiling error in `decl_module!` and
-// `construct_runtime!` #3295 https://github.com/paritytech/substrate/issues/3295
-use frame_system::{self as system, ensure_none, ensure_root, ensure_signed};
-pub use orml_traits::{CombineData, DataProvider, DataProviderExtended, OnNewData};
-use orml_utilities::OrderedSet;
 
 use sp_application_crypto::{KeyTypeId, RuntimeAppPublic};
 pub const ORACLE: KeyTypeId = KeyTypeId(*b"orac");

@@ -32,17 +32,14 @@ use frame_support::{
 	traits::{Currency, ExistenceRequirement, Get, LockIdentifier, LockableCurrency, WithdrawReasons},
 	weights::constants::WEIGHT_PER_MICROS,
 };
-use sp_std::{
-	cmp::{Eq, PartialEq},
-	vec::Vec,
-};
-// FIXME: `pallet/frame-` prefix should be used for all pallet modules, but
-// currently `frame_system` would cause compiling error in `decl_module!` and
-// `construct_runtime!` #3295 https://github.com/paritytech/substrate/issues/3295
-use frame_system::{self as system, ensure_root, ensure_signed};
+use frame_system::{ensure_root, ensure_signed};
 use sp_runtime::{
 	traits::{AtLeast32Bit, CheckedAdd, Saturating, StaticLookup, Zero},
 	DispatchResult, RuntimeDebug,
+};
+use sp_std::{
+	cmp::{Eq, PartialEq},
+	vec::Vec,
 };
 
 mod mock;

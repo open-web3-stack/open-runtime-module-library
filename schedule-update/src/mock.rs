@@ -16,8 +16,8 @@ mod logger {
 	thread_local! {
 		static LOG: RefCell<Vec<u32>> = RefCell::new(Vec::new());
 	}
-	pub trait Trait: system::Trait {
-		type Event: From<Event> + Into<<Self as system::Trait>::Event>;
+	pub trait Trait: frame_system::Trait {
+		type Event: From<Event> + Into<<Self as frame_system::Trait>::Event>;
 	}
 	decl_storage! {
 		trait Store for Module<T: Trait> as Logger {
@@ -29,7 +29,7 @@ mod logger {
 		}
 	}
 	decl_module! {
-		pub struct Module<T: Trait> for enum Call where origin: <T as system::Trait>::Origin {
+		pub struct Module<T: Trait> for enum Call where origin: <T as frame_system::Trait>::Origin {
 			fn deposit_event() = default;
 
 			#[weight = *weight]
@@ -107,6 +107,7 @@ impl frame_system::Trait for Runtime {
 	type ExtrinsicBaseWeight = ();
 	type MaximumExtrinsicWeight = ();
 	type BaseCallFilter = ();
+	type SystemWeightInfo = ();
 }
 pub type System = frame_system::Module<Runtime>;
 
@@ -120,6 +121,7 @@ impl pallet_balances::Trait for Runtime {
 	type Event = TestEvent;
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
+	type WeightInfo = ();
 }
 pub type Balances = pallet_balances::Module<Runtime>;
 

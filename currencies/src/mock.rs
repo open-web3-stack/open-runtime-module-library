@@ -25,7 +25,7 @@ impl_outer_event! {
 }
 
 impl_outer_origin! {
-	pub enum Origin for Runtime where system = frame_system {}
+	pub enum Origin for Runtime {}
 }
 
 // Workaround for https://github.com/rust-lang/rust/issues/26925 . Remove when sorted.
@@ -64,8 +64,9 @@ impl frame_system::Trait for Runtime {
 	type ExtrinsicBaseWeight = ();
 	type MaximumExtrinsicWeight = ();
 	type BaseCallFilter = ();
+	type SystemWeightInfo = ();
 }
-pub type System = system::Module<Runtime>;
+pub type System = frame_system::Module<Runtime>;
 
 type CurrencyId = u32;
 type Balance = u64;
@@ -80,6 +81,7 @@ impl pallet_balances::Trait for Runtime {
 	type Event = TestEvent;
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = frame_system::Module<Runtime>;
+	type WeightInfo = ();
 }
 
 pub type PalletBalances = pallet_balances::Module<Runtime>;

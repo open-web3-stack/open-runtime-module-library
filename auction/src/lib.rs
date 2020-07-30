@@ -16,7 +16,7 @@ use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage, ensure, traits::Get, weights::constants::WEIGHT_PER_MICROS,
 	IterableStorageDoubleMap, Parameter,
 };
-use frame_system::{self as system, ensure_signed};
+use frame_system::ensure_signed;
 use orml_traits::{Auction, AuctionHandler, AuctionInfo, Change};
 use sp_runtime::{
 	traits::{AtLeast32Bit, Bounded, MaybeSerializeDeserialize, Member, One, Zero},
