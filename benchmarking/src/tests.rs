@@ -39,7 +39,7 @@ decl_module! {
 }
 
 impl_outer_origin! {
-	pub enum Origin for Test where system = frame_system {}
+	pub enum Origin for Test {}
 }
 
 pub trait Trait {
@@ -79,6 +79,7 @@ impl frame_system::Trait for Test {
 	type OnKilledAccount = ();
 	type MaximumExtrinsicWeight = ();
 	type BaseCallFilter = ();
+	type SystemWeightInfo = ();
 }
 
 impl Trait for Test {

@@ -4,6 +4,7 @@
 #![allow(clippy::boxed_local)]
 #![allow(clippy::borrowed_box)]
 
+use codec::{Decode, Encode};
 use frame_support::{
 	decl_error, decl_module, decl_storage,
 	dispatch::PostDispatchInfo,
@@ -12,7 +13,6 @@ use frame_support::{
 	weights::GetDispatchInfo,
 	Parameter,
 };
-use frame_system::{self as system};
 use orml_traits::{DelayedDispatchTime, DispatchId, Scheduler};
 use sp_runtime::{
 	traits::{CheckedAdd, CheckedSub, Dispatchable},
@@ -23,7 +23,7 @@ use sp_std::prelude::*;
 mod mock;
 mod tests;
 
-#[derive(PartialEq, Eq, Clone, RuntimeDebug)]
+#[derive(PartialEq, Eq, Clone, RuntimeDebug, Encode, Decode)]
 pub struct DelayedOrigin<BlockNumber, Origin, I> {
 	pub delay: BlockNumber,
 	pub origin: Origin,
@@ -53,24 +53,27 @@ impl<
 }
 
 /// Origin for the authority module.
-pub type Origin<T, I = DefaultInstance> =
-	DelayedOrigin<<T as system::Trait>::BlockNumber, system::RawOrigin<<T as system::Trait>::AccountId>, I>;
+pub type Origin<T, I = DefaultInstance> = DelayedOrigin<
+	<T as frame_system::Trait>::BlockNumber,
+	frame_system::RawOrigin<<T as frame_system::Trait>::AccountId>,
+	I,
+>;
 type CallOf<T, I = DefaultInstance> = <T as Trait<I>>::Call;
 
-pub trait Trait<I: Instance = DefaultInstance>: system::Trait {
-	type Origin: From<DelayedOrigin<Self::BlockNumber, system::RawOrigin<Self::AccountId>, I>>
-		+ From<system::RawOrigin<Self::AccountId>>;
+pub trait Trait<I: Instance = DefaultInstance>: frame_system::Trait {
+	type Origin: From<DelayedOrigin<Self::BlockNumber, frame_system::RawOrigin<Self::AccountId>, I>>
+		+ From<frame_system::RawOrigin<Self::AccountId>>;
 	type Call: Parameter
-		+ Dispatchable<Origin = <Self as system::Trait>::Origin, PostInfo = PostDispatchInfo>
+		+ Dispatchable<Origin = <Self as frame_system::Trait>::Origin, PostInfo = PostDispatchInfo>
 		+ GetDispatchInfo;
-	type RootDispatchOrigin: EnsureOrigin<<Self as system::Trait>::Origin>;
-	type DelayedRootDispatchOrigin: EnsureOrigin<<Self as system::Trait>::Origin>;
-	type DelayedDispatchOrigin: EnsureOrigin<<Self as system::Trait>::Origin>;
-	type VetoOrigin: EnsureOrigin<<Self as system::Trait>::Origin>;
-	type InstantDispatchOrigin: EnsureOrigin<<Self as system::Trait>::Origin>;
+	type RootDispatchOrigin: EnsureOrigin<<Self as frame_system::Trait>::Origin>;
+	type DelayedRootDispatchOrigin: EnsureOrigin<<Self as frame_system::Trait>::Origin>;
+	type DelayedDispatchOrigin: EnsureOrigin<<Self as frame_system::Trait>::Origin>;
+	type VetoOrigin: EnsureOrigin<<Self as frame_system::Trait>::Origin>;
+	type InstantDispatchOrigin: EnsureOrigin<<Self as frame_system::Trait>::Origin>;
 	type Scheduler: Scheduler<Self::BlockNumber, Origin = <Self as Trait<I>>::Origin, Call = <Self as Trait<I>>::Call>;
 	type MinimumDelay: Get<Self::BlockNumber>;
-	type AsOrigin: Get<<Self as system::Trait>::Origin>;
+	type AsOrigin: Get<<Self as frame_system::Trait>::Origin>;
 }
 
 decl_error! {
@@ -87,7 +90,7 @@ decl_storage! {
 }
 
 decl_module! {
-	pub struct Module<T: Trait<I>, I: Instance = DefaultInstance> for enum Call where origin: <T as system::Trait>::Origin {
+	pub struct Module<T: Trait<I>, I: Instance = DefaultInstance> for enum Call where origin: <T as frame_system::Trait>::Origin {
 		type Error = Error<T, I>;
 
 		const MinimumDelay: T::BlockNumber = T::MinimumDelay::get();
@@ -117,7 +120,7 @@ decl_module! {
 				T::InstantDispatchOrigin::ensure_origin(origin)?;
 			}
 
-			let raw_origin: system::RawOrigin<T::AccountId> = T::AsOrigin::get().into().map_err(|_| Error::<T, I>::OriginConvertFailed)?;
+			let raw_origin: frame_system::RawOrigin<T::AccountId> = T::AsOrigin::get().into().map_err(|_| Error::<T, I>::OriginConvertFailed)?;
 
 			// schedule call with as origin
 			let _ = T::Scheduler::schedule(raw_origin.into(), *call, when);

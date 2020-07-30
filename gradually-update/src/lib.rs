@@ -25,7 +25,7 @@ use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage, ensure, storage,
 	traits::{EnsureOrigin, Get},
 };
-use frame_system::{self as system, ensure_root};
+use frame_system::ensure_root;
 
 use sp_runtime::{traits::SaturatedConversion, DispatchResult, RuntimeDebug};
 use sp_std::prelude::Vec;

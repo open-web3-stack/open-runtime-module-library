@@ -62,6 +62,7 @@ impl frame_system::Trait for Test {
 	type ExtrinsicBaseWeight = ();
 	type MaximumExtrinsicWeight = ();
 	type BaseCallFilter = ();
+	type SystemWeightInfo = ();
 }
 
 thread_local! {

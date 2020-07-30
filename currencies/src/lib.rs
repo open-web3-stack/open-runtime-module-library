@@ -47,6 +47,7 @@ use frame_support::{
 	},
 	weights::constants::WEIGHT_PER_MICROS,
 };
+use frame_system::{ensure_root, ensure_signed};
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize, StaticLookup, Zero},
 	DispatchError, DispatchResult,
@@ -56,10 +57,6 @@ use sp_std::{
 	fmt::Debug,
 	marker, result,
 };
-// FIXME: `pallet/frame-` prefix should be used for all pallet modules, but
-// currently `frame_system` would cause compiling error in `decl_module!` and
-// `construct_runtime!` #3295 https://github.com/paritytech/substrate/issues/3295
-use frame_system::{self as system, ensure_root, ensure_signed};
 
 use orml_traits::{
 	arithmetic::{Signed, SimpleArithmetic},
