@@ -6,7 +6,6 @@ members = [
 	"currencies",
 	"gradually-update",
 	"oracle",
-	"schedule-update",
 	"tokens",
 	"traits",
 	"utilities",

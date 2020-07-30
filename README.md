@@ -19,8 +19,6 @@ The Open Runtime Module Library (ORML) is a community maintained collection of S
     - Provides scheduled balance locking mechanism, in a *graded vesting* way.
 - [orml-gradually-update](./gradually-update)
     - Provides way to adjust numeric parameter gradually over a period of time.
-- [orml-schedule-update](./schedule-update)
-    - Provides way to schedule a call to be dispatched at later block.
 
 ## Installation
 
