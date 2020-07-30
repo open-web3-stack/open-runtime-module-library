@@ -7,11 +7,13 @@
 //!
 //! ## Overview
 //!
-//! This module exposes capabilities for oracle operators to feed external offchain data.
-//! The raw values can be combined to provide an aggregated value.
+//! This module exposes capabilities for oracle operators to feed external
+//! offchain data. The raw values can be combined to provide an aggregated
+//! value.
 //!
-//! The data are submitted with unsigned transaction so it does not incure a transaction fee. However the data
-//! still needs to be signed by a session key to prevent spam and ensure the integrity.
+//! The data are submitted with unsigned transaction so it does not incure a
+//! transaction fee. However the data still needs to be signed by a session key
+//! to prevent spam and ensure the integrity.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 // Disable the following two lints since they originate from an external macro (namely decl_storage)
@@ -81,7 +83,8 @@ pub trait Trait: frame_system::Trait {
 	/// Hook on new data received
 	type OnNewData: OnNewData<Self::AccountId, Self::OracleKey, Self::OracleValue>;
 
-	/// Provide the implementation to combine raw values to produce aggregated value
+	/// Provide the implementation to combine raw values to produce aggregated
+	/// value
 	type CombineData: CombineData<Self::OracleKey, TimestampedValueOf<Self>>;
 
 	/// Time provider

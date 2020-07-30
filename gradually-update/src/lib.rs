@@ -7,12 +7,14 @@
 //!
 //! ## Overview
 //!
-//! This module exposes capabilities for scheduling updates to storage values gradually.
-//! This is useful to change parameter values gradually to ensure a smooth transition.
-//! It is also possible to cancel an update before it reaches to target value.
+//! This module exposes capabilities for scheduling updates to storage values
+//! gradually. This is useful to change parameter values gradually to ensure a
+//! smooth transition. It is also possible to cancel an update before it reaches
+//! to target value.
 //!
-//! NOTE: Only unsigned integer value up to 128 bits are supported. But a "newtype" pattern struct
-//! that wraps an unsigned integer works too such as `Permill` and `FixedU128`.
+//! NOTE: Only unsigned integer value up to 128 bits are supported. But a
+//! "newtype" pattern struct that wraps an unsigned integer works too such as
+//! `Permill` and `FixedU128`.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 // Disable the following two lints since they originate from an external macro (namely decl_storage)

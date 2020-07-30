@@ -2,9 +2,11 @@
 //!
 //! ## Overview
 //!
-//! This module provides a basic abstraction to implement on-chain auctioning feature.
+//! This module provides a basic abstraction to implement on-chain auctioning
+//! feature.
 //!
-//! The auction logic can be customized by implement and supplying `AuctionHandler` trait.
+//! The auction logic can be customized by implement and supplying
+//! `AuctionHandler` trait.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 // Disable the following two lints since they originate from an external macro (namely decl_storage)
@@ -34,7 +36,8 @@ pub trait Trait: frame_system::Trait {
 	/// The auction ID type
 	type AuctionId: Parameter + Member + AtLeast32Bit + Default + Copy + MaybeSerializeDeserialize + Bounded;
 
-	/// The `AuctionHandler` that allow custom bidding logic and handles auction result
+	/// The `AuctionHandler` that allow custom bidding logic and handles auction
+	/// result
 	type Handler: AuctionHandler<Self::AccountId, Self::Balance, Self::BlockNumber, Self::AuctionId>;
 }
 

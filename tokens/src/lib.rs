@@ -2,7 +2,8 @@
 //!
 //! ## Overview
 //!
-//! The tokens module provides fungible multi-currency functionality that implements `MultiCurrency` trait.
+//! The tokens module provides fungible multi-currency functionality that
+//! implements `MultiCurrency` trait.
 //!
 //! The tokens module provides functions for:
 //!
@@ -17,7 +18,8 @@
 //! The tokens module provides implementations for following traits.
 //!
 //! - `MultiCurrency` - Abstraction over a fungible multi-currency system.
-//! - `MultiCurrencyExtended` - Extended `MultiCurrency` with additional helper types and methods, like updating balance
+//! - `MultiCurrencyExtended` - Extended `MultiCurrency` with additional helper
+//!   types and methods, like updating balance
 //! by a given signed integer amount.
 //!
 //! ## Interface
@@ -29,7 +31,8 @@
 //!
 //! ### Genesis Config
 //!
-//! The tokens module depends on the `GenesisConfig`. Endowed accounts could be configured in genesis configs.
+//! The tokens module depends on the `GenesisConfig`. Endowed accounts could be
+//! configured in genesis configs.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -85,30 +88,35 @@ pub trait Trait: frame_system::Trait {
 	type OnReceived: OnReceived<Self::AccountId, Self::CurrencyId, Self::Balance>;
 }
 
-/// A single lock on a balance. There can be many of these on an account and they "overlap", so the
-/// same balance is frozen by multiple locks.
+/// A single lock on a balance. There can be many of these on an account and
+/// they "overlap", so the same balance is frozen by multiple locks.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
 pub struct BalanceLock<Balance> {
-	/// An identifier for this lock. Only one lock may be in existence for each identifier.
+	/// An identifier for this lock. Only one lock may be in existence for each
+	/// identifier.
 	pub id: LockIdentifier,
-	/// The amount which the free balance may not drop below when this lock is in effect.
+	/// The amount which the free balance may not drop below when this lock is
+	/// in effect.
 	pub amount: Balance,
 }
 
 /// balance information for an account.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, Default, RuntimeDebug)]
 pub struct AccountData<Balance> {
-	/// Non-reserved part of the balance. There may still be restrictions on this, but it is the
-	/// total pool what may in principle be transferred, reserved.
+	/// Non-reserved part of the balance. There may still be restrictions on
+	/// this, but it is the total pool what may in principle be transferred,
+	/// reserved.
 	///
-	/// This is the only balance that matters in terms of most operations on tokens.
+	/// This is the only balance that matters in terms of most operations on
+	/// tokens.
 	pub free: Balance,
 	/// Balance which is reserved and may not be used at all.
 	///
 	/// This can still get slashed, but gets slashed last of all.
 	///
-	/// This balance is a 'reserve' balance that other subsystems use in order to set aside tokens
-	/// that are still 'owned' by the account holder, but which are suspendable.
+	/// This balance is a 'reserve' balance that other subsystems use in order
+	/// to set aside tokens that are still 'owned' by the account holder, but
+	/// which are suspendable.
 	pub reserved: Balance,
 	/// The amount that `free` may not drop below when withdrawing.
 	pub frozen: Balance,
@@ -119,7 +127,8 @@ impl<Balance: Saturating + Copy + Ord> AccountData<Balance> {
 	fn frozen(&self) -> Balance {
 		self.frozen
 	}
-	/// The total balance in this account including any that is reserved and ignoring any frozen.
+	/// The total balance in this account including any that is reserved and
+	/// ignoring any frozen.
 	fn total(&self) -> Balance {
 		self.free.saturating_add(self.reserved)
 	}
@@ -258,9 +267,11 @@ impl<T: Trait> Module<T> {
 		<Accounts<T>>::mutate(who, currency_id, |account_data| account_data.free = balance);
 	}
 
-	/// Set reserved balance of `who` to a new value, meanwhile enforce existential rule.
+	/// Set reserved balance of `who` to a new value, meanwhile enforce
+	/// existential rule.
 	///
-	/// Note this will not maintain total issuance, and the caller is expected to do it.
+	/// Note this will not maintain total issuance, and the caller is expected
+	/// to do it.
 	fn set_reserved_balance(currency_id: T::CurrencyId, who: &T::AccountId, balance: T::Balance) {
 		<Accounts<T>>::mutate(who, currency_id, |account_data| account_data.reserved = balance);
 	}
@@ -309,8 +320,8 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		Self::accounts(who, currency_id).free
 	}
 
-	// Ensure that an account can withdraw from their free balance given any existing withdrawal
-	// restrictions like locks and vesting balance.
+	// Ensure that an account can withdraw from their free balance given any
+	// existing withdrawal restrictions like locks and vesting balance.
 	// Is a no-op if amount to be withdrawn is zero.
 	fn ensure_can_withdraw(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
 		if amount.is_zero() {
@@ -328,7 +339,8 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	}
 
 	/// Transfer some free balance from `from` to `to`.
-	/// Is a no-op if value to be transferred is zero or the `from` is the same as `to`.
+	/// Is a no-op if value to be transferred is zero or the `from` is the same
+	/// as `to`.
 	fn transfer(
 		currency_id: Self::CurrencyId,
 		from: &T::AccountId,
@@ -389,9 +401,10 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 
 	/// Is a no-op if `value` to be slashed is zero.
 	///
-	/// NOTE: `slash()` prefers free balance, but assumes that reserve balance can be drawn
-	/// from in extreme circumstances. `can_slash()` should be used prior to `slash()` to avoid having
-	/// to draw from reserved funds, however we err on the side of punishment if things are inconsistent
+	/// NOTE: `slash()` prefers free balance, but assumes that reserve balance
+	/// can be drawn from in extreme circumstances. `can_slash()` should be used
+	/// prior to `slash()` to avoid having to draw from reserved funds, however
+	/// we err on the side of punishment if things are inconsistent
 	/// or `can_slash` wasn't used appropriately.
 	fn slash(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> Self::Balance {
 		if amount.is_zero() {
@@ -507,7 +520,8 @@ impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
 		Self::ensure_can_withdraw(currency_id, who, value).is_ok()
 	}
 
-	/// Slash from reserved balance, returning any amount that was unable to be slashed.
+	/// Slash from reserved balance, returning any amount that was unable to be
+	/// slashed.
 	///
 	/// Is a no-op if the value to be slashed is zero.
 	fn slash_reserved(currency_id: Self::CurrencyId, who: &T::AccountId, value: Self::Balance) -> Self::Balance {
@@ -541,7 +555,8 @@ impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
 		Ok(())
 	}
 
-	/// Unreserve some funds, returning any amount that was unable to be unreserved.
+	/// Unreserve some funds, returning any amount that was unable to be
+	/// unreserved.
 	///
 	/// Is a no-op if the value to be unreserved is zero.
 	fn unreserve(currency_id: Self::CurrencyId, who: &T::AccountId, value: Self::Balance) -> Self::Balance {
@@ -557,11 +572,13 @@ impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
 		value - actual
 	}
 
-	/// Move the reserved balance of one account into the balance of another, according to `status`.
+	/// Move the reserved balance of one account into the balance of another,
+	/// according to `status`.
 	///
 	/// Is a no-op if:
 	/// - the value to be moved is zero; or
-	/// - the `slashed` id equal to `beneficiary` and the `status` is `Reserved`.
+	/// - the `slashed` id equal to `beneficiary` and the `status` is
+	///   `Reserved`.
 	fn repatriate_reserved(
 		currency_id: Self::CurrencyId,
 		slashed: &T::AccountId,
