@@ -48,25 +48,6 @@ pub trait CombineData<Key, TimestampedValue> {
 	) -> Option<TimestampedValue>;
 }
 
-/// A time in future, either a relative value or absolute value
-#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug)]
-pub enum DelayedDispatchTime<BlockNumber> {
-	/// At specific block number
-	At(BlockNumber),
-	/// After specific block from now
-	After(BlockNumber),
-}
-
-pub type DispatchId = u32;
-
-pub trait Scheduler<BlockNumber> {
-	type Origin;
-	type Call;
-
-	fn schedule(origin: Self::Origin, call: Self::Call, when: DelayedDispatchTime<BlockNumber>) -> DispatchId;
-	fn cancel(id: DispatchId);
-}
-
 /// Indicate if should change a value
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub enum Change<Value> {
