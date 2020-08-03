@@ -52,10 +52,7 @@ impl<
 }
 
 /// Origin for the authority module.
-pub type Origin<T> = DelayedOrigin<
-	<T as frame_system::Trait>::BlockNumber,
-	frame_system::RawOrigin<<T as frame_system::Trait>::AccountId>,
->;
+pub type Origin<T> = DelayedOrigin<<T as frame_system::Trait>::BlockNumber, <T as frame_system::Trait>::Origin>;
 
 pub trait AuthorityConfig<Origin, PalletsOrigin> {
 	fn check_schedule_dispatch(origin: Origin, priority: Priority) -> DispatchResult;
@@ -79,6 +76,8 @@ pub trait Trait: frame_system::Trait {
 		+ IsType<<Self as frame_system::Trait>::Origin>
 		+ OriginTrait<PalletsOrigin = Self::PalletsOrigin>;
 
+	type PalletsOrigin: Parameter + Into<<Self as frame_system::Trait>::Origin>;
+
 	type Call: Parameter
 		+ Dispatchable<Origin = <Self as frame_system::Trait>::Origin, PostInfo = PostDispatchInfo>
 		+ GetDispatchInfo;
@@ -88,7 +87,6 @@ pub trait Trait: frame_system::Trait {
 
 	type AsOriginId: Parameter + AsOriginId<<Self as frame_system::Trait>::Origin, Self::PalletsOrigin>;
 
-	type PalletsOrigin: Parameter + Into<<Self as frame_system::Trait>::Origin>;
 	type AuthorityConfig: AuthorityConfig<<Self as frame_system::Trait>::Origin, Self::PalletsOrigin>;
 }
 
