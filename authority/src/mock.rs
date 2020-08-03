@@ -72,10 +72,10 @@ pub enum MockAsOriginId {
 	Account2,
 }
 
-struct AuthorityConfigImpl;
+pub struct AuthorityConfigImpl;
 
 impl AuthorityConfig<Origin, OriginCaller> for AuthorityConfigImpl {
-	fn check_schedule_dispatch(origin: Origin, priority: Priority) -> DispatchResult {
+	fn check_schedule_dispatch(origin: Origin, _priority: Priority) -> DispatchResult {
 		let origin: Result<frame_system::RawOrigin<u128>, _> = origin.into();
 		match origin {
 			Ok(frame_system::RawOrigin::Root)
@@ -84,12 +84,12 @@ impl AuthorityConfig<Origin, OriginCaller> for AuthorityConfigImpl {
 			_ => Err(BadOrigin.into()),
 		}
 	}
-	fn check_fast_track_schedule(origin: Origin, initial_origin: &OriginCaller) -> DispatchResult {
+	fn check_fast_track_schedule(origin: Origin, _initial_origin: &OriginCaller) -> DispatchResult {
 		ensure_root(origin)?;
 		Ok(())
 	}
 	fn check_delay_schedule(origin: Origin, initial_origin: &OriginCaller) -> DispatchResult {
-		ensure_root(origin).or_else(|_| {
+		ensure_root(origin.clone()).or_else(|_| {
 			if origin.caller() == initial_origin {
 				Ok(())
 			} else {
@@ -98,7 +98,7 @@ impl AuthorityConfig<Origin, OriginCaller> for AuthorityConfigImpl {
 		})
 	}
 	fn check_cancel_schedule(origin: Origin, initial_origin: &OriginCaller) -> DispatchResult {
-		ensure_root(origin).or_else(|_| {
+		ensure_root(origin.clone()).or_else(|_| {
 			if origin.caller() == initial_origin {
 				Ok(())
 			} else {
@@ -111,17 +111,17 @@ impl AuthorityConfig<Origin, OriginCaller> for AuthorityConfigImpl {
 impl AsOriginId<Origin, OriginCaller> for MockAsOriginId {
 	fn into_origin(self) -> OriginCaller {
 		match self {
-			Root => Origin::root().caller().clone(),
-			Account1 => Origin::signed(1).caller().clone(),
-			Account2 => Origin::signed(2).caller().clone(),
+			MockAsOriginId::Root => Origin::root().caller().clone(),
+			MockAsOriginId::Account1 => Origin::signed(1).caller().clone(),
+			MockAsOriginId::Account2 => Origin::signed(2).caller().clone(),
 		}
 	}
 	fn check_dispatch_from(&self, origin: Origin) -> DispatchResult {
-		ensure_root(origin).or_else(|_| {
+		ensure_root(origin.clone()).or_else(|_| {
 			let ok = match self {
-				Root => false,
-				Account1 => ensure_signed(origin)? == 1,
-				Account2 => ensure_signed(origin)? == 2,
+				MockAsOriginId::Root => false,
+				MockAsOriginId::Account1 => ensure_signed(origin)? == 1,
+				MockAsOriginId::Account2 => ensure_signed(origin)? == 2,
 			};
 			return if ok { Ok(()) } else { Err(BadOrigin.into()) };
 		})
@@ -149,7 +149,7 @@ frame_support::construct_runtime!(
 	{
 		System: frame_system::{Module, Call, Event<T>},
 		Authority: authority::{Module, Call, Origin<T>},
-		Scheduler: pallet_scheduler::{Module, Call, Event<T>},
+		Scheduler: pallet_scheduler::{Module, Call, Storage, Event<T>},
 	}
 );
 

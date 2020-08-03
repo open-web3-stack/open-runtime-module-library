@@ -27,7 +27,7 @@ mod tests;
 #[derive(PartialEq, Eq, Clone, RuntimeDebug, Encode, Decode)]
 pub struct DelayedOrigin<BlockNumber, Origin> {
 	pub delay: BlockNumber,
-	pub origin: Origin,
+	pub origin: Box<Origin>,
 }
 
 pub struct EnsureDelayed<Delay, Inner, BlockNumber>(sp_std::marker::PhantomData<(Delay, Inner, BlockNumber)>);
@@ -43,16 +43,16 @@ impl<
 	fn try_origin(o: O) -> Result<Self::Success, O> {
 		o.into().and_then(|delayed_origin| {
 			if delayed_origin.delay >= Delay::get() {
-				Inner::try_origin(delayed_origin.origin)
+				Inner::try_origin(*delayed_origin.origin)
 			} else {
-				Err(delayed_origin.origin)
+				Err(*delayed_origin.origin)
 			}
 		})
 	}
 }
 
 /// Origin for the authority module.
-pub type Origin<T> = DelayedOrigin<<T as frame_system::Trait>::BlockNumber, <T as frame_system::Trait>::Origin>;
+pub type Origin<T> = DelayedOrigin<<T as frame_system::Trait>::BlockNumber, <T as Trait>::PalletsOrigin>;
 
 pub trait AuthorityConfig<Origin, PalletsOrigin> {
 	fn check_schedule_dispatch(origin: Origin, priority: Priority) -> DispatchResult;
@@ -72,7 +72,7 @@ pub type ScheduleTaskIndex = u32;
 pub trait Trait: frame_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
 
-	type Origin: From<DelayedOrigin<Self::BlockNumber, <Self as frame_system::Trait>::Origin>>
+	type Origin: From<DelayedOrigin<Self::BlockNumber, <Self as Trait>::PalletsOrigin>>
 		+ IsType<<Self as frame_system::Trait>::Origin>
 		+ OriginTrait<PalletsOrigin = Self::PalletsOrigin>;
 
@@ -133,7 +133,11 @@ decl_module! {
 		fn deposit_event() = default;
 
 		#[weight = (call.get_dispatch_info().weight + 10_000, call.get_dispatch_info().class)]
-		pub fn dispatch_as(origin, as_origin: T::AsOriginId, call: Box<CallOf<T>>) {
+		pub fn dispatch_as(
+			origin,
+			as_origin: T::AsOriginId,
+			call: Box<CallOf<T>>,
+		) {
 			as_origin.check_dispatch_from(origin)?;
 
 			let e = call.dispatch(as_origin.into_origin().into());
@@ -142,7 +146,13 @@ decl_module! {
 		}
 
 		#[weight = 0]
-		pub fn schedule_dispatch(origin, when: DispatchTime<T::BlockNumber>, priority: Priority, with_delayed_origin: bool, call: Box<CallOf<T>>) {
+		pub fn schedule_dispatch(
+			origin,
+			when: DispatchTime<T::BlockNumber>,
+			priority: Priority,
+			with_delayed_origin: bool,
+			call: Box<CallOf<T>>,
+		) {
 			T::AuthorityConfig::check_schedule_dispatch(origin.clone(), priority)?;
 
 			let id = NextTaskIndex::mutate(|id| -> sp_std::result::Result<ScheduleTaskIndex, DispatchError> {
@@ -159,9 +169,10 @@ decl_module! {
 			};
 
 			let schedule_origin = if with_delayed_origin {
-				let origin: <T as Trait>::Origin = From::from(DelayedOrigin {
+				let origin: <T as Trait>::Origin = From::from(origin);
+				let origin: <T as Trait>::Origin = From::from(DelayedOrigin::<T::BlockNumber, T::PalletsOrigin> {
 					delay,
-					origin
+					origin: Box::new(origin.caller().clone())
 				});
 				origin
 			} else {
@@ -223,7 +234,11 @@ decl_module! {
 		}
 
 		#[weight = 0]
-		pub fn cancel_scheduled_dispatch(origin, initial_origin: T::PalletsOrigin, task_id: ScheduleTaskIndex) {
+		pub fn cancel_scheduled_dispatch(
+			origin,
+			initial_origin: T::PalletsOrigin,
+			task_id: ScheduleTaskIndex,
+		) {
 			T::AuthorityConfig::check_cancel_schedule(origin, &initial_origin)?;
 
 			T::Scheduler::cancel_named((&initial_origin, task_id).encode()).map_err(|_| Error::<T>::FailedToCancel)?;

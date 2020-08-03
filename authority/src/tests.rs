@@ -34,7 +34,7 @@ fn dispatch_as_work() {
 			Origin::signed(1),
 			MockAsOriginId::Account1,
 			Box::new(ensure_signed_call.clone())
-		),);
+		));
 		assert_noop!(
 			Authority::dispatch_as(
 				Origin::signed(1),
