@@ -1,6 +1,6 @@
 //! # Authority
-//! A module to provide features for governance including dispatch method on behalf
-//! other accounts and schdule dispatchables.
+//! A module to provide features for governance including dispatch method on
+//! behalf other accounts and schdule dispatchables.
 //!
 //! - [`Trait`](./trait.Trait.html)
 //! - [`Call`](./enum.Call.html)
@@ -74,26 +74,32 @@ pub type Origin<T> = DelayedOrigin<<T as frame_system::Trait>::BlockNumber, <T a
 
 /// Config for orml-authority
 pub trait AuthorityConfig<Origin, PalletsOrigin, BlockNumber> {
-	/// Check if the `origin` is allow to schedule a dispatchable call with a given `priority`.
+	/// Check if the `origin` is allow to schedule a dispatchable call with a
+	/// given `priority`.
 	fn check_schedule_dispatch(origin: Origin, priority: Priority) -> DispatchResult;
-	/// Check if the `origin` is allow to fast track a scheduled task that initially created by `initial_origin`.
-	/// `new_delay` is number of blocks this dispatchable will be dispatched from now after fast track.
+	/// Check if the `origin` is allow to fast track a scheduled task that
+	/// initially created by `initial_origin`. `new_delay` is number of blocks
+	/// this dispatchable will be dispatched from now after fast track.
 	fn check_fast_track_schedule(
 		origin: Origin,
 		initial_origin: &PalletsOrigin,
 		new_delay: BlockNumber,
 	) -> DispatchResult;
-	/// Check if the `origin` is allow to delay a scheduled task that initially created by `inital_origin`.
+	/// Check if the `origin` is allow to delay a scheduled task that initially
+	/// created by `inital_origin`.
 	fn check_delay_schedule(origin: Origin, initial_origin: &PalletsOrigin) -> DispatchResult;
-	/// Check if the `origin` is allow to cancel a scheduled task that initially created by `inital_origin`.
+	/// Check if the `origin` is allow to cancel a scheduled task that initially
+	/// created by `inital_origin`.
 	fn check_cancel_schedule(origin: Origin, initial_origin: &PalletsOrigin) -> DispatchResult;
 }
 
-/// Represent an origin that can be dispatched by other origins with permission check.
+/// Represent an origin that can be dispatched by other origins with permission
+/// check.
 pub trait AsOriginId<Origin, PalletsOrigin> {
 	/// Convert into `PalletsOrigin`
 	fn into_origin(self) -> PalletsOrigin;
-	/// Check if the `origin` is allow to dispatch call on behalf of this origin.
+	/// Check if the `origin` is allow to dispatch call on behalf of this
+	/// origin.
 	fn check_dispatch_from(&self, origin: Origin) -> DispatchResult;
 }
 
