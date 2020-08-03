@@ -74,7 +74,7 @@ pub enum MockAsOriginId {
 
 pub struct AuthorityConfigImpl;
 
-impl AuthorityConfig<Origin, OriginCaller> for AuthorityConfigImpl {
+impl AuthorityConfig<Origin, OriginCaller, BlockNumber> for AuthorityConfigImpl {
 	fn check_schedule_dispatch(origin: Origin, _priority: Priority) -> DispatchResult {
 		let origin: Result<frame_system::RawOrigin<u128>, _> = origin.into();
 		match origin {
@@ -84,7 +84,11 @@ impl AuthorityConfig<Origin, OriginCaller> for AuthorityConfigImpl {
 			_ => Err(BadOrigin.into()),
 		}
 	}
-	fn check_fast_track_schedule(origin: Origin, _initial_origin: &OriginCaller) -> DispatchResult {
+	fn check_fast_track_schedule(
+		origin: Origin,
+		_initial_origin: &OriginCaller,
+		_new_delay: BlockNumber,
+	) -> DispatchResult {
 		ensure_root(origin)?;
 		Ok(())
 	}
