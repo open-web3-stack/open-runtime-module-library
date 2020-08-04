@@ -153,6 +153,8 @@ decl_error! {
 }
 
 impl<T: Trait> Module<T> {
+	// REVIEW: It seems like the weight for this cleanup is not tracked. Consider adding it to
+	//         `on_initialize` and maybe adding fees onto `bid` for the cleanup.
 	fn _on_finalize(now: T::BlockNumber) {
 		for (auction_id, _) in <AuctionEndTime<T>>::drain_prefix(&now) {
 			if let Some(auction) = <Auctions<T>>::take(&auction_id) {
