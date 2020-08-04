@@ -235,9 +235,11 @@ decl_module! {
 				when,
 				None,
 				priority,
-				pallets_origin,
+				pallets_origin.clone(),
 				*call,
 			).map_err(|_| Error::<T>::FailedToSchedule)?;
+
+			Self::deposit_event(RawEvent::Scheduled(pallets_origin, id));
 		}
 
 		/// Fast track a scheduled dispatchable.
