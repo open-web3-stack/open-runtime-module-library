@@ -2,12 +2,12 @@
 
 #![cfg(test)]
 
-use frame_support::{ord_parameter_types, parameter_types};
-use frame_system::EnsureSignedBy;
+use frame_support::parameter_types;
+use frame_system::{ensure_root, ensure_signed, EnsureRoot};
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
-	traits::{Block as BlockT, IdentityLookup},
+	traits::{BadOrigin, Block as BlockT, IdentityLookup},
 	Perbill,
 };
 
@@ -52,59 +52,98 @@ impl frame_system::Trait for Runtime {
 	type SystemWeightInfo = ();
 }
 
-pub struct MockScheduler;
-impl Scheduler<BlockNumber> for MockScheduler {
-	type Origin = Origin;
-	type Call = Call;
-
-	fn schedule(_: Self::Origin, _: Self::Call, _: DelayedDispatchTime<BlockNumber>) -> DispatchId {
-		Default::default()
-	}
-
-	fn cancel(_: DispatchId) {}
-}
-
-ord_parameter_types! {
-	pub const One: AccountId = 1;
-	pub const Two: AccountId = 2;
-	pub const Three: AccountId = 3;
-}
-
 parameter_types! {
-	pub const MinimumDelay: BlockNumber = 10;
-	pub const MinimumDelayForInstance1: BlockNumber = 20;
-	pub AsOrigin: Origin = Origin::root();
-	pub AsOriginForInstance1: Origin = frame_system::RawOrigin::Signed(Three::get()).into();
+	pub MaximumSchedulerWeight: u32 = Perbill::from_percent(80) * MaximumBlockWeight::get();
+}
+impl pallet_scheduler::Trait for Runtime {
+	type Event = ();
+	type Origin = Origin;
+	type PalletsOrigin = OriginCaller;
+	type Call = Call;
+	type MaximumWeight = MaximumSchedulerWeight;
+	type ScheduleOrigin = EnsureRoot<u128>;
+	type WeightInfo = ();
+}
+
+#[derive(Clone, Encode, Decode, Eq, PartialEq, Ord, PartialOrd, Debug)]
+pub enum MockAsOriginId {
+	Root,
+	Account1,
+	Account2,
+}
+
+pub struct AuthorityConfigImpl;
+
+impl AuthorityConfig<Origin, OriginCaller, BlockNumber> for AuthorityConfigImpl {
+	fn check_schedule_dispatch(origin: Origin, _priority: Priority) -> DispatchResult {
+		let origin: Result<frame_system::RawOrigin<u128>, _> = origin.into();
+		match origin {
+			Ok(frame_system::RawOrigin::Root)
+			| Ok(frame_system::RawOrigin::Signed(1))
+			| Ok(frame_system::RawOrigin::Signed(2)) => Ok(()),
+			_ => Err(BadOrigin.into()),
+		}
+	}
+	fn check_fast_track_schedule(
+		origin: Origin,
+		_initial_origin: &OriginCaller,
+		_new_delay: BlockNumber,
+	) -> DispatchResult {
+		ensure_root(origin)?;
+		Ok(())
+	}
+	fn check_delay_schedule(origin: Origin, initial_origin: &OriginCaller) -> DispatchResult {
+		ensure_root(origin.clone()).or_else(|_| {
+			if origin.caller() == initial_origin {
+				Ok(())
+			} else {
+				Err(BadOrigin.into())
+			}
+		})
+	}
+	fn check_cancel_schedule(origin: Origin, initial_origin: &OriginCaller) -> DispatchResult {
+		ensure_root(origin.clone()).or_else(|_| {
+			if origin.caller() == initial_origin {
+				Ok(())
+			} else {
+				Err(BadOrigin.into())
+			}
+		})
+	}
+}
+
+impl AsOriginId<Origin, OriginCaller> for MockAsOriginId {
+	fn into_origin(self) -> OriginCaller {
+		match self {
+			MockAsOriginId::Root => Origin::root().caller().clone(),
+			MockAsOriginId::Account1 => Origin::signed(1).caller().clone(),
+			MockAsOriginId::Account2 => Origin::signed(2).caller().clone(),
+		}
+	}
+	fn check_dispatch_from(&self, origin: Origin) -> DispatchResult {
+		ensure_root(origin.clone()).or_else(|_| {
+			let ok = match self {
+				MockAsOriginId::Root => false,
+				MockAsOriginId::Account1 => ensure_signed(origin)? == 1,
+				MockAsOriginId::Account2 => ensure_signed(origin)? == 2,
+			};
+			return if ok { Ok(()) } else { Err(BadOrigin.into()) };
+		})
+	}
 }
 
 impl Trait for Runtime {
+	type Event = ();
 	type Origin = Origin;
+	type PalletsOrigin = OriginCaller;
+	type Scheduler = Scheduler;
 	type Call = Call;
-	type RootDispatchOrigin = EnsureSignedBy<One, AccountId>;
-	type DelayedRootDispatchOrigin = EnsureSignedBy<One, AccountId>;
-	type DelayedDispatchOrigin = EnsureSignedBy<One, AccountId>;
-	type VetoOrigin = EnsureSignedBy<One, AccountId>;
-	type InstantDispatchOrigin = EnsureSignedBy<Two, AccountId>;
-	type Scheduler = MockScheduler;
-	type MinimumDelay = MinimumDelay;
-	type AsOrigin = AsOrigin;
-}
-
-impl Trait<Instance1> for Runtime {
-	type Origin = Origin;
-	type Call = Call;
-	type RootDispatchOrigin = EnsureSignedBy<One, AccountId>;
-	type DelayedRootDispatchOrigin = EnsureSignedBy<One, AccountId>;
-	type DelayedDispatchOrigin = EnsureSignedBy<One, AccountId>;
-	type VetoOrigin = EnsureSignedBy<One, AccountId>;
-	type InstantDispatchOrigin = EnsureSignedBy<Two, AccountId>;
-	type Scheduler = MockScheduler;
-	type MinimumDelay = MinimumDelayForInstance1;
-	type AsOrigin = AsOriginForInstance1;
+	type AsOriginId = MockAsOriginId;
+	type AuthorityConfig = AuthorityConfigImpl;
 }
 
 pub type Block = sp_runtime::generic::Block<Header, UncheckedExtrinsic>;
-pub type UncheckedExtrinsic = sp_runtime::generic::UncheckedExtrinsic<u32, u64, Call, ()>;
+pub type UncheckedExtrinsic = sp_runtime::generic::UncheckedExtrinsic<u32, u64, u64, ()>;
 
 frame_support::construct_runtime!(
 	pub enum Runtime where
@@ -114,7 +153,7 @@ frame_support::construct_runtime!(
 	{
 		System: frame_system::{Module, Call, Event<T>},
 		Authority: authority::{Module, Call, Origin<T>},
-		AuthorityInstance1: authority::<Instance1>::{Module, Call, Origin<T>},
+		Scheduler: pallet_scheduler::{Module, Call, Storage, Event<T>},
 	}
 );
 
