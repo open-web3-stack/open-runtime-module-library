@@ -144,9 +144,12 @@ decl_module! {
 decl_error! {
 	/// Error for auction module.
 	pub enum Error for Module<T: Trait> {
+		// REVIEW: This error does not have any tests testing for it.
 		AuctionNotExist,
 		AuctionNotStarted,
+		// REVIEW: This error does not have any tests testing for it.
 		BidNotAccepted,
+		// REVIEW: This error does not have any tests testing for it.
 		InvalidBidPrice,
 		NoAvailableAuctionId,
 	}
