@@ -14,7 +14,7 @@
 
 use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage, ensure, traits::Get, weights::constants::WEIGHT_PER_MICROS,
-	IterableStorageDoubleMap, Parameter,
+	weights::Weight, IterableStorageDoubleMap, Parameter,
 };
 use frame_system::ensure_signed;
 use orml_traits::{Auction, AuctionHandler, AuctionInfo, Change};
@@ -76,21 +76,39 @@ decl_module! {
 		/// 	- T::Handler is module_auction_manager of Acala
 		///		- Indirectly needs orml_currencies and module_cdp_treasury of Acala
 		/// - Complexity: `O(1)`
-		/// - Db reads: `Auctions`, 2 items of module_auction_manager, 4 items of orml_currencies, 2 items of module_cdp_treasury
-		/// - Db writes: `Auctions`, 2 items of module_auction_manager, 4 items of orml_currencies, 2 items of module_cdp_treasury
+		/// - Db reads:
+		/// 	- collateral auction:
+		///				- best cases: 7
+		///				- worst cases: 14
+		/// 	- surplus auction:
+		///				- best cases: 5
+		///				- worst cases: 6
+		/// 	- debit auction:
+		///				- best cases: 8
+		///				- worst cases: 7
+		/// - Db writes:
+		/// 	- collateral auction:
+		///				- best cases: 7
+		///				- worst cases: 14
+		/// 	- surplus auction:
+		///				- best cases: 3
+		///				- worst cases: 5
+		/// 	- debit auction:
+		///				- best cases: 8
+		///				- worst cases: 8
 		/// -------------------
 		/// Base Weight:
 		/// 	- collateral auction:
-		///				- best cases: 49.61 µs
-		///				- worst cases: 83.65 µs
+		///				- best cases: 134 µs
+		///				- worst cases: 300.4 µs
 		/// 	- surplus auction:
-		///				- best cases: 42.67 µs
-		///				- worst cases: 49.76 µs
+		///				- best cases: 97.9 µs
+		///				- worst cases: 157.6 µs
 		/// 	- debit auction:
-		///				- best cases: 45.96 µs
-		///				- worst cases: 48.55 µs
+		///				- best cases: 140.7 µs
+		///				- worst cases: 142.8 µs
 		/// # </weight>
-		#[weight = 84 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(9, 9)]
+		#[weight = 300 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(14, 14)]
 		pub fn bid(origin, id: T::AuctionId, #[compact] value: T::Balance) {
 			let from = ensure_signed(origin)?;
 
@@ -133,6 +151,12 @@ decl_module! {
 			})?;
 
 			Self::deposit_event(RawEvent::Bid(id, from, value));
+		}
+
+		/// dummy `on_initialize` to return the weight used in `on_finalize`.
+		fn on_initialize() -> Weight {
+			// weight of `on_finalize`
+			0
 		}
 
 		fn on_finalize(now: T::BlockNumber) {

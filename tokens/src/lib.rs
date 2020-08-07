@@ -199,12 +199,12 @@ decl_module! {
 		///
 		/// # <weight>
 		/// - Complexity: `O(1)`
-		/// - Db reads: 2 * `Accounts`
-		/// - Db writes: 2 * `Accounts`
+		/// - Db reads: 4
+		/// - Db writes: 2
 		/// -------------------
-		/// Base Weight: 26.65 µs
+		/// Base Weight: 84.08 µs
 		/// # </weight>
-		#[weight = 27 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(2, 2)]
+		#[weight = 84 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(4, 2)]
 		pub fn transfer(
 			origin,
 			dest: <T::Lookup as StaticLookup>::Source,
@@ -224,12 +224,12 @@ decl_module! {
 		///
 		/// # <weight>
 		/// - Complexity: `O(1)`
-		/// - Db reads: 2 * `Accounts`
-		/// - Db writes: 2 * `Accounts`
+		/// - Db reads: 4
+		/// - Db writes: 2
 		/// -------------------
-		/// Base Weight: 26.99 µs
+		/// Base Weight: 87.71 µs
 		/// # </weight>
-		#[weight = 27 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(2, 2)]
+		#[weight = 88 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(4, 2)]
 		pub fn transfer_all(
 			origin,
 			dest: <T::Lookup as StaticLookup>::Source,

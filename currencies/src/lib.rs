@@ -134,14 +134,14 @@ decl_module! {
 		/// 	- T::MultiCurrency is orml_tokens
 		///		- T::NativeCurrency is pallet_balances
 		/// - Complexity: `O(1)`
-		/// - Db reads: 2 * `Accounts`
-		/// - Db writes: 2 * `Accounts`
+		/// - Db reads: 5
+		/// - Db writes: 2
 		/// -------------------
 		/// Base Weight:
-		///		- non-native currency: 26.72 µs
-		///		- native currency in worst case: 29.9 µs
+		///		- non-native currency: 90.23 µs
+		///		- native currency in worst case: 70 µs
 		/// # </weight>
-		#[weight = 30 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(2, 2)]
+		#[weight = 90 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(2, 2)]
 		pub fn transfer(
 			origin,
 			dest: <T::Lookup as StaticLookup>::Source,
@@ -165,9 +165,9 @@ decl_module! {
 		/// - Db reads: 2 * `Accounts`
 		/// - Db writes: 2 * `Accounts`
 		/// -------------------
-		/// Base Weight: 29.53 µs
+		/// Base Weight: 70 µs
 		/// # </weight>
-		#[weight = 30 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(2, 2)]
+		#[weight = 70 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(2, 2)]
 		pub fn transfer_native_currency(
 			origin,
 			dest: <T::Lookup as StaticLookup>::Source,
@@ -189,15 +189,17 @@ decl_module! {
 		/// 	- T::MultiCurrency is orml_tokens
 		///		- T::NativeCurrency is pallet_balances
 		/// - Complexity: `O(1)`
-		/// - Db reads: `Accounts`
-		/// - Db writes: `Accounts`
+		/// - Db reads:
+		/// 	- non-native currency: 5
+		/// - Db writes:
+		/// 	- non-native currency: 2
 		/// -------------------
 		/// Base Weight:
-		/// 	- non-native currency: 25.36 µs
+		/// 	- non-native currency: 66.24 µs
 		///		- native currency and killing account: 26.33 µs
 		///		- native currency and create account: 27.39 µs
 		/// # </weight>
-		#[weight = 27 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(1, 1)]
+		#[weight = 66 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(5, 2)]
 		pub fn update_balance(
 			origin,
 			who: <T::Lookup as StaticLookup>::Source,

@@ -179,12 +179,12 @@ decl_module! {
 		/// - Preconditions:
 		/// 	- T::Currency is orml_currencies
 		/// - Complexity: `O(1)`
-		/// - Db reads: `VestingSchedules`, 3 items of orml_currencies
-		/// - Db writes: `VestingSchedules`, 3 items of orml_currencies
+		/// - Db reads: 3
+		/// - Db writes: 3
 		/// -------------------
-		/// Base Weight: 29.86 µs
+		/// Base Weight: 65.23 µs
 		/// # </weight>
-		#[weight = 30 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(2, 2)]
+		#[weight = 30 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(3, 3)]
 		pub fn claim(origin) {
 			let who = ensure_signed(origin)?;
 			let locked_amount = Self::do_claim(&who);
@@ -196,12 +196,12 @@ decl_module! {
 		/// - Preconditions:
 		/// 	- T::Currency is orml_currencies
 		/// - Complexity: `O(1)`
-		/// - Db reads: `VestingSchedules`, 3 items of orml_currencies
-		/// - Db writes: `VestingSchedules`, 3 items of orml_currencies
+		/// - Db reads: 4
+		/// - Db writes: 4
 		/// -------------------
-		/// Base Weight: 47.26 µs
+		/// Base Weight: 150.4 µs
 		/// # </weight>
-		#[weight = 48 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(4, 4)]
+		#[weight = 150 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(4, 4)]
 		pub fn vested_transfer(
 			origin,
 			dest: <T::Lookup as StaticLookup>::Source,
@@ -218,12 +218,12 @@ decl_module! {
 		/// - Preconditions:
 		/// 	- T::Currency is orml_currencies
 		/// - Complexity: `O(1)`
-		/// - Db reads: `VestingSchedules`, 3 items of orml_currencies
-		/// - Db writes: `VestingSchedules`, 3 items of orml_currencies
+		/// - Db reads: 2
+		/// - Db writes: 3
 		/// -------------------
-		/// Base Weight: 27.96 µs
+		/// Base Weight: 61.87 µs
 		/// # </weight>
-		#[weight = 28 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(4, 4)]
+		#[weight = 62 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(2, 3)]
 		pub fn update_vesting_schedules(
 			origin,
 			who: <T::Lookup as StaticLookup>::Source,
