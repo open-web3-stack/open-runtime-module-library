@@ -66,19 +66,27 @@ impl frame_system::Trait for Runtime {
 	type BaseCallFilter = ();
 	type SystemWeightInfo = ();
 }
+pub type System = frame_system::Module<Runtime>;
 
 pub struct Handler;
 
 impl AuctionHandler<AccountId, Balance, BlockNumber, AuctionId> for Handler {
 	fn on_new_bid(
-		_now: BlockNumber,
+		now: BlockNumber,
 		_id: AuctionId,
-		_new_bid: (AccountId, Balance),
+		new_bid: (AccountId, Balance),
 		_last_bid: Option<(AccountId, Balance)>,
 	) -> OnNewBidResult<BlockNumber> {
-		OnNewBidResult {
-			accept_bid: true,
-			auction_end_change: Change::NoChange,
+		if new_bid.0 == ALICE {
+			OnNewBidResult {
+				accept_bid: true,
+				auction_end_change: Change::NewValue(Some(now + BID_EXTEND_BLOCK)),
+			}
+		} else {
+			OnNewBidResult {
+				accept_bid: false,
+				auction_end_change: Change::NoChange,
+			}
 		}
 	}
 
@@ -94,6 +102,8 @@ impl Trait for Runtime {
 pub type AuctionModule = Module<Runtime>;
 
 pub const ALICE: AccountId = 1;
+pub const BOB: AccountId = 2;
+pub const BID_EXTEND_BLOCK: BlockNumber = 10;
 
 pub struct ExtBuilder;
 
