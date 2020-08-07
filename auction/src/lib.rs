@@ -14,7 +14,7 @@
 
 use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage, ensure, traits::Get, weights::constants::WEIGHT_PER_MICROS,
-	IterableStorageDoubleMap, Parameter,
+	weights::Weight, IterableStorageDoubleMap, Parameter,
 };
 use frame_system::ensure_signed;
 use orml_traits::{Auction, AuctionHandler, AuctionInfo, Change};
@@ -151,6 +151,12 @@ decl_module! {
 			})?;
 
 			Self::deposit_event(RawEvent::Bid(id, from, value));
+		}
+
+		/// dummy `on_initialize` to return the weight used in `on_finalize`.
+		fn on_initialize() -> Weight {
+			// weight of `on_finalize`
+			0
 		}
 
 		fn on_finalize(now: T::BlockNumber) {
