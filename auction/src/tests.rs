@@ -59,6 +59,14 @@ fn bid_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		System::set_block_number(1);
 		assert_ok!(AuctionModule::new_auction(0, Some(5)), 0);
+		assert_eq!(
+			AuctionModule::auction_info(0),
+			Some(AuctionInfo {
+				bid: None,
+				start: 0,
+				end: Some(5)
+			})
+		);
 		assert_ok!(AuctionModule::bid(Origin::signed(ALICE), 0, 20));
 		let bid_event = TestEvent::auction(RawEvent::Bid(0, ALICE, 20));
 		assert!(System::events().iter().any(|record| record.event == bid_event));
