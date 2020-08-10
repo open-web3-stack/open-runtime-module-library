@@ -10,7 +10,6 @@ mod tests;
 pub use frame_benchmarking::Analysis;
 pub use frame_benchmarking::{
 	benchmarking, BenchmarkBatch, BenchmarkParameter, BenchmarkResults, Benchmarking, BenchmarkingSetup,
-	BenchmarkingSetupInstance,
 };
 pub use frame_support;
 pub use paste;
