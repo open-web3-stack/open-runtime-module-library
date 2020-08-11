@@ -280,11 +280,11 @@ macro_rules! benchmarks_iter {
 			( $( $names )* )
 			( $( $names_extra )* )
 			$name { $( $code )* }: {
-			( $( $names_extra )* )
 				<
-					$pallet::Call<T $(, $instance)? > as $crate::frame_support::traits::UnfilteredDispatchable
-				>::dispatch_bypass_filter(
-					$pallet::Call::<T $(, $instance)? >::$dispatch($($arg),*), $origin.into()
+					$pallet::Call<$runtime $(, $instance)? > as $crate::frame_support::traits::UnfilteredDispatchable
+				>
+				::dispatch_bypass_filter(
+					$pallet::Call::<$runtime $(, $instance)? >::$dispatch($($arg),*), $origin.into()
 				)?;
 			}
 			verify $postcode
@@ -349,7 +349,8 @@ macro_rules! benchmarks_iter {
 			$( $names )*
 		);
 		$crate::impl_benchmark!(
-			{ $( $where_clause )* }
+			$runtime
+			$pallet
 			{ $( $instance)? }
 			( $( $names )* )
 			( $( $names_extra ),* )
@@ -757,7 +758,7 @@ macro_rules! impl_benchmark {
 
 						// Set the block number to at least 1 so events are deposited.
 						if $crate::Zero::is_zero(&frame_system::Module::<T>::block_number()) {
-							frame_system::Module::<T>::set_block_number(1.into());
+							frame_system::Module::<T>::set_block_number(1u8.into());
 						}
 
 						// Commit the externalities to the database, flushing the DB cache.
@@ -875,7 +876,7 @@ macro_rules! impl_benchmark_test {
 			{
 				let selected_benchmark = SelectedBenchmark::$name;
 				let components = <
-					SelectedBenchmark as $crate::BenchmarkingSetup<T, _>
+					SelectedBenchmark as $crate::BenchmarkingSetup<$runtime, _>
 				>::components(&selected_benchmark);
 
 				let execute_benchmark = |
@@ -883,12 +884,12 @@ macro_rules! impl_benchmark_test {
 				| -> Result<(), &'static str> {
 					// Set up the verification state
 					let closure_to_verify = <
-						SelectedBenchmark as $crate::BenchmarkingSetup<T, _>
+						SelectedBenchmark as $crate::BenchmarkingSetup<$runtime, _>
 					>::verify(&selected_benchmark, &c)?;
 
 					// Set the block number to at least 1 so events are deposited.
 					if $crate::Zero::is_zero(&frame_system::Module::<$runtime>::block_number()) {
-						frame_system::Module::<$runtime>::set_block_number(1.into());
+						frame_system::Module::<$runtime>::set_block_number(1u8.into());
 					}
 
 					// Run verification
