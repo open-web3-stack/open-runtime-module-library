@@ -4,16 +4,19 @@ use codec::{Decode, Encode};
 use frame_support::{decl_error, decl_event, decl_module, decl_storage, Parameter};
 use frame_system::ensure_signed;
 use orml_traits::MultiCurrency;
-use sp_runtime::traits::{AtLeast32Bit, CheckedSub, MaybeSerializeDeserialize, Member};
+use sp_runtime::traits::{AtLeast32Bit, CheckedSub, Convert, MaybeSerializeDeserialize, Member};
 use sp_std::{
 	convert::{TryFrom, TryInto},
 	prelude::*,
 };
 
 use cumulus_primitives::{
+	relay_chain::{Balance as RelayChainBalance, DownwardMessage},
 	xcmp::{XCMPMessageHandler, XCMPMessageSender},
-	ParaId,
+	ParaId, UpwardMessageOrigin, UpwardMessageSender,
 };
+
+use cumulus_upward_message::BalancesMessage;
 
 #[derive(Encode, Decode)]
 pub enum XCMPMessage<AccountId, Balance> {
@@ -30,9 +33,20 @@ pub trait Trait: frame_system::Trait {
 	/// The currency ID type
 	type CurrencyId: Parameter + Member + Copy + MaybeSerializeDeserialize + Ord + Into<Vec<u8>> + TryFrom<Vec<u8>>;
 
+	type RelayChainCurrencyId: Get<Self::CurrencyId>;
+
+	type FromRelayChainBalance: Convert<RelayChainBalance, Self::Balance>;
+	type ToRelayChainBalance: Convert<Self::Balance, RelayChainBalance>;
+
 	type Currency: MultiCurrency<Self::AccountId, CurrencyId = Self::CurrencyId, Balance = Self::Balance>;
 
 	type XCMPMessageSender: XCMPMessageSender<XCMPMessage<Self::AccountId, Self::Balance>>;
+
+	/// The sender of upward messages.
+	type UpwardMessageSender: UpwardMessageSender<Self::UpwardMessage>;
+
+	/// The upward message type used by the Parachain runtime.
+	type UpwardMessage: codec::Codec + BalancesMessage<Self::AccountId, BalanceOf<Self>>;
 }
 
 decl_storage! {
@@ -48,6 +62,8 @@ decl_event!(
 	{
 		TransferToParachain(ParaId, Vec<u8>, AccountId, Balance),
 		ReceivedTransferFromParachain(ParaId, Vec<u8>, AccountId, Balance),
+		TransferToRelayChain(AccountId, Balance),
+		ReceivedTransferFromRelayChain(AccountId, Balance),
 	}
 );
 
@@ -68,13 +84,24 @@ decl_module! {
 		fn transfer_to_parachain(origin, currency_id: T::CurrencyId, para_id: ParaId, dest: T::AccountId, amount: T::Balance) {
 			let who = ensure_signed(origin)?;
 
-			let _ = T::Currency::withdraw(currency_id, &who, amount)?;
+			T::Currency::withdraw(currency_id, &who, amount)?;
 
 			let asset_id: Vec<u8> = currency_id.into();
 
 			T::XCMPMessageSender::send_xcmp_message(para_id, &XCMPMessage::Transfer(asset_id.clone(), amount, dest.clone())).expect("should not fail");
 
 			Self::deposit_event(Event::<T>::TransferToParachain(para_id, asset_id, dest, amount));
+		}
+
+		fn transfer_to_relay_chain(origin, dest: T::AccountId, amount: T::Balance) {
+			let who = ensure_signed(origin)?;
+
+			T::Currency::withdraw(T::RelayChainCurrencyId::Get(), &who, amount)?;
+
+			let msg = T::UpwardMessage::transfer(dest.clone(), T::ToRelayChainBalance::convert(amount));
+			T::UpwardMessageSender::send_upward_message(&msg, UpwardMessageOrigin::Signed).expect("should not fail");
+
+			Self::deposit_event(Event::<T>::TransferToRelayChain(dest, amount));
 		}
 
 		#[weight = 10]
@@ -86,6 +113,28 @@ decl_module! {
 			T::XCMPMessageSender::send_xcmp_message(para_id, &XCMPMessage::Transfer(id.clone(), amount, dest.clone())).expect("should not fail");
 
 			Self::deposit_event(Event::<T>::TransferToParachain(para_id, id, dest, amount));
+		}
+	}
+}
+
+/// This is a hack to convert from one generic type to another where we are sure
+/// that both are the same type/use the same encoding.
+fn convert_hack<O: Decode>(input: &impl Encode) -> O {
+	input.using_encoded(|e| Decode::decode(&mut &e[..]).expect("Must be compatible; qed"))
+}
+
+impl<T: Trait> DownwardMessageHandler for Module<T> {
+	fn handle_downward_message(msg: &DownwardMessage) {
+		match msg {
+			DownwardMessage::TransferInto(dest, amount, _) => {
+				let dest = convert_hack(&dest);
+				let amount = T::FromRelayChainBalance::convert(amount);
+
+				let _ = T::Currency::deposit(T::RelayChainCurrencyId::get() & dest, amount.clone());
+
+				Self::deposit_event(Event::<T>::ReceivedTransferFromRelayChain(dest, amount));
+			}
+			_ => {}
 		}
 	}
 }
