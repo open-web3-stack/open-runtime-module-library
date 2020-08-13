@@ -11,11 +11,11 @@ pub use self::gen_client::Client as OracleClient;
 pub use orml_oracle_rpc_runtime_api::OracleApi as OracleRuntimeApi;
 
 #[rpc]
-pub trait OracleApi<BlockHash, Key, Value> {
+pub trait OracleApi<BlockHash, ProviderId, Key, Value> {
 	#[rpc(name = "oracle_getValue")]
-	fn get_value(&self, key: Key, at: Option<BlockHash>) -> Result<Option<Value>>;
+	fn get_value(&self, provider_id: ProviderId, key: Key, at: Option<BlockHash>) -> Result<Option<Value>>;
 	#[rpc(name = "oracle_getAllValues")]
-	fn get_all_values(&self, at: Option<BlockHash>) -> Result<Vec<(Key, Option<Value>)>>;
+	fn get_all_values(&self, provider_id: ProviderId, at: Option<BlockHash>) -> Result<Vec<(Key, Option<Value>)>>;
 }
 
 /// A struct that implements the [`OracleApi`].
@@ -46,32 +46,42 @@ impl From<Error> for i64 {
 	}
 }
 
-impl<C, Block, Key, Value> OracleApi<<Block as BlockT>::Hash, Key, Value> for Oracle<C, Block>
+impl<C, Block, ProviderId, Key, Value> OracleApi<<Block as BlockT>::Hash, ProviderId, Key, Value> for Oracle<C, Block>
 where
 	Block: BlockT,
 	C: Send + Sync + 'static + ProvideRuntimeApi<Block> + HeaderBackend<Block>,
-	C::Api: OracleRuntimeApi<Block, Key, Value>,
+	C::Api: OracleRuntimeApi<Block, ProviderId, Key, Value>,
+	ProviderId: Codec,
 	Key: Codec,
 	Value: Codec,
 {
-	fn get_value(&self, key: Key, at: Option<<Block as BlockT>::Hash>) -> Result<Option<Value>> {
+	fn get_value(
+		&self,
+		provider_id: ProviderId,
+		key: Key,
+		at: Option<<Block as BlockT>::Hash>,
+	) -> Result<Option<Value>> {
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.
 			self.client.info().best_hash));
-		api.get_value(&at, key).map_err(|e| RpcError {
+		api.get_value(&at, provider_id, key).map_err(|e| RpcError {
 			code: ErrorCode::ServerError(Error::RuntimeError.into()),
 			message: "Unable to get value.".into(),
 			data: Some(format!("{:?}", e).into()),
 		})
 	}
 
-	fn get_all_values(&self, at: Option<<Block as BlockT>::Hash>) -> Result<Vec<(Key, Option<Value>)>> {
+	fn get_all_values(
+		&self,
+		provider_id: ProviderId,
+		at: Option<<Block as BlockT>::Hash>,
+	) -> Result<Vec<(Key, Option<Value>)>> {
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.
 			self.client.info().best_hash));
-		api.get_all_values(&at).map_err(|e| RpcError {
+		api.get_all_values(&at, provider_id).map_err(|e| RpcError {
 			code: ErrorCode::ServerError(Error::RuntimeError.into()),
 			message: "Unable to get all values.".into(),
 			data: Some(format!("{:?}", e).into()),

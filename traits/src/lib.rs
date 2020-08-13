@@ -3,7 +3,7 @@
 use codec::{Decode, Encode};
 use sp_runtime::{DispatchResult, RuntimeDebug};
 use sp_std::{
-	cmp::{Eq, PartialEq},
+	cmp::{Eq, Ordering, PartialEq},
 	prelude::Vec,
 };
 
@@ -13,7 +13,8 @@ pub use currency::{
 	LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency, OnReceived,
 };
 pub use price::{DefaultPriceProvider, PriceProvider};
-
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
 pub mod arithmetic;
 pub mod auction;
 pub mod currency;
@@ -32,8 +33,16 @@ pub trait DataProvider<Key, Value> {
 	fn get(key: &Key) -> Option<Value>;
 }
 
-/// Data provider with ability to insert data
-pub trait DataProviderExtended<Key, Value, AccountId>: DataProvider<Key, Value> {
+/// A simple trait to provide data for api
+pub trait DataProviderExtended<Key, Value> {
+	/// Provide a value with timestamp
+	fn get_no_op(key: &Key) -> Option<Value>;
+	/// Provide a list of tuples of currency and value with timestamp
+	fn get_all_values() -> Vec<(Key, Option<Value>)>;
+}
+
+/// Data provider with ability to provide data with no-op, and provide all data.
+pub trait DataFeeder<Key, Value, AccountId>: DataProvider<Key, Value> {
 	/// Provide a new value for a given key from an operator
 	fn feed_value(who: AccountId, key: Key, value: Value) -> DispatchResult;
 }
@@ -55,4 +64,115 @@ pub enum Change<Value> {
 	NoChange,
 	/// Changed to new value.
 	NewValue(Value),
+}
+
+#[derive(Encode, Decode, RuntimeDebug, Eq, PartialEq, Clone, Copy)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct TimestampedValue<Value, Moment> {
+	pub value: Value,
+	pub timestamp: Moment,
+}
+
+/// A simple trait to provide data from a given ProviderId
+pub trait MultiDataProvider<ProviderId, Key, Value> {
+	/// Provide a new value for given key and ProviderId from an operator
+	fn get(source: ProviderId, key: &Key) -> Option<Value>;
+}
+
+pub fn find_median<T, F, M>(mut data: Vec<T>, compare: F, merge: M) -> Option<T>
+where
+	F: FnMut(&T, &T) -> Ordering,
+	M: Fn(T, T) -> Option<T>,
+{
+	if data.len() == 0 {
+		return None;
+	}
+	data.sort_by(compare);
+	let mid = data.len() / 2;
+	if data.len() % 2 == 0 {
+		merge(data.swap_remove(mid), data.swap_remove(mid - 1))
+	} else {
+		Some(data.swap_remove(mid))
+	}
+}
+
+#[macro_export]
+macro_rules! create_median_value_data_provider {
+	(
+		$TypeName:ident, $( $Provider:ty ),*
+	) => {
+		pub struct $TypeName;
+		impl DataProvider<CurrencyId, Price> for $TypeName {
+			fn get(key: &CurrencyId) -> Option<Price> {
+				let mut values: Vec<Price> = Vec::new();
+				$(
+					match <$Provider as DataProvider<CurrencyId, Price>>::get(&key) {
+						Some(value) => values.push(value),
+						None => ()
+					}
+				)*
+
+				find_median(
+					values,
+					|a, b| a.cmp(&b),
+					|a, b| Some((a+b)/FixedU128::saturating_from_integer(2))
+				)
+			}
+		}
+
+		impl DataProviderExtended<CurrencyId, TimestampedValue<Price, Moment>> for $TypeName {
+			fn get_no_op(key: &CurrencyId) -> Option<TimestampedValue<Price, Moment>> {
+				let mut values: Vec<TimestampedValue<Price, Moment>> = Vec::new();
+				$(
+					match <$Provider as DataProviderExtended<CurrencyId, TimestampedValue<Price, Moment>>>::get_no_op(&key) {
+						Some(value) => values.push(value),
+						None => ()
+					}
+				)*
+
+				find_median(
+					values,
+					|a, b| a.value.cmp(&b.value),
+					|a, b| Some(TimestampedValue {
+						value: (a.value + b.value) / FixedU128::saturating_from_integer(2),
+						timestamp: (a.timestamp + b.timestamp) / 2u64,
+					})
+				)
+			}
+
+			fn get_all_values() -> Vec<(CurrencyId, Option<TimestampedValue<Price, Moment>>)> {
+				let mut temp: Vec<(CurrencyId, Vec<TimestampedValue<Price, Moment>>)> = Vec::new();
+				$(
+					for (k1, values_opt) in <$Provider as DataProviderExtended<CurrencyId, TimestampedValue<Price, Moment>>>::get_all_values() {
+						let mut i = 0;
+						let mut found = false;
+						for (k2, _) in &temp {
+							if k1 == *k2 {
+								found = true;
+								break;
+							}
+							i = i + 1;
+						}
+						match (found, values_opt) {
+							(true, Some(v)) => temp[i].1.push(v),
+							(true, None) => (),
+							(false, Some(v)) => temp.push((k1, vec![v])),
+							(false, None) => temp.push((k1, vec![])),
+						}
+					}
+				)*
+
+				temp.iter_mut().map(|(key, values)| (*key, {
+					find_median(
+						values.to_vec(),
+						|a, b| a.value.cmp(&b.value),
+						|a, b| Some(TimestampedValue {
+							value: (a.value + b.value) / FixedU128::saturating_from_integer(2),
+							timestamp: (a.timestamp + b.timestamp) / 2u64,
+						})
+					)
+				})).collect::<Vec<(CurrencyId, Option<TimestampedValue<Price, Moment>>)>>()
+			}
+		}
+	};
 }

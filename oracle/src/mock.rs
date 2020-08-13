@@ -9,6 +9,7 @@ use sp_runtime::{
 	traits::{BlakeTwo256, IdentityLookup},
 	Perbill,
 };
+
 use std::cell::RefCell;
 
 impl_outer_origin! {
@@ -100,6 +101,7 @@ impl Trait for Test {
 	type UnsignedPriority = UnsignedPriority;
 	type AuthorityId = UintAuthorityId;
 }
+
 pub type ModuleOracle = Module<Test>;
 // This function basically just builds a genesis storage key/value store
 // according to our desired mockup.
