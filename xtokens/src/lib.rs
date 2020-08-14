@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode};
-use frame_support::{decl_error, decl_event, decl_module, decl_storage, Parameter};
+use frame_support::{decl_error, decl_event, decl_module, decl_storage, traits::Get, Parameter};
 use frame_system::ensure_signed;
 use orml_traits::MultiCurrency;
 use sp_runtime::traits::{AtLeast32Bit, CheckedSub, Convert, MaybeSerializeDeserialize, Member};
@@ -13,7 +13,7 @@ use sp_std::{
 use cumulus_primitives::{
 	relay_chain::{Balance as RelayChainBalance, DownwardMessage},
 	xcmp::{XCMPMessageHandler, XCMPMessageSender},
-	ParaId, UpwardMessageOrigin, UpwardMessageSender,
+	DownwardMessageHandler, ParaId, UpwardMessageOrigin, UpwardMessageSender,
 };
 
 use cumulus_upward_message::BalancesMessage;
@@ -46,7 +46,7 @@ pub trait Trait: frame_system::Trait {
 	type UpwardMessageSender: UpwardMessageSender<Self::UpwardMessage>;
 
 	/// The upward message type used by the Parachain runtime.
-	type UpwardMessage: codec::Codec + BalancesMessage<Self::AccountId, BalanceOf<Self>>;
+	type UpwardMessage: codec::Codec + BalancesMessage<Self::AccountId, Self::Balance>;
 }
 
 decl_storage! {
@@ -93,12 +93,13 @@ decl_module! {
 			Self::deposit_event(Event::<T>::TransferToParachain(para_id, asset_id, dest, amount));
 		}
 
+		#[weight = 10]
 		fn transfer_to_relay_chain(origin, dest: T::AccountId, amount: T::Balance) {
 			let who = ensure_signed(origin)?;
 
-			T::Currency::withdraw(T::RelayChainCurrencyId::Get(), &who, amount)?;
+			T::Currency::withdraw(T::RelayChainCurrencyId::get(), &who, amount)?;
 
-			let msg = T::UpwardMessage::transfer(dest.clone(), T::ToRelayChainBalance::convert(amount));
+			let msg = T::UpwardMessage::transfer(dest.clone(), amount);
 			T::UpwardMessageSender::send_upward_message(&msg, UpwardMessageOrigin::Signed).expect("should not fail");
 
 			Self::deposit_event(Event::<T>::TransferToRelayChain(dest, amount));
@@ -127,12 +128,12 @@ impl<T: Trait> DownwardMessageHandler for Module<T> {
 	fn handle_downward_message(msg: &DownwardMessage) {
 		match msg {
 			DownwardMessage::TransferInto(dest, amount, _) => {
-				let dest = convert_hack(&dest);
-				let amount = T::FromRelayChainBalance::convert(amount);
+				let dest: T::AccountId = convert_hack(dest);
+				let amount = T::FromRelayChainBalance::convert(*amount);
 
-				let _ = T::Currency::deposit(T::RelayChainCurrencyId::get() & dest, amount.clone());
+				let _ = T::Currency::deposit(T::RelayChainCurrencyId::get(), &dest, amount.clone());
 
-				Self::deposit_event(Event::<T>::ReceivedTransferFromRelayChain(dest, amount));
+				Self::deposit_event(Event::<T>::ReceivedTransferFromRelayChain(dest.clone(), amount));
 			}
 			_ => {}
 		}
