@@ -46,7 +46,7 @@ pub trait Trait: frame_system::Trait {
 	type UpwardMessageSender: UpwardMessageSender<Self::UpwardMessage>;
 
 	/// The upward message type used by the Parachain runtime.
-	type UpwardMessage: codec::Codec + BalancesMessage<Self::AccountId, Self::Balance>;
+	type UpwardMessage: codec::Codec + BalancesMessage<Self::AccountId, RelayChainBalance>;
 }
 
 decl_storage! {
@@ -99,7 +99,7 @@ decl_module! {
 
 			T::Currency::withdraw(T::RelayChainCurrencyId::get(), &who, amount)?;
 
-			let msg = T::UpwardMessage::transfer(dest.clone(), amount);
+			let msg = T::UpwardMessage::transfer(dest.clone(), T::ToRelayChainBalance::convert(amount));
 			T::UpwardMessageSender::send_upward_message(&msg, UpwardMessageOrigin::Signed).expect("should not fail");
 
 			Self::deposit_event(Event::<T>::TransferToRelayChain(dest, amount));
