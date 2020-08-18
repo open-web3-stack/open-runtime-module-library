@@ -39,6 +39,7 @@ type StorageValue = Vec<u8>;
 /// Gradually update a value stored at `key` to `target_value`,
 /// change `per_block` * `T::UpdateFrequency` per `T::UpdateFrequency` blocks.
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
+// REVIEW: nit-pick: This should probably be `GradualUpdate`
 pub struct GraduallyUpdate {
 	/// The storage key of the value to update
 	key: StorageKey,
@@ -166,10 +167,14 @@ impl<T: Trait> Module<T> {
 			let frequency_u128: u128 = T::UpdateFrequency::get().saturated_into();
 
 			let step = u128::from_le_bytes(Self::convert_vec_to_u8(&update.per_block));
+			// REVIEW: Unwrap should be expect with "proof". Also I am not sure
+			//         this should be assumed to be safe. Or consider
+			//         `unwrap_or_default`.
 			let step_u128 = step.checked_mul(frequency_u128).unwrap();
 
 			let target_u128 = u128::from_le_bytes(Self::convert_vec_to_u8(&update.target_value));
 
+			// REVIEW: Unwrap.
 			let new_value_u128 = if current_value_u128 > target_u128 {
 				(current_value_u128.checked_sub(step_u128).unwrap()).max(target_u128)
 			} else {
