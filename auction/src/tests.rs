@@ -17,6 +17,17 @@ fn new_auction_should_work() {
 fn update_auction_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(AuctionModule::new_auction(10, Some(100)), 0);
+		assert_noop!(
+			AuctionModule::update_auction(
+				1,
+				AuctionInfo {
+					bid: Some((ALICE, 100)),
+					start: 10,
+					end: Some(100)
+				}
+			),
+			Error::<Runtime>::AuctionNotExist,
+		);
 		assert_ok!(AuctionModule::update_auction(
 			0,
 			AuctionInfo {
@@ -46,14 +57,25 @@ fn auction_info_should_work() {
 #[test]
 fn bid_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(AuctionModule::new_auction(0, Some(100)), 0);
-		assert_ok!(AuctionModule::bid(Some(ALICE).into(), 0, 20));
+		System::set_block_number(1);
+		assert_ok!(AuctionModule::new_auction(0, Some(5)), 0);
+		assert_eq!(
+			AuctionModule::auction_info(0),
+			Some(AuctionInfo {
+				bid: None,
+				start: 0,
+				end: Some(5)
+			})
+		);
+		assert_ok!(AuctionModule::bid(Origin::signed(ALICE), 0, 20));
+		let bid_event = TestEvent::auction(RawEvent::Bid(0, ALICE, 20));
+		assert!(System::events().iter().any(|record| record.event == bid_event));
 		assert_eq!(
 			AuctionModule::auction_info(0),
 			Some(AuctionInfo {
 				bid: Some((ALICE, 20)),
 				start: 0,
-				end: Some(100)
+				end: Some(11)
 			})
 		);
 	});
@@ -63,9 +85,18 @@ fn bid_should_work() {
 fn bid_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(AuctionModule::new_auction(10, Some(100)), 0);
-		assert_eq!(
-			AuctionModule::bid(Some(ALICE).into(), 0, 20),
-			Err(Error::<Runtime>::AuctionNotStarted.into())
+		assert_ok!(AuctionModule::new_auction(0, Some(100)), 1);
+		assert_noop!(
+			AuctionModule::bid(Origin::signed(ALICE), 0, 20),
+			Error::<Runtime>::AuctionNotStarted
+		);
+		assert_noop!(
+			AuctionModule::bid(Origin::signed(BOB), 1, 20),
+			Error::<Runtime>::BidNotAccepted,
+		);
+		assert_noop!(
+			AuctionModule::bid(Origin::signed(ALICE), 1, 0),
+			Error::<Runtime>::InvalidBidPrice,
 		);
 	});
 }

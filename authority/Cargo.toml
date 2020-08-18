@@ -36,3 +36,5 @@ std = [
 	"frame-system/std",
 	"orml-traits/std",
 ]
+runtime-benchmarks = [
+]

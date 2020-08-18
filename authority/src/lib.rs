@@ -67,6 +67,11 @@ impl<
 			}
 		})
 	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn successful_origin() -> O {
+		unimplemented!()
+	}
 }
 
 /// Origin for the authority module.
