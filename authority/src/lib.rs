@@ -1,6 +1,6 @@
 //! # Authority
 //! A module to provide features for governance including dispatch method on
-//! behalf other accounts and schdule dispatchables.
+//! behalf of other accounts and schedule dispatchables.
 //!
 //! - [`Trait`](./trait.Trait.html)
 //! - [`Call`](./enum.Call.html)
@@ -9,7 +9,7 @@
 //! ## Overview
 //!
 //! Two functionalities are provided by this module:
-//! - schdule a dispatchable
+//! - schedule a dispatchable
 //! - dispatch method with on behalf of other origins
 
 #![cfg_attr(not(feature = "std"), no_std)]
@@ -79,7 +79,7 @@ pub type Origin<T> = DelayedOrigin<<T as frame_system::Trait>::BlockNumber, <T a
 
 /// Config for orml-authority
 pub trait AuthorityConfig<Origin, PalletsOrigin, BlockNumber> {
-	/// Check if the `origin` is allow to schedule a dispatchable call with a
+	/// Check if the `origin` is allowed to schedule a dispatchable call with a
 	/// given `priority`.
 	fn check_schedule_dispatch(origin: Origin, priority: Priority) -> DispatchResult;
 	/// Check if the `origin` is allow to fast track a scheduled task that
@@ -197,7 +197,7 @@ decl_module! {
 			Self::deposit_event(RawEvent::Dispatched(e.map(|_| ()).map_err(|e| e.error)));
 		}
 
-		/// Schdule a dispatchable to be dispatched at later block.
+		/// Schedule a dispatchable to be dispatched at later block.
 		/// This is the only way to dispatch a call with `DelayedOrigin`.
 		#[weight = 0]
 		pub fn schedule_dispatch(
@@ -248,6 +248,8 @@ decl_module! {
 		}
 
 		/// Fast track a scheduled dispatchable.
+		// REVIEW: Mark the functions as unfinished in docs so people don't accidentally
+		//         use them.
 		#[weight = 0]
 		pub fn fast_track_scheduled_dispatch(
 			origin,
