@@ -111,8 +111,10 @@ decl_error! {
 	/// Error for currencies module.
 	pub enum Error for Module<T: Trait> {
 		/// Unable to convert the Amount type into Balance.
+		// REVIEW: This is not used, instead there is a String.
 		AmountIntoBalanceFailed,
 		/// Balance is too low.
+		// REVIEW: Unused.
 		BalanceTooLow,
 	}
 }
@@ -309,6 +311,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		} else {
 			T::MultiCurrency::slash(currency_id, who, amount)
 		}
+		// REVIEW: Is it intentional that there is no event for slashing?
 	}
 }
 
@@ -565,6 +568,7 @@ where
 
 	fn ensure_can_withdraw(who: &AccountId, amount: Self::Balance) -> DispatchResult {
 		let new_balance_pallet = {
+			// REVIEW: You might want to introduce an Error enum variant here.
 			let new_balance = Self::free_balance(who)
 				.checked_sub(&amount)
 				.ok_or("InsufficientBalance")?;
