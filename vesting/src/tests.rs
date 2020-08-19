@@ -81,6 +81,7 @@ fn vested_transfer_fails_if_zero_period_or_count() {
 			period_count: 1u32,
 			per_period: 100u64,
 		};
+		// REVIEW: You probably want to `assert_noop`.
 		assert_err!(
 			Vesting::vested_transfer(Origin::signed(ALICE), BOB, schedule.clone()),
 			Error::<Runtime>::ZeroVestingPeriod
@@ -92,6 +93,7 @@ fn vested_transfer_fails_if_zero_period_or_count() {
 			period_count: 0u32,
 			per_period: 100u64,
 		};
+		// REVIEW: You probably want to `assert_noop`.
 		assert_err!(
 			Vesting::vested_transfer(Origin::signed(ALICE), BOB, schedule.clone()),
 			Error::<Runtime>::ZeroVestingPeriodCount
@@ -108,6 +110,7 @@ fn vested_transfer_fails_if_transfer_err() {
 			period_count: 1u32,
 			per_period: 100u64,
 		};
+		// REVIEW: You probably want `assert_noop`.
 		assert_err!(
 			Vesting::vested_transfer(Origin::signed(BOB), ALICE, schedule.clone()),
 			pallet_balances::Error::<Runtime, _>::InsufficientBalance,
@@ -124,6 +127,7 @@ fn vested_transfer_fails_if_overflow() {
 			period_count: 2u32,
 			per_period: u64::max_value(),
 		};
+		// REVIEW: `assert_noop`.
 		assert_err!(
 			Vesting::vested_transfer(Origin::signed(ALICE), BOB, schedule),
 			Error::<Runtime>::NumOverflow
@@ -135,6 +139,7 @@ fn vested_transfer_fails_if_overflow() {
 			period_count: 2u32,
 			per_period: 1u64,
 		};
+		// REVIEW: `assert_noop`.
 		assert_err!(
 			Vesting::vested_transfer(Origin::signed(ALICE), BOB, another_schedule),
 			Error::<Runtime>::NumOverflow
@@ -224,6 +229,7 @@ fn vested_transfer_check_for_min() {
 			period_count: 1u32,
 			per_period: 3u64,
 		};
+		// REVIEW: `assert_noop`.
 		assert_err!(
 			Vesting::vested_transfer(Origin::signed(BOB), ALICE, schedule.clone()),
 			Error::<Runtime>::AmountLow

@@ -158,8 +158,10 @@ decl_error! {
 		/// Arithmetic calculation overflow
 		NumOverflow,
 		/// Insufficient amount of balance to lock
+		// REVIEW: No tests.
 		InsufficientBalanceToLock,
 		/// This account have too many vesting schedules
+		// REVIEW: No tests.
 		TooManyVestingSchedules,
 		/// The vested transfer amount is too low
 		AmountLow,
@@ -282,6 +284,8 @@ impl<T: Trait> Module<T> {
 			Error::<T>::TooManyVestingSchedules
 		);
 
+		// REVIEW: `locked_balance` is mutating so this function has multiple fallible
+		//         mutating function calls. --> make atomic via `with_transaction`
 		let total_amount = Self::locked_balance(to)
 			.checked_add(&schedule_amount)
 			.ok_or(Error::<T>::NumOverflow)?;

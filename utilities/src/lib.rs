@@ -71,6 +71,7 @@ mod tests {
 			assert_eq!(Value::get(), 0);
 			assert_eq!(Map::get("val0"), 0);
 
+			// REVIEW: You probably want `assert_noop`.
 			assert_err!(
 				with_transaction_result(|| -> DispatchResult {
 					Value::set(99);
