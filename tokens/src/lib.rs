@@ -253,6 +253,7 @@ decl_error! {
 		/// This operation will cause total issuance to overflow
 		TotalIssuanceOverflow,
 		/// Cannot convert Amount into Balance type
+		// REVIEW: No tests.
 		AmountIntoBalanceFailed,
 		/// Failed because liquidity restrictions due to locking
 		LiquidityRestrictions,
@@ -328,6 +329,8 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 			return Ok(());
 		}
 
+		// REVIEW: This combined with `Self::accounts` gets the account twice
+		//         from the DB. Store account in local variable and re-use.
 		let new_balance = Self::free_balance(currency_id, who)
 			.checked_sub(&amount)
 			.ok_or(Error::<T>::BalanceTooLow)?;
@@ -350,11 +353,18 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		if amount.is_zero() || from == to {
 			return Ok(());
 		}
+		// REVIEW: Both ensure and the code below access the DB. Potential
+		//         opportunity for optimization as even small differences
+		//         in the speed of `transfer` might be relevant because it
+		//         is so ubiquitous. Measure and decide.
 		Self::ensure_can_withdraw(currency_id, from, amount)?;
 
 		let from_balance = Self::free_balance(currency_id, from);
 		let to_balance = Self::free_balance(currency_id, to);
+		// REVIEW: I would document that this is only safe because of the `ensure`.
+		//         Would still use `saturating_sub` for consistency.
 		Self::set_free_balance(currency_id, from, from_balance - amount);
+		// REVIEW: Overflow not handled.
 		Self::set_free_balance(currency_id, to, to_balance + amount);
 		T::OnReceived::on_received(to, currency_id, amount);
 
@@ -373,6 +383,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 			.checked_add(&amount)
 			.ok_or(Error::<T>::TotalIssuanceOverflow)?;
 		<TotalIssuance<T>>::insert(currency_id, new_total);
+		// REVIEW: I would document that this is only safe because of the `checked_add`.
 		Self::set_free_balance(currency_id, who, Self::free_balance(currency_id, who) + amount);
 		T::OnReceived::on_received(who, currency_id, amount);
 
@@ -385,6 +396,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		}
 		Self::ensure_can_withdraw(currency_id, who, amount)?;
 
+		// REVIEW: Add comment that these are only safe because of the `ensure`.
 		<TotalIssuance<T>>::mutate(currency_id, |v| *v -= amount);
 		Self::set_free_balance(currency_id, who, Self::free_balance(currency_id, who) - amount);
 
@@ -412,9 +424,13 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		}
 
 		let account = Self::accounts(who, currency_id);
+		// REVIEW: Consider adding notes why the bare subtractions are safe.
 		let free_slashed_amount = account.free.min(amount);
 		let mut remaining_slash = amount - free_slashed_amount;
 
+		// REVIEW: You apply the slashes to the free and reserved balances separately
+		//         thus incurring two writes instead of one (at least in the DB overlay).
+		//         Consider measuring whether it makes sense to optimize that out.
 		// slash free balance
 		if !free_slashed_amount.is_zero() {
 			Self::set_free_balance(currency_id, who, account.free - free_slashed_amount);
@@ -547,10 +563,13 @@ impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
 		if value.is_zero() {
 			return Ok(());
 		}
+		// REVIEW: Suggestion: Separate out a function that takes `AccountData`
+		//         to avoid repeated DB reads.
 		Self::ensure_can_withdraw(currency_id, who, value)?;
 
 		let account = Self::accounts(who, currency_id);
 		Self::set_free_balance(currency_id, who, account.free - value);
+		// REVIEW: Unhandled overflow.
 		Self::set_reserved_balance(currency_id, who, account.reserved + value);
 		Ok(())
 	}
