@@ -429,8 +429,9 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		let mut remaining_slash = amount - free_slashed_amount;
 
 		// REVIEW: You apply the slashes to the free and reserved balances separately
-		//         thus incurring two writes instead of one (at least in the DB overlay).
-		//         Consider measuring whether it makes sense to optimize that out.
+		//         thus incurring two writes instead of one (at least in the DB
+		//         overlay). Consider measuring whether it makes sense to optimize
+		//         that out.
 		// slash free balance
 		if !free_slashed_amount.is_zero() {
 			Self::set_free_balance(currency_id, who, account.free - free_slashed_amount);
