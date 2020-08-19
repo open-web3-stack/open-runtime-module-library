@@ -111,6 +111,8 @@ decl_module! {
 			ensure!(update.per_block.len() == update.target_value.len() && update.per_block.len() <= 16, Error::<T>::InvalidPerBlockOrTargetValue);
 
 			if storage::unhashed::exists(&update.key) {
+				// REVIEW: These are very weak checks to accept the gradual update. The
+				//         value in storage could be a `[u8; 3]` for all we know.
 				let current_value = storage::unhashed::get::<StorageValue>(&update.key).unwrap();
 				ensure!(current_value.len() == update.target_value.len(), Error::<T>::InvalidTargetValue);
 			}
@@ -159,6 +161,8 @@ impl<T: Trait> Module<T> {
 		let mut gradually_updates = GraduallyUpdates::get();
 		let initial_count = gradually_updates.len();
 
+		// REVIEW: You try to avoid generating errors in this update loop in order to
+		//         continue. I don't think that's a good strategy.
 		gradually_updates.retain(|update| {
 			let mut keep = true;
 			let current_value = storage::unhashed::get::<StorageValue>(&update.key).unwrap_or_default();
@@ -167,9 +171,9 @@ impl<T: Trait> Module<T> {
 			let frequency_u128: u128 = T::UpdateFrequency::get().saturated_into();
 
 			let step = u128::from_le_bytes(Self::convert_vec_to_u8(&update.per_block));
-			// REVIEW: Unwrap should be expect with "proof". Also I am not sure
-			//         this should be assumed to be safe. Or consider
-			//         `unwrap_or_default`.
+			// REVIEW: `unwrap` should be `expect` with "proof". Also I am not sure
+			//         this can be assumed to be safe.
+			//         Alternatively consider `unwrap_or_default` like above.
 			let step_u128 = step.checked_mul(frequency_u128).unwrap();
 
 			let target_u128 = u128::from_le_bytes(Self::convert_vec_to_u8(&update.target_value));
@@ -204,6 +208,8 @@ impl<T: Trait> Module<T> {
 		LastUpdatedAt::<T>::put(now);
 	}
 
+	// REVIEW: This assumes that `input` is no longer than 16 without checking.
+	//         `array[i]` will panic if access is out of bounds.
 	#[allow(clippy::ptr_arg)]
 	fn convert_vec_to_u8(input: &StorageValue) -> [u8; 16] {
 		let mut array: [u8; 16] = [0; 16];
