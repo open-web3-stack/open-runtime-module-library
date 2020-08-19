@@ -126,6 +126,7 @@ decl_storage! {
 		pub Members get(fn members) config(): OrderedSet<T::AccountId>;
 
 		/// Session key for oracle operators
+		// REVIEW: Is it on purpose that session keys stay around arbitrarily long?
 		pub SessionKeys get(fn session_keys) config(): map hasher(twox_64_concat) T::AccountId => Option<T::AuthorityId>;
 
 		pub Nonces get(fn nonces): map hasher(twox_64_concat) T::AccountId => u32;
@@ -135,6 +136,7 @@ decl_storage! {
 decl_error! {
 	pub enum Error for Module<T: Trait> {
 		/// Sender does not have permission
+		// REVIEW: No tests.
 		NoPermission,
 	}
 }
@@ -219,6 +221,8 @@ impl<T: Trait> Module<T> {
 	/// Returns fresh combined value if has update, or latest combined value.
 	///
 	/// This is a no-op function which would not change storage.
+	// REVIEW: nit-pick: No-op seems technically inaccurate as the combined
+	//         value is computed. Maybe `get_no_update`?
 	pub fn get_no_op(key: &T::OracleKey) -> Option<TimestampedValueOf<T>> {
 		if Self::is_updated(key) {
 			Self::values(key)
@@ -338,6 +342,7 @@ impl<T: Trait> frame_support::unsigned::ValidateUnsigned for Module<T> {
 					return Err(InvalidTransaction::Stale.into());
 				}
 
+				// REVIEW: Unhandled overflow.
 				Nonces::<T>::insert(who, nonce + 1);
 
 				// make priority less likely to overflow.
