@@ -25,6 +25,8 @@ jobs:
         toolchain: nightly
         override: true
         default: true
+    - name: Install libcurl4
+      run: sudo apt-get install libcurl4-openssl-dev
     - name: Install cargo-unleash
       run: cargo install cargo-unleash --version 1.0.0-alpha.10 #FIXME: change to release once it's ready
     - name: Prepare
