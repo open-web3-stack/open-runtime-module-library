@@ -60,9 +60,13 @@ decl_event!(
 		<T as frame_system::Trait>::AccountId,
 		<T as Trait>::Balance
 	{
+		/// Transfer some assets to another parachain. [para_id, asset_id, dest, amount]
 		TransferToParachain(ParaId, Vec<u8>, AccountId, Balance),
+		/// Received soem assets from another parachain. [para_id, asset_id, dest, amount]
 		ReceivedTransferFromParachain(ParaId, Vec<u8>, AccountId, Balance),
+		/// Transfer relay chain token to relay chain. [dest, amount]
 		TransferToRelayChain(AccountId, Balance),
+		/// Received relay chain token from relay chain. [dest, amount]
 		ReceivedTransferFromRelayChain(AccountId, Balance),
 	}
 );
