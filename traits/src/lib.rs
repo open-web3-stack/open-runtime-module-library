@@ -89,6 +89,12 @@ where
 	}
 	data.sort_by(compare);
 	let mid = data.len() / 2;
+	// data.len() < 0 will never happen because usize is always >= 0
+	// If data.len() == 0 we never reach here (if above)
+	// If data.len() == 1, mid will be 0 and we go to "else" branch. not crash.
+	// If data.len() >= 2,
+	//     mid will always be < data.len() and so mid-1
+	//     mid will always be >= 1 and so mid-1 will always be >= 0
 	if data.len() % 2 == 0 {
 		merge(data.swap_remove(mid), data.swap_remove(mid - 1))
 	} else {
