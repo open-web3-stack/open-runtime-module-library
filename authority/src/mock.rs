@@ -2,7 +2,10 @@
 
 #![cfg(test)]
 
-use frame_support::parameter_types;
+use frame_support::{
+	parameter_types,
+	traits::{OnFinalize, OnInitialize},
+};
 use frame_system::{ensure_root, ensure_signed, EnsureRoot};
 use sp_core::H256;
 use sp_runtime::{
@@ -12,7 +15,7 @@ use sp_runtime::{
 };
 
 use super::*;
-use crate as authority;
+pub use crate as authority;
 
 pub type AccountId = u128;
 pub type BlockNumber = u64;
@@ -34,7 +37,7 @@ impl frame_system::Trait for Runtime {
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
-	type Event = ();
+	type Event = Event;
 	type BlockHashCount = BlockHashCount;
 	type MaximumBlockWeight = MaximumBlockWeight;
 	type MaximumBlockLength = MaximumBlockLength;
@@ -56,7 +59,7 @@ parameter_types! {
 	pub MaximumSchedulerWeight: u32 = Perbill::from_percent(80) * MaximumBlockWeight::get();
 }
 impl pallet_scheduler::Trait for Runtime {
-	type Event = ();
+	type Event = Event;
 	type Origin = Origin;
 	type PalletsOrigin = OriginCaller;
 	type Call = Call;
@@ -122,6 +125,14 @@ impl AsOriginId<Origin, OriginCaller> for MockAsOriginId {
 	}
 	fn check_dispatch_from(&self, origin: Origin) -> DispatchResult {
 		ensure_root(origin.clone()).or_else(|_| {
+			if let OriginCaller::authority(ref sign) = origin.caller() {
+				if sign.origin == Box::new(Origin::root().caller().clone()) {
+					return Ok(());
+				} else {
+					return Err(BadOrigin.into());
+				}
+			}
+
 			let ok = match self {
 				MockAsOriginId::Root => false,
 				MockAsOriginId::Account1 => ensure_signed(origin)? == 1,
@@ -133,7 +144,7 @@ impl AsOriginId<Origin, OriginCaller> for MockAsOriginId {
 }
 
 impl Trait for Runtime {
-	type Event = ();
+	type Event = Event;
 	type Origin = Origin;
 	type PalletsOrigin = OriginCaller;
 	type Scheduler = Scheduler;
@@ -152,7 +163,7 @@ frame_support::construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
 		System: frame_system::{Module, Call, Event<T>},
-		Authority: authority::{Module, Call, Origin<T>},
+		Authority: authority::{Module, Call, Origin<T>, Event<T>},
 		Scheduler: pallet_scheduler::{Module, Call, Storage, Event<T>},
 	}
 );
@@ -172,5 +183,13 @@ impl ExtBuilder {
 			.unwrap();
 
 		t.into()
+	}
+}
+
+pub fn run_to_block(n: u64) {
+	while System::block_number() < n {
+		Scheduler::on_finalize(System::block_number());
+		System::set_block_number(System::block_number() + 1);
+		Scheduler::on_initialize(System::block_number());
 	}
 }

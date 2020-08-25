@@ -43,7 +43,9 @@ use frame_support::{
 };
 use frame_system::ensure_signed;
 use sp_runtime::{
-	traits::{AtLeast32Bit, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, Saturating, StaticLookup, Zero},
+	traits::{
+		AtLeast32BitUnsigned, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, Saturating, StaticLookup, Zero,
+	},
 	DispatchError, DispatchResult, RuntimeDebug,
 };
 use sp_std::{
@@ -68,7 +70,7 @@ pub trait Trait: frame_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
 
 	/// The balance type
-	type Balance: Parameter + Member + AtLeast32Bit + Default + Copy + MaybeSerializeDeserialize;
+	type Balance: Parameter + Member + AtLeast32BitUnsigned + Default + Copy + MaybeSerializeDeserialize;
 
 	/// The amount type, should be signed version of `Balance`
 	type Amount: Signed

@@ -19,7 +19,7 @@ use frame_support::{
 use frame_system::ensure_signed;
 use orml_traits::{Auction, AuctionHandler, AuctionInfo, Change};
 use sp_runtime::{
-	traits::{AtLeast32Bit, Bounded, MaybeSerializeDeserialize, Member, One, Zero},
+	traits::{AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One, Zero},
 	DispatchError, DispatchResult,
 };
 use sp_std::result;
@@ -31,10 +31,10 @@ pub trait Trait: frame_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
 
 	/// The balance type for bidding
-	type Balance: Parameter + Member + AtLeast32Bit + Default + Copy + MaybeSerializeDeserialize;
+	type Balance: Parameter + Member + AtLeast32BitUnsigned + Default + Copy + MaybeSerializeDeserialize;
 
 	/// The auction ID type
-	type AuctionId: Parameter + Member + AtLeast32Bit + Default + Copy + MaybeSerializeDeserialize + Bounded;
+	type AuctionId: Parameter + Member + AtLeast32BitUnsigned + Default + Copy + MaybeSerializeDeserialize + Bounded;
 
 	/// The `AuctionHandler` that allow custom bidding logic and handles auction
 	/// result
