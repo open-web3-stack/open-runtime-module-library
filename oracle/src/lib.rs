@@ -28,7 +28,7 @@ pub use default_combine_data::DefaultCombineData;
 use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage, ensure,
 	traits::{ChangeMembers, Get, InitializeMembers, Time},
-	weights::DispatchClass,
+	weights::{DispatchClass, Weight},
 	IterableStorageMap, Parameter,
 };
 use frame_system::{ensure_none, ensure_root, ensure_signed};
@@ -148,7 +148,7 @@ decl_module! {
 		/// Feed the external value.
 		///
 		/// Require unsigned. However a valid signature signed by session key is required along with payload.
-		#[weight = (0, DispatchClass::Operational)]
+		#[weight = (10_000, DispatchClass::Operational)]
 		pub fn feed_values(
 			origin,
 			values: Vec<(T::OracleKey, T::OracleValue)>,
@@ -173,6 +173,12 @@ decl_module! {
 			ensure!(Self::members().contains(&who), Error::<T>::NoPermission);
 
 			SessionKeys::<T>::insert(who, key);
+		}
+
+		/// dummy `on_initialize` to return the weight used in `on_finalize`.
+		fn on_initialize() -> Weight {
+			// weight of `on_finalize`
+			0
 		}
 
 		fn on_finalize(_n: T::BlockNumber) {

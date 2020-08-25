@@ -2,12 +2,11 @@
 
 #![cfg(test)]
 
+use super::*;
 use frame_support::{impl_outer_event, impl_outer_origin, parameter_types};
 use orml_traits::OnNewBidResult;
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
-
-use super::*;
 
 impl_outer_origin! {
 	pub enum Origin for Runtime {}
@@ -98,6 +97,7 @@ impl Trait for Runtime {
 	type Balance = Balance;
 	type AuctionId = AuctionId;
 	type Handler = Handler;
+	type WeightInfo = ();
 }
 pub type AuctionModule = Module<Runtime>;
 

@@ -37,10 +37,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode};
-use frame_support::{
-	decl_error, decl_event, decl_module, decl_storage, ensure, traits::Get, weights::constants::WEIGHT_PER_MICROS,
-	Parameter,
-};
+use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, weights::Weight, Parameter};
 use frame_system::ensure_signed;
 use sp_runtime::{
 	traits::{
@@ -63,8 +60,14 @@ use orml_traits::{
 	MultiReservableCurrency, OnReceived,
 };
 
+mod default_weight;
 mod mock;
 mod tests;
+
+pub trait WeightInfo {
+	fn transfer() -> Weight;
+	fn transfer_all() -> Weight;
+}
 
 pub trait Trait: frame_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
@@ -88,6 +91,9 @@ pub trait Trait: frame_system::Trait {
 
 	/// Hook when some fund is deposited into an account
 	type OnReceived: OnReceived<Self::AccountId, Self::CurrencyId, Self::Balance>;
+
+	/// Weight information for extrinsics in this module.
+	type WeightInfo: WeightInfo;
 }
 
 /// A single lock on a balance. There can be many of these on an account and
@@ -206,7 +212,7 @@ decl_module! {
 		/// -------------------
 		/// Base Weight: 84.08 µs
 		/// # </weight>
-		#[weight = 84 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(4, 2)]
+		#[weight = T::WeightInfo::transfer()]
 		pub fn transfer(
 			origin,
 			dest: <T::Lookup as StaticLookup>::Source,
@@ -231,7 +237,7 @@ decl_module! {
 		/// -------------------
 		/// Base Weight: 87.71 µs
 		/// # </weight>
-		#[weight = 88 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(4, 2)]
+		#[weight = T::WeightInfo::transfer_all()]
 		pub fn transfer_all(
 			origin,
 			dest: <T::Lookup as StaticLookup>::Source,

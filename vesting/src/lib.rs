@@ -30,7 +30,7 @@ use codec::{Decode, Encode, HasCompact};
 use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage, ensure,
 	traits::{Currency, ExistenceRequirement, Get, LockIdentifier, LockableCurrency, WithdrawReasons},
-	weights::constants::WEIGHT_PER_MICROS,
+	weights::Weight,
 };
 use frame_system::{ensure_root, ensure_signed};
 use sp_runtime::{
@@ -42,8 +42,15 @@ use sp_std::{
 	vec::Vec,
 };
 
+mod default_weight;
 mod mock;
 mod tests;
+
+pub trait WeightInfo {
+	fn claim() -> Weight;
+	fn vested_transfer() -> Weight;
+	fn update_vesting_schedules() -> Weight;
+}
 
 /// The maximum number of vesting schedules an account can have.
 pub const MAX_VESTINGS: usize = 20;
@@ -114,6 +121,9 @@ pub trait Trait: frame_system::Trait {
 
 	/// The minimum amount transferred to call `vested_transfer`.
 	type MinVestedTransfer: Get<BalanceOf<Self>>;
+
+	/// Weight information for extrinsics in this module.
+	type WeightInfo: WeightInfo;
 }
 
 decl_storage! {
@@ -184,7 +194,7 @@ decl_module! {
 		/// -------------------
 		/// Base Weight: 65.23 µs
 		/// # </weight>
-		#[weight = 30 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(3, 3)]
+		#[weight = T::WeightInfo::claim()]
 		pub fn claim(origin) {
 			let who = ensure_signed(origin)?;
 			let locked_amount = Self::do_claim(&who);
@@ -201,7 +211,7 @@ decl_module! {
 		/// -------------------
 		/// Base Weight: 150.4 µs
 		/// # </weight>
-		#[weight = 150 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(4, 4)]
+		#[weight = T::WeightInfo::vested_transfer()]
 		pub fn vested_transfer(
 			origin,
 			dest: <T::Lookup as StaticLookup>::Source,
@@ -223,7 +233,7 @@ decl_module! {
 		/// -------------------
 		/// Base Weight: 61.87 µs
 		/// # </weight>
-		#[weight = 62 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(2, 3)]
+		#[weight = T::WeightInfo::update_vesting_schedules()]
 		pub fn update_vesting_schedules(
 			origin,
 			who: <T::Lookup as StaticLookup>::Source,

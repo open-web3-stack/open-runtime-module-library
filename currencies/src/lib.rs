@@ -45,7 +45,7 @@ use frame_support::{
 		Currency as PalletCurrency, ExistenceRequirement, Get, LockableCurrency as PalletLockableCurrency,
 		ReservableCurrency as PalletReservableCurrency, WithdrawReasons,
 	},
-	weights::constants::WEIGHT_PER_MICROS,
+	weights::Weight,
 };
 use frame_system::{ensure_root, ensure_signed};
 use sp_runtime::{
@@ -64,8 +64,15 @@ use orml_traits::{
 	LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
 };
 
+mod default_weight;
 mod mock;
 mod tests;
+
+pub trait WeightInfo {
+	fn transfer() -> Weight;
+	fn transfer_native_currency() -> Weight;
+	fn update_balance() -> Weight;
+}
 
 type BalanceOf<T> = <<T as Trait>::MultiCurrency as MultiCurrency<<T as frame_system::Trait>::AccountId>>::Balance;
 type CurrencyIdOf<T> =
@@ -83,6 +90,9 @@ pub trait Trait: frame_system::Trait {
 		+ BasicLockableCurrency<Self::AccountId, Balance = BalanceOf<Self>>
 		+ BasicReservableCurrency<Self::AccountId, Balance = BalanceOf<Self>>;
 	type GetNativeCurrencyId: Get<CurrencyIdOf<Self>>;
+
+	/// Weight information for extrinsics in this module.
+	type WeightInfo: WeightInfo;
 }
 
 decl_storage! {
@@ -141,7 +151,7 @@ decl_module! {
 		///		- non-native currency: 90.23 µs
 		///		- native currency in worst case: 70 µs
 		/// # </weight>
-		#[weight = 90 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(2, 2)]
+		#[weight = T::WeightInfo::transfer()]
 		pub fn transfer(
 			origin,
 			dest: <T::Lookup as StaticLookup>::Source,
@@ -167,7 +177,7 @@ decl_module! {
 		/// -------------------
 		/// Base Weight: 70 µs
 		/// # </weight>
-		#[weight = 70 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(2, 2)]
+		#[weight = T::WeightInfo::transfer_native_currency()]
 		pub fn transfer_native_currency(
 			origin,
 			dest: <T::Lookup as StaticLookup>::Source,
@@ -199,7 +209,7 @@ decl_module! {
 		///		- native currency and killing account: 26.33 µs
 		///		- native currency and create account: 27.39 µs
 		/// # </weight>
-		#[weight = 66 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(5, 2)]
+		#[weight = T::WeightInfo::transfer_native_currency()]
 		pub fn update_balance(
 			origin,
 			who: <T::Lookup as StaticLookup>::Source,
