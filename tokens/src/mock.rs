@@ -95,6 +95,7 @@ impl Trait for Runtime {
 	type Amount = i64;
 	type CurrencyId = CurrencyId;
 	type OnReceived = MockOnReceived;
+	type WeightInfo = ();
 }
 
 pub type Tokens = Module<Runtime>;

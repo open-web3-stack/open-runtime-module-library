@@ -85,6 +85,7 @@ impl Trait for Runtime {
 	type Event = TestEvent;
 	type Currency = PalletBalances;
 	type MinVestedTransfer = MinVestedTransfer;
+	type WeightInfo = ();
 }
 pub type Vesting = Module<Runtime>;
 

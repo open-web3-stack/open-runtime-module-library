@@ -92,6 +92,7 @@ impl tokens::Trait for Runtime {
 	type Amount = i64;
 	type CurrencyId = CurrencyId;
 	type OnReceived = ();
+	type WeightInfo = ();
 }
 pub type Tokens = tokens::Module<Runtime>;
 
@@ -107,6 +108,7 @@ impl Trait for Runtime {
 	type MultiCurrency = Tokens;
 	type NativeCurrency = AdaptedBasicCurrency;
 	type GetNativeCurrencyId = GetNativeCurrencyId;
+	type WeightInfo = ();
 }
 pub type Currencies = Module<Runtime>;
 pub type NativeCurrency = NativeCurrencyOf<Runtime>;
