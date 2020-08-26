@@ -59,7 +59,7 @@ use sp_std::{
 	marker, result,
 };
 
-use crate::imbalances::imbalances::{NegativeImbalance, PositiveImbalance};
+use crate::imbalances::{NegativeImbalance, PositiveImbalance};
 use orml_traits::{
 	arithmetic::{Signed, SimpleArithmetic},
 	BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency, BasicReservableCurrency,
