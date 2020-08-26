@@ -32,7 +32,7 @@ use frame_support::{
 	IterableStorageMap, Parameter,
 };
 use frame_system::{ensure_none, ensure_root, ensure_signed};
-pub use orml_traits::{CombineData, DataFeeder, DataProvider, DataProviderExtended, OnNewData, TimestampedValue};
+pub use orml_traits::{CombineData, DataFeeder, DataProvider, OnNewData, TimestampedValue};
 use orml_utilities::OrderedSet;
 use sp_runtime::{
 	traits::Member,
@@ -218,6 +218,7 @@ impl<T: Trait<I>, I: Instance> Module<T, I> {
 		}
 	}
 
+	#[allow(clippy::complexity)]
 	pub fn get_all_values() -> Vec<(T::OracleKey, Option<TimestampedValueOf<T, I>>)> {
 		<Values<T, I>>::iter()
 			.map(|(key, _)| key)
@@ -283,16 +284,6 @@ impl<T: Trait<I>, I: Instance> ChangeMembers<T::AccountId> for Module<T, I> {
 impl<T: Trait<I>, I: Instance> DataProvider<T::OracleKey, T::OracleValue> for Module<T, I> {
 	fn get(key: &T::OracleKey) -> Option<T::OracleValue> {
 		Self::get(key).map(|timestamped_value| timestamped_value.value)
-	}
-}
-
-impl<T: Trait<I>, I: Instance> DataProviderExtended<T::OracleKey, TimestampedValueOf<T, I>> for Module<T, I> {
-	fn get_no_op(key: &T::OracleKey) -> Option<TimestampedValueOf<T, I>> {
-		Self::get_no_op(key)
-	}
-
-	fn get_all_values() -> Vec<(T::OracleKey, Option<TimestampedValueOf<T, I>>)> {
-		Self::get_all_values()
 	}
 }
 
