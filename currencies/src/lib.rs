@@ -777,7 +777,6 @@ where
 
 	fn slash(_who: &T::AccountId, _value: Self::Balance) -> (Self::NegativeImbalance, Self::Balance) {
 		unimplemented!()
-		// (NegativeImbalance::new(value),
 		// T::MultiCurrency::slash(GetCurrencyId::get(), who, value))
 	}
 

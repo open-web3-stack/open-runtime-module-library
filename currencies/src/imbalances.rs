@@ -137,19 +137,11 @@ pub mod imbalances {
 
 	impl<T: Trait> Drop for PositiveImbalance<T> {
 		/// Basic drop handler will just square up the total issuance.
-		fn drop(&mut self) {
-			//<super::TotalIssuance<super::ElevatedTrait<T>>::mutate(
-			//	|v| *v = v.saturating_add(self.0)
-			//);
-		}
+		fn drop(&mut self) {}
 	}
 
 	impl<T: Trait> Drop for NegativeImbalance<T> {
 		/// Basic drop handler will just square up the total issuance.
-		fn drop(&mut self) {
-			//<super::TotalIssuance<super::ElevatedTrait<T>>::mutate(
-			//	|v| *v = v.saturating_sub(self.0)
-			//);
-		}
+		fn drop(&mut self) {}
 	}
 }
