@@ -26,20 +26,22 @@ mod tests;
 use codec::{Decode, Encode};
 pub use default_combine_data::DefaultCombineData;
 use frame_support::{
-	decl_error, decl_event, decl_module, decl_storage, ensure,
+	decl_error, decl_event, decl_module, decl_storage,
+	dispatch::{DispatchResultWithPostInfo, IsSubType},
+	ensure,
 	traits::{ChangeMembers, Get, InitializeMembers, Time},
-	weights::{DispatchClass, Weight},
+	weights::{DispatchClass, Pays, Weight},
 	IterableStorageMap, Parameter,
 };
-use frame_system::{ensure_none, ensure_root, ensure_signed};
+use frame_system::{ensure_root, ensure_signed};
 pub use orml_traits::{CombineData, DataProvider, DataProviderExtended, OnNewData};
 use orml_utilities::OrderedSet;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::{
-	traits::Member,
+	traits::{DispatchInfoOf, Member, SignedExtension},
 	transaction_validity::{
-		InvalidTransaction, TransactionPriority, TransactionSource, TransactionValidity, ValidTransaction,
+		InvalidTransaction, TransactionPriority, TransactionValidity, TransactionValidityError, ValidTransaction,
 	},
 	DispatchResult, RuntimeDebug,
 };
@@ -157,13 +159,14 @@ decl_module! {
 			// since signature verification is done in `validate_unsigned`
 			// we can skip doing it here again.
 			_signature: <T::AuthorityId as RuntimeAppPublic>::Signature,
-		) {
-			ensure_none(origin.clone()).or_else(|_| ensure_root(origin))?;
+		) -> DispatchResultWithPostInfo {
+			ensure_signed(origin.clone()).map(|_| ()).or_else(|_| ensure_root(origin))?;
 			// validate_unsigned already unsure index is valid
 			let who = Self::members().0.get(index as usize)
 				.expect("`validate_unsigned` ensures index is in bound; qed`")
 				.clone();
 			Self::do_feed_values(who, values);
+			Ok(Pays::No.into())
 		}
 
 		/// Update the session key.
@@ -308,59 +311,99 @@ impl<T: Trait> DataProviderExtended<T::OracleKey, T::OracleValue, T::AccountId> 
 	}
 }
 
-impl<T: Trait> frame_support::unsigned::ValidateUnsigned for Module<T> {
-	type Call = Call<T>;
+#[derive(Encode, Decode, Clone, Eq, PartialEq, Default)]
+pub struct CheckOperator<T: Trait + Send + Sync>(sp_std::marker::PhantomData<T>);
 
-	fn validate_unsigned(_source: TransactionSource, call: &Self::Call) -> TransactionValidity {
-		if let Call::feed_values(value, index, block, signature) = call {
-			let now = <frame_system::Module<T>>::block_number();
+impl<T: Trait + Send + Sync> CheckOperator<T> {
+	pub fn new() -> Self {
+		Self(sp_std::marker::PhantomData)
+	}
+}
 
-			if now > *block + EXTRINSIC_LONGEVITY.into() {
-				return Err(InvalidTransaction::Stale.into());
-			}
-			if now < *block {
-				return Err(InvalidTransaction::Future.into());
-			}
+impl<T: Trait + Send + Sync> sp_std::fmt::Debug for CheckOperator<T> {
+	#[cfg(feature = "std")]
+	fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
+		write!(f, "CheckOperator")
+	}
 
-			let members = Module::<T>::members();
-			let who = members.0.get(*index as usize);
-			if let Some(who) = who {
-				let nonce = Module::<T>::nonces(&who);
+	#[cfg(not(feature = "std"))]
+	fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
+		Ok(())
+	}
+}
 
-				let signature_valid = Module::<T>::session_keys(&who)
-					.map(|session_key| {
-						(nonce, block, value).using_encoded(|payload| session_key.verify(&payload, &signature))
-					})
-					.unwrap_or(false);
+impl<T: Trait + Send + Sync> SignedExtension for CheckOperator<T>
+where
+	<T as frame_system::Trait>::Call: IsSubType<Call<T>>,
+{
+	const IDENTIFIER: &'static str = "CheckOperator";
+	type AccountId = T::AccountId;
+	type Call = <T as frame_system::Trait>::Call;
+	type AdditionalSigned = ();
+	type Pre = ();
 
-				if !signature_valid {
-					return InvalidTransaction::BadProof.into();
-				}
+	fn additional_signed(&self) -> sp_std::result::Result<(), TransactionValidityError> {
+		Ok(())
+	}
 
-				// ensure account hasn't dispatched an updated yet
-				let ok = HasDispatched::<T>::mutate(|set| set.insert(who.clone()));
-				if !ok {
-					// we already received a feed for this operator
+	fn validate(
+		&self,
+		_who: &Self::AccountId,
+		call: &Self::Call,
+		_info: &DispatchInfoOf<Self::Call>,
+		_len: usize,
+	) -> TransactionValidity {
+		// check for `feed_values`
+		match call.is_sub_type() {
+			Some(Call::feed_values(value, index, block, signature)) => {
+				let now = <frame_system::Module<T>>::block_number();
+
+				if now > *block + EXTRINSIC_LONGEVITY.into() {
 					return Err(InvalidTransaction::Stale.into());
 				}
+				if now < *block {
+					return Err(InvalidTransaction::Future.into());
+				}
 
-				Nonces::<T>::insert(who, nonce + 1);
+				let members = Module::<T>::members();
+				let who = members.0.get(*index as usize);
+				if let Some(who) = who {
+					let nonce = Module::<T>::nonces(&who);
 
-				// make priority less likely to overflow.
-				// this ensures tx sent later overrides old one
-				let add_priority = TryInto::<TransactionPriority>::try_into(*block % 1000.into()).unwrap_or(0);
+					let signature_valid = Module::<T>::session_keys(&who)
+						.map(|session_key| {
+							(nonce, block, value).using_encoded(|payload| session_key.verify(&payload, &signature))
+						})
+						.unwrap_or(false);
 
-				ValidTransaction::with_tag_prefix("orml-oracle")
-					.priority(T::UnsignedPriority::get().saturating_add(add_priority))
-					.and_provides((who, nonce))
-					.longevity(EXTRINSIC_LONGEVITY.into())
-					.propagate(true)
-					.build()
-			} else {
-				InvalidTransaction::BadProof.into()
+					if !signature_valid {
+						return InvalidTransaction::BadProof.into();
+					}
+
+					// ensure account hasn't dispatched an updated yet
+					let ok = HasDispatched::<T>::mutate(|set| set.insert(who.clone()));
+					if !ok {
+						// we already received a feed for this operator
+						return Err(InvalidTransaction::Stale.into());
+					}
+
+					Nonces::<T>::insert(who, nonce + 1);
+
+					// make priority less likely to overflow.
+					// this ensures tx sent later overrides old one
+					let add_priority = TryInto::<TransactionPriority>::try_into(*block % 1000.into()).unwrap_or(0);
+
+					ValidTransaction::with_tag_prefix("orml-oracle")
+						.priority(T::UnsignedPriority::get().saturating_add(add_priority))
+						.and_provides((who, nonce))
+						.longevity(EXTRINSIC_LONGEVITY.into())
+						.propagate(true)
+						.build()
+				} else {
+					InvalidTransaction::BadProof.into()
+				}
 			}
-		} else {
-			InvalidTransaction::Call.into()
+			_ => Ok(Default::default()),
 		}
 	}
 }

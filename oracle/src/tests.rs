@@ -1,36 +1,38 @@
 #![cfg(test)]
 
 use crate::{
-	mock::{new_test_ext, AccountId, ModuleOracle, OracleCall, Origin, Test, Timestamp},
-	TimestampedValue,
+	mock::{new_test_ext, AccountId, Call, ModuleOracle, Origin, Test, Timestamp},
+	CheckOperator, TimestampedValue,
 };
 use codec::Encode;
 use frame_support::{
-	assert_noop, assert_ok, dispatch,
+	assert_noop, assert_ok,
+	dispatch::DispatchResultWithPostInfo,
 	traits::{ChangeMembers, OnFinalize},
-	unsigned::ValidateUnsigned,
+	weights::DispatchInfo,
 };
 use sp_runtime::{
 	testing::{TestSignature, UintAuthorityId},
-	transaction_validity::{InvalidTransaction, TransactionSource, TransactionValidityError},
+	traits::SignedExtension,
+	transaction_validity::{InvalidTransaction, TransactionValidityError},
 	RuntimeAppPublic,
 };
 
 fn feed_values_from_session_key(
+	who: AccountId,
 	id: UintAuthorityId,
 	index: u32,
 	nonce: u32,
 	values: Vec<(u32, u32)>,
-) -> Result<dispatch::DispatchResult, TransactionValidityError> {
+) -> Result<DispatchResultWithPostInfo, TransactionValidityError> {
 	let now = <frame_system::Module<Test>>::block_number();
 	let sig = id.sign(&(nonce, now, &values).encode()).unwrap();
 
-	<ModuleOracle as ValidateUnsigned>::validate_unsigned(
-		TransactionSource::External,
-		&OracleCall::feed_values(values.clone(), index, now, sig.clone()),
-	)?;
+	let call = Call::ModuleOracle(crate::Call::feed_values(values.clone(), index, now, sig.clone()));
 
-	Ok(ModuleOracle::feed_values(Origin::none(), values, index, now, sig))
+	CheckOperator::<Test>(sp_std::marker::PhantomData).validate(&who, &call, &DispatchInfo::default(), 0)?;
+
+	Ok(ModuleOracle::feed_values(Origin::signed(who), values, index, now, sig))
 }
 
 fn feed_values(
@@ -38,10 +40,10 @@ fn feed_values(
 	index: u32,
 	nonce: u32,
 	values: Vec<(u32, u32)>,
-) -> Result<dispatch::DispatchResult, TransactionValidityError> {
-	let id = ModuleOracle::session_keys(from).unwrap();
+) -> Result<DispatchResultWithPostInfo, TransactionValidityError> {
+	let id = ModuleOracle::session_keys(from.clone()).unwrap();
 
-	feed_values_from_session_key(id, index, nonce, values)
+	feed_values_from_session_key(from, id, index, nonce, values)
 }
 
 #[test]
@@ -82,13 +84,17 @@ fn should_feed_values_from_root() {
 	new_test_ext().execute_with(|| {
 		let account_id: AccountId = 1;
 
-		assert_ok!(ModuleOracle::feed_values(
-			Origin::root(),
-			vec![(50, 1000), (51, 900), (52, 800)],
-			0,
-			0,
-			TestSignature(0, vec![])
-		));
+		assert_eq!(
+			ModuleOracle::feed_values(
+				Origin::root(),
+				vec![(50, 1000), (51, 900), (52, 800)],
+				0,
+				0,
+				TestSignature(0, vec![])
+			)
+			.is_ok(),
+			true
+		);
 
 		assert_eq!(
 			ModuleOracle::raw_values(&account_id, &50),
@@ -317,14 +323,14 @@ fn change_member_should_work() {
 		<ModuleOracle as ChangeMembers<AccountId>>::change_members_sorted(&[4], &[1], &[2, 3, 4]);
 
 		assert_noop!(
-			feed_values_from_session_key(10.into(), 0, 0, vec![(50, 1000)]),
+			feed_values_from_session_key(1, 10.into(), 0, 0, vec![(50, 1000)]),
 			TransactionValidityError::Invalid(InvalidTransaction::BadProof)
 		);
 
 		assert_ok!(feed_values(2, 0, 0, vec![(50, 1000)]));
 
 		assert_noop!(
-			feed_values_from_session_key(40.into(), 2, 0, vec![(50, 1000)]),
+			feed_values_from_session_key(1, 40.into(), 2, 0, vec![(50, 1000)]),
 			TransactionValidityError::Invalid(InvalidTransaction::BadProof)
 		);
 
@@ -378,10 +384,10 @@ fn change_session_key() {
 		assert_ok!(ModuleOracle::set_session_key(Origin::signed(1), 11.into()));
 
 		assert_noop!(
-			feed_values_from_session_key(10.into(), 0, 0, vec![(50, 1000)]),
+			feed_values_from_session_key(1, 10.into(), 0, 0, vec![(50, 1000)]),
 			TransactionValidityError::Invalid(InvalidTransaction::BadProof)
 		);
 
-		assert_ok!(feed_values_from_session_key(11.into(), 0, 0, vec![(50, 1000)]));
+		assert_ok!(feed_values_from_session_key(1, 11.into(), 0, 0, vec![(50, 1000)]));
 	});
 }
