@@ -107,7 +107,7 @@ decl_storage! {
 		pub IsUpdated get(fn is_updated): map hasher(twox_64_concat) T::OracleKey => bool;
 
 		/// Combined value, may not be up to date
-		pub Values get(fn values): map hasher(twox_64_concat) T::OracleKey => Option<TimestampedValueOf<T,I>>;
+		pub Values get(fn values): map hasher(twox_64_concat) T::OracleKey => Option<TimestampedValueOf<T, I>>;
 
 		/// If an oracle operator has feed a value in this block
 		HasDispatched: OrderedSet<T::AccountId>;
@@ -132,7 +132,7 @@ decl_error! {
 
 decl_module! {
 	pub struct Module<T: Trait<I>, I: Instance> for enum Call where origin: T::Origin {
-		type Error = Error<T,I>;
+		type Error = Error<T, I>;
 
 		fn deposit_event() = default;
 
@@ -161,14 +161,14 @@ decl_module! {
 		#[weight = 10_000_000]
 		pub fn set_session_key(origin, key: T::AuthorityId) {
 			let who = ensure_signed(origin)?;
-			ensure!(Self::members().contains(&who), Error::<T,I>::NoPermission);
+			ensure!(Self::members().contains(&who), Error::<T, I>::NoPermission);
 
-			SessionKeys::<T,I>::insert(who, key);
+			SessionKeys::<T, I>::insert(who, key);
 		}
 
 		fn on_finalize(_n: T::BlockNumber) {
 			// cleanup for next block
-			<HasDispatched<T,I>>::kill();
+			<HasDispatched<T, I>>::kill();
 		}
 	}
 }
