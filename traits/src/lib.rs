@@ -16,7 +16,7 @@ pub use currency::{
 	BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency, BasicReservableCurrency,
 	LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency, OnReceived,
 };
-pub use data_provider::{DataFeeder, DataProvider, MultiDataProvider};
+pub use data_provider::{DataFeeder, DataProvider, DataProviderExtended};
 pub use price::{DefaultPriceProvider, PriceProvider};
 
 pub mod arithmetic;
@@ -51,9 +51,9 @@ pub enum Change<Value> {
 	NewValue(Value),
 }
 
-#[derive(Encode, Decode, RuntimeDebug, Eq, PartialEq, Clone, Copy)]
+#[derive(Encode, Decode, RuntimeDebug, Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub struct TimestampedValue<Value, Moment> {
+pub struct TimestampedValue<Value: Ord + PartialOrd, Moment> {
 	pub value: Value,
 	pub timestamp: Moment,
 }

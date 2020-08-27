@@ -13,14 +13,17 @@ pub trait DataProvider<Key, Value> {
 	fn get(key: &Key) -> Option<Value>;
 }
 
-/// A simple trait to provide data from a given ProviderId
-pub trait MultiDataProvider<ProviderId, Key, Value> {
-	/// Provide a new value for given key and ProviderId from an operator
-	fn get(source: ProviderId, key: &Key) -> Option<Value>;
+/// Extended data provider to provide timestamped data by key with no-op, and
+/// all data.
+pub trait DataProviderExtended<Key, TimestampedValue> {
+	/// Get timestamped value by key
+	fn get_no_op(key: &Key) -> Option<TimestampedValue>;
+	/// Provide a list of tuples of key and timestamped value
+	fn get_all_values() -> Vec<(Key, Option<TimestampedValue>)>;
 }
 
 #[allow(dead_code)] // rust cannot defect usage in macro_rules
-fn median<T: Ord + Clone>(mut items: Vec<T>) -> Option<T> {
+pub fn median<T: Ord + Clone>(mut items: Vec<T>) -> Option<T> {
 	if items.is_empty() {
 		return None;
 	}
@@ -33,17 +36,37 @@ fn median<T: Ord + Clone>(mut items: Vec<T>) -> Option<T> {
 
 #[macro_export]
 macro_rules! create_median_value_data_provider {
-	($name:ident, $key:ty, $value:ty, [$( $provider:ty ),*]) => {
+	($name:ident, $key:ty, $value:ty, $timestamped_value:ty, [$( $provider:ty ),*]) => {
 		pub struct $name;
-		impl DataProvider<$key, $value> for $name {
+		impl $crate::DataProvider<$key, $value> for $name {
 			fn get(key: &$key) -> Option<$value> {
 				let mut values = vec![];
 				$(
-					if let Some(v) = <$provider>::get(&key) {
+					if let Some(v) = <$provider as $crate::DataProvider<$key, $value>>::get(&key) {
 						values.push(v);
 					}
 				)*
-				median(values)
+				$crate::data_provider::median(values)
+			}
+		}
+		impl $crate::DataProviderExtended<$key, $timestamped_value> for $name {
+			fn get_no_op(key: &$key) -> Option<$timestamped_value> {
+				let mut values = vec![];
+				$(
+					if let Some(v) = <$provider as $crate::DataProviderExtended<$key, $timestamped_value>>::get_no_op(&key) {
+						values.push(v);
+					}
+				)*
+				$crate::data_provider::median(values)
+			}
+			fn get_all_values() -> Vec<($key, Option<$timestamped_value>)> {
+				let mut keys = sp_std::collections::btree_set::BTreeSet::new();
+				$(
+					<$provider as $crate::DataProviderExtended<$key, $timestamped_value>>::get_all_values()
+						.into_iter()
+						.for_each(|(k, _)| { keys.insert(k); });
+				)*
+				keys.into_iter().map(|k| (k, Self::get_no_op(&k))).collect()
 			}
 		}
 	}
@@ -74,6 +97,14 @@ mod tests {
 					$price.with(|v| *v.borrow())
 				}
 			}
+			impl DataProviderExtended<u8, u8> for $provider {
+				fn get_no_op(_: &u8) -> Option<u8> {
+					$price.with(|v| *v.borrow())
+				}
+				fn get_all_values() -> Vec<(u8, Option<u8>)> {
+					vec![(0, Self::get_no_op(&0))]
+				}
+			}
 		};
 	}
 
@@ -82,11 +113,11 @@ mod tests {
 	mock_data_provider!(Provider3, MOCK_PRICE_3);
 	mock_data_provider!(Provider4, MOCK_PRICE_4);
 
-	create_median_value_data_provider!(Providers, u8, u8, [Provider1, Provider2, Provider3, Provider4]);
+	create_median_value_data_provider!(Providers, u8, u8, u8, [Provider1, Provider2, Provider3, Provider4]);
 
 	#[test]
 	fn median_value_data_provider_works() {
-		assert_eq!(Providers::get(&0), None);
+		assert_eq!(<Providers as DataProvider<_, _>>::get(&0), None);
 
 		let data = vec![
 			(vec![None, None, None, Some(1)], Some(1)),
@@ -101,7 +132,7 @@ mod tests {
 			Provider3::set_price(values[2]);
 			Provider4::set_price(values[3]);
 
-			assert_eq!(Providers::get(&0), target);
+			assert_eq!(<Providers as DataProvider<_, _>>::get(&0), target);
 		}
 	}
 }
