@@ -1,8 +1,8 @@
 #![cfg(test)]
 
 use crate::{
-	mock::{new_test_ext, AccountId, ModuleOracle, Origin, RootOperatorAccountId, Test, Timestamp},
-	Error, TimestampedValue,
+	mock::{new_test_ext, AccountId, ModuleOracle, Origin, RootOperatorAccountId, System, Test, TestEvent, Timestamp},
+	Error, RawEvent, TimestampedValue,
 };
 use frame_support::{
 	assert_noop, assert_ok,
@@ -13,11 +13,12 @@ use frame_support::{
 #[test]
 fn should_feed_values_from_member() {
 	new_test_ext().execute_with(|| {
+		System::set_block_number(1);
 		let account_id: AccountId = 1;
 
 		assert_noop!(
 			ModuleOracle::feed_values(Origin::signed(5), vec![(50, 1000), (51, 900), (52, 800)]),
-			Error::<Test>::NoPermission,
+			Error::<Test, _>::NoPermission,
 		);
 
 		assert_eq!(
@@ -26,6 +27,11 @@ fn should_feed_values_from_member() {
 				.pays_fee,
 			Pays::No
 		);
+
+		let new_feed_data_event = TestEvent::oracle(RawEvent::NewFeedData(1, vec![(50, 1000), (51, 900), (52, 800)]));
+		assert!(System::events()
+			.iter()
+			.any(|record| record.event == new_feed_data_event));
 
 		assert_eq!(
 			ModuleOracle::raw_values(&account_id, &50),
@@ -175,7 +181,7 @@ fn multiple_calls_should_fail() {
 		assert_ok!(ModuleOracle::feed_values(Origin::signed(1), vec![(50, 1300)]));
 		assert_noop!(
 			ModuleOracle::feed_values(Origin::signed(1), vec![(50, 1300)]),
-			Error::<Test>::AlreadyFeeded,
+			Error::<Test, _>::AlreadyFeeded,
 		);
 
 		ModuleOracle::on_finalize(1);
@@ -241,7 +247,7 @@ fn change_member_should_work() {
 		<ModuleOracle as ChangeMembers<AccountId>>::change_members_sorted(&[4], &[1], &[2, 3, 4]);
 		assert_noop!(
 			ModuleOracle::feed_values(Origin::signed(1), vec![(50, 1000)]),
-			Error::<Test>::NoPermission,
+			Error::<Test, _>::NoPermission,
 		);
 		assert_ok!(ModuleOracle::feed_values(Origin::signed(2), vec![(50, 1000)]));
 		assert_ok!(ModuleOracle::feed_values(Origin::signed(4), vec![(50, 1000)]));

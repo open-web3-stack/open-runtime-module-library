@@ -34,34 +34,15 @@ use frame_support::{
 	IterableStorageMap, Parameter,
 };
 use frame_system::{ensure_root, ensure_signed};
-pub use orml_traits::{CombineData, DataProvider, DataProviderExtended, OnNewData};
+pub use orml_traits::{CombineData, DataFeeder, DataProvider, DataProviderExtended, OnNewData};
 use orml_utilities::OrderedSet;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::{traits::Member, DispatchResult, RuntimeDebug};
 use sp_std::{prelude::*, vec};
 
-use sp_application_crypto::KeyTypeId;
-pub const ORACLE: KeyTypeId = KeyTypeId(*b"orac");
-
-mod app_sr25519 {
-	use sp_application_crypto::{app_crypto, sr25519};
-	app_crypto!(sr25519, super::ORACLE);
-}
-
-sp_application_crypto::with_pair! {
-	/// An oracle keypair using sr25519 as its crypto.
-	pub type AuthorityPair = app_sr25519::Pair;
-}
-
-/// An oracle signature using sr25519 as its crypto.
-pub type AuthoritySignature = app_sr25519::Signature;
-
-/// An oracle identifier using sr25519 as its crypto.
-pub type AuthorityId = app_sr25519::Public;
-
-type MomentOf<T> = <<T as Trait>::Time as Time>::Moment;
-pub type TimestampedValueOf<T> = TimestampedValue<<T as Trait>::OracleValue, MomentOf<T>>;
+type MomentOf<T, I = DefaultInstance> = <<T as Trait<I>>::Time as Time>::Moment;
+pub type TimestampedValueOf<T, I = DefaultInstance> = TimestampedValue<<T as Trait<I>>::OracleValue, MomentOf<T, I>>;
 
 #[derive(Encode, Decode, RuntimeDebug, Eq, PartialEq, Clone, Copy)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -70,15 +51,15 @@ pub struct TimestampedValue<Value, Moment> {
 	pub timestamp: Moment,
 }
 
-pub trait Trait: frame_system::Trait {
-	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
+pub trait Trait<I: Instance = DefaultInstance>: frame_system::Trait {
+	type Event: From<Event<Self, I>> + Into<<Self as frame_system::Trait>::Event>;
 
 	/// Hook on new data received
 	type OnNewData: OnNewData<Self::AccountId, Self::OracleKey, Self::OracleValue>;
 
 	/// Provide the implementation to combine raw values to produce aggregated
 	/// value
-	type CombineData: CombineData<Self::OracleKey, TimestampedValueOf<Self>>;
+	type CombineData: CombineData<Self::OracleKey, TimestampedValueOf<Self, I>>;
 
 	/// Time provider
 	type Time: Time;
@@ -93,29 +74,8 @@ pub trait Trait: frame_system::Trait {
 	type RootOperatorAccountId: Get<Self::AccountId>;
 }
 
-decl_storage! {
-	trait Store for Module<T: Trait> as Oracle {
-
-		/// Raw values for each oracle operators
-		pub RawValues get(fn raw_values): double_map hasher(twox_64_concat) T::AccountId, hasher(twox_64_concat) T::OracleKey => Option<TimestampedValueOf<T>>;
-
-		/// True if Self::values(key) is up to date, otherwise the value is stale
-		pub IsUpdated get(fn is_updated): map hasher(twox_64_concat) T::OracleKey => bool;
-
-		/// Combined value, may not be up to date
-		pub Values get(fn values): map hasher(twox_64_concat) T::OracleKey => Option<TimestampedValueOf<T>>;
-
-		/// If an oracle operator has feed a value in this block
-		HasDispatched: OrderedSet<T::AccountId>;
-
-		// TODO: this shouldn't be required https://github.com/paritytech/substrate/issues/6041
-		/// The current members of the collective. This is stored sorted (just by value).
-		pub Members get(fn members) config(): OrderedSet<T::AccountId>;
-	}
-}
-
 decl_error! {
-	pub enum Error for Module<T: Trait> {
+	pub enum Error for Module<T: Trait<I>, I: Instance> {
 		/// Sender does not have permission
 		NoPermission,
 		/// Feeder has already feeded at this block
@@ -123,9 +83,47 @@ decl_error! {
 	}
 }
 
+decl_event!(
+	pub enum Event<T, I=DefaultInstance> where
+		<T as frame_system::Trait>::AccountId,
+		<T as Trait<I>>::OracleKey,
+		<T as Trait<I>>::OracleValue,
+	{
+		/// New feed data is submitted. [sender, values]
+		NewFeedData(AccountId, Vec<(OracleKey, OracleValue)>),
+	}
+);
+
+decl_storage! {
+	trait Store for Module<T: Trait<I>, I: Instance=DefaultInstance> as Oracle {
+
+		/// Raw values for each oracle operators
+		pub RawValues get(fn raw_values): double_map hasher(twox_64_concat) T::AccountId, hasher(twox_64_concat) T::OracleKey => Option<TimestampedValueOf<T, I>>;
+
+		/// True if Self::values(key) is up to date, otherwise the value is stale
+		pub IsUpdated get(fn is_updated): map hasher(twox_64_concat) <T as Trait<I>>::OracleKey => bool;
+
+		/// Combined value, may not be up to date
+		pub Values get(fn values): map hasher(twox_64_concat) <T as Trait<I>>::OracleKey => Option<TimestampedValueOf<T, I>>;
+
+		/// If an oracle operator has feed a value in this block
+		HasDispatched: OrderedSet<T::AccountId>;
+
+		// TODO: this shouldn't be required https://github.com/paritytech/substrate/issues/6041
+		/// The current members of the collective. This is stored sorted (just by value).
+		pub Members get(fn members) config(): OrderedSet<T::AccountId>;
+
+		pub Nonces get(fn nonces): map hasher(twox_64_concat) T::AccountId => u32;
+	}
+
+	add_extra_genesis {
+		config(phantom): sp_std::marker::PhantomData<I>;
+	}
+}
+
 decl_module! {
-	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
-		type Error = Error<T>;
+	pub struct Module<T: Trait<I>, I: Instance=DefaultInstance> for enum Call where origin: T::Origin {
+		type Error = Error<T, I>;
 
 		fn deposit_event() = default;
 
@@ -150,24 +148,13 @@ decl_module! {
 
 		fn on_finalize(_n: T::BlockNumber) {
 			// cleanup for next block
-			<HasDispatched<T>>::kill();
+			<HasDispatched<T, I>>::kill();
 		}
 	}
 }
 
-decl_event!(
-	pub enum Event<T> where
-		<T as frame_system::Trait>::AccountId,
-		<T as Trait>::OracleKey,
-		<T as Trait>::OracleValue,
-	{
-		/// New feed data is submitted. [sender, values]
-		NewFeedData(AccountId, Vec<(OracleKey, OracleValue)>),
-	}
-);
-
-impl<T: Trait> Module<T> {
-	pub fn read_raw_values(key: &T::OracleKey) -> Vec<TimestampedValueOf<T>> {
+impl<T: Trait<I>, I: Instance> Module<T, I> {
+	pub fn read_raw_values(key: &T::OracleKey) -> Vec<TimestampedValueOf<T, I>> {
 		Self::members()
 			.0
 			.iter()
@@ -178,13 +165,13 @@ impl<T: Trait> Module<T> {
 	/// Returns fresh combined value if has update, or latest combined value.
 	///
 	/// Note this will update values storage if has update.
-	pub fn get(key: &T::OracleKey) -> Option<TimestampedValueOf<T>> {
+	pub fn get(key: &T::OracleKey) -> Option<TimestampedValueOf<T, I>> {
 		if Self::is_updated(key) {
-			<Values<T>>::get(key)
+			<Values<T, I>>::get(key)
 		} else {
 			let timestamped = Self::combined(key)?;
-			<Values<T>>::insert(key, timestamped.clone());
-			IsUpdated::<T>::insert(key, true);
+			<Values<T, I>>::insert(key, timestamped.clone());
+			IsUpdated::<T, I>::insert(key, true);
 			Some(timestamped)
 		}
 	}
@@ -192,7 +179,7 @@ impl<T: Trait> Module<T> {
 	/// Returns fresh combined value if has update, or latest combined value.
 	///
 	/// This is a no-op function which would not change storage.
-	pub fn get_no_op(key: &T::OracleKey) -> Option<TimestampedValueOf<T>> {
+	pub fn get_no_op(key: &T::OracleKey) -> Option<TimestampedValueOf<T, I>> {
 		if Self::is_updated(key) {
 			Self::values(key)
 		} else {
@@ -200,8 +187,9 @@ impl<T: Trait> Module<T> {
 		}
 	}
 
-	pub fn get_all_values() -> Vec<(T::OracleKey, Option<TimestampedValueOf<T>>)> {
-		<Values<T>>::iter()
+	#[allow(clippy::complexity)]
+	pub fn get_all_values() -> Vec<(T::OracleKey, Option<TimestampedValueOf<T, I>>)> {
+		<Values<T, I>>::iter()
 			.map(|(key, _)| key)
 			.map(|key| {
 				let v = Self::get_no_op(&key);
@@ -210,7 +198,7 @@ impl<T: Trait> Module<T> {
 			.collect()
 	}
 
-	fn combined(key: &T::OracleKey) -> Option<TimestampedValueOf<T>> {
+	fn combined(key: &T::OracleKey) -> Option<TimestampedValueOf<T, I>> {
 		let values = Self::read_raw_values(key);
 		T::CombineData::combine_data(key, values, Self::values(key))
 	}
@@ -219,13 +207,13 @@ impl<T: Trait> Module<T> {
 		// ensure feeder is authorized
 		ensure!(
 			Self::members().contains(&who) || who == T::RootOperatorAccountId::get(),
-			Error::<T>::NoPermission
+			Error::<T, I>::NoPermission
 		);
 
 		// ensure account hasn't dispatched an updated yet
 		ensure!(
-			HasDispatched::<T>::mutate(|set| set.insert(who.clone())),
-			Error::<T>::AlreadyFeeded
+			HasDispatched::<T, I>::mutate(|set| set.insert(who.clone())),
+			Error::<T, I>::AlreadyFeeded
 		);
 
 		let now = T::Time::now();
@@ -234,8 +222,8 @@ impl<T: Trait> Module<T> {
 				value: value.clone(),
 				timestamp: now,
 			};
-			RawValues::<T>::insert(&who, &key, timestamped);
-			IsUpdated::<T>::remove(&key);
+			RawValues::<T, I>::insert(&who, &key, timestamped);
+			IsUpdated::<T, I>::remove(&key);
 
 			T::OnNewData::on_new_data(&who, &key, &value);
 		}
@@ -244,26 +232,26 @@ impl<T: Trait> Module<T> {
 	}
 }
 
-impl<T: Trait> InitializeMembers<T::AccountId> for Module<T> {
+impl<T: Trait<I>, I: Instance> InitializeMembers<T::AccountId> for Module<T, I> {
 	fn initialize_members(members: &[T::AccountId]) {
 		if !members.is_empty() {
-			assert!(Members::<T>::get().0.is_empty(), "Members are already initialized!");
-			Members::<T>::put(OrderedSet::from_sorted_set(members.into()));
+			assert!(Members::<T, I>::get().0.is_empty(), "Members are already initialized!");
+			Members::<T, I>::put(OrderedSet::from_sorted_set(members.into()));
 		}
 	}
 }
 
-impl<T: Trait> ChangeMembers<T::AccountId> for Module<T> {
+impl<T: Trait<I>, I: Instance> ChangeMembers<T::AccountId> for Module<T, I> {
 	fn change_members_sorted(_incoming: &[T::AccountId], outgoing: &[T::AccountId], new: &[T::AccountId]) {
 		// remove session keys and its values
 		for removed in outgoing {
-			RawValues::<T>::remove_prefix(removed);
+			RawValues::<T, I>::remove_prefix(removed);
 		}
 
-		Members::<T>::put(OrderedSet::from_sorted_set(new.into()));
+		Members::<T, I>::put(OrderedSet::from_sorted_set(new.into()));
 
 		// not bothering to track which key needs recompute, just update all
-		IsUpdated::<T>::remove_all();
+		IsUpdated::<T, I>::remove_all();
 	}
 
 	fn set_prime(_prime: Option<T::AccountId>) {
@@ -271,13 +259,22 @@ impl<T: Trait> ChangeMembers<T::AccountId> for Module<T> {
 	}
 }
 
-impl<T: Trait> DataProvider<T::OracleKey, T::OracleValue> for Module<T> {
+impl<T: Trait<I>, I: Instance> DataProvider<T::OracleKey, T::OracleValue> for Module<T, I> {
 	fn get(key: &T::OracleKey) -> Option<T::OracleValue> {
 		Self::get(key).map(|timestamped_value| timestamped_value.value)
 	}
 }
+impl<T: Trait<I>, I: Instance> DataProviderExtended<T::OracleKey, TimestampedValueOf<T, I>> for Module<T, I> {
+	fn get_no_op(key: &T::OracleKey) -> Option<TimestampedValueOf<T, I>> {
+		Self::get_no_op(key)
+	}
+	#[allow(clippy::complexity)]
+	fn get_all_values() -> Vec<(T::OracleKey, Option<TimestampedValueOf<T, I>>)> {
+		Self::get_all_values()
+	}
+}
 
-impl<T: Trait> DataProviderExtended<T::OracleKey, T::OracleValue, T::AccountId> for Module<T> {
+impl<T: Trait<I>, I: Instance> DataFeeder<T::OracleKey, T::OracleValue, T::AccountId> for Module<T, I> {
 	fn feed_value(who: T::AccountId, key: T::OracleKey, value: T::OracleValue) -> DispatchResult {
 		Self::do_feed_values(who, vec![(key, value)])?;
 		Ok(())

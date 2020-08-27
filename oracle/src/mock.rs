@@ -2,14 +2,26 @@
 
 use super::*;
 
-use frame_support::{impl_outer_dispatch, impl_outer_origin, parameter_types, weights::Weight};
+use frame_support::{impl_outer_dispatch, impl_outer_event, impl_outer_origin, parameter_types, weights::Weight};
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
 	Perbill,
 };
+
 use std::cell::RefCell;
+
+mod oracle {
+	pub use super::super::*;
+}
+
+impl_outer_event! {
+	pub enum TestEvent for Test {
+		frame_system<T>,
+		oracle<T>,
+	}
+}
 
 impl_outer_origin! {
 	pub enum Origin for Test {}
@@ -46,7 +58,7 @@ impl frame_system::Trait for Test {
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
-	type Event = ();
+	type Event = TestEvent;
 	type BlockHashCount = BlockHashCount;
 	type MaximumBlockWeight = MaximumBlockWeight;
 	type MaximumBlockLength = MaximumBlockLength;
@@ -63,6 +75,7 @@ impl frame_system::Trait for Test {
 	type BaseCallFilter = ();
 	type SystemWeightInfo = ();
 }
+pub type System = frame_system::Module<Test>;
 
 thread_local! {
 	static TIME: RefCell<u32> = RefCell::new(0);
@@ -90,7 +103,7 @@ parameter_types! {
 }
 
 impl Trait for Test {
-	type Event = ();
+	type Event = TestEvent;
 	type OnNewData = ();
 	type CombineData = DefaultCombineData<Self, MinimumCount, ExpiresIn>;
 	type Time = Timestamp;
@@ -98,6 +111,7 @@ impl Trait for Test {
 	type OracleValue = Value;
 	type RootOperatorAccountId = RootOperatorAccountId;
 }
+
 pub type ModuleOracle = Module<Test>;
 // This function basically just builds a genesis storage key/value store
 // according to our desired mockup.
@@ -106,6 +120,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
 	let _ = GenesisConfig::<Test> {
 		members: vec![1, 2, 3].into(),
+		phantom: Default::default(),
 	}
 	.assimilate_storage(&mut storage);
 
