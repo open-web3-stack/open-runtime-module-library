@@ -9,6 +9,7 @@ use sp_runtime::{
 	traits::{BlakeTwo256, IdentityLookup},
 	Perbill,
 };
+
 use std::cell::RefCell;
 
 impl_outer_origin! {
@@ -21,7 +22,7 @@ impl_outer_dispatch! {
 	}
 }
 
-pub type OracleCall = super::Call<Test>;
+pub type OracleCall = super::Call<Test, Instance1>;
 pub type AccountId = u128;
 type Key = u32;
 type Value = u32;
@@ -90,23 +91,24 @@ parameter_types! {
 	pub const UnsignedPriority: TransactionPriority = 32u64;
 }
 
-impl Trait for Test {
+impl Trait<Instance1> for Test {
 	type Event = ();
 	type OnNewData = ();
-	type CombineData = DefaultCombineData<Self, MinimumCount, ExpiresIn>;
+	type CombineData = DefaultCombineData<Self, Instance1, MinimumCount, ExpiresIn>;
 	type Time = Timestamp;
 	type OracleKey = Key;
 	type OracleValue = Value;
 	type UnsignedPriority = UnsignedPriority;
 	type AuthorityId = UintAuthorityId;
 }
-pub type ModuleOracle = Module<Test>;
+
+pub type ModuleOracle = Module<Test, Instance1>;
 // This function basically just builds a genesis storage key/value store
 // according to our desired mockup.
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut storage = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
 
-	let _ = GenesisConfig::<Test> {
+	let _ = GenesisConfig::<Test, Instance1> {
 		members: vec![1, 2, 3].into(),
 		session_keys: vec![(1, 10.into()), (2, 20.into()), (3, 30.into())],
 	}
