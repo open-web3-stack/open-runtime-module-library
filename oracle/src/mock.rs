@@ -2,15 +2,26 @@
 
 use super::*;
 
-use frame_support::{impl_outer_dispatch, impl_outer_origin, parameter_types, weights::Weight};
+use frame_support::{impl_outer_dispatch, impl_outer_event, impl_outer_origin, parameter_types, weights::Weight};
 use sp_core::H256;
 use sp_runtime::{
-	testing::{Header, UintAuthorityId},
+	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
 	Perbill,
 };
 
 use std::cell::RefCell;
+
+mod oracle {
+	pub use super::super::*;
+}
+
+impl_outer_event! {
+	pub enum TestEvent for Test {
+		frame_system<T>,
+		oracle<T>,
+	}
+}
 
 impl_outer_origin! {
 	pub enum Origin for Test {}
@@ -22,7 +33,6 @@ impl_outer_dispatch! {
 	}
 }
 
-pub type OracleCall = super::Call<Test, Instance1>;
 pub type AccountId = u128;
 type Key = u32;
 type Value = u32;
@@ -48,7 +58,7 @@ impl frame_system::Trait for Test {
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
-	type Event = ();
+	type Event = TestEvent;
 	type BlockHashCount = BlockHashCount;
 	type MaximumBlockWeight = MaximumBlockWeight;
 	type MaximumBlockLength = MaximumBlockLength;
@@ -65,6 +75,7 @@ impl frame_system::Trait for Test {
 	type BaseCallFilter = ();
 	type SystemWeightInfo = ();
 }
+pub type System = frame_system::Module<Test>;
 
 thread_local! {
 	static TIME: RefCell<u32> = RefCell::new(0);
@@ -88,29 +99,28 @@ impl Timestamp {
 parameter_types! {
 	pub const MinimumCount: u32 = 3;
 	pub const ExpiresIn: u32 = 600;
-	pub const UnsignedPriority: TransactionPriority = 32u64;
+	pub const RootOperatorAccountId: AccountId = 4;
 }
 
-impl Trait<Instance1> for Test {
-	type Event = ();
+impl Trait for Test {
+	type Event = TestEvent;
 	type OnNewData = ();
-	type CombineData = DefaultCombineData<Self, Instance1, MinimumCount, ExpiresIn>;
+	type CombineData = DefaultCombineData<Self, MinimumCount, ExpiresIn>;
 	type Time = Timestamp;
 	type OracleKey = Key;
 	type OracleValue = Value;
-	type UnsignedPriority = UnsignedPriority;
-	type AuthorityId = UintAuthorityId;
+	type RootOperatorAccountId = RootOperatorAccountId;
 }
 
-pub type ModuleOracle = Module<Test, Instance1>;
+pub type ModuleOracle = Module<Test>;
 // This function basically just builds a genesis storage key/value store
 // according to our desired mockup.
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut storage = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
 
-	let _ = GenesisConfig::<Test, Instance1> {
+	let _ = GenesisConfig::<Test> {
 		members: vec![1, 2, 3].into(),
-		session_keys: vec![(1, 10.into()), (2, 20.into()), (3, 30.into())],
+		phantom: Default::default(),
 	}
 	.assimilate_storage(&mut storage);
 
