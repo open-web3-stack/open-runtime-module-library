@@ -27,7 +27,7 @@ use codec::{Decode, Encode};
 pub use default_combine_data::DefaultCombineData;
 use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage,
-	dispatch::{DispatchResultWithPostInfo, IsSubType},
+	dispatch::DispatchResultWithPostInfo,
 	ensure,
 	traits::{ChangeMembers, Get, InitializeMembers, Time},
 	weights::{DispatchClass, Pays, Weight},
@@ -38,16 +38,10 @@ pub use orml_traits::{CombineData, DataProvider, DataProviderExtended, OnNewData
 use orml_utilities::OrderedSet;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
-use sp_runtime::{
-	traits::{DispatchInfoOf, Member, SignedExtension},
-	transaction_validity::{
-		InvalidTransaction, TransactionPriority, TransactionValidity, TransactionValidityError, ValidTransaction,
-	},
-	DispatchResult, RuntimeDebug,
-};
-use sp_std::{convert::TryInto, prelude::*, vec};
+use sp_runtime::{traits::Member, DispatchResult, RuntimeDebug};
+use sp_std::{prelude::*, vec};
 
-use sp_application_crypto::{KeyTypeId, RuntimeAppPublic};
+use sp_application_crypto::KeyTypeId;
 pub const ORACLE: KeyTypeId = KeyTypeId(*b"orac");
 
 mod app_sr25519 {
@@ -68,9 +62,6 @@ pub type AuthorityId = app_sr25519::Public;
 
 type MomentOf<T> = <<T as Trait>::Time as Time>::Moment;
 pub type TimestampedValueOf<T> = TimestampedValue<<T as Trait>::OracleValue, MomentOf<T>>;
-
-/// Number of blocks before an unconfirmed unsigned transaction expires.
-pub const EXTRINSIC_LONGEVITY: u32 = 100;
 
 #[derive(Encode, Decode, RuntimeDebug, Eq, PartialEq, Clone, Copy)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -98,14 +89,8 @@ pub trait Trait: frame_system::Trait {
 	/// The data value type
 	type OracleValue: Parameter + Member + Ord;
 
-	/// A configuration for base priority of unsigned transactions.
-	///
-	/// This is exposed so that it can be tuned for particular runtime, when
-	/// multiple pallets send unsigned transactions.
-	type UnsignedPriority: Get<TransactionPriority>;
-
-	/// The identifier type for an authority.
-	type AuthorityId: Member + Parameter + RuntimeAppPublic + Default + Ord;
+	/// The root operator account id, recorad all sudo feeds on this account.
+	type RootOperatorAccountId: Get<Self::AccountId>;
 }
 
 decl_storage! {
@@ -126,11 +111,6 @@ decl_storage! {
 		// TODO: this shouldn't be required https://github.com/paritytech/substrate/issues/6041
 		/// The current members of the collective. This is stored sorted (just by value).
 		pub Members get(fn members) config(): OrderedSet<T::AccountId>;
-
-		/// Session key for oracle operators
-		pub SessionKeys get(fn session_keys) config(): map hasher(twox_64_concat) T::AccountId => Option<T::AuthorityId>;
-
-		pub Nonces get(fn nonces): map hasher(twox_64_concat) T::AccountId => u32;
 	}
 }
 
@@ -138,6 +118,8 @@ decl_error! {
 	pub enum Error for Module<T: Trait> {
 		/// Sender does not have permission
 		NoPermission,
+		/// Feeder has already feeded at this block
+		AlreadyFeeded,
 	}
 }
 
@@ -154,28 +136,10 @@ decl_module! {
 		pub fn feed_values(
 			origin,
 			values: Vec<(T::OracleKey, T::OracleValue)>,
-			#[compact] index: u32,
-			_block: T::BlockNumber,
-			// since signature verification is done in `validate_unsigned`
-			// we can skip doing it here again.
-			_signature: <T::AuthorityId as RuntimeAppPublic>::Signature,
 		) -> DispatchResultWithPostInfo {
-			ensure_signed(origin.clone()).map(|_| ()).or_else(|_| ensure_root(origin))?;
-			// validate_unsigned already unsure index is valid
-			let who = Self::members().0.get(index as usize)
-				.expect("`validate_unsigned` ensures index is in bound; qed`")
-				.clone();
-			Self::do_feed_values(who, values);
+			let feeder = ensure_signed(origin.clone()).or_else(|_| ensure_root(origin).map(|_| T::RootOperatorAccountId::get()))?;
+			Self::do_feed_values(feeder, values)?;
 			Ok(Pays::No.into())
-		}
-
-		/// Update the session key.
-		#[weight = 10_000_000]
-		pub fn set_session_key(origin, key: T::AuthorityId) {
-			let who = ensure_signed(origin)?;
-			ensure!(Self::members().contains(&who), Error::<T>::NoPermission);
-
-			SessionKeys::<T>::insert(who, key);
 		}
 
 		/// dummy `on_initialize` to return the weight used in `on_finalize`.
@@ -251,9 +215,20 @@ impl<T: Trait> Module<T> {
 		T::CombineData::combine_data(key, values, Self::values(key))
 	}
 
-	fn do_feed_values(who: T::AccountId, values: Vec<(T::OracleKey, T::OracleValue)>) {
-		let now = T::Time::now();
+	fn do_feed_values(who: T::AccountId, values: Vec<(T::OracleKey, T::OracleValue)>) -> DispatchResult {
+		// ensure feeder is authorized
+		ensure!(
+			Self::members().contains(&who) || who == T::RootOperatorAccountId::get(),
+			Error::<T>::NoPermission
+		);
 
+		// ensure account hasn't dispatched an updated yet
+		ensure!(
+			HasDispatched::<T>::mutate(|set| set.insert(who.clone())),
+			Error::<T>::AlreadyFeeded
+		);
+
+		let now = T::Time::now();
 		for (key, value) in &values {
 			let timestamped = TimestampedValue {
 				value: value.clone(),
@@ -264,8 +239,8 @@ impl<T: Trait> Module<T> {
 
 			T::OnNewData::on_new_data(&who, &key, &value);
 		}
-
 		Self::deposit_event(RawEvent::NewFeedData(who, values));
+		Ok(())
 	}
 }
 
@@ -282,9 +257,7 @@ impl<T: Trait> ChangeMembers<T::AccountId> for Module<T> {
 	fn change_members_sorted(_incoming: &[T::AccountId], outgoing: &[T::AccountId], new: &[T::AccountId]) {
 		// remove session keys and its values
 		for removed in outgoing {
-			SessionKeys::<T>::remove(removed);
 			RawValues::<T>::remove_prefix(removed);
-			Nonces::<T>::remove(removed);
 		}
 
 		Members::<T>::put(OrderedSet::from_sorted_set(new.into()));
@@ -306,104 +279,7 @@ impl<T: Trait> DataProvider<T::OracleKey, T::OracleValue> for Module<T> {
 
 impl<T: Trait> DataProviderExtended<T::OracleKey, T::OracleValue, T::AccountId> for Module<T> {
 	fn feed_value(who: T::AccountId, key: T::OracleKey, value: T::OracleValue) -> DispatchResult {
-		Self::do_feed_values(who, vec![(key, value)]);
+		Self::do_feed_values(who, vec![(key, value)])?;
 		Ok(())
-	}
-}
-
-#[derive(Encode, Decode, Clone, Eq, PartialEq, Default)]
-pub struct CheckOperator<T: Trait + Send + Sync>(sp_std::marker::PhantomData<T>);
-
-impl<T: Trait + Send + Sync> CheckOperator<T> {
-	pub fn new() -> Self {
-		Self(sp_std::marker::PhantomData)
-	}
-}
-
-impl<T: Trait + Send + Sync> sp_std::fmt::Debug for CheckOperator<T> {
-	#[cfg(feature = "std")]
-	fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
-		write!(f, "CheckOperator")
-	}
-
-	#[cfg(not(feature = "std"))]
-	fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
-		Ok(())
-	}
-}
-
-impl<T: Trait + Send + Sync> SignedExtension for CheckOperator<T>
-where
-	<T as frame_system::Trait>::Call: IsSubType<Call<T>>,
-{
-	const IDENTIFIER: &'static str = "CheckOperator";
-	type AccountId = T::AccountId;
-	type Call = <T as frame_system::Trait>::Call;
-	type AdditionalSigned = ();
-	type Pre = ();
-
-	fn additional_signed(&self) -> sp_std::result::Result<(), TransactionValidityError> {
-		Ok(())
-	}
-
-	fn validate(
-		&self,
-		_who: &Self::AccountId,
-		call: &Self::Call,
-		_info: &DispatchInfoOf<Self::Call>,
-		_len: usize,
-	) -> TransactionValidity {
-		// check for `feed_values`
-		match call.is_sub_type() {
-			Some(Call::feed_values(value, index, block, signature)) => {
-				let now = <frame_system::Module<T>>::block_number();
-
-				if now > *block + EXTRINSIC_LONGEVITY.into() {
-					return Err(InvalidTransaction::Stale.into());
-				}
-				if now < *block {
-					return Err(InvalidTransaction::Future.into());
-				}
-
-				let members = Module::<T>::members();
-				let who = members.0.get(*index as usize);
-				if let Some(who) = who {
-					let nonce = Module::<T>::nonces(&who);
-
-					let signature_valid = Module::<T>::session_keys(&who)
-						.map(|session_key| {
-							(nonce, block, value).using_encoded(|payload| session_key.verify(&payload, &signature))
-						})
-						.unwrap_or(false);
-
-					if !signature_valid {
-						return InvalidTransaction::BadProof.into();
-					}
-
-					// ensure account hasn't dispatched an updated yet
-					let ok = HasDispatched::<T>::mutate(|set| set.insert(who.clone()));
-					if !ok {
-						// we already received a feed for this operator
-						return Err(InvalidTransaction::Stale.into());
-					}
-
-					Nonces::<T>::insert(who, nonce + 1);
-
-					// make priority less likely to overflow.
-					// this ensures tx sent later overrides old one
-					let add_priority = TryInto::<TransactionPriority>::try_into(*block % 1000.into()).unwrap_or(0);
-
-					ValidTransaction::with_tag_prefix("orml-oracle")
-						.priority(T::UnsignedPriority::get().saturating_add(add_priority))
-						.and_provides((who, nonce))
-						.longevity(EXTRINSIC_LONGEVITY.into())
-						.propagate(true)
-						.build()
-				} else {
-					InvalidTransaction::BadProof.into()
-				}
-			}
-			_ => Ok(Default::default()),
-		}
 	}
 }

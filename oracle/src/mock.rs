@@ -5,7 +5,7 @@ use super::*;
 use frame_support::{impl_outer_dispatch, impl_outer_origin, parameter_types, weights::Weight};
 use sp_core::H256;
 use sp_runtime::{
-	testing::{Header, UintAuthorityId},
+	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
 	Perbill,
 };
@@ -86,7 +86,7 @@ impl Timestamp {
 parameter_types! {
 	pub const MinimumCount: u32 = 3;
 	pub const ExpiresIn: u32 = 600;
-	pub const UnsignedPriority: TransactionPriority = 32u64;
+	pub const RootOperatorAccountId: AccountId = 4;
 }
 
 impl Trait for Test {
@@ -96,8 +96,7 @@ impl Trait for Test {
 	type Time = Timestamp;
 	type OracleKey = Key;
 	type OracleValue = Value;
-	type UnsignedPriority = UnsignedPriority;
-	type AuthorityId = UintAuthorityId;
+	type RootOperatorAccountId = RootOperatorAccountId;
 }
 pub type ModuleOracle = Module<Test>;
 // This function basically just builds a genesis storage key/value store
@@ -107,7 +106,6 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
 	let _ = GenesisConfig::<Test> {
 		members: vec![1, 2, 3].into(),
-		session_keys: vec![(1, 10.into()), (2, 20.into()), (3, 30.into())],
 	}
 	.assimilate_storage(&mut storage);
 
