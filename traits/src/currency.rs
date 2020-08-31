@@ -1,6 +1,6 @@
 use crate::arithmetic;
 use codec::{Codec, FullCodec};
-pub use frame_support::traits::{BalanceStatus, Imbalance, LockIdentifier};
+pub use frame_support::traits::{BalanceStatus, LockIdentifier};
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize},
 	DispatchError, DispatchResult,
@@ -27,8 +27,6 @@ pub trait MultiCurrency<AccountId> {
 
 	// The combined balance of `who` under `currency_id`.
 	fn total_balance(currency_id: Self::CurrencyId, who: &AccountId) -> Self::Balance;
-
-	//fn burn(amount: Self::Balance) -> Self::PositiveImbalance;
 
 	// The free balance of `who` under `currency_id`.
 	fn free_balance(currency_id: Self::CurrencyId, who: &AccountId) -> Self::Balance;
