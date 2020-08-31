@@ -430,7 +430,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	/// or `can_slash` wasn't used appropriately.
 	fn slash(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> Self::Balance {
 		if amount.is_zero() {
-			return Zero::zero();
+			return amount;
 		}
 
 		let account = Self::accounts(who, currency_id);
@@ -548,7 +548,7 @@ impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
 	/// Is a no-op if the value to be slashed is zero.
 	fn slash_reserved(currency_id: Self::CurrencyId, who: &T::AccountId, value: Self::Balance) -> Self::Balance {
 		if value.is_zero() {
-			return Zero::zero();
+			return value;
 		}
 
 		let reserved_balance = Self::reserved_balance(currency_id, who);
@@ -583,7 +583,7 @@ impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
 	/// Is a no-op if the value to be unreserved is zero.
 	fn unreserve(currency_id: Self::CurrencyId, who: &T::AccountId, value: Self::Balance) -> Self::Balance {
 		if value.is_zero() {
-			return Zero::zero();
+			return value;
 		}
 
 		let account = Self::accounts(who, currency_id);
@@ -609,7 +609,7 @@ impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
 		status: BalanceStatus,
 	) -> result::Result<Self::Balance, DispatchError> {
 		if value.is_zero() {
-			return Ok(Zero::zero());
+			return Ok(value);
 		}
 
 		if slashed == beneficiary {
@@ -713,7 +713,7 @@ where
 
 	fn slash(who: &T::AccountId, value: Self::Balance) -> (Self::NegativeImbalance, Self::Balance) {
 		if value.is_zero() {
-			return (Self::NegativeImbalance::zero(), Zero::zero());
+			return (Self::NegativeImbalance::zero(), value);
 		}
 
 		let currency_id = GetCurrencyId::get();
