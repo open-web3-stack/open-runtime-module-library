@@ -64,7 +64,6 @@ impl frame_system::Trait for Runtime {
 	type BaseCallFilter = ();
 	type SystemWeightInfo = ();
 }
-pub type System = frame_system::Module<Runtime>;
 
 thread_local! {
 	pub static RECEIVED_PAYOUT: RefCell<HashMap<(PoolId, AccountId), Balance>> = RefCell::new(HashMap::new());
@@ -77,7 +76,7 @@ impl RewardHandler<AccountId, BlockNumber> for Handler {
 	type PoolId = PoolId;
 
 	fn accumulate_reward(now: BlockNumber, callback: impl Fn(Self::PoolId, Self::Balance)) -> Self::Balance {
-		if now == System::block_number() {
+		if now % 2 == 0 {
 			let mut total_accumulated_rewards = 0;
 			let valid_pool_ids = vec![DOT_POOL, BTC_POOL];
 
@@ -95,13 +94,13 @@ impl RewardHandler<AccountId, BlockNumber> for Handler {
 		}
 	}
 
-	fn payout(who: AccountId, pool: Self::PoolId, amount: Self::Balance) {
+	fn payout(who: &AccountId, pool: Self::PoolId, amount: Self::Balance) {
 		RECEIVED_PAYOUT.with(|v| {
 			let mut old_map = v.borrow().clone();
-			if let Some(before) = old_map.get_mut(&(pool, who)) {
+			if let Some(before) = old_map.get_mut(&(pool, *who)) {
 				*before += amount;
 			} else {
-				old_map.insert((pool, who), amount);
+				old_map.insert((pool, *who), amount);
 			};
 
 			*v.borrow_mut() = old_map;

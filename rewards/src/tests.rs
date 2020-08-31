@@ -19,7 +19,7 @@ fn add_share_should_work() {
 		);
 		assert_eq!(RewardsModule::share_and_withdrawn_reward(DOT_POOL, ALICE), (0, 0));
 
-		RewardsModule::add_share(ALICE, DOT_POOL, 0);
+		RewardsModule::add_share(&ALICE, DOT_POOL, 0);
 		assert_eq!(
 			RewardsModule::pools(DOT_POOL),
 			PoolInfo {
@@ -30,7 +30,7 @@ fn add_share_should_work() {
 		);
 		assert_eq!(RewardsModule::share_and_withdrawn_reward(DOT_POOL, ALICE), (0, 0));
 
-		RewardsModule::add_share(ALICE, DOT_POOL, 100);
+		RewardsModule::add_share(&ALICE, DOT_POOL, 100);
 		assert_eq!(
 			RewardsModule::pools(DOT_POOL),
 			PoolInfo {
@@ -55,7 +55,7 @@ fn add_share_should_work() {
 		);
 		assert_eq!(RewardsModule::share_and_withdrawn_reward(DOT_POOL, BOB), (0, 0));
 
-		RewardsModule::add_share(BOB, DOT_POOL, 50);
+		RewardsModule::add_share(&BOB, DOT_POOL, 50);
 		assert_eq!(
 			RewardsModule::pools(DOT_POOL),
 			PoolInfo {
@@ -66,7 +66,7 @@ fn add_share_should_work() {
 		);
 		assert_eq!(RewardsModule::share_and_withdrawn_reward(DOT_POOL, BOB), (50, 2500));
 
-		RewardsModule::add_share(ALICE, DOT_POOL, 150);
+		RewardsModule::add_share(&ALICE, DOT_POOL, 150);
 		assert_eq!(
 			RewardsModule::pools(DOT_POOL),
 			PoolInfo {
@@ -82,12 +82,12 @@ fn add_share_should_work() {
 #[test]
 fn claim_rewards_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		RewardsModule::add_share(ALICE, DOT_POOL, 100);
-		RewardsModule::add_share(BOB, DOT_POOL, 100);
+		RewardsModule::add_share(&ALICE, DOT_POOL, 100);
+		RewardsModule::add_share(&BOB, DOT_POOL, 100);
 		Pools::<Runtime>::mutate(DOT_POOL, |pool_info| {
 			pool_info.total_rewards += 5000;
 		});
-		RewardsModule::add_share(CAROL, DOT_POOL, 200);
+		RewardsModule::add_share(&CAROL, DOT_POOL, 200);
 
 		assert_eq!(
 			RewardsModule::pools(DOT_POOL),
@@ -113,7 +113,7 @@ fn claim_rewards_should_work() {
 			0
 		);
 
-		RewardsModule::claim_rewards(ALICE, DOT_POOL);
+		RewardsModule::claim_rewards(&ALICE, DOT_POOL);
 		assert_eq!(
 			RewardsModule::pools(DOT_POOL),
 			PoolInfo {
@@ -128,7 +128,7 @@ fn claim_rewards_should_work() {
 			2500
 		);
 
-		RewardsModule::claim_rewards(CAROL, DOT_POOL);
+		RewardsModule::claim_rewards(&CAROL, DOT_POOL);
 		assert_eq!(
 			RewardsModule::pools(DOT_POOL),
 			PoolInfo {
@@ -143,7 +143,7 @@ fn claim_rewards_should_work() {
 			0
 		);
 
-		RewardsModule::claim_rewards(BOB, DOT_POOL);
+		RewardsModule::claim_rewards(&BOB, DOT_POOL);
 		assert_eq!(
 			RewardsModule::pools(DOT_POOL),
 			PoolInfo {
@@ -163,8 +163,8 @@ fn claim_rewards_should_work() {
 #[test]
 fn remove_share_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		RewardsModule::add_share(ALICE, DOT_POOL, 100);
-		RewardsModule::add_share(BOB, DOT_POOL, 100);
+		RewardsModule::add_share(&ALICE, DOT_POOL, 100);
+		RewardsModule::add_share(&BOB, DOT_POOL, 100);
 		Pools::<Runtime>::mutate(DOT_POOL, |pool_info| {
 			pool_info.total_rewards += 10000;
 		});
@@ -189,7 +189,7 @@ fn remove_share_should_work() {
 		);
 
 		// remove amount is zero, just claim interest
-		RewardsModule::remove_share(ALICE, DOT_POOL, 0);
+		RewardsModule::remove_share(&ALICE, DOT_POOL, 0);
 		assert_eq!(
 			RewardsModule::pools(DOT_POOL),
 			PoolInfo {
@@ -204,7 +204,7 @@ fn remove_share_should_work() {
 			5000
 		);
 
-		RewardsModule::remove_share(BOB, DOT_POOL, 50);
+		RewardsModule::remove_share(&BOB, DOT_POOL, 50);
 		assert_eq!(
 			RewardsModule::pools(DOT_POOL),
 			PoolInfo {
@@ -219,7 +219,7 @@ fn remove_share_should_work() {
 			5000
 		);
 
-		RewardsModule::remove_share(ALICE, DOT_POOL, 101);
+		RewardsModule::remove_share(&ALICE, DOT_POOL, 101);
 		assert_eq!(
 			RewardsModule::pools(DOT_POOL),
 			PoolInfo {
@@ -249,7 +249,7 @@ fn set_share_should_work() {
 		);
 		assert_eq!(RewardsModule::share_and_withdrawn_reward(DOT_POOL, ALICE), (0, 0));
 
-		RewardsModule::set_share(ALICE, DOT_POOL, 100);
+		RewardsModule::set_share(&ALICE, DOT_POOL, 100);
 		assert_eq!(
 			RewardsModule::pools(DOT_POOL),
 			PoolInfo {
@@ -272,7 +272,7 @@ fn set_share_should_work() {
 			}
 		);
 
-		RewardsModule::set_share(ALICE, DOT_POOL, 500);
+		RewardsModule::set_share(&ALICE, DOT_POOL, 500);
 		assert_eq!(
 			RewardsModule::pools(DOT_POOL),
 			PoolInfo {
@@ -287,7 +287,7 @@ fn set_share_should_work() {
 			0
 		);
 
-		RewardsModule::set_share(ALICE, DOT_POOL, 100);
+		RewardsModule::set_share(&ALICE, DOT_POOL, 100);
 		assert_eq!(
 			RewardsModule::pools(DOT_POOL),
 			PoolInfo {
@@ -341,9 +341,7 @@ fn on_initialize_should_work() {
 			}
 		);
 
-		System::set_block_number(1);
-
-		RewardsModule::on_initialize(2);
+		RewardsModule::on_initialize(1);
 		assert_eq!(
 			RewardsModule::pools(DOT_POOL),
 			PoolInfo {
@@ -369,7 +367,7 @@ fn on_initialize_should_work() {
 			}
 		);
 
-		RewardsModule::on_initialize(1);
+		RewardsModule::on_initialize(2);
 		assert_eq!(
 			RewardsModule::pools(DOT_POOL),
 			PoolInfo {

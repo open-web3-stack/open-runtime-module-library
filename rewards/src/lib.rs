@@ -57,7 +57,7 @@ pub trait RewardHandler<AccountId, BlockNumber> {
 	fn accumulate_reward(now: BlockNumber, callback: impl Fn(Self::PoolId, Self::Balance)) -> Self::Balance;
 
 	/// Payout the reward to `who`
-	fn payout(who: AccountId, pool: Self::PoolId, amount: Self::Balance);
+	fn payout(who: &AccountId, pool: Self::PoolId, amount: Self::Balance);
 }
 
 type ShareOf<T> = <<T as Trait>::Handler as RewardHandler<
@@ -104,7 +104,7 @@ decl_module! {
 }
 
 impl<T: Trait> Module<T> {
-	pub fn add_share(who: T::AccountId, pool: PoolIdOf<T>, add_amount: ShareOf<T>) {
+	pub fn add_share(who: &T::AccountId, pool: PoolIdOf<T>, add_amount: ShareOf<T>) {
 		if add_amount.is_zero() {
 			return;
 		}
@@ -124,11 +124,11 @@ impl<T: Trait> Module<T> {
 		});
 	}
 
-	pub fn remove_share(who: T::AccountId, pool: PoolIdOf<T>, remove_amount: ShareOf<T>) {
+	pub fn remove_share(who: &T::AccountId, pool: PoolIdOf<T>, remove_amount: ShareOf<T>) {
 		// claim rewards firstly
-		Self::claim_rewards(who.clone(), pool);
+		Self::claim_rewards(who, pool);
 
-		ShareAndWithdrawnReward::<T>::mutate(pool, &who, |(share, withdrawn_rewards)| {
+		ShareAndWithdrawnReward::<T>::mutate(pool, who, |(share, withdrawn_rewards)| {
 			let remove_amount = remove_amount.min(*share);
 
 			if remove_amount.is_zero() {
@@ -152,8 +152,8 @@ impl<T: Trait> Module<T> {
 		});
 	}
 
-	pub fn set_share(who: T::AccountId, pool: PoolIdOf<T>, new_share: ShareOf<T>) {
-		let (share, _) = Self::share_and_withdrawn_reward(pool, &who);
+	pub fn set_share(who: &T::AccountId, pool: PoolIdOf<T>, new_share: ShareOf<T>) {
+		let (share, _) = Self::share_and_withdrawn_reward(pool, who);
 
 		if new_share > share {
 			Self::add_share(who, pool, new_share.saturating_sub(share));
@@ -162,8 +162,8 @@ impl<T: Trait> Module<T> {
 		}
 	}
 
-	pub fn claim_rewards(who: T::AccountId, pool: PoolIdOf<T>) {
-		ShareAndWithdrawnReward::<T>::mutate(pool, who.clone(), |(share, withdrawn_rewards)| {
+	pub fn claim_rewards(who: &T::AccountId, pool: PoolIdOf<T>) {
+		ShareAndWithdrawnReward::<T>::mutate(pool, who, |(share, withdrawn_rewards)| {
 			if share.is_zero() {
 				return;
 			}
