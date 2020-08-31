@@ -4,12 +4,58 @@
 
 use super::*;
 use frame_support::{assert_err, assert_ok, traits::WithdrawReason};
-use mock::{ExtBuilder, Origin, PalletBalances, Runtime, System, TestEvent, Vesting, ALICE, BOB};
+use mock::{ExtBuilder, Origin, PalletBalances, Runtime, System, TestEvent, Vesting, ALICE, BOB, CHARLIE};
 use pallet_balances::{BalanceLock, Reasons};
 
 #[test]
+fn vesting_from_chain_spec_works() {
+	ExtBuilder::build().execute_with(|| {
+		assert_ok!(PalletBalances::ensure_can_withdraw(
+			&CHARLIE,
+			10,
+			WithdrawReason::Transfer.into(),
+			20
+		));
+		assert!(PalletBalances::ensure_can_withdraw(&CHARLIE, 11, WithdrawReason::Transfer.into(), 19).is_err());
+
+		assert_eq!(
+			Vesting::vesting_schedules(&CHARLIE),
+			vec![VestingSchedule {
+				start: 2u64,
+				period: 3u64,
+				period_count: 4u32,
+				per_period: 5u64,
+			}]
+		);
+
+		System::set_block_number(13);
+
+		assert_ok!(Vesting::claim(Origin::signed(CHARLIE)));
+
+		assert_ok!(PalletBalances::ensure_can_withdraw(
+			&CHARLIE,
+			25,
+			WithdrawReason::Transfer.into(),
+			5
+		));
+		assert!(PalletBalances::ensure_can_withdraw(&CHARLIE, 26, WithdrawReason::Transfer.into(), 4).is_err());
+
+		System::set_block_number(14);
+
+		assert_ok!(Vesting::claim(Origin::signed(CHARLIE)));
+
+		assert_ok!(PalletBalances::ensure_can_withdraw(
+			&CHARLIE,
+			30,
+			WithdrawReason::Transfer.into(),
+			0
+		));
+	});
+}
+
+#[test]
 fn vested_transfer_works() {
-	ExtBuilder::default().one_hundred_for_alice().build().execute_with(|| {
+	ExtBuilder::build().execute_with(|| {
 		System::set_block_number(1);
 
 		let schedule = VestingSchedule {
@@ -28,7 +74,7 @@ fn vested_transfer_works() {
 
 #[test]
 fn add_new_vesting_schedule_merges_with_current_locked_balance_and_until() {
-	ExtBuilder::default().one_hundred_for_alice().build().execute_with(|| {
+	ExtBuilder::build().execute_with(|| {
 		let schedule = VestingSchedule {
 			start: 0u64,
 			period: 10u64,
@@ -60,7 +106,7 @@ fn add_new_vesting_schedule_merges_with_current_locked_balance_and_until() {
 
 #[test]
 fn cannot_use_fund_if_not_claimed() {
-	ExtBuilder::default().one_hundred_for_alice().build().execute_with(|| {
+	ExtBuilder::build().execute_with(|| {
 		let schedule = VestingSchedule {
 			start: 10u64,
 			period: 10u64,
@@ -74,7 +120,7 @@ fn cannot_use_fund_if_not_claimed() {
 
 #[test]
 fn vested_transfer_fails_if_zero_period_or_count() {
-	ExtBuilder::default().one_hundred_for_alice().build().execute_with(|| {
+	ExtBuilder::build().execute_with(|| {
 		let schedule = VestingSchedule {
 			start: 1u64,
 			period: 0u64,
@@ -101,7 +147,7 @@ fn vested_transfer_fails_if_zero_period_or_count() {
 
 #[test]
 fn vested_transfer_fails_if_transfer_err() {
-	ExtBuilder::default().one_hundred_for_alice().build().execute_with(|| {
+	ExtBuilder::build().execute_with(|| {
 		let schedule = VestingSchedule {
 			start: 1u64,
 			period: 1u64,
@@ -117,7 +163,7 @@ fn vested_transfer_fails_if_transfer_err() {
 
 #[test]
 fn vested_transfer_fails_if_overflow() {
-	ExtBuilder::default().one_hundred_for_alice().build().execute_with(|| {
+	ExtBuilder::build().execute_with(|| {
 		let schedule = VestingSchedule {
 			start: 1u64,
 			period: 1u64,
@@ -144,7 +190,7 @@ fn vested_transfer_fails_if_overflow() {
 
 #[test]
 fn claim_works() {
-	ExtBuilder::default().one_hundred_for_alice().build().execute_with(|| {
+	ExtBuilder::build().execute_with(|| {
 		let schedule = VestingSchedule {
 			start: 0u64,
 			period: 10u64,
@@ -176,7 +222,7 @@ fn claim_works() {
 
 #[test]
 fn update_vesting_schedules_works() {
-	ExtBuilder::default().one_hundred_for_alice().build().execute_with(|| {
+	ExtBuilder::build().execute_with(|| {
 		let schedule = VestingSchedule {
 			start: 0u64,
 			period: 10u64,
@@ -209,7 +255,7 @@ fn update_vesting_schedules_works() {
 
 #[test]
 fn update_vesting_schedules_fails_if_unexpected_existing_locks() {
-	ExtBuilder::default().one_hundred_for_alice().build().execute_with(|| {
+	ExtBuilder::build().execute_with(|| {
 		assert_ok!(PalletBalances::transfer(Origin::signed(ALICE), BOB, 1));
 		PalletBalances::set_lock(*b"prelocks", &BOB, 0u64, WithdrawReasons::all());
 	});
@@ -217,7 +263,7 @@ fn update_vesting_schedules_fails_if_unexpected_existing_locks() {
 
 #[test]
 fn vested_transfer_check_for_min() {
-	ExtBuilder::default().one_hundred_for_alice().build().execute_with(|| {
+	ExtBuilder::build().execute_with(|| {
 		let schedule = VestingSchedule {
 			start: 1u64,
 			period: 1u64,
@@ -233,7 +279,7 @@ fn vested_transfer_check_for_min() {
 
 #[test]
 fn multiple_vesting_schedule_claim_works() {
-	ExtBuilder::default().one_hundred_for_alice().build().execute_with(|| {
+	ExtBuilder::build().execute_with(|| {
 		let schedule = VestingSchedule {
 			start: 0u64,
 			period: 10u64,
