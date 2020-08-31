@@ -157,7 +157,7 @@ impl<T: Trait> Module<T> {
 
 		if new_share > share {
 			Self::add_share(who, pool, new_share.saturating_sub(share));
-		} else if new_share < share {
+		} else {
 			Self::remove_share(who, pool, share.saturating_sub(new_share));
 		}
 	}
