@@ -757,7 +757,7 @@ where
 	}
 
 	fn deposit_creating(who: &T::AccountId, value: Self::Balance) -> Self::PositiveImbalance {
-		Self::deposit_into_existing(who, value).unwrap_or(Self::PositiveImbalance::zero())
+		Self::deposit_into_existing(who, value).unwrap_or_else(|_| Self::PositiveImbalance::zero())
 	}
 
 	fn withdraw(
