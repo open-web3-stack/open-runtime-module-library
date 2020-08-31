@@ -720,7 +720,6 @@ where
 		let account = Module::<T>::accounts(who, currency_id);
 		let free_slashed_amount = account.free.min(value);
 		let mut remaining_slash = value - free_slashed_amount;
-		let negative_imbalance: Self::Balance;
 
 		// slash free balance
 		if !free_slashed_amount.is_zero() {
@@ -732,27 +731,33 @@ where
 			let reserved_slashed_amount = account.reserved.min(remaining_slash);
 			remaining_slash -= reserved_slashed_amount;
 			Module::<T>::set_reserved_balance(currency_id, who, account.reserved - reserved_slashed_amount);
-			negative_imbalance = free_slashed_amount + reserved_slashed_amount;
+			(
+				Self::NegativeImbalance::new(free_slashed_amount + reserved_slashed_amount),
+				remaining_slash,
+			)
 		} else {
-			negative_imbalance = value;
+			(Self::NegativeImbalance::new(value), remaining_slash)
 		}
-
-		<TotalIssuance<T>>::mutate(currency_id, |v| *v -= value - remaining_slash);
-		(Self::NegativeImbalance::new(negative_imbalance), remaining_slash)
 	}
 
 	fn deposit_into_existing(
 		who: &T::AccountId,
 		value: Self::Balance,
 	) -> result::Result<Self::PositiveImbalance, DispatchError> {
-		Module::<T>::deposit(GetCurrencyId::get(), who, value).map(|_| Self::PositiveImbalance::new(value))
+		if value.is_zero() {
+			return Ok(Self::PositiveImbalance::zero());
+		}
+		let currency_id = GetCurrencyId::get();
+		let new_total = Module::<T>::free_balance(currency_id, who)
+			.checked_add(&value)
+			.ok_or(Error::<T>::TotalIssuanceOverflow)?;
+		Module::<T>::set_free_balance(currency_id, who, new_total);
+
+		Ok(Self::PositiveImbalance::new(value))
 	}
 
 	fn deposit_creating(who: &T::AccountId, value: Self::Balance) -> Self::PositiveImbalance {
-		Module::<T>::deposit(GetCurrencyId::get(), who, value).map_or_else(
-			|_| Self::PositiveImbalance::zero(),
-			|_| Self::PositiveImbalance::new(value),
-		)
+		Self::deposit_into_existing(who, value).unwrap_or(Self::PositiveImbalance::zero())
 	}
 
 	fn withdraw(
@@ -766,8 +771,6 @@ where
 		}
 		let currency_id = GetCurrencyId::get();
 		Module::<T>::ensure_can_withdraw(currency_id, who, value)?;
-
-		<TotalIssuance<T>>::mutate(currency_id, |v| *v -= value);
 		Module::<T>::set_free_balance(currency_id, who, Module::<T>::free_balance(currency_id, who) - value);
 
 		Ok(Self::NegativeImbalance::new(value))
