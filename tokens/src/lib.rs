@@ -38,18 +38,27 @@
 
 use codec::{Decode, Encode};
 use frame_support::{
-	decl_error, decl_event, decl_module, decl_storage, ensure, traits::Get, weights::constants::WEIGHT_PER_MICROS,
-	Parameter,
+	decl_error, decl_event, decl_module, decl_storage, ensure,
+	traits::Get,
+	traits::{
+		BalanceStatus as Status, Currency as PalletCurrency, ExistenceRequirement, Imbalance,
+		LockableCurrency as PalletLockableCurrency, ReservableCurrency as PalletReservableCurrency, SignedImbalance,
+		WithdrawReasons,
+	},
+	weights::constants::WEIGHT_PER_MICROS,
+	Parameter, StorageMap,
 };
 use frame_system::ensure_signed;
 use sp_runtime::{
 	traits::{
-		AtLeast32BitUnsigned, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, Saturating, StaticLookup, Zero,
+		AtLeast32BitUnsigned, Bounded, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, Saturating,
+		StaticLookup, Zero,
 	},
 	DispatchError, DispatchResult, RuntimeDebug,
 };
 use sp_std::{
 	convert::{TryFrom, TryInto},
+	marker,
 	prelude::*,
 	result,
 };
@@ -57,12 +66,14 @@ use sp_std::{
 #[cfg(feature = "std")]
 use sp_std::collections::btree_map::BTreeMap;
 
+pub use crate::imbalances::{NegativeImbalance, PositiveImbalance};
 use orml_traits::{
 	arithmetic::{self, Signed},
 	BalanceStatus, LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency,
 	MultiReservableCurrency, OnReceived,
 };
 
+mod imbalances;
 mod mock;
 mod tests;
 
@@ -410,7 +421,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	/// or `can_slash` wasn't used appropriately.
 	fn slash(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> Self::Balance {
 		if amount.is_zero() {
-			return amount;
+			return Zero::zero();
 		}
 
 		let account = Self::accounts(who, currency_id);
@@ -447,7 +458,7 @@ impl<T: Trait> MultiCurrencyExtended<T::AccountId> for Module<T> {
 		if by_amount.is_positive() {
 			Self::deposit(currency_id, who, by_balance)
 		} else {
-			Self::withdraw(currency_id, who, by_balance)
+			Self::withdraw(currency_id, who, by_balance).map(|_| ())
 		}
 	}
 }
@@ -613,5 +624,219 @@ impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
 		}
 		Self::set_reserved_balance(currency_id, slashed, from_account.reserved - actual);
 		Ok(value - actual)
+	}
+}
+
+pub struct CurrencyAdapter<T, GetCurrencyId>(marker::PhantomData<(T, GetCurrencyId)>);
+
+impl<T, GetCurrencyId> PalletCurrency<T::AccountId> for CurrencyAdapter<T, GetCurrencyId>
+where
+	T: Trait,
+	GetCurrencyId: Get<T::CurrencyId>,
+{
+	type Balance = T::Balance;
+	type PositiveImbalance = PositiveImbalance<T, GetCurrencyId>;
+	type NegativeImbalance = NegativeImbalance<T, GetCurrencyId>;
+
+	fn total_balance(who: &T::AccountId) -> Self::Balance {
+		Module::<T>::total_balance(GetCurrencyId::get(), who)
+	}
+
+	fn can_slash(who: &T::AccountId, value: Self::Balance) -> bool {
+		Module::<T>::can_slash(GetCurrencyId::get(), who, value)
+	}
+
+	fn total_issuance() -> Self::Balance {
+		Module::<T>::total_issuance(GetCurrencyId::get())
+	}
+
+	fn minimum_balance() -> Self::Balance {
+		Zero::zero()
+	}
+
+	fn burn(mut amount: Self::Balance) -> Self::PositiveImbalance {
+		if amount.is_zero() {
+			return PositiveImbalance::zero();
+		}
+		<TotalIssuance<T>>::mutate(GetCurrencyId::get(), |issued| {
+			*issued = issued.checked_sub(&amount).unwrap_or_else(|| {
+				amount = *issued;
+				Zero::zero()
+			});
+		});
+		PositiveImbalance::new(amount)
+	}
+
+	fn issue(mut amount: Self::Balance) -> Self::NegativeImbalance {
+		if amount.is_zero() {
+			return NegativeImbalance::zero();
+		}
+		<TotalIssuance<T>>::mutate(GetCurrencyId::get(), |issued| {
+			*issued = issued.checked_add(&amount).unwrap_or_else(|| {
+				amount = Self::Balance::max_value() - *issued;
+				Self::Balance::max_value()
+			})
+		});
+		NegativeImbalance::new(amount)
+	}
+
+	fn free_balance(who: &T::AccountId) -> Self::Balance {
+		Module::<T>::free_balance(GetCurrencyId::get(), who)
+	}
+
+	fn ensure_can_withdraw(
+		who: &T::AccountId,
+		amount: Self::Balance,
+		_reasons: WithdrawReasons,
+		_new_balance: Self::Balance,
+	) -> DispatchResult {
+		Module::<T>::ensure_can_withdraw(GetCurrencyId::get(), who, amount)
+	}
+
+	fn transfer(
+		source: &T::AccountId,
+		dest: &T::AccountId,
+		value: Self::Balance,
+		_existence_requirement: ExistenceRequirement,
+	) -> DispatchResult {
+		<Module<T> as MultiCurrency<T::AccountId>>::transfer(GetCurrencyId::get(), &source, &dest, value)
+	}
+
+	fn slash(who: &T::AccountId, value: Self::Balance) -> (Self::NegativeImbalance, Self::Balance) {
+		if value.is_zero() {
+			return (Self::NegativeImbalance::zero(), Zero::zero());
+		}
+
+		let currency_id = GetCurrencyId::get();
+		let account = Module::<T>::accounts(who, currency_id);
+		let free_slashed_amount = account.free.min(value);
+		let mut remaining_slash = value - free_slashed_amount;
+		let negative_imbalance: Self::Balance;
+
+		// slash free balance
+		if !free_slashed_amount.is_zero() {
+			Module::<T>::set_free_balance(currency_id, who, account.free - free_slashed_amount);
+		}
+
+		// slash reserved balance
+		if !remaining_slash.is_zero() {
+			let reserved_slashed_amount = account.reserved.min(remaining_slash);
+			remaining_slash -= reserved_slashed_amount;
+			Module::<T>::set_reserved_balance(currency_id, who, account.reserved - reserved_slashed_amount);
+			negative_imbalance = free_slashed_amount + reserved_slashed_amount;
+		} else {
+			negative_imbalance = value;
+		}
+
+		<TotalIssuance<T>>::mutate(currency_id, |v| *v -= value - remaining_slash);
+		(Self::NegativeImbalance::new(negative_imbalance), remaining_slash)
+	}
+
+	fn deposit_into_existing(
+		who: &T::AccountId,
+		value: Self::Balance,
+	) -> result::Result<Self::PositiveImbalance, DispatchError> {
+		Module::<T>::deposit(GetCurrencyId::get(), who, value).map(|_| Self::PositiveImbalance::new(value))
+	}
+
+	fn deposit_creating(who: &T::AccountId, value: Self::Balance) -> Self::PositiveImbalance {
+		Module::<T>::deposit(GetCurrencyId::get(), who, value).map_or_else(
+			|_| Self::PositiveImbalance::zero(),
+			|_| Self::PositiveImbalance::new(value),
+		)
+	}
+
+	fn withdraw(
+		who: &T::AccountId,
+		value: Self::Balance,
+		_reasons: WithdrawReasons,
+		_liveness: ExistenceRequirement,
+	) -> result::Result<Self::NegativeImbalance, DispatchError> {
+		if value.is_zero() {
+			return Ok(Self::NegativeImbalance::zero());
+		}
+		let currency_id = GetCurrencyId::get();
+		Module::<T>::ensure_can_withdraw(currency_id, who, value)?;
+
+		<TotalIssuance<T>>::mutate(currency_id, |v| *v -= value);
+		Module::<T>::set_free_balance(currency_id, who, Module::<T>::free_balance(currency_id, who) - value);
+
+		Ok(Self::NegativeImbalance::new(value))
+	}
+
+	fn make_free_balance_be(
+		who: &T::AccountId,
+		value: Self::Balance,
+	) -> SignedImbalance<Self::Balance, Self::PositiveImbalance> {
+		<Accounts<T>>::mutate(
+			who,
+			GetCurrencyId::get(),
+			|account| -> Result<SignedImbalance<Self::Balance, Self::PositiveImbalance>, ()> {
+				let imbalance = if account.free <= value {
+					SignedImbalance::Positive(PositiveImbalance::new(value - account.free))
+				} else {
+					SignedImbalance::Negative(NegativeImbalance::new(account.free - value))
+				};
+				account.free = value;
+				Ok(imbalance)
+			},
+		)
+		.unwrap_or_else(|_| SignedImbalance::Positive(Self::PositiveImbalance::zero()))
+	}
+}
+
+impl<T, GetCurrencyId> PalletReservableCurrency<T::AccountId> for CurrencyAdapter<T, GetCurrencyId>
+where
+	T: Trait,
+	GetCurrencyId: Get<T::CurrencyId>,
+{
+	fn can_reserve(who: &T::AccountId, value: Self::Balance) -> bool {
+		Module::<T>::can_reserve(GetCurrencyId::get(), who, value)
+	}
+
+	fn slash_reserved(who: &T::AccountId, value: Self::Balance) -> (Self::NegativeImbalance, Self::Balance) {
+		let actual = Module::<T>::slash_reserved(GetCurrencyId::get(), who, value);
+		(Self::NegativeImbalance::zero(), actual)
+	}
+
+	fn reserved_balance(who: &T::AccountId) -> Self::Balance {
+		Module::<T>::reserved_balance(GetCurrencyId::get(), who)
+	}
+
+	fn reserve(who: &T::AccountId, value: Self::Balance) -> DispatchResult {
+		Module::<T>::reserve(GetCurrencyId::get(), who, value)
+	}
+
+	fn unreserve(who: &T::AccountId, value: Self::Balance) -> Self::Balance {
+		Module::<T>::unreserve(GetCurrencyId::get(), who, value)
+	}
+
+	fn repatriate_reserved(
+		slashed: &T::AccountId,
+		beneficiary: &T::AccountId,
+		value: Self::Balance,
+		status: Status,
+	) -> result::Result<Self::Balance, DispatchError> {
+		Module::<T>::repatriate_reserved(GetCurrencyId::get(), slashed, beneficiary, value, status)
+	}
+}
+
+impl<T, GetCurrencyId> PalletLockableCurrency<T::AccountId> for CurrencyAdapter<T, GetCurrencyId>
+where
+	T: Trait,
+	GetCurrencyId: Get<T::CurrencyId>,
+{
+	type Moment = T::BlockNumber;
+
+	fn set_lock(id: LockIdentifier, who: &T::AccountId, amount: Self::Balance, _reasons: WithdrawReasons) {
+		Module::<T>::set_lock(id, GetCurrencyId::get(), who, amount)
+	}
+
+	fn extend_lock(id: LockIdentifier, who: &T::AccountId, amount: Self::Balance, _reasons: WithdrawReasons) {
+		Module::<T>::extend_lock(id, GetCurrencyId::get(), who, amount)
+	}
+
+	fn remove_lock(id: LockIdentifier, who: &T::AccountId) {
+		Module::<T>::remove_lock(id, GetCurrencyId::get(), who)
 	}
 }
