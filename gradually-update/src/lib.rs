@@ -24,6 +24,7 @@ use codec::{Decode, Encode};
 use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage, ensure, storage,
 	traits::{EnsureOrigin, Get},
+	weights::Weight,
 };
 use frame_system::ensure_root;
 
@@ -102,7 +103,7 @@ decl_module! {
 		const UpdateFrequency: T::BlockNumber = T::UpdateFrequency::get();
 
 		/// Add gradually_update to adjust numeric parameter.
-		#[weight = 0]
+		#[weight = 10_000]
 		pub fn gradually_update(origin, update: GraduallyUpdate) {
 			T::DispatchOrigin::try_origin(origin).map(|_| ()).or_else(ensure_root)?;
 
@@ -126,7 +127,7 @@ decl_module! {
 		}
 
 		/// Cancel gradually_update to adjust numeric parameter.
-		#[weight = 0]
+		#[weight = 10_000]
 		pub fn cancel_gradually_update(origin, key: StorageKey) {
 			T::DispatchOrigin::try_origin(origin).map(|_| ()).or_else(ensure_root)?;
 
@@ -140,6 +141,12 @@ decl_module! {
 			})?;
 
 			Self::deposit_event(RawEvent::GraduallyUpdateCancelled(key));
+		}
+
+		/// dummy `on_initialize` to return the weight used in `on_finalize`.
+		fn on_initialize() -> Weight {
+			// weight of `on_finalize`
+			0
 		}
 
 		/// Update gradually_update to adjust numeric parameter.

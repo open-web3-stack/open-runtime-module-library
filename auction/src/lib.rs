@@ -13,8 +13,7 @@
 #![allow(clippy::string_lit_as_bytes)]
 
 use frame_support::{
-	decl_error, decl_event, decl_module, decl_storage, ensure, traits::Get, weights::constants::WEIGHT_PER_MICROS,
-	weights::Weight, IterableStorageDoubleMap, Parameter,
+	decl_error, decl_event, decl_module, decl_storage, ensure, weights::Weight, IterableStorageDoubleMap, Parameter,
 };
 use frame_system::ensure_signed;
 use orml_traits::{Auction, AuctionHandler, AuctionInfo, Change};
@@ -24,8 +23,14 @@ use sp_runtime::{
 };
 use sp_std::result;
 
+mod default_weight;
 mod mock;
 mod tests;
+
+pub trait WeightInfo {
+	fn bid() -> Weight;
+	fn on_finalize(a: u32) -> Weight;
+}
 
 pub trait Trait: frame_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
@@ -39,6 +44,9 @@ pub trait Trait: frame_system::Trait {
 	/// The `AuctionHandler` that allow custom bidding logic and handles auction
 	/// result
 	type Handler: AuctionHandler<Self::AccountId, Self::Balance, Self::BlockNumber, Self::AuctionId>;
+
+	/// Weight information for extrinsics in this module.
+	type WeightInfo: WeightInfo;
 }
 
 decl_event!(
@@ -71,44 +79,48 @@ decl_module! {
 
 		fn deposit_event() = default;
 
+		/// Bid an auction.
+		///
+		/// The dispatch origin for this call must be `Signed` by the transactor.
+		///
 		/// # <weight>
 		/// - Preconditions:
-		/// 	- T::Handler is module_auction_manager of Acala
-		///		- Indirectly needs orml_currencies and module_cdp_treasury of Acala
+		///     - T::Handler is module_auction_manager of Acala
+		///     - Indirectly needs orml_currencies and module_cdp_treasury of Acala
 		/// - Complexity: `O(1)`
 		/// - Db reads:
-		/// 	- collateral auction:
-		///				- best cases: 7
-		///				- worst cases: 14
-		/// 	- surplus auction:
-		///				- best cases: 5
-		///				- worst cases: 6
-		/// 	- debit auction:
-		///				- best cases: 8
-		///				- worst cases: 7
+		///     - collateral auction:
+		///             - best cases: 7
+		///             - worst cases: 14
+		///     - surplus auction:
+		///             - best cases: 5
+		///             - worst cases: 6
+		///     - debit auction:
+		///             - best cases: 8
+		///             - worst cases: 7
 		/// - Db writes:
-		/// 	- collateral auction:
-		///				- best cases: 7
-		///				- worst cases: 14
-		/// 	- surplus auction:
-		///				- best cases: 3
-		///				- worst cases: 5
-		/// 	- debit auction:
-		///				- best cases: 8
-		///				- worst cases: 8
+		///     - collateral auction:
+		///             - best cases: 7
+		///             - worst cases: 14
+		///     - surplus auction:
+		///             - best cases: 3
+		///             - worst cases: 5
+		///     - debit auction:
+		///             - best cases: 8
+		///             - worst cases: 8
 		/// -------------------
 		/// Base Weight:
-		/// 	- collateral auction:
-		///				- best cases: 134 µs
-		///				- worst cases: 300.4 µs
-		/// 	- surplus auction:
-		///				- best cases: 97.9 µs
-		///				- worst cases: 157.6 µs
-		/// 	- debit auction:
-		///				- best cases: 140.7 µs
-		///				- worst cases: 142.8 µs
+		///     - collateral auction:
+		///             - best cases: 134 µs
+		///             - worst cases: 300.4 µs
+		///     - surplus auction:
+		///             - best cases: 97.9 µs
+		///             - worst cases: 157.6 µs
+		///     - debit auction:
+		///             - best cases: 140.7 µs
+		///             - worst cases: 142.8 µs
 		/// # </weight>
-		#[weight = 300 * WEIGHT_PER_MICROS + T::DbWeight::get().reads_writes(14, 14)]
+		#[weight = T::WeightInfo::bid()]
 		pub fn bid(origin, id: T::AuctionId, #[compact] value: T::Balance) {
 			let from = ensure_signed(origin)?;
 
@@ -154,9 +166,8 @@ decl_module! {
 		}
 
 		/// dummy `on_initialize` to return the weight used in `on_finalize`.
-		fn on_initialize() -> Weight {
-			// weight of `on_finalize`
-			0
+		fn on_initialize(now: T::BlockNumber) -> Weight {
+			T::WeightInfo::on_finalize(<AuctionEndTime<T>>::iter_prefix(&now).count() as u32)
 		}
 
 		fn on_finalize(now: T::BlockNumber) {

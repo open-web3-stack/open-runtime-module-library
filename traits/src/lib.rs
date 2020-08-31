@@ -1,22 +1,28 @@
 #![cfg_attr(not(feature = "std"), no_std)]
+#![feature(slice_partition_at_index)]
 
 use codec::{Decode, Encode};
-use sp_runtime::{DispatchResult, RuntimeDebug};
+use sp_runtime::RuntimeDebug;
 use sp_std::{
 	cmp::{Eq, PartialEq},
 	prelude::Vec,
 };
+
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
 
 pub use auction::{Auction, AuctionHandler, AuctionInfo, OnNewBidResult};
 pub use currency::{
 	BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency, BasicReservableCurrency,
 	LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency, OnReceived,
 };
+pub use data_provider::{DataFeeder, DataProvider, DataProviderExtended};
 pub use price::{DefaultPriceProvider, PriceProvider};
 
 pub mod arithmetic;
 pub mod auction;
 pub mod currency;
+pub mod data_provider;
 pub mod price;
 
 /// New data handler
@@ -24,18 +30,6 @@ pub mod price;
 pub trait OnNewData<AccountId, Key, Value> {
 	/// New data is available
 	fn on_new_data(who: &AccountId, key: &Key, value: &Value);
-}
-
-/// A simple trait to provide data
-pub trait DataProvider<Key, Value> {
-	/// Get data by key
-	fn get(key: &Key) -> Option<Value>;
-}
-
-/// Data provider with ability to insert data
-pub trait DataProviderExtended<Key, Value, AccountId>: DataProvider<Key, Value> {
-	/// Provide a new value for a given key from an operator
-	fn feed_value(who: AccountId, key: Key, value: Value) -> DispatchResult;
 }
 
 /// Combine data provided by operators
@@ -55,4 +49,11 @@ pub enum Change<Value> {
 	NoChange,
 	/// Changed to new value.
 	NewValue(Value),
+}
+
+#[derive(Encode, Decode, RuntimeDebug, Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct TimestampedValue<Value: Ord + PartialOrd, Moment> {
+	pub value: Value,
+	pub timestamp: Moment,
 }
