@@ -125,6 +125,10 @@ impl<T: Trait> Module<T> {
 	}
 
 	pub fn remove_share(who: &T::AccountId, pool: PoolIdOf<T>, remove_amount: ShareOf<T>) {
+		if remove_amount.is_zero() {
+			return;
+		}
+
 		// claim rewards firstly
 		Self::claim_rewards(who, pool);
 

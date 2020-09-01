@@ -188,20 +188,20 @@ fn remove_share_should_work() {
 			0
 		);
 
-		// remove amount is zero, just claim interest
+		// remove amount is zero, do not claim interest
 		RewardsModule::remove_share(&ALICE, DOT_POOL, 0);
 		assert_eq!(
 			RewardsModule::pools(DOT_POOL),
 			PoolInfo {
 				total_shares: 200,
 				total_rewards: 10000,
-				total_withdrawn_rewards: 5000,
+				total_withdrawn_rewards: 0,
 			}
 		);
-		assert_eq!(RewardsModule::share_and_withdrawn_reward(DOT_POOL, ALICE), (100, 5000));
+		assert_eq!(RewardsModule::share_and_withdrawn_reward(DOT_POOL, ALICE), (100, 0));
 		assert_eq!(
 			RECEIVED_PAYOUT.with(|v| *v.borrow().get(&(DOT_POOL, ALICE)).unwrap_or(&0)),
-			5000
+			0
 		);
 
 		RewardsModule::remove_share(&BOB, DOT_POOL, 50);
@@ -210,7 +210,7 @@ fn remove_share_should_work() {
 			PoolInfo {
 				total_shares: 150,
 				total_rewards: 7500,
-				total_withdrawn_rewards: 7500,
+				total_withdrawn_rewards: 2500,
 			}
 		);
 		assert_eq!(RewardsModule::share_and_withdrawn_reward(DOT_POOL, BOB), (50, 2500));
@@ -224,14 +224,14 @@ fn remove_share_should_work() {
 			RewardsModule::pools(DOT_POOL),
 			PoolInfo {
 				total_shares: 50,
-				total_rewards: 2500,
+				total_rewards: 2501,
 				total_withdrawn_rewards: 2500,
 			}
 		);
 		assert_eq!(RewardsModule::share_and_withdrawn_reward(DOT_POOL, ALICE), (0, 0));
 		assert_eq!(
 			RECEIVED_PAYOUT.with(|v| *v.borrow().get(&(DOT_POOL, ALICE)).unwrap_or(&0)),
-			5000
+			4999
 		);
 	});
 }
