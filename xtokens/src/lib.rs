@@ -278,7 +278,7 @@ impl<T: Trait> DownwardMessageHandler for Module<T> {
 		if let DownwardMessage::TransferInto(dest, amount, _) = msg {
 			let dest: T::AccountId = convert_hack(dest);
 			let amount: T::Balance = <T::BalanceConvertor as Convert<RelayChainBalance, T::Balance>>::convert(*amount);
-			// Should not fail, but if it does, there is nothing we could do.
+			// Should not fail, but if it does, there is nothing can be done.
 			let _ = T::Currency::deposit(T::RelayChainCurrencyId::get(), &dest, amount);
 
 			Self::deposit_event(Event::<T>::ReceivedTransferFromRelayChain(dest, amount));
@@ -298,13 +298,24 @@ impl<T: Trait> XCMPMessageHandler<XCMPTokenMessage<T::AccountId, T::Balance>> fo
 					}
 					ChainId::ParaChain(token_owner) => {
 						if T::ParaId::get() == token_owner {
-							//TODO: handle as owner
+							// Handle owned tokens:
 							// 1. transfer between para accounts
 							// 2. notify the `para_id`
+							let src_para_account = src.into_account();
+							// Should not fail, but if it does, there is nothing can be done.
+							let _ = Self::transfer_owned_tokens_to_parachain(
+								x_currency_id.clone(),
+								&src_para_account,
+								*para_id,
+								dest,
+								*amount,
+							);
+						} else if let Ok(currency_id) = x_currency_id.currency_id.clone().try_into() {
+							// Handle known tokens.
+							// Should not fail, but if it does, there is nothing can be done.
+							let _ = T::Currency::deposit(currency_id, dest, *amount);
 						} else {
-							//TODO: handle as non-owner
-							// - known tokens
-							// - unknown tokens
+							//TODO: Handle unknown tokens.
 						}
 					}
 				}
