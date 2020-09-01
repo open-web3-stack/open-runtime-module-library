@@ -5,7 +5,7 @@ use frame_support::{decl_error, decl_event, decl_module, decl_storage, traits::G
 use frame_system::ensure_signed;
 use orml_traits::MultiCurrency;
 use sp_runtime::{
-	traits::{AtLeast32BitUnsigned, Convert, MaybeSerializeDeserialize, Member},
+	traits::{AtLeast32BitUnsigned, CheckedSub, Convert, MaybeSerializeDeserialize, Member, Saturating},
 	DispatchResult, RuntimeDebug,
 };
 use sp_std::{
@@ -78,7 +78,10 @@ pub trait Trait: frame_system::Trait {
 }
 
 decl_storage! {
-	trait Store for Module<T: Trait> as XTokens {}
+	trait Store for Module<T: Trait> as XTokens {
+		/// Balances of currencies not known to self parachain.
+		UnknownBalances: double_map hasher(blake2_128_concat) T::AccountId, hasher(blake2_128_concat) Vec<u8> => T::Balance;
+	}
 }
 
 decl_event! {
@@ -126,8 +129,6 @@ decl_module! {
 		}
 
 		/// Transfer tokens to parachain.
-		///
-		/// TODO: document the way of unknown currency handling
 		#[weight = 10]
 		pub fn transfer_to_parachain(
 			origin,
@@ -166,20 +167,7 @@ impl<T: Trait> Module<T> {
 				if T::ParaId::get() == token_owner {
 					Self::transfer_owned_tokens_to_parachain(x_currency_id, src, para_id, dest, amount)
 				} else {
-					if let Ok(currency_id) = x_currency_id.currency_id.clone().try_into() {
-						Self::transfer_known_tokens_to_parachain(
-							token_owner,
-							currency_id,
-							x_currency_id,
-							src,
-							para_id,
-							dest,
-							amount,
-						)
-					} else {
-						//TODO: handle unknown tokens
-						Ok(())
-					}
+					Self::transfer_non_owned_tokens_to_parachain(token_owner, x_currency_id, src, para_id, dest, amount)
 				}
 			}
 		}
@@ -213,7 +201,8 @@ impl<T: Trait> Module<T> {
 		Ok(())
 	}
 
-	/// Transfer tokens owned by self parachain to another parachain.
+	/// Transfer parachain tokens "owned" by self parachain to another
+	/// parachain.
 	///
 	/// 1. Transfer from `src` to `para_id` account.
 	/// 2. Notify `para_id` the transfer.
@@ -241,21 +230,29 @@ impl<T: Trait> Module<T> {
 		Ok(())
 	}
 
-	/// Transfer known tokens to another parachain.
+	/// Transfer parachain tokens not "owned" by self chain to another
+	/// parachain.
 	///
 	/// 1. Withdraw from `src`.
 	/// 2. Notify token owner parachain the transfer. (Token owner chain would
 	/// further notify `para_id`)
-	fn transfer_known_tokens_to_parachain(
+	fn transfer_non_owned_tokens_to_parachain(
 		token_owner: ParaId,
-		currency_id: T::CurrencyId,
 		x_currency_id: XCurrencyId,
 		src: &T::AccountId,
 		para_id: ParaId,
 		dest: &T::AccountId,
 		amount: T::Balance,
 	) -> DispatchResult {
-		T::Currency::withdraw(currency_id, src, amount)?;
+		if let Ok(currency_id) = x_currency_id.currency_id.clone().try_into() {
+			// Known currency, withdraw from src.
+			T::Currency::withdraw(currency_id, src, amount)?;
+		} else {
+			// Unknown currency, update balance.
+			UnknownBalances::<T>::try_mutate(src, &x_currency_id.currency_id, |total| {
+				total.checked_sub(&amount).ok_or(Error::<T>::InsufficientBalance)
+			})?;
+		}
 
 		T::XCMPMessageSender::send_xcmp_message(
 			token_owner,
@@ -315,7 +312,10 @@ impl<T: Trait> XCMPMessageHandler<XCMPTokenMessage<T::AccountId, T::Balance>> fo
 							// Should not fail, but if it does, there is nothing can be done.
 							let _ = T::Currency::deposit(currency_id, dest, *amount);
 						} else {
-							//TODO: Handle unknown tokens.
+							// Handle unknown tokens.
+							UnknownBalances::<T>::mutate(dest, x_currency_id.currency_id.clone(), |total| {
+								*total = total.saturating_add(*amount)
+							});
 						}
 					}
 				}
