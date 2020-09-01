@@ -272,6 +272,8 @@ decl_error! {
 	pub enum Error for Module<T: Trait> {
 		/// The balance is too low
 		BalanceTooLow,
+		/// This operation will cause balance to overflow
+		BalanceOverflow,
 		/// This operation will cause total issuance to overflow
 		TotalIssuanceOverflow,
 		/// Cannot convert Amount into Balance type
@@ -375,9 +377,11 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		Self::ensure_can_withdraw(currency_id, from, amount)?;
 
 		let from_balance = Self::free_balance(currency_id, from);
-		let to_balance = Self::free_balance(currency_id, to);
+		let to_balance = Self::free_balance(currency_id, to)
+			.checked_add(&amount)
+			.ok_or(Error::<T>::BalanceOverflow)?;
 		Self::set_free_balance(currency_id, from, from_balance - amount);
-		Self::set_free_balance(currency_id, to, to_balance + amount);
+		Self::set_free_balance(currency_id, to, to_balance);
 		T::OnReceived::on_received(to, currency_id, amount);
 
 		Ok(())

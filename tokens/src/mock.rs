@@ -288,21 +288,25 @@ impl Trait for Runtime {
 }
 
 pub type Tokens = Module<Runtime>;
+pub type TreasuryCurrencyAdapter = <Runtime as pallet_treasury::Trait>::Currency;
 
 pub const TEST_TOKEN_ID: CurrencyId = 1;
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
+pub const TREASURY_ACCOUNT: AccountId = 3;
 pub const ID_1: LockIdentifier = *b"1       ";
 pub const ID_2: LockIdentifier = *b"2       ";
 
 pub struct ExtBuilder {
 	endowed_accounts: Vec<(AccountId, CurrencyId, Balance)>,
+	treasury_genesis: bool,
 }
 
 impl Default for ExtBuilder {
 	fn default() -> Self {
 		Self {
 			endowed_accounts: vec![],
+			treasury_genesis: false,
 		}
 	}
 }
@@ -317,6 +321,11 @@ impl ExtBuilder {
 		self.balances(vec![(ALICE, TEST_TOKEN_ID, 100), (BOB, TEST_TOKEN_ID, 100)])
 	}
 
+	pub fn one_hundred_for_treasury_account(mut self) -> Self {
+		self.treasury_genesis = true;
+		self.balances(vec![(TREASURY_ACCOUNT, TEST_TOKEN_ID, 100)])
+	}
+
 	pub fn build(self) -> sp_io::TestExternalities {
 		let mut t = frame_system::GenesisConfig::default()
 			.build_storage::<Runtime>()
@@ -328,6 +337,20 @@ impl ExtBuilder {
 		.assimilate_storage(&mut t)
 		.unwrap();
 
-		t.into()
+		if self.treasury_genesis {
+			pallet_treasury::GenesisConfig::default()
+				.assimilate_storage::<Runtime>(&mut t)
+				.unwrap();
+
+			pallet_elections_phragmen::GenesisConfig::<Runtime> {
+				members: vec![(TREASURY_ACCOUNT, 10)],
+			}
+			.assimilate_storage(&mut t)
+			.unwrap();
+		}
+
+		let mut ext = sp_io::TestExternalities::new(t);
+		ext.execute_with(|| System::set_block_number(1));
+		ext
 	}
 }
