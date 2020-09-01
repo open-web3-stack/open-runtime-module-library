@@ -161,7 +161,7 @@ impl<T: Trait> Module<T> {
 	) -> DispatchResult {
 		match x_currency_id.chain_id {
 			ChainId::RelayChain => {
-				Self::transfer_relay_chain_tokens_to_parachain(x_currency_id.clone(), src, para_id, dest, amount)
+				Self::transfer_relay_chain_tokens_to_parachain(x_currency_id, src, para_id, dest, amount)
 			}
 			ChainId::ParaChain(token_owner) => {
 				if T::ParaId::get() == token_owner {
