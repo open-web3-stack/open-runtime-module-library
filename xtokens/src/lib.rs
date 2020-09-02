@@ -3,7 +3,6 @@
 use codec::{Decode, Encode};
 use frame_support::{decl_error, decl_event, decl_module, decl_storage, traits::Get, Parameter};
 use frame_system::ensure_signed;
-use orml_traits::MultiCurrency;
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, CheckedSub, Convert, MaybeSerializeDeserialize, Member, Saturating},
 	DispatchResult, RuntimeDebug,
@@ -20,6 +19,12 @@ use cumulus_primitives::{
 };
 use cumulus_upward_message::BalancesMessage;
 use polkadot_parachain::primitives::AccountIdConversion;
+
+use orml_traits::MultiCurrency;
+use orml_utilities::with_transaction_result;
+
+mod mock;
+mod tests;
 
 #[derive(Encode, Decode, Eq, PartialEq, Clone, Copy, RuntimeDebug)]
 /// Identity of chain.
@@ -123,9 +128,12 @@ decl_module! {
 		/// Transfer relay chain tokens to relay chain.
 		#[weight = 10]
 		pub fn transfer_to_relay_chain(origin, dest: T::AccountId, amount: T::Balance) {
-			let who = ensure_signed(origin)?;
-			Self::do_transfer_to_relay_chain(&who, &dest, amount)?;
-			Self::deposit_event(Event::<T>::TransferredToRelayChain(who, dest, amount));
+			with_transaction_result(|| {
+				let who = ensure_signed(origin)?;
+				Self::do_transfer_to_relay_chain(&who, &dest, amount)?;
+				Self::deposit_event(Event::<T>::TransferredToRelayChain(who, dest, amount));
+				Ok(())
+			})?;
 		}
 
 		/// Transfer tokens to parachain.
@@ -137,9 +145,12 @@ decl_module! {
 			dest: T::AccountId,
 			amount: T::Balance,
 		) {
-			let who = ensure_signed(origin)?;
-			Self::do_transfer_to_parachain(x_currency_id.clone(), &who, para_id, &dest, amount)?;
-			Self::deposit_event(Event::<T>::TransferredToParachain(x_currency_id, who, para_id, dest, amount));
+			with_transaction_result(|| {
+				let who = ensure_signed(origin)?;
+				Self::do_transfer_to_parachain(x_currency_id.clone(), &who, para_id, &dest, amount)?;
+				Self::deposit_event(Event::<T>::TransferredToParachain(x_currency_id, who, para_id, dest, amount));
+				Ok(())
+			})?;
 		}
 	}
 }
