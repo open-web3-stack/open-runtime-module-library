@@ -38,8 +38,7 @@ pub trait Trait: frame_system::Trait {
 		+ Copy
 		+ MaybeSerializeDeserialize
 		+ Debug
-		+ FixedPointOperand
-		+ HasCompact;
+		+ FixedPointOperand;
 
 	/// The reward balance type.
 	type Balance: Parameter
@@ -49,8 +48,7 @@ pub trait Trait: frame_system::Trait {
 		+ Copy
 		+ MaybeSerializeDeserialize
 		+ Debug
-		+ FixedPointOperand
-		+ HasCompact;
+		+ FixedPointOperand;
 
 	/// The reward pool ID type.
 	type PoolId: Parameter + Member + Copy + FullCodec;
