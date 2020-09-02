@@ -40,9 +40,16 @@ pub enum ChainId {
 pub struct XCurrencyId {
 	/// The owner chain of the currency. For instance, the owner chain of DOT is
 	/// Polkadot.
-	chain_id: ChainId,
+	pub chain_id: ChainId,
 	/// The identity of the currency.
-	currency_id: Vec<u8>,
+	pub currency_id: Vec<u8>,
+}
+
+#[cfg(test)]
+impl XCurrencyId {
+	pub fn new(chain_id: ChainId, currency_id: Vec<u8>) -> Self {
+		XCurrencyId { chain_id, currency_id }
+	}
 }
 
 #[derive(Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug)]
@@ -85,7 +92,7 @@ pub trait Trait: frame_system::Trait {
 decl_storage! {
 	trait Store for Module<T: Trait> as XTokens {
 		/// Balances of currencies not known to self parachain.
-		UnknownBalances: double_map hasher(blake2_128_concat) T::AccountId, hasher(blake2_128_concat) Vec<u8> => T::Balance;
+		pub UnknownBalances get(fn unknown_balances): double_map hasher(blake2_128_concat) T::AccountId, hasher(blake2_128_concat) Vec<u8> => T::Balance;
 	}
 }
 
@@ -260,8 +267,9 @@ impl<T: Trait> Module<T> {
 			T::Currency::withdraw(currency_id, src, amount)?;
 		} else {
 			// Unknown currency, update balance.
-			UnknownBalances::<T>::try_mutate(src, &x_currency_id.currency_id, |total| {
-				total.checked_sub(&amount).ok_or(Error::<T>::InsufficientBalance)
+			UnknownBalances::<T>::try_mutate(src, &x_currency_id.currency_id, |total| -> DispatchResult {
+				*total = total.checked_sub(&amount).ok_or(Error::<T>::InsufficientBalance)?;
+				Ok(())
 			})?;
 		}
 

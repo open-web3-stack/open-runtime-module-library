@@ -67,6 +67,7 @@ impl frame_system::Trait for Runtime {
 	type BaseCallFilter = ();
 	type SystemWeightInfo = ();
 }
+pub type System = system::Module<Runtime>;
 
 #[repr(u8)]
 #[derive(Encode, Decode, Serialize, Deserialize, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
@@ -96,6 +97,10 @@ impl TryFrom<Vec<u8>> for CurrencyId {
 		}
 		Err(())
 	}
+}
+
+pub fn unknown_currency_id() -> Vec<u8> {
+	vec![10]
 }
 
 impl orml_tokens::Trait for Runtime {
@@ -133,7 +138,7 @@ thread_local! {
 
 pub struct MockXCMPMessageSender;
 impl MockXCMPMessageSender {
-	pub fn is_msg_sent(dest: ParaId, msg: XCMPTokenMessage<AccountId, Balance>) -> bool {
+	pub fn msg_sent(dest: ParaId, msg: XCMPTokenMessage<AccountId, Balance>) -> bool {
 		XCMP_MESSAGES.with(|v| v.borrow().clone()) == Some((dest, msg))
 	}
 }
@@ -145,7 +150,7 @@ impl XCMPMessageSender<XCMPTokenMessage<AccountId, Balance>> for MockXCMPMessage
 }
 
 #[derive(Encode, Decode, Eq, PartialEq, Clone)]
-pub struct MockUpwardMessage(AccountId, Balance);
+pub struct MockUpwardMessage(pub AccountId, pub Balance);
 impl BalancesMessage<AccountId, Balance> for MockUpwardMessage {
 	fn transfer(dest: AccountId, amount: Balance) -> Self {
 		MockUpwardMessage(dest, amount)
@@ -157,7 +162,7 @@ thread_local! {
 }
 pub struct MockUpwardMessageSender;
 impl MockUpwardMessageSender {
-	pub fn is_msg_sent(msg: MockUpwardMessage) -> bool {
+	pub fn msg_sent(msg: MockUpwardMessage) -> bool {
 		UPWARD_MESSAGES.with(|v| v.borrow().clone()) == Some(msg)
 	}
 }
@@ -178,6 +183,26 @@ impl Convert<u128, u128> for BalanceConvertor {
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 
+pub const PARA_ONE_ID: u32 = 1;
+
+pub fn para_one_id() -> ParaId {
+	PARA_ONE_ID.into()
+}
+
+pub fn para_one_account() -> AccountId {
+	para_one_id().into_account()
+}
+
+pub const PARA_TWO_ID: u32 = 2;
+
+pub fn para_two_id() -> ParaId {
+	PARA_TWO_ID.into()
+}
+
+pub fn para_two_account() -> AccountId {
+	para_two_id().into_account()
+}
+
 pub struct ExtBuilder {
 	endowed_accounts: Vec<(AccountId, CurrencyId, Balance)>,
 }
@@ -194,6 +219,14 @@ impl ExtBuilder {
 	pub fn balances(mut self, endowed_accounts: Vec<(AccountId, CurrencyId, Balance)>) -> Self {
 		self.endowed_accounts = endowed_accounts;
 		self
+	}
+
+	pub fn one_hundred_for_alice(self) -> Self {
+		self.balances(vec![
+			(ALICE, CurrencyId::Owned, 100),
+			(ALICE, CurrencyId::DOT, 100),
+			(ALICE, CurrencyId::BTC, 100),
+		])
 	}
 
 	pub fn build(self) -> sp_io::TestExternalities {
