@@ -154,8 +154,14 @@ decl_module! {
 		) {
 			with_transaction_result(|| {
 				let who = ensure_signed(origin)?;
+
+				if para_id == T::ParaId::get() {
+					return Ok(());
+				}
+
 				Self::do_transfer_to_parachain(x_currency_id.clone(), &who, para_id, &dest, amount)?;
 				Self::deposit_event(Event::<T>::TransferredToParachain(x_currency_id, who, para_id, dest, amount));
+
 				Ok(())
 			})?;
 		}
