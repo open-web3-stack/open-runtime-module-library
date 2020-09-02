@@ -45,7 +45,7 @@ pub struct XCurrencyId {
 	currency_id: Vec<u8>,
 }
 
-#[derive(Encode, Decode, RuntimeDebug)]
+#[derive(Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug)]
 pub enum XCMPTokenMessage<AccountId, Balance> {
 	/// Token transfer. [x_currency_id, para_id, dest, amount]
 	Transfer(XCurrencyId, ParaId, AccountId, Balance),

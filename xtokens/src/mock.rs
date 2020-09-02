@@ -125,17 +125,26 @@ impl Trait for Runtime {
 	type UpwardMessageSender = MockUpwardMessageSender;
 	type UpwardMessage = MockUpwardMessage;
 }
-
 pub type XTokens = Module<Runtime>;
 
+thread_local! {
+	static XCMP_MESSAGES: RefCell<Option<(ParaId, XCMPTokenMessage<AccountId, Balance>)>> = RefCell::new(None);
+}
+
 pub struct MockXCMPMessageSender;
+impl MockXCMPMessageSender {
+	pub fn is_msg_sent(dest: ParaId, msg: XCMPTokenMessage<AccountId, Balance>) -> bool {
+		XCMP_MESSAGES.with(|v| v.borrow().clone()) == Some((dest, msg))
+	}
+}
 impl XCMPMessageSender<XCMPTokenMessage<AccountId, Balance>> for MockXCMPMessageSender {
-	fn send_xcmp_message(_dest: ParaId, _msg: &XCMPTokenMessage<AccountId, Balance>) -> Result<(), ()> {
+	fn send_xcmp_message(dest: ParaId, msg: &XCMPTokenMessage<AccountId, Balance>) -> Result<(), ()> {
+		XCMP_MESSAGES.with(|v| *v.borrow_mut() = Some((dest, msg.clone())));
 		Ok(())
 	}
 }
 
-#[derive(Encode, Decode)]
+#[derive(Encode, Decode, Eq, PartialEq, Clone)]
 pub struct MockUpwardMessage(AccountId, Balance);
 impl BalancesMessage<AccountId, Balance> for MockUpwardMessage {
 	fn transfer(dest: AccountId, amount: Balance) -> Self {
@@ -143,9 +152,18 @@ impl BalancesMessage<AccountId, Balance> for MockUpwardMessage {
 	}
 }
 
+thread_local! {
+	static UPWARD_MESSAGES: RefCell<Option<MockUpwardMessage>> = RefCell::new(None);
+}
 pub struct MockUpwardMessageSender;
+impl MockUpwardMessageSender {
+	pub fn is_msg_sent(msg: MockUpwardMessage) -> bool {
+		UPWARD_MESSAGES.with(|v| v.borrow().clone()) == Some(msg)
+	}
+}
 impl UpwardMessageSender<MockUpwardMessage> for MockUpwardMessageSender {
-	fn send_upward_message(_msg: &MockUpwardMessage, _origin: UpwardMessageOrigin) -> Result<(), ()> {
+	fn send_upward_message(msg: &MockUpwardMessage, _origin: UpwardMessageOrigin) -> Result<(), ()> {
+		UPWARD_MESSAGES.with(|v| *v.borrow_mut() = Some(msg.clone()));
 		Ok(())
 	}
 }
@@ -188,6 +206,9 @@ impl ExtBuilder {
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();
+
+		XCMP_MESSAGES.with(|v| *v.borrow_mut() = None);
+		UPWARD_MESSAGES.with(|v| *v.borrow_mut() = None);
 
 		t.into()
 	}
