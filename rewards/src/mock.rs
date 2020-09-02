@@ -109,6 +109,9 @@ impl RewardHandler<AccountId, BlockNumber> for Handler {
 }
 
 impl Trait for Runtime {
+	type Share = Share;
+	type Balance = Balance;
+	type PoolId = PoolId;
 	type Handler = Handler;
 }
 pub type RewardsModule = Module<Runtime>;
