@@ -230,6 +230,8 @@ impl<T: Trait> Module<T> {
 	///
 	/// 1. Transfer from `src` to `para_id` account.
 	/// 2. Notify `para_id` the transfer.
+	///
+	/// NOTE - `para_id` must not be self parachain.
 	fn transfer_owned_tokens_to_parachain(
 		x_currency_id: XCurrencyId,
 		src: &T::AccountId,
@@ -321,17 +323,27 @@ impl<T: Trait> XCMPMessageHandler<XCMPTokenMessage<T::AccountId, T::Balance>> fo
 					ChainId::ParaChain(token_owner) => {
 						if T::ParaId::get() == token_owner {
 							// Handle owned tokens:
-							// 1. transfer between para accounts
-							// 2. notify the `para_id`
+							// If `para_id` is self parachain:
+							//   1. Transfer from `src` para account to `dest` account.
+							// else (`para_id` is not self parachain):
+							//   1. transfer between para accounts
+							//   2. notify the `para_id`
 							let src_para_account = src.into_account();
-							// Should not fail, but if it does, there is nothing can be done.
-							let _ = Self::transfer_owned_tokens_to_parachain(
-								x_currency_id.clone(),
-								&src_para_account,
-								*para_id,
-								dest,
-								*amount,
-							);
+							if *para_id == T::ParaId::get() {
+								if let Ok(currency_id) = x_currency_id.currency_id.clone().try_into() {
+									// Should not fail, but if it does, there is nothing can be done.
+									let _ = T::Currency::transfer(currency_id, &src_para_account, dest, *amount);
+								}
+							} else {
+								// Should not fail, but if it does, there is nothing can be done.
+								let _ = Self::transfer_owned_tokens_to_parachain(
+									x_currency_id.clone(),
+									&src_para_account,
+									*para_id,
+									dest,
+									*amount,
+								);
+							}
 						} else if let Ok(currency_id) = x_currency_id.currency_id.clone().try_into() {
 							// Handle known tokens.
 							// Should not fail, but if it does, there is nothing can be done.
