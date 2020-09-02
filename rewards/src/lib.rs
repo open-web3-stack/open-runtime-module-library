@@ -1,9 +1,10 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::{Decode, Encode, HasCompact};
+use codec::{Decode, Encode, FullCodec, HasCompact};
 use frame_support::{decl_module, decl_storage, weights::Weight, Parameter};
+use orml_traits::RewardHandler;
 use sp_runtime::{
-	traits::{AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, Saturating, Zero},
+	traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize, Member, Saturating, Zero},
 	FixedPointNumber, FixedPointOperand, FixedU128, RuntimeDebug,
 };
 use sp_std::{
@@ -28,8 +29,7 @@ pub struct PoolInfo<Share: HasCompact, Balance: HasCompact> {
 	pub total_withdrawn_rewards: Balance,
 }
 
-/// Hooks to manage reward pool.
-pub trait RewardHandler<AccountId, BlockNumber> {
+pub trait Trait: frame_system::Trait {
 	/// The share type of pool.
 	type Share: Parameter
 		+ Member
@@ -51,40 +51,25 @@ pub trait RewardHandler<AccountId, BlockNumber> {
 		+ FixedPointOperand;
 
 	/// The reward pool ID type.
-	type PoolId: Parameter + Member + AtLeast32BitUnsigned + Copy + MaybeSerializeDeserialize + Bounded;
+	type PoolId: Parameter + Member + Copy + FullCodec;
 
-	/// Accumulate rewards
-	fn accumulate_reward(now: BlockNumber, callback: impl Fn(Self::PoolId, Self::Balance)) -> Self::Balance;
-
-	/// Payout the reward to `who`
-	fn payout(who: &AccountId, pool: Self::PoolId, amount: Self::Balance);
-}
-
-type ShareOf<T> = <<T as Trait>::Handler as RewardHandler<
-	<T as frame_system::Trait>::AccountId,
-	<T as frame_system::Trait>::BlockNumber,
->>::Share;
-type BalanceOf<T> = <<T as Trait>::Handler as RewardHandler<
-	<T as frame_system::Trait>::AccountId,
-	<T as frame_system::Trait>::BlockNumber,
->>::Balance;
-type PoolIdOf<T> = <<T as Trait>::Handler as RewardHandler<
-	<T as frame_system::Trait>::AccountId,
-	<T as frame_system::Trait>::BlockNumber,
->>::PoolId;
-
-pub trait Trait: frame_system::Trait {
 	/// The `RewardHandler`
-	type Handler: RewardHandler<Self::AccountId, Self::BlockNumber>;
+	type Handler: RewardHandler<
+		Self::AccountId,
+		Self::BlockNumber,
+		Share = Self::Share,
+		Balance = Self::Balance,
+		PoolId = Self::PoolId,
+	>;
 }
 
 decl_storage! {
 	trait Store for Module<T: Trait> as Rewards {
 		/// Stores reward pool info.
-		pub Pools get(fn pools): map hasher(twox_64_concat) PoolIdOf<T> => PoolInfo<ShareOf<T>, BalanceOf<T>>;
+		pub Pools get(fn pools): map hasher(twox_64_concat) T::PoolId => PoolInfo<T::Share, T::Balance>;
 
 		/// Record share amount and withdrawn reward amount for specific `AccountId` under `PoolId`.
-		pub ShareAndWithdrawnReward get(fn share_and_withdrawn_reward): double_map hasher(twox_64_concat) PoolIdOf<T>, hasher(twox_64_concat) T::AccountId => (ShareOf<T>, BalanceOf<T>);
+		pub ShareAndWithdrawnReward get(fn share_and_withdrawn_reward): double_map hasher(twox_64_concat) T::PoolId, hasher(twox_64_concat) T::AccountId => (T::Share, T::Balance);
 	}
 }
 
@@ -104,7 +89,7 @@ decl_module! {
 }
 
 impl<T: Trait> Module<T> {
-	pub fn add_share(who: &T::AccountId, pool: PoolIdOf<T>, add_amount: ShareOf<T>) {
+	pub fn add_share(who: &T::AccountId, pool: T::PoolId, add_amount: T::Share) {
 		if add_amount.is_zero() {
 			return;
 		}
@@ -124,7 +109,7 @@ impl<T: Trait> Module<T> {
 		});
 	}
 
-	pub fn remove_share(who: &T::AccountId, pool: PoolIdOf<T>, remove_amount: ShareOf<T>) {
+	pub fn remove_share(who: &T::AccountId, pool: T::PoolId, remove_amount: T::Share) {
 		if remove_amount.is_zero() {
 			return;
 		}
@@ -156,7 +141,7 @@ impl<T: Trait> Module<T> {
 		});
 	}
 
-	pub fn set_share(who: &T::AccountId, pool: PoolIdOf<T>, new_share: ShareOf<T>) {
+	pub fn set_share(who: &T::AccountId, pool: T::PoolId, new_share: T::Share) {
 		let (share, _) = Self::share_and_withdrawn_reward(pool, who);
 
 		if new_share > share {
@@ -166,7 +151,7 @@ impl<T: Trait> Module<T> {
 		}
 	}
 
-	pub fn claim_rewards(who: &T::AccountId, pool: PoolIdOf<T>) {
+	pub fn claim_rewards(who: &T::AccountId, pool: T::PoolId) {
 		ShareAndWithdrawnReward::<T>::mutate(pool, who, |(share, withdrawn_rewards)| {
 			if share.is_zero() {
 				return;
