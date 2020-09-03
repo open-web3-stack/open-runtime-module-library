@@ -44,7 +44,7 @@ use sp_std::{prelude::*, vec};
 type MomentOf<T, I = DefaultInstance> = <<T as Trait<I>>::Time as Time>::Moment;
 pub type TimestampedValueOf<T, I = DefaultInstance> = TimestampedValue<<T as Trait<I>>::OracleValue, MomentOf<T, I>>;
 
-#[derive(Encode, Decode, RuntimeDebug, Eq, PartialEq, Clone, Copy)]
+#[derive(Encode, Decode, RuntimeDebug, Eq, PartialEq, Clone, Copy, Ord, PartialOrd)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct TimestampedValue<Value, Moment> {
 	pub value: Value,

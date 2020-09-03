@@ -91,40 +91,25 @@ pub type Vesting = Module<Runtime>;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
+pub const CHARLIE: AccountId = 3;
 
-pub struct ExtBuilder {
-	endowed_accounts: Vec<(AccountId, Balance)>,
-}
-
-impl Default for ExtBuilder {
-	fn default() -> Self {
-		Self {
-			endowed_accounts: vec![],
-		}
-	}
-}
+#[derive(Default)]
+pub struct ExtBuilder;
 
 impl ExtBuilder {
-	pub fn balances(mut self, endowed_accounts: Vec<(AccountId, Balance)>) -> Self {
-		self.endowed_accounts = endowed_accounts;
-		self
-	}
-
-	pub fn one_hundred_for_alice(self) -> Self {
-		self.balances(vec![(ALICE, 100)])
-	}
-
-	pub fn build(self) -> sp_io::TestExternalities {
+	pub fn build() -> sp_io::TestExternalities {
 		let mut t = frame_system::GenesisConfig::default()
 			.build_storage::<Runtime>()
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {
-			balances: self
-				.endowed_accounts
-				.into_iter()
-				.map(|(account_id, initial_balance)| (account_id, initial_balance))
-				.collect::<Vec<_>>(),
+			balances: vec![(ALICE, 100), (CHARLIE, 30)],
+		}
+		.assimilate_storage(&mut t)
+		.unwrap();
+
+		GenesisConfig::<Runtime> {
+			vesting: vec![(CHARLIE, 2, 3, 4, 5)], // who, start, period, period_count, per_period
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();

@@ -131,9 +131,12 @@ decl_storage! {
 		/// Vesting schedules of an account.
 		pub VestingSchedules get(fn vesting_schedules) build(|config: &GenesisConfig<T>| {
 			config.vesting.iter()
-				.map(|&(ref who, start, period, period_count, per_period)|
+				.map(|&(ref who, start, period, period_count, per_period)| {
+					let total = per_period * Into::<BalanceOf<T>>::into(period_count);
+					assert!(T::Currency::free_balance(who) >= total, "Account do not have enough balance");
+					T::Currency::set_lock(VESTING_LOCK_ID, who, total, WithdrawReasons::all());
 					(who.clone(), vec![VestingSchedule {start, period, period_count, per_period}])
-				)
+				})
 				.collect::<Vec<_>>()
 		}): map hasher(blake2_128_concat) T::AccountId => Vec<VestingScheduleOf<T>>;
 	}
