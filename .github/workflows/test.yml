@@ -24,18 +24,23 @@ jobs:
     - name: Install toolchain
       uses: actions-rs/toolchain@v1
       with:
-        profile: minimal
         toolchain: nightly-2020-05-07
-        components: rustfmt
+        components: rustfmt, clippy
         target: wasm32-unknown-unknown
         override: true
         default: true
+    - name: Show rustc version
+      run: rustc --version
+    - name: Show clippy version
+      run: cargo clippy --version
     - name: Install Wasm toolchain
       run: rustup target add wasm32-unknown-unknown
     - name: Check format
       run: make dev-format-check
-    - name: Install clippy
-      run: rustup component add clippy
+    - name: TEMP cargo clean
+      run: cargo clean
+    - name: TEMP cargo check
+      run: cargo check --all
     - name: Run clippy
       run: cargo clippy -- -D warnings
     - name: Update
