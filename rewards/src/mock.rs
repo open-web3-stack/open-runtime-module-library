@@ -14,6 +14,7 @@ pub type Balance = u64;
 pub type Share = u64;
 pub type PoolId = u32;
 pub type BlockNumber = u64;
+pub type CurrencyId = u32;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
@@ -74,8 +75,12 @@ impl RewardHandler<AccountId, BlockNumber> for Handler {
 	type Share = Share;
 	type Balance = Balance;
 	type PoolId = PoolId;
+	type CurrencyId = CurrencyId;
 
-	fn accumulate_reward(now: BlockNumber, callback: impl Fn(Self::PoolId, Self::Balance)) -> Self::Balance {
+	fn accumulate_reward(
+		now: BlockNumber,
+		callback: impl Fn(Self::PoolId, Self::Balance),
+	) -> Vec<(Self::CurrencyId, Self::Balance)> {
 		if now % 2 == 0 {
 			let mut total_accumulated_rewards = 0;
 			let valid_pool_ids = vec![DOT_POOL, BTC_POOL];
@@ -88,9 +93,9 @@ impl RewardHandler<AccountId, BlockNumber> for Handler {
 				}
 			}
 
-			total_accumulated_rewards
+			vec![(1, total_accumulated_rewards)]
 		} else {
-			0
+			vec![]
 		}
 	}
 
