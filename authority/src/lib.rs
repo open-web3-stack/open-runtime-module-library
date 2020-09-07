@@ -40,30 +40,34 @@ mod tests;
 
 /// A delayed origin. Can only be dispatched via `dispatch_as` with a delay.
 #[derive(PartialEq, Eq, Clone, RuntimeDebug, Encode, Decode)]
-pub struct DelayedOrigin<BlockNumber, Origin> {
+pub struct DelayedOrigin<BlockNumber, PalletsOrigin> {
 	/// Number of blocks that this call have been delayed.
 	pub delay: BlockNumber,
 	/// The initial origin.
-	pub origin: Box<Origin>,
+	pub origin: Box<PalletsOrigin>,
 }
 
 /// Ensure the origin have a minimum amount of delay.
-pub struct EnsureDelayed<Delay, Inner, BlockNumber>(sp_std::marker::PhantomData<(Delay, Inner, BlockNumber)>);
+pub struct EnsureDelayed<Delay, Inner, BlockNumber, PalletsOrigin>(
+	sp_std::marker::PhantomData<(Delay, Inner, BlockNumber, PalletsOrigin)>,
+);
 impl<
-		O: Into<Result<DelayedOrigin<BlockNumber, O>, O>> + From<DelayedOrigin<BlockNumber, O>>,
+		PalletsOrigin: Into<O>,
+		O: Into<Result<DelayedOrigin<BlockNumber, PalletsOrigin>, O>> + From<DelayedOrigin<BlockNumber, PalletsOrigin>>,
 		Delay: Get<BlockNumber>,
 		Inner: EnsureOrigin<O>,
 		BlockNumber: PartialOrd,
-	> EnsureOrigin<O> for EnsureDelayed<Delay, Inner, BlockNumber>
+	> EnsureOrigin<O> for EnsureDelayed<Delay, Inner, BlockNumber, PalletsOrigin>
 {
 	type Success = Inner::Success;
 
 	fn try_origin(o: O) -> Result<Self::Success, O> {
 		o.into().and_then(|delayed_origin| {
 			if delayed_origin.delay >= Delay::get() {
-				Inner::try_origin(*delayed_origin.origin)
+				let pallets_origin = *delayed_origin.origin;
+				Inner::try_origin(pallets_origin.into())
 			} else {
-				Err(*delayed_origin.origin)
+				Err(delayed_origin.into())
 			}
 		})
 	}
