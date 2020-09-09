@@ -29,9 +29,11 @@ pub fn median<T: Ord + Clone>(mut items: Vec<T>) -> Option<T> {
 	}
 
 	let mid_index = items.len() / 2;
+
+	items.sort();
+
 	// Won't panic as guarded items not empty case.
-	let (_, median, _) = items.partition_at_index(mid_index);
-	Some(median.clone())
+	Some(items[mid_index as usize].clone())
 }
 
 #[macro_export]
