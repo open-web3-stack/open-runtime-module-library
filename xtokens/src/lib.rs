@@ -64,8 +64,11 @@ pub trait Trait: frame_system::Trait {
 	/// The balance type.
 	type Balance: Parameter + Member + AtLeast32BitUnsigned + Default + Copy + MaybeSerializeDeserialize;
 
-	/// Convertor to convert between `T::Balance` and relay chain balance.
-	type BalanceConvertor: Convert<RelayChainBalance, Self::Balance> + Convert<Self::Balance, RelayChainBalance>;
+	/// Convertor `RelayChainBalance` to `Balance`.
+	type FromRelayChainBalance: Convert<RelayChainBalance, Self::Balance>;
+
+	/// Convertor `Balance` to `RelayChainBalance`.
+	type ToRelayChainBalance: Convert<Self::Balance, RelayChainBalance>;
 
 	/// The currency ID type
 	type CurrencyId: Parameter + Member + Copy + MaybeSerializeDeserialize + Ord + Into<Vec<u8>> + TryFrom<Vec<u8>>;
@@ -171,7 +174,7 @@ decl_module! {
 impl<T: Trait> Module<T> {
 	fn do_transfer_to_relay_chain(who: &T::AccountId, dest: &T::AccountId, amount: T::Balance) -> DispatchResult {
 		T::Currency::withdraw(T::RelayChainCurrencyId::get(), who, amount)?;
-		let msg = T::UpwardMessage::transfer(dest.clone(), T::BalanceConvertor::convert(amount));
+		let msg = T::UpwardMessage::transfer(dest.clone(), T::ToRelayChainBalance::convert(amount));
 		T::UpwardMessageSender::send_upward_message(&msg, UpwardMessageOrigin::Signed).expect("Should not fail; qed");
 		Ok(())
 	}
@@ -213,7 +216,7 @@ impl<T: Trait> Module<T> {
 
 		T::Currency::withdraw(T::RelayChainCurrencyId::get(), src, amount)?;
 
-		let msg = T::UpwardMessage::transfer(para_account, T::BalanceConvertor::convert(amount));
+		let msg = T::UpwardMessage::transfer(para_account, T::ToRelayChainBalance::convert(amount));
 		T::UpwardMessageSender::send_upward_message(&msg, UpwardMessageOrigin::Signed).expect("Should not fail; qed");
 
 		T::XCMPMessageSender::send_xcmp_message(
@@ -301,7 +304,7 @@ impl<T: Trait> DownwardMessageHandler for Module<T> {
 	fn handle_downward_message(msg: &DownwardMessage) {
 		if let DownwardMessage::TransferInto(dest, amount, _) = msg {
 			let dest: T::AccountId = convert_hack(dest);
-			let amount: T::Balance = <T::BalanceConvertor as Convert<RelayChainBalance, T::Balance>>::convert(*amount);
+			let amount: T::Balance = T::FromRelayChainBalance::convert(*amount);
 			// Should not fail, but if it does, there is nothing can be done.
 			let _ = T::Currency::deposit(T::RelayChainCurrencyId::get(), &dest, amount);
 

@@ -121,7 +121,8 @@ parameter_types! {
 impl Trait for Runtime {
 	type Event = TestEvent;
 	type Balance = Balance;
-	type BalanceConvertor = BalanceConvertor;
+	type ToRelayChainBalance = BalanceConvertor;
+	type FromRelayChainBalance = BalanceConvertor;
 	type CurrencyId = CurrencyId;
 	type RelayChainCurrencyId = RelayChainCurrencyId;
 	type Currency = Tokens;
