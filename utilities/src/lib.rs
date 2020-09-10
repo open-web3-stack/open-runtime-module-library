@@ -4,8 +4,13 @@ use frame_support::storage::{with_transaction, TransactionOutcome};
 use sp_runtime::DispatchError;
 use sp_std::result::Result;
 
+pub mod offchain_worker;
 pub mod ordered_set;
 
+pub use offchain_worker::{
+	iterator_helper::{iter_from_random_position_with_lock, iter_prefix_from_random_position_with_lock},
+	OffchainErr,
+};
 pub use ordered_set::OrderedSet;
 
 /// Execute the supplied function in a new storage transaction.
