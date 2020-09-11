@@ -172,12 +172,14 @@ impl<T: Trait> Module<T> {
 					return;
 				}
 
+				// pay reward to `who`
+				if T::Handler::payout(who, pool, reward_to_withdraw).is_err() {
+					return;
+				}
+
 				pool_info.total_withdrawn_rewards =
 					pool_info.total_withdrawn_rewards.saturating_add(reward_to_withdraw);
 				*withdrawn_rewards = withdrawn_rewards.saturating_add(reward_to_withdraw);
-
-				// pay reward to `who`
-				T::Handler::payout(who, pool, reward_to_withdraw);
 			});
 		});
 	}

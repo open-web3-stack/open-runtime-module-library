@@ -1,5 +1,8 @@
 use codec::FullCodec;
-use sp_runtime::traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize};
+use sp_runtime::{
+	traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize},
+	DispatchResult,
+};
 use sp_std::{fmt::Debug, vec::Vec};
 
 /// Hooks to manage reward pool
@@ -23,5 +26,5 @@ pub trait RewardHandler<AccountId, BlockNumber> {
 	) -> Vec<(Self::CurrencyId, Self::Balance)>;
 
 	/// Payout the reward to `who`
-	fn payout(who: &AccountId, pool: Self::PoolId, amount: Self::Balance);
+	fn payout(who: &AccountId, pool: Self::PoolId, amount: Self::Balance) -> DispatchResult;
 }
