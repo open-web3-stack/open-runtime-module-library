@@ -1,5 +1,4 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-#![feature(slice_partition_at_index)]
 
 use codec::{Decode, Encode};
 use sp_runtime::RuntimeDebug;
