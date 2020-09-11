@@ -99,7 +99,7 @@ impl RewardHandler<AccountId, BlockNumber> for Handler {
 		}
 	}
 
-	fn payout(who: &AccountId, pool: Self::PoolId, amount: Self::Balance) {
+	fn payout(who: &AccountId, pool: Self::PoolId, amount: Self::Balance) -> DispatchResult {
 		RECEIVED_PAYOUT.with(|v| {
 			let mut old_map = v.borrow().clone();
 			if let Some(before) = old_map.get_mut(&(pool, *who)) {
@@ -110,6 +110,7 @@ impl RewardHandler<AccountId, BlockNumber> for Handler {
 
 			*v.borrow_mut() = old_map;
 		});
+		Ok(())
 	}
 }
 

@@ -5,7 +5,7 @@ use frame_support::{decl_module, decl_storage, weights::Weight, Parameter};
 use orml_traits::RewardHandler;
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize, Member, Saturating, Zero},
-	FixedPointNumber, FixedPointOperand, FixedU128, RuntimeDebug,
+	DispatchResult, FixedPointNumber, FixedPointOperand, FixedU128, RuntimeDebug,
 };
 use sp_std::{
 	cmp::{Eq, PartialEq},
@@ -109,13 +109,13 @@ impl<T: Trait> Module<T> {
 		});
 	}
 
-	pub fn remove_share(who: &T::AccountId, pool: T::PoolId, remove_amount: T::Share) {
+	pub fn remove_share(who: &T::AccountId, pool: T::PoolId, remove_amount: T::Share) -> DispatchResult {
 		if remove_amount.is_zero() {
-			return;
+			return Ok(());
 		}
 
 		// claim rewards firstly
-		Self::claim_rewards(who, pool);
+		Self::claim_rewards(who, pool)?;
 
 		ShareAndWithdrawnReward::<T>::mutate(pool, who, |(share, withdrawn_rewards)| {
 			let remove_amount = remove_amount.min(*share);
@@ -139,25 +139,29 @@ impl<T: Trait> Module<T> {
 
 			*share = share.saturating_sub(remove_amount);
 		});
+
+		Ok(())
 	}
 
-	pub fn set_share(who: &T::AccountId, pool: T::PoolId, new_share: T::Share) {
+	pub fn set_share(who: &T::AccountId, pool: T::PoolId, new_share: T::Share) -> DispatchResult {
 		let (share, _) = Self::share_and_withdrawn_reward(pool, who);
 
 		if new_share > share {
 			Self::add_share(who, pool, new_share.saturating_sub(share));
 		} else {
-			Self::remove_share(who, pool, share.saturating_sub(new_share));
+			Self::remove_share(who, pool, share.saturating_sub(new_share))?;
 		}
+
+		Ok(())
 	}
 
-	pub fn claim_rewards(who: &T::AccountId, pool: T::PoolId) {
-		ShareAndWithdrawnReward::<T>::mutate(pool, who, |(share, withdrawn_rewards)| {
+	pub fn claim_rewards(who: &T::AccountId, pool: T::PoolId) -> DispatchResult {
+		ShareAndWithdrawnReward::<T>::try_mutate(pool, who, |(share, withdrawn_rewards)| -> DispatchResult {
 			if share.is_zero() {
-				return;
+				return Ok(());
 			}
 
-			Pools::<T>::mutate(pool, |pool_info| {
+			Pools::<T>::try_mutate(pool, |pool_info| -> DispatchResult {
 				let proportion = FixedU128::checked_from_rational(*share, pool_info.total_shares).unwrap_or_default();
 				let reward_to_withdraw = proportion
 					.saturating_mul_int(pool_info.total_rewards)
@@ -169,18 +173,18 @@ impl<T: Trait> Module<T> {
 					);
 
 				if reward_to_withdraw.is_zero() {
-					return;
+					return Ok(());
 				}
 
 				// pay reward to `who`
-				if T::Handler::payout(who, pool, reward_to_withdraw).is_err() {
-					return;
-				}
+				T::Handler::payout(who, pool, reward_to_withdraw)?;
 
 				pool_info.total_withdrawn_rewards =
 					pool_info.total_withdrawn_rewards.saturating_add(reward_to_withdraw);
 				*withdrawn_rewards = withdrawn_rewards.saturating_add(reward_to_withdraw);
-			});
-		});
+
+				Ok(())
+			})
+		})
 	}
 }
