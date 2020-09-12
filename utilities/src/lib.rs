@@ -8,7 +8,7 @@ pub mod offchain_worker;
 pub mod ordered_set;
 
 pub use offchain_worker::{
-	iterator_helper::{iter_from_random_position_with_lock, iter_prefix_from_random_position_with_lock},
+	iterator_helper::{IterableStorageDoubleMapExtended, IterableStorageMapExtended},
 	OffchainErr,
 };
 pub use ordered_set::OrderedSet;
