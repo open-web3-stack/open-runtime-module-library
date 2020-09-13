@@ -6,7 +6,6 @@ use frame_support::{
 	},
 	ReversibleStorageHasher,
 };
-use sp_runtime::offchain::storage_lock::{Lockable, StorageLockGuard};
 use sp_std::prelude::*;
 
 /// Utility to iterate through items in a storage map.
@@ -51,43 +50,28 @@ impl<K: Decode + Sized, V: Decode + Sized, Hasher: ReversibleStorageHasher> Iter
 }
 
 /// Shim for StorageMapIterator, add more features
-pub struct StorageMapIteratorShim<'a, 'b, K, V, H, L: Lockable> {
+pub struct StorageMapIteratorShim<K, V, H> {
 	pub storage_map_iterator: StorageMapIterator<K, V, H>,
 	pub remain_iterator_count: Option<u32>,
-	pub lock_guard: Option<StorageLockGuard<'a, 'b, L>>,
-	pub unfinished: bool,
+	pub finished: bool,
 }
 
-impl<'a, 'b, K: Decode + Sized, V: Decode + Sized, H: ReversibleStorageHasher, L: Lockable> Iterator
-	for StorageMapIteratorShim<'a, 'b, K, V, H, L>
-{
+impl<K: Decode + Sized, V: Decode + Sized, H: ReversibleStorageHasher> Iterator for StorageMapIteratorShim<K, V, H> {
 	type Item = <StorageMapIterator<K, V, H> as Iterator>::Item;
 
 	fn next(&mut self) -> Option<Self::Item> {
-		{
-			// extend lock if guard exists
-			if let Some(guard) = self.lock_guard.as_mut() {
-				if !guard.extend_lock().is_ok() {
-					return None;
-				}
+		// check accumulated iteration count
+		if let Some(remain_iterator_count) = self.remain_iterator_count {
+			if remain_iterator_count == 0 {
+				return None;
+			} else {
+				self.remain_iterator_count = Some(remain_iterator_count - 1);
 			}
-
-			// check accumulated iteration count
-			if let Some(remain_iterator_count) = self.remain_iterator_count {
-				if remain_iterator_count == 0 {
-					// mark this iterator hasn't finished
-					self.unfinished = true;
-					return None;
-				} else {
-					self.remain_iterator_count = Some(remain_iterator_count - 1);
-				}
-			}
-
-			self.storage_map_iterator.next()
 		}
-		.or_else(|| {
-			// release lock if exists
-			self.lock_guard = None;
+
+		self.storage_map_iterator.next().or_else(|| {
+			// mark this map iterator has already finished
+			self.finished = true;
 			None
 		})
 	}
@@ -95,72 +79,63 @@ impl<'a, 'b, K: Decode + Sized, V: Decode + Sized, H: ReversibleStorageHasher, L
 
 /// A strongly-typed map in storage whose keys and values can be iterated over.
 pub trait IterableStorageMapExtended<H, K: FullEncode, V: FullCodec>: StorageMap<K, V> {
+	/// The type that iterates over all `(key, value)`.
+	type Iterator: Iterator<Item = (K, V)>;
+
 	/// Enumerate all elements in the map in no particular order. If you alter
 	/// the map while doing this, you'll get undefined results.
-	fn iter<'a, 'b, L: Lockable>(
-		lock_guard: Option<StorageLockGuard<'a, 'b, L>>,
-		max_iterations: Option<u32>,
-		start_key: Option<Vec<u8>>,
-	) -> StorageMapIteratorShim<'a, 'b, K, V, H, L>;
+	fn iter(max_iterations: Option<u32>, start_key: Option<Vec<u8>>) -> Self::Iterator;
 
 	/// Remove all elements from the map and iterate through them in no
 	/// particular order. If you add elements to the map while doing this,
 	/// you'll get undefined results.
-	fn drain<'a, 'b, L: Lockable>(
-		lock_guard: Option<StorageLockGuard<'a, 'b, L>>,
-		max_iterations: Option<u32>,
-		start_key: Option<Vec<u8>>,
-	) -> StorageMapIteratorShim<'a, 'b, K, V, H, L>;
+	fn drain(max_iterations: Option<u32>, start_key: Option<Vec<u8>>) -> Self::Iterator;
 }
 
 impl<K: FullCodec, V: FullCodec, G: StorageMapT<K, V>> IterableStorageMapExtended<G::Hasher, K, V> for G
 where
 	G::Hasher: ReversibleStorageHasher,
 {
+	type Iterator = StorageMapIteratorShim<K, V, G::Hasher>;
+
 	/// Enumerate all elements in the map.
-	fn iter<'a, 'b, L: Lockable>(
-		lock_guard: Option<StorageLockGuard<'a, 'b, L>>,
-		max_iterations: Option<u32>,
-		start_key: Option<Vec<u8>>,
-	) -> StorageMapIteratorShim<'a, 'b, K, V, G::Hasher, L> {
+	fn iter(max_iterations: Option<u32>, start_key: Option<Vec<u8>>) -> Self::Iterator {
 		let prefix = G::prefix_hash();
-		let previous_key = start_key.filter(|k| k.starts_with(&prefix)).unwrap_or(prefix.clone());
+		let previous_key = start_key
+			.filter(|k| k.starts_with(&prefix))
+			.unwrap_or_else(|| prefix.clone());
 		let storage_map_iterator = StorageMapIterator {
-			prefix: prefix.clone(),
-			previous_key: previous_key.clone(),
+			prefix,
+			previous_key,
 			drain: false,
 			_phantom: Default::default(),
 		};
 
 		StorageMapIteratorShim {
-			storage_map_iterator: storage_map_iterator,
+			storage_map_iterator,
 			remain_iterator_count: max_iterations,
-			lock_guard: lock_guard,
-			unfinished: false,
+			finished: false,
 		}
 	}
 
 	/// Enumerate all elements in the map.
-	fn drain<'a, 'b, L: Lockable>(
-		lock_guard: Option<StorageLockGuard<'a, 'b, L>>,
-		max_iterations: Option<u32>,
-		start_key: Option<Vec<u8>>,
-	) -> StorageMapIteratorShim<'a, 'b, K, V, G::Hasher, L> {
+	fn drain(max_iterations: Option<u32>, start_key: Option<Vec<u8>>) -> Self::Iterator {
 		let prefix = G::prefix_hash();
 
-		let previous_key = start_key.filter(|k| k.starts_with(&prefix)).unwrap_or(prefix.clone());
+		let previous_key = start_key
+			.filter(|k| k.starts_with(&prefix))
+			.unwrap_or_else(|| prefix.clone());
 		let storage_map_iterator = StorageMapIterator {
-			prefix: prefix.clone(),
-			previous_key: previous_key.clone(),
+			prefix,
+			previous_key,
 			drain: true,
 			_phantom: Default::default(),
 		};
 
 		StorageMapIteratorShim {
-			storage_map_iterator: storage_map_iterator,
+			storage_map_iterator,
 			remain_iterator_count: max_iterations,
-			lock_guard: lock_guard,
-			unfinished: false,
+			finished: false,
 		}
 	}
 }
@@ -216,41 +191,28 @@ impl<T> Iterator for MapIterator<T> {
 }
 
 /// Shim for MapIterator, add more features
-pub struct MapIteratorShim<'a, 'b, T, L: Lockable> {
+pub struct MapIteratorShim<T> {
 	pub map_iterator: MapIterator<T>,
 	pub remain_iterator_count: Option<u32>,
-	pub lock_guard: Option<StorageLockGuard<'a, 'b, L>>,
-	pub unfinished: bool,
+	pub finished: bool,
 }
 
-impl<'a, 'b, T, L: Lockable> Iterator for MapIteratorShim<'a, 'b, T, L> {
+impl<T> Iterator for MapIteratorShim<T> {
 	type Item = <MapIterator<T> as Iterator>::Item;
 
 	fn next(&mut self) -> Option<Self::Item> {
-		{
-			// extend lock if guard exists
-			if let Some(guard) = self.lock_guard.as_mut() {
-				if !guard.extend_lock().is_ok() {
-					return None;
-				}
+		// check accumulated iteration count
+		if let Some(remain_iterator_count) = self.remain_iterator_count {
+			if remain_iterator_count == 0 {
+				return None;
+			} else {
+				self.remain_iterator_count = Some(remain_iterator_count - 1);
 			}
-
-			// check accumulated iteration count
-			if let Some(remain_iterator_count) = self.remain_iterator_count {
-				if remain_iterator_count == 0 {
-					// mark this iterator hasn't finished
-					self.unfinished = true;
-					return None;
-				} else {
-					self.remain_iterator_count = Some(remain_iterator_count - 1);
-				}
-			}
-
-			self.map_iterator.next()
 		}
-		.or_else(|| {
-			// release lock if exists
-			self.lock_guard = None;
+
+		self.map_iterator.next().or_else(|| {
+			// mark this map iterator has already finished
+			self.finished = true;
 			None
 		})
 	}
@@ -260,42 +222,38 @@ impl<'a, 'b, T, L: Lockable> Iterator for MapIteratorShim<'a, 'b, T, L> {
 pub trait IterableStorageDoubleMapExtended<K1: FullCodec, K2: FullCodec, V: FullCodec>:
 	StorageDoubleMap<K1, K2, V>
 {
+	/// The type that iterates over all `(key2, value)`.
+	type PrefixIterator: Iterator<Item = (K2, V)>;
+
+	/// The type that iterates over all `(key1, key2, value)`.
+	type Iterator: Iterator<Item = (K1, K2, V)>;
+
 	/// Enumerate all elements in the map with first key `k1` in no particular
 	/// order. If you add or remove values whose first key is `k1` to the map
 	/// while doing this, you'll get undefined results.
-	fn iter_prefix<'a, 'b, L: Lockable>(
+	fn iter_prefix(
 		k1: impl EncodeLike<K1>,
-		lock_guard: Option<StorageLockGuard<'a, 'b, L>>,
 		max_iterations: Option<u32>,
 		start_key: Option<Vec<u8>>,
-	) -> MapIteratorShim<'a, 'b, (K2, V), L>;
+	) -> Self::PrefixIterator;
 
 	/// Remove all elements from the map with first key `k1` and iterate through
 	/// them in no particular order. If you add elements with first key `k1` to
 	/// the map while doing this, you'll get undefined results.
-	fn drain_prefix<'a, 'b, L: Lockable>(
+	fn drain_prefix(
 		k1: impl EncodeLike<K1>,
-		lock_guard: Option<StorageLockGuard<'a, 'b, L>>,
 		max_iterations: Option<u32>,
 		start_key: Option<Vec<u8>>,
-	) -> MapIteratorShim<'a, 'b, (K2, V), L>;
+	) -> Self::PrefixIterator;
 
 	/// Enumerate all elements in the map in no particular order. If you add or
 	/// remove values to the map while doing this, you'll get undefined results.
-	fn iter<'a, 'b, L: Lockable>(
-		lock_guard: Option<StorageLockGuard<'a, 'b, L>>,
-		max_iterations: Option<u32>,
-		start_key: Option<Vec<u8>>,
-	) -> MapIteratorShim<'a, 'b, (K1, K2, V), L>;
+	fn iter(max_iterations: Option<u32>, start_key: Option<Vec<u8>>) -> Self::Iterator;
 
 	/// Remove all elements from the map and iterate through them in no
 	/// particular order. If you add elements to the map while doing this,
 	/// you'll get undefined results.
-	fn drain<'a, 'b, L: Lockable>(
-		lock_guard: Option<StorageLockGuard<'a, 'b, L>>,
-		max_iterations: Option<u32>,
-		start_key: Option<Vec<u8>>,
-	) -> MapIteratorShim<'a, 'b, (K1, K2, V), L>;
+	fn drain(max_iterations: Option<u32>, start_key: Option<Vec<u8>>) -> Self::Iterator;
 }
 
 impl<K1: FullCodec, K2: FullCodec, V: FullCodec, G: StorageDoubleMapT<K1, K2, V>>
@@ -304,18 +262,22 @@ where
 	G::Hasher1: ReversibleStorageHasher,
 	G::Hasher2: ReversibleStorageHasher,
 {
-	fn iter_prefix<'a, 'b, L: Lockable>(
+	type PrefixIterator = MapIteratorShim<(K2, V)>;
+	type Iterator = MapIteratorShim<(K1, K2, V)>;
+
+	fn iter_prefix(
 		k1: impl EncodeLike<K1>,
-		lock_guard: Option<StorageLockGuard<'a, 'b, L>>,
 		max_iterations: Option<u32>,
 		start_key: Option<Vec<u8>>,
-	) -> MapIteratorShim<'a, 'b, (K2, V), L> {
+	) -> Self::PrefixIterator {
 		let prefix = G::storage_double_map_final_key1(k1);
-		let previous_key = start_key.filter(|k| k.starts_with(&prefix)).unwrap_or(prefix.clone());
+		let previous_key = start_key
+			.filter(|k| k.starts_with(&prefix))
+			.unwrap_or_else(|| prefix.clone());
 
 		let map_iterator = MapIterator {
-			prefix: prefix.clone(),
-			previous_key: previous_key.clone(),
+			prefix,
+			previous_key,
 			drain: false,
 			closure: |raw_key_without_prefix, mut raw_value| {
 				let mut key_material = G::Hasher2::reverse(raw_key_without_prefix);
@@ -324,35 +286,31 @@ where
 		};
 
 		MapIteratorShim {
-			map_iterator: map_iterator,
+			map_iterator,
 			remain_iterator_count: max_iterations,
-			lock_guard: lock_guard,
-			unfinished: false,
+			finished: false,
 		}
 	}
 
-	fn drain_prefix<'a, 'b, L: Lockable>(
+	fn drain_prefix(
 		k1: impl EncodeLike<K1>,
-		lock_guard: Option<StorageLockGuard<'a, 'b, L>>,
 		max_iterations: Option<u32>,
 		start_key: Option<Vec<u8>>,
-	) -> MapIteratorShim<'a, 'b, (K2, V), L> {
-		let mut shim = Self::iter_prefix(k1, lock_guard, max_iterations, start_key);
+	) -> Self::PrefixIterator {
+		let mut shim = Self::iter_prefix(k1, max_iterations, start_key);
 		shim.map_iterator.drain = true;
 		shim
 	}
 
-	fn iter<'a, 'b, L: Lockable>(
-		lock_guard: Option<StorageLockGuard<'a, 'b, L>>,
-		max_iterations: Option<u32>,
-		start_key: Option<Vec<u8>>,
-	) -> MapIteratorShim<'a, 'b, (K1, K2, V), L> {
+	fn iter(max_iterations: Option<u32>, start_key: Option<Vec<u8>>) -> Self::Iterator {
 		let prefix = G::prefix_hash();
-		let previous_key = start_key.filter(|k| k.starts_with(&prefix)).unwrap_or(prefix.clone());
+		let previous_key = start_key
+			.filter(|k| k.starts_with(&prefix))
+			.unwrap_or_else(|| prefix.clone());
 
 		let map_iterator = MapIterator {
-			prefix: prefix.clone(),
-			previous_key: previous_key.clone(),
+			prefix,
+			previous_key,
 			drain: false,
 			closure: |raw_key_without_prefix, mut raw_value| {
 				let mut k1_k2_material = G::Hasher1::reverse(raw_key_without_prefix);
@@ -364,19 +322,14 @@ where
 		};
 
 		MapIteratorShim {
-			map_iterator: map_iterator,
+			map_iterator,
 			remain_iterator_count: max_iterations,
-			lock_guard: lock_guard,
-			unfinished: false,
+			finished: false,
 		}
 	}
 
-	fn drain<'a, 'b, L: Lockable>(
-		lock_guard: Option<StorageLockGuard<'a, 'b, L>>,
-		max_iterations: Option<u32>,
-		start_key: Option<Vec<u8>>,
-	) -> MapIteratorShim<'a, 'b, (K1, K2, V), L> {
-		let mut shim = Self::iter(lock_guard, max_iterations, start_key);
+	fn drain(max_iterations: Option<u32>, start_key: Option<Vec<u8>>) -> Self::Iterator {
+		let mut shim = Self::iter(max_iterations, start_key);
 		shim.map_iterator.drain = true;
 		shim
 	}

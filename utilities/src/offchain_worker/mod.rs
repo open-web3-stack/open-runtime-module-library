@@ -1,5 +1,3 @@
-pub mod iterator_helper;
-
 /// Error which may occur while executing the off-chain code.
 #[derive(PartialEq)]
 pub enum OffchainErr {

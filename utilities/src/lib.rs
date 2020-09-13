@@ -4,13 +4,12 @@ use frame_support::storage::{with_transaction, TransactionOutcome};
 use sp_runtime::DispatchError;
 use sp_std::result::Result;
 
+pub mod iterator;
 pub mod offchain_worker;
 pub mod ordered_set;
 
-pub use offchain_worker::{
-	iterator_helper::{IterableStorageDoubleMapExtended, IterableStorageMapExtended},
-	OffchainErr,
-};
+pub use iterator::{IterableStorageDoubleMapExtended, IterableStorageMapExtended};
+pub use offchain_worker::OffchainErr;
 pub use ordered_set::OrderedSet;
 
 /// Execute the supplied function in a new storage transaction.
