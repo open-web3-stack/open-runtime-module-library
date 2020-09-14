@@ -78,7 +78,7 @@ impl<K: Decode + Sized, V: Decode + Sized, H: ReversibleStorageHasher> Iterator 
 }
 
 /// A strongly-typed map in storage whose keys and values can be iterated over.
-pub trait IterableStorageMapExtended<H, K: FullEncode, V: FullCodec>: StorageMap<K, V> {
+pub trait IterableStorageMapExtended<K: FullEncode, V: FullCodec>: StorageMap<K, V> {
 	/// The type that iterates over all `(key, value)`.
 	type Iterator: Iterator<Item = (K, V)>;
 
@@ -92,7 +92,7 @@ pub trait IterableStorageMapExtended<H, K: FullEncode, V: FullCodec>: StorageMap
 	fn drain(max_iterations: Option<u32>, start_key: Option<Vec<u8>>) -> Self::Iterator;
 }
 
-impl<K: FullCodec, V: FullCodec, G: StorageMapT<K, V>> IterableStorageMapExtended<G::Hasher, K, V> for G
+impl<K: FullCodec, V: FullCodec, G: StorageMapT<K, V>> IterableStorageMapExtended<K, V> for G
 where
 	G::Hasher: ReversibleStorageHasher,
 {
