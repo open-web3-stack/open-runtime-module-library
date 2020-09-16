@@ -200,7 +200,7 @@ macro_rules! runtime_benchmarks_instance {
 		$( $rest:tt )*
 	) => {
 		$crate::benchmarks_iter!(
-			{ I }
+			{ $instance }
 			$runtime
 			$pallet
 			{ $( { $common , $common_from , $common_to , $common_instancer } )* }
@@ -569,7 +569,7 @@ macro_rules! benchmark_backend {
 		#[allow(non_camel_case_types)]
 		struct $name;
 		#[allow(unused_variables)]
-		impl<$( <$instance>, I: Instance)? > $crate::BenchmarkingSetup<$runtime $(, $instance)?> for $name {
+		impl $crate::BenchmarkingSetup<$runtime $(, $instance)?> for $name {
 			fn components(&self) -> Vec<($crate::BenchmarkParameter, u32, u32)> {
 				vec! [
 					$(
@@ -652,7 +652,7 @@ macro_rules! selected_benchmark {
 		}
 
 		// Allow us to select a benchmark from the list of available benchmarks.
-		impl<$( <$instance>, I: Instance)? > $crate::BenchmarkingSetup<$runtime $(, $instance)?> for SelectedBenchmark {
+		impl $crate::BenchmarkingSetup<$runtime $(, $instance)?> for SelectedBenchmark {
 			fn components(&self) -> Vec<($crate::BenchmarkParameter, u32, u32)> {
 				match self {
 					$(
