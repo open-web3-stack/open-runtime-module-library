@@ -158,6 +158,7 @@ impl<T: Trait<I>, I: Instance> Module<T, I> {
 		Self::members()
 			.0
 			.iter()
+			.chain(vec![T::RootOperatorAccountId::get()].iter())
 			.filter_map(|x| Self::raw_values(x, key))
 			.collect()
 	}
