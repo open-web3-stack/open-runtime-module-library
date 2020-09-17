@@ -3,6 +3,7 @@
 #![cfg(test)]
 
 use frame_support::{impl_outer_event, impl_outer_origin, parameter_types};
+use frame_system::RawOrigin;
 use pallet_balances;
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
@@ -81,10 +82,29 @@ impl pallet_balances::Trait for Runtime {
 }
 pub type PalletBalances = pallet_balances::Module<Runtime>;
 
+pub struct EnsureAliceOrBob;
+impl EnsureOrigin<Origin> for EnsureAliceOrBob {
+	type Success = AccountId;
+
+	fn try_origin(o: Origin) -> Result<Self::Success, Origin> {
+		Into::<Result<RawOrigin<AccountId>, Origin>>::into(o).and_then(|o| match o {
+			RawOrigin::Signed(ALICE) => Ok(ALICE),
+			RawOrigin::Signed(BOB) => Ok(BOB),
+			r => Err(Origin::from(r)),
+		})
+	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn successful_origin() -> Origin {
+		Origin::from(RawOrigin::Signed(Default::default()))
+	}
+}
+
 impl Trait for Runtime {
 	type Event = TestEvent;
 	type Currency = PalletBalances;
 	type MinVestedTransfer = MinVestedTransfer;
+	type VestedTransferOrigin = EnsureAliceOrBob;
 	type WeightInfo = ();
 }
 pub type Vesting = Module<Runtime>;

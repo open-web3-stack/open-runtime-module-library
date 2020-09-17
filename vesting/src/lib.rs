@@ -29,7 +29,7 @@
 use codec::{Decode, Encode, HasCompact};
 use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage, ensure,
-	traits::{Currency, ExistenceRequirement, Get, LockIdentifier, LockableCurrency, WithdrawReasons},
+	traits::{Currency, EnsureOrigin, ExistenceRequirement, Get, LockIdentifier, LockableCurrency, WithdrawReasons},
 	weights::Weight,
 };
 use frame_system::{ensure_root, ensure_signed};
@@ -121,6 +121,9 @@ pub trait Trait: frame_system::Trait {
 
 	/// The minimum amount transferred to call `vested_transfer`.
 	type MinVestedTransfer: Get<BalanceOf<Self>>;
+
+	/// Required origin for vested transfer.
+	type VestedTransferOrigin: EnsureOrigin<Self::Origin, Success = Self::AccountId>;
 
 	/// Weight information for extrinsics in this module.
 	type WeightInfo: WeightInfo;
@@ -220,7 +223,7 @@ decl_module! {
 			dest: <T::Lookup as StaticLookup>::Source,
 			schedule: VestingScheduleOf<T>,
 		) {
-			let from = ensure_signed(origin)?;
+			let from = T::VestedTransferOrigin::ensure_origin(origin)?;
 			let to = T::Lookup::lookup(dest)?;
 			Self::do_vested_transfer(&from, &to, schedule.clone())?;
 

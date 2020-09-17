@@ -3,7 +3,7 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{assert_err, assert_ok, traits::WithdrawReason};
+use frame_support::{assert_err, assert_noop, assert_ok, error::BadOrigin, traits::WithdrawReason};
 use mock::{ExtBuilder, Origin, PalletBalances, Runtime, System, TestEvent, Vesting, ALICE, BOB, CHARLIE};
 use pallet_balances::{BalanceLock, Reasons};
 
@@ -184,6 +184,22 @@ fn vested_transfer_fails_if_overflow() {
 		assert_err!(
 			Vesting::vested_transfer(Origin::signed(ALICE), BOB, another_schedule),
 			Error::<Runtime>::NumOverflow
+		);
+	});
+}
+
+#[test]
+fn vested_transfer_fails_if_bad_origin() {
+	ExtBuilder::build().execute_with(|| {
+		let schedule = VestingSchedule {
+			start: 0u64,
+			period: 10u64,
+			period_count: 1u32,
+			per_period: 100u64,
+		};
+		assert_noop!(
+			Vesting::vested_transfer(Origin::signed(CHARLIE), BOB, schedule.clone()),
+			BadOrigin
 		);
 	});
 }
