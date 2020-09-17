@@ -109,7 +109,6 @@ impl orml_tokens::Trait for Runtime {
 	type Amount = i128;
 	type CurrencyId = CurrencyId;
 	type OnReceived = ();
-	type WeightInfo = ();
 }
 pub type Tokens = orml_tokens::Module<Runtime>;
 
@@ -121,7 +120,8 @@ parameter_types! {
 impl Trait for Runtime {
 	type Event = TestEvent;
 	type Balance = Balance;
-	type BalanceConvertor = BalanceConvertor;
+	type ToRelayChainBalance = BalanceConvertor;
+	type FromRelayChainBalance = BalanceConvertor;
 	type CurrencyId = CurrencyId;
 	type RelayChainCurrencyId = RelayChainCurrencyId;
 	type Currency = Tokens;
