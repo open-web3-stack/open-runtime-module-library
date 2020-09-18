@@ -118,6 +118,7 @@ impl Trait for Runtime {
 	type Balance = Balance;
 	type PoolId = PoolId;
 	type Handler = Handler;
+	type WeightInfo = ();
 }
 pub type RewardsModule = Module<Runtime>;
 

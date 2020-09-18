@@ -20,8 +20,14 @@
 #![allow(clippy::string_lit_as_bytes)]
 
 mod default_combine_data;
+mod default_weight;
 mod mock;
 mod tests;
+
+pub trait WeightInfo {
+	fn feed_values(n: usize) -> Weight;
+	fn on_initialize() -> Weight;
+}
 
 use codec::{Decode, Encode};
 pub use default_combine_data::DefaultCombineData;
@@ -72,6 +78,9 @@ pub trait Trait<I: Instance = DefaultInstance>: frame_system::Trait {
 
 	/// The root operator account id, recorad all sudo feeds on this account.
 	type RootOperatorAccountId: Get<Self::AccountId>;
+
+	/// Weight information for extrinsics in this module.
+	type WeightInfo: WeightInfo;
 }
 
 decl_error! {
@@ -130,7 +139,7 @@ decl_module! {
 		/// Feed the external value.
 		///
 		/// Require unsigned. However a valid signature signed by session key is required along with payload.
-		#[weight = (10_000, DispatchClass::Operational)]
+		#[weight = (T::WeightInfo::feed_values(values.len()), DispatchClass::Operational)]
 		pub fn feed_values(
 			origin,
 			values: Vec<(T::OracleKey, T::OracleValue)>,
@@ -140,10 +149,9 @@ decl_module! {
 			Ok(Pays::No.into())
 		}
 
-		/// dummy `on_initialize` to return the weight used in `on_finalize`.
+		/// `on_initialize` to return the weight used in `on_finalize`.
 		fn on_initialize() -> Weight {
-			// weight of `on_finalize`
-			0
+			T::WeightInfo::on_initialize()
 		}
 
 		fn on_finalize(_n: T::BlockNumber) {

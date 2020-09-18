@@ -151,6 +151,7 @@ impl Trait for Runtime {
 	type Call = Call;
 	type AsOriginId = MockAsOriginId;
 	type AuthorityConfig = AuthorityConfigImpl;
+	type WeightInfo = ();
 }
 
 pub type Block = sp_runtime::generic::Block<Header, UncheckedExtrinsic>;

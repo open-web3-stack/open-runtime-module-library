@@ -74,6 +74,7 @@ impl Trait for Runtime {
 	type Event = TestEvent;
 	type UpdateFrequency = UpdateFrequency;
 	type DispatchOrigin = system::EnsureRoot<AccountId>;
+	type WeightInfo = ();
 }
 pub type GraduallyUpdateModule = Module<Runtime>;
 

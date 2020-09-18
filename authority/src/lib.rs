@@ -19,6 +19,7 @@
 #![allow(clippy::borrowed_box)]
 
 use codec::{Decode, Encode};
+use frame_support::weights::Weight;
 use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage,
 	dispatch::PostDispatchInfo,
@@ -35,8 +36,17 @@ use sp_runtime::{
 };
 use sp_std::prelude::*;
 
+mod default_weight;
 mod mock;
 mod tests;
+
+pub trait WeightInfo {
+	fn dispatch_as() -> Weight;
+	fn schedule_dispatch() -> Weight;
+	fn fast_track_scheduled_dispatch() -> Weight;
+	fn delay_scheduled_dispatch() -> Weight;
+	fn cancel_scheduled_dispatch() -> Weight;
+}
 
 /// A delayed origin. Can only be dispatched via `dispatch_as` with a delay.
 #[derive(PartialEq, Eq, Clone, RuntimeDebug, Encode, Decode)]
@@ -143,6 +153,9 @@ pub trait Trait: frame_system::Trait {
 
 	/// Additional permission config.
 	type AuthorityConfig: AuthorityConfig<<Self as frame_system::Trait>::Origin, Self::PalletsOrigin, Self::BlockNumber>;
+
+	/// Weight information for extrinsics in this module.
+	type WeightInfo: WeightInfo;
 }
 
 decl_error! {
@@ -188,7 +201,7 @@ decl_module! {
 		fn deposit_event() = default;
 
 		/// Dispatch a dispatchable on behalf of other origin
-		#[weight = (call.get_dispatch_info().weight + 10_000, call.get_dispatch_info().class)]
+		#[weight = (T::WeightInfo::dispatch_as().saturating_add(call.get_dispatch_info().weight), call.get_dispatch_info().class)]
 		pub fn dispatch_as(
 			origin,
 			as_origin: T::AsOriginId,
@@ -203,7 +216,7 @@ decl_module! {
 
 		/// Schdule a dispatchable to be dispatched at later block.
 		/// This is the only way to dispatch a call with `DelayedOrigin`.
-		#[weight = 10_000]
+		#[weight = T::WeightInfo::schedule_dispatch()]
 		pub fn schedule_dispatch(
 			origin,
 			when: DispatchTime<T::BlockNumber>,
@@ -252,7 +265,7 @@ decl_module! {
 		}
 
 		/// Fast track a scheduled dispatchable.
-		#[weight = 10_000]
+		#[weight = T::WeightInfo::fast_track_scheduled_dispatch()]
 		pub fn fast_track_scheduled_dispatch(
 			origin,
 			initial_origin: T::PalletsOrigin,
@@ -281,7 +294,7 @@ decl_module! {
 		}
 
 		/// Delay a scheduled dispatchable.
-		#[weight = 10_000]
+		#[weight = T::WeightInfo::delay_scheduled_dispatch()]
 		pub fn delay_scheduled_dispatch(
 			origin,
 			initial_origin: T::PalletsOrigin,
@@ -296,7 +309,7 @@ decl_module! {
 		}
 
 		/// Cancel a scheduled dispatchable.
-		#[weight = 10_000]
+		#[weight = T::WeightInfo::cancel_scheduled_dispatch()]
 		pub fn cancel_scheduled_dispatch(
 			origin,
 			initial_origin: T::PalletsOrigin,
