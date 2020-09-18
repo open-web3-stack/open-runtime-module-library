@@ -110,6 +110,7 @@ impl Trait for Test {
 	type OracleKey = Key;
 	type OracleValue = Value;
 	type RootOperatorAccountId = RootOperatorAccountId;
+	type WeightInfo = ();
 }
 
 pub type ModuleOracle = Module<Test>;
