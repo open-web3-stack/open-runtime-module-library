@@ -62,9 +62,10 @@ where
 		at: Option<<Block as BlockT>::Hash>,
 	) -> Result<Option<Value>> {
 		let api = self.client.runtime_api();
-		let at = BlockId::hash(at.unwrap_or_else(||
+		let at = BlockId::hash(at.unwrap_or(
 			// If the block hash is not supplied assume the best block.
-			self.client.info().best_hash));
+			self.client.info().best_hash,
+		));
 		api.get_value(&at, provider_id, key).map_err(|e| RpcError {
 			code: ErrorCode::ServerError(Error::RuntimeError.into()),
 			message: "Unable to get value.".into(),
@@ -78,9 +79,10 @@ where
 		at: Option<<Block as BlockT>::Hash>,
 	) -> Result<Vec<(Key, Option<Value>)>> {
 		let api = self.client.runtime_api();
-		let at = BlockId::hash(at.unwrap_or_else(||
+		let at = BlockId::hash(at.unwrap_or(
 			// If the block hash is not supplied assume the best block.
-			self.client.info().best_hash));
+			self.client.info().best_hash,
+		));
 		api.get_all_values(&at, provider_id).map_err(|e| RpcError {
 			code: ErrorCode::ServerError(Error::RuntimeError.into()),
 			message: "Unable to get all values.".into(),

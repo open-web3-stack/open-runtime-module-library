@@ -1,6 +1,6 @@
 //! Weights for the Rewards Module
 
-use frame_support::weights::Weight;
+use frame_support::weights::{constants::RocksDbWeight as DbWeight, Weight};
 
 impl crate::WeightInfo for () {
 	fn on_initialize() -> Weight {

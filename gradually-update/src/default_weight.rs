@@ -15,17 +15,17 @@ impl crate::WeightInfo for () {
 	}
 	fn on_initialize(need_update: bool, update_len: usize) -> Weight {
 		if !need_update {
-			0
+			return 0;
+		}
+
+		if update_len == 0 {
+			(30430000 as Weight)
+				.saturating_add(DbWeight::get().reads(2 as Weight))
+				.saturating_add(DbWeight::get().writes(1 as Weight))
 		} else {
-			if update_len <= 0 {
-				(30430000 as Weight)
-					.saturating_add(DbWeight::get().reads(2 as Weight))
-					.saturating_add(DbWeight::get().writes(1 as Weight))
-			} else {
-				(91390000 + (30000000 * update_len) as Weight)
-					.saturating_add(DbWeight::get().reads(3 as Weight))
-					.saturating_add(DbWeight::get().writes(3 as Weight))
-			}
+			(91390000 + (30000000 * update_len) as Weight)
+				.saturating_add(DbWeight::get().reads(3 as Weight))
+				.saturating_add(DbWeight::get().writes(3 as Weight))
 		}
 	}
 }
