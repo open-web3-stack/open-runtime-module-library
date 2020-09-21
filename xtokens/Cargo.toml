@@ -20,16 +20,16 @@ frame-system = { version = "2.0.0-rc5", default-features = false }
 orml-traits = { path = "../traits", version = "0.1.3-dev", default-features = false }
 orml-utilities = { path = "../utilities", version = "0.1.3-dev", default-features = false }
 
-cumulus-primitives = { git = "https://github.com/paritytech/cumulus", default-features = false }
-cumulus-upward-message = { git = "https://github.com/paritytech/cumulus", default-features = false }
+cumulus-primitives = { git = "https://github.com/paritytech/cumulus", branch = "gav-xcmp", default-features = false }
+cumulus-upward-message = { git = "https://github.com/paritytech/cumulus", branch = "gav-xcmp", default-features = false }
 
 # TODO: switch to polkadot master branch once ready
-polkadot-parachain = { git = "https://github.com/paritytech/polkadot", branch = "rococo-branch", default-features = false }
+polkadot-parachain = { git = "https://github.com/paritytech/polkadot", branch = "gav-xcmp", default-features = false }
 
 [dev-dependencies]
 sp-core = { version = "2.0.0-rc5", default-features = false }
 clear_on_drop = { version = "0.2.4", features = ["no_cc"] }	# https://github.com/paritytech/substrate/issues/4179
-polkadot-core-primitives = { git = "https://github.com/paritytech/polkadot", branch = "rococo-branch" }
+polkadot-core-primitives = { git = "https://github.com/paritytech/polkadot", branch = "gav-xcmp" }
 orml-tokens = { path = "../tokens", version = "0.1.3-dev" }
 
 [features]
