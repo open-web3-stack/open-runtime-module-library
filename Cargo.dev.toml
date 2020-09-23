@@ -11,4 +11,5 @@ members = [
 	"utilities",
 	"vesting",
 	"rewards",
+  "non-fungible-token",
 ]
