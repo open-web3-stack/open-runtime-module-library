@@ -843,6 +843,7 @@ where
 	GetCurrencyId: Get<T::CurrencyId>,
 {
 	type Moment = T::BlockNumber;
+	type MaxLocks = ();
 
 	fn set_lock(id: LockIdentifier, who: &T::AccountId, amount: Self::Balance, _reasons: WithdrawReasons) {
 		Module::<T>::set_lock(id, GetCurrencyId::get(), who, amount)

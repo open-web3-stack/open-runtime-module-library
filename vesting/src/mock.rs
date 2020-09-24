@@ -52,7 +52,7 @@ impl frame_system::Trait for Runtime {
 	type MaximumBlockLength = MaximumBlockLength;
 	type AvailableBlockRatio = AvailableBlockRatio;
 	type Version = ();
-	type ModuleToIndex = ();
+	type PalletInfo = ();
 	type AccountData = pallet_balances::AccountData<u64>;
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
@@ -78,6 +78,7 @@ impl pallet_balances::Trait for Runtime {
 	type Event = TestEvent;
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = frame_system::Module<Runtime>;
+	type MaxLocks = ();
 	type WeightInfo = ();
 }
 pub type PalletBalances = pallet_balances::Module<Runtime>;

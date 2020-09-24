@@ -62,7 +62,7 @@ impl frame_system::Trait for Runtime {
 	type MaximumBlockLength = MaximumBlockLength;
 	type AvailableBlockRatio = AvailableBlockRatio;
 	type Version = ();
-	type ModuleToIndex = ();
+	type PalletInfo = ();
 	type AccountData = ();
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
@@ -130,7 +130,7 @@ parameter_types! {
 	pub const TipCountdown: u64 = 1;
 	pub const TipFindersFee: Percent = Percent::from_percent(20);
 	pub const TipReportDepositBase: u64 = 1;
-	pub const TipReportDepositPerByte: u64 = 1;
+	pub const DataDepositPerByte: u64 = 1;
 	pub const SpendPeriod: u64 = 2;
 	pub const Burn: Permill = Permill::from_percent(50);
 	pub const TreasuryModuleId: ModuleId = ModuleId(*b"py/trsry");
@@ -146,14 +146,20 @@ impl pallet_treasury::Trait for Runtime {
 	type TipCountdown = TipCountdown;
 	type TipFindersFee = TipFindersFee;
 	type TipReportDepositBase = TipReportDepositBase;
-	type TipReportDepositPerByte = TipReportDepositPerByte;
+	type DataDepositPerByte = DataDepositPerByte;
 	type Event = TestEvent;
-	type ProposalRejection = ();
+	type OnSlash = ();
 	type ProposalBond = ProposalBond;
 	type ProposalBondMinimum = ProposalBondMinimum;
 	type SpendPeriod = SpendPeriod;
 	type Burn = Burn;
 	type BurnDestination = (); // Just gets burned.
+	type BountyDepositBase = ();
+	type BountyDepositPayoutDelay = ();
+	type BountyUpdatePeriod = ();
+	type BountyCuratorDeposit = ();
+	type BountyValueMinimum = ();
+	type MaximumReasonLength = ();
 	type WeightInfo = ();
 }
 
@@ -339,7 +345,7 @@ impl ExtBuilder {
 
 		if self.treasury_genesis {
 			pallet_treasury::GenesisConfig::default()
-				.assimilate_storage::<Runtime>(&mut t)
+				.assimilate_storage::<Runtime, _>(&mut t)
 				.unwrap();
 
 			pallet_elections_phragmen::GenesisConfig::<Runtime> {
