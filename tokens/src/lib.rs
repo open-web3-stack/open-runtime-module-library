@@ -380,6 +380,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		let to_balance = Self::free_balance(currency_id, to)
 			.checked_add(&amount)
 			.ok_or(Error::<T>::BalanceOverflow)?;
+		// Cannot underflow because ensure_can_withdraw check
 		Self::set_free_balance(currency_id, from, from_balance - amount);
 		Self::set_free_balance(currency_id, to, to_balance);
 		T::OnReceived::on_received(to, currency_id, amount);
@@ -411,6 +412,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		}
 		Self::ensure_can_withdraw(currency_id, who, amount)?;
 
+		// Cannot underflow because ensure_can_withdraw check
 		<TotalIssuance<T>>::mutate(currency_id, |v| *v -= amount);
 		Self::set_free_balance(currency_id, who, Self::free_balance(currency_id, who) - amount);
 
@@ -439,20 +441,26 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 
 		let account = Self::accounts(who, currency_id);
 		let free_slashed_amount = account.free.min(amount);
+		// Cannot underflow becuase free_slashed_amount can never be greater than amount
 		let mut remaining_slash = amount - free_slashed_amount;
 
 		// slash free balance
 		if !free_slashed_amount.is_zero() {
+			// Cannot underflow becuase free_slashed_amount can never be greater than
+			// account.free
 			Self::set_free_balance(currency_id, who, account.free - free_slashed_amount);
 		}
 
 		// slash reserved balance
 		if !remaining_slash.is_zero() {
 			let reserved_slashed_amount = account.reserved.min(remaining_slash);
+			// Cannot underflow due to above line
 			remaining_slash -= reserved_slashed_amount;
 			Self::set_reserved_balance(currency_id, who, account.reserved - reserved_slashed_amount);
 		}
 
+		// Cannot underflow because the slashed value cannot be greater than total
+		// issuance
 		<TotalIssuance<T>>::mutate(currency_id, |v| *v -= amount - remaining_slash);
 		remaining_slash
 	}
@@ -577,6 +585,8 @@ impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
 
 		let account = Self::accounts(who, currency_id);
 		Self::set_free_balance(currency_id, who, account.free - value);
+		// Cannot overflow becuase total issuance is using the same balance type and
+		// this doesn't increase total issuance
 		Self::set_reserved_balance(currency_id, who, account.reserved + value);
 		Ok(())
 	}

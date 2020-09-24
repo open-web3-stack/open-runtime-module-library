@@ -577,7 +577,7 @@ where
 		let new_balance_pallet = {
 			let new_balance = Self::free_balance(who)
 				.checked_sub(&amount)
-				.ok_or("InsufficientBalance")?;
+				.ok_or(Error::<T>::BalanceTooLow)?;
 			BalanceConvert::from(new_balance).into()
 		};
 		let amount_pallet = BalanceConvert::from(amount).into();
@@ -637,7 +637,10 @@ where
 	type Amount = Amount;
 
 	fn update_balance(who: &AccountId, by_amount: Self::Amount) -> DispatchResult {
-		let by_balance = by_amount.abs().try_into().map_err(|_| "AmountIntoBalanceFailed")?;
+		let by_balance = by_amount
+			.abs()
+			.try_into()
+			.map_err(|_| Error::<T>::AmountIntoBalanceFailed)?;
 		if by_amount.is_positive() {
 			Self::deposit(who, by_balance)
 		} else {

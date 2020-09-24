@@ -33,7 +33,7 @@ pub fn with_transaction_result<R>(f: impl FnOnce() -> Result<R, DispatchError>) 
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use frame_support::{assert_err, assert_ok, decl_module, decl_storage};
+	use frame_support::{assert_noop, assert_ok, decl_module, decl_storage};
 	use sp_io::TestExternalities;
 	use sp_runtime::{DispatchError, DispatchResult};
 
@@ -75,7 +75,7 @@ mod tests {
 			assert_eq!(Value::get(), 0);
 			assert_eq!(Map::get("val0"), 0);
 
-			assert_err!(
+			assert_noop!(
 				with_transaction_result(|| -> DispatchResult {
 					Value::set(99);
 					Map::insert("val0", 99);
