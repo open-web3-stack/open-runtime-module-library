@@ -6,8 +6,8 @@
 mod tests;
 
 pub use frame_benchmarking::{
-	benchmarking, BenchmarkBatch, BenchmarkParameter, BenchmarkResults, Benchmarking, BenchmarkingSetup,
-	TrackedStorageKey,
+	benchmarking, BenchmarkBatch, BenchmarkConfig, BenchmarkParameter, BenchmarkResults, Benchmarking,
+	BenchmarkingSetup, TrackedStorageKey,
 };
 #[cfg(feature = "std")]
 pub use frame_benchmarking::{Analysis, BenchmarkSelector};
@@ -992,7 +992,7 @@ macro_rules! add_benchmark {
 		} = config;
 		if &pallet[..] == &name_string[..] || &pallet[..] == &b"*"[..] {
 			if &pallet[..] == &b"*"[..] || &benchmark[..] == &b"*"[..] {
-				for benchmark in $( $location )*::benchmarks(*extra).into_iter() {
+				for benchmark in $( $location )*::Benchmark::benchmarks(*extra).into_iter() {
 					$batches.push($crate::BenchmarkBatch {
 						results: $( $location )*::Benchmark::run_benchmark(
 							benchmark,
