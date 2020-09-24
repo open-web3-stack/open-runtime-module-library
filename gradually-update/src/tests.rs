@@ -141,7 +141,7 @@ fn add_on_finalize_should_work() {
 			per_block: vec![1],
 		};
 		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()));
-		assert_eq!(storage_get(&update.key), vec![]);
+		assert_eq!(storage_get(&update.key), Vec::<u8>::new());
 
 		GraduallyUpdateModule::on_finalize(10);
 		assert_eq!(storage_get(&update.key), vec![10]);
@@ -231,7 +231,7 @@ fn u32_should_work() {
 			per_block: 1u32.encode(),
 		};
 		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()));
-		assert_eq!(storage_get(&update.key), vec![]);
+		assert_eq!(storage_get(&update.key), Vec::<u8>::new());
 		GraduallyUpdateModule::on_finalize(10);
 		assert_eq!(storage_get(&update.key), vec![10, 0, 0, 0]);
 		GraduallyUpdateModule::on_finalize(15);
@@ -252,7 +252,7 @@ fn u128_should_work() {
 			per_block: 1u128.encode(),
 		};
 		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()));
-		assert_eq!(storage_get(&update.key), vec![]);
+		assert_eq!(storage_get(&update.key), Vec::<u8>::new());
 		GraduallyUpdateModule::on_finalize(10);
 		assert_eq!(
 			storage_get(&update.key),
@@ -285,7 +285,7 @@ fn permill_should_work() {
 			per_block: Permill::from_percent(1).encode(),
 		};
 		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()));
-		assert_eq!(storage_get(&update.key), vec![]);
+		assert_eq!(storage_get(&update.key), Vec::<u8>::new());
 		GraduallyUpdateModule::on_finalize(10);
 		assert_eq!(storage_get(&update.key), vec![160, 134, 1, 0]);
 		GraduallyUpdateModule::on_finalize(15);
@@ -306,7 +306,7 @@ fn fixedu128_should_work() {
 			per_block: FixedU128::saturating_from_rational(1, 1).encode(),
 		};
 		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()));
-		assert_eq!(storage_get(&update.key), vec![]);
+		assert_eq!(storage_get(&update.key), Vec::<u8>::new());
 		GraduallyUpdateModule::on_finalize(10);
 		assert_eq!(
 			storage_get(&update.key),
