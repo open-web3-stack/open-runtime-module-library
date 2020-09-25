@@ -53,7 +53,7 @@ impl frame_system::Trait for Runtime {
 	type MaximumBlockLength = MaximumBlockLength;
 	type AvailableBlockRatio = AvailableBlockRatio;
 	type Version = ();
-	type ModuleToIndex = ();
+	type PalletInfo = ();
 	type AccountData = ();
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
@@ -74,6 +74,7 @@ impl Trait for Runtime {
 	type Event = TestEvent;
 	type UpdateFrequency = UpdateFrequency;
 	type DispatchOrigin = system::EnsureRoot<AccountId>;
+	type WeightInfo = ();
 }
 pub type GraduallyUpdateModule = Module<Runtime>;
 

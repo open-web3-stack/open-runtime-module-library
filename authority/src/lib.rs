@@ -1,6 +1,6 @@
 //! # Authority
 //! A module to provide features for governance including dispatch method on
-//! behalf other accounts and schdule dispatchables.
+//! behalf of other accounts and schedule dispatchables.
 //!
 //! - [`Trait`](./trait.Trait.html)
 //! - [`Call`](./enum.Call.html)
@@ -9,7 +9,7 @@
 //! ## Overview
 //!
 //! Two functionalities are provided by this module:
-//! - schdule a dispatchable
+//! - schedule a dispatchable
 //! - dispatch method with on behalf of other origins
 
 #![cfg_attr(not(feature = "std"), no_std)]
@@ -19,6 +19,7 @@
 #![allow(clippy::borrowed_box)]
 
 use codec::{Decode, Encode};
+use frame_support::weights::Weight;
 use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage,
 	dispatch::PostDispatchInfo,
@@ -35,8 +36,17 @@ use sp_runtime::{
 };
 use sp_std::prelude::*;
 
+mod default_weight;
 mod mock;
 mod tests;
+
+pub trait WeightInfo {
+	fn dispatch_as() -> Weight;
+	fn schedule_dispatch() -> Weight;
+	fn fast_track_scheduled_dispatch() -> Weight;
+	fn delay_scheduled_dispatch() -> Weight;
+	fn cancel_scheduled_dispatch() -> Weight;
+}
 
 /// A delayed origin. Can only be dispatched via `dispatch_as` with a delay.
 #[derive(PartialEq, Eq, Clone, RuntimeDebug, Encode, Decode)]
@@ -83,7 +93,7 @@ pub type Origin<T> = DelayedOrigin<<T as frame_system::Trait>::BlockNumber, <T a
 
 /// Config for orml-authority
 pub trait AuthorityConfig<Origin, PalletsOrigin, BlockNumber> {
-	/// Check if the `origin` is allow to schedule a dispatchable call with a
+	/// Check if the `origin` is allowed to schedule a dispatchable call with a
 	/// given `priority`.
 	fn check_schedule_dispatch(origin: Origin, priority: Priority) -> DispatchResult;
 	/// Check if the `origin` is allow to fast track a scheduled task that
@@ -143,6 +153,9 @@ pub trait Trait: frame_system::Trait {
 
 	/// Additional permission config.
 	type AuthorityConfig: AuthorityConfig<<Self as frame_system::Trait>::Origin, Self::PalletsOrigin, Self::BlockNumber>;
+
+	/// Weight information for extrinsics in this module.
+	type WeightInfo: WeightInfo;
 }
 
 decl_error! {
@@ -188,7 +201,7 @@ decl_module! {
 		fn deposit_event() = default;
 
 		/// Dispatch a dispatchable on behalf of other origin
-		#[weight = (call.get_dispatch_info().weight + 10_000, call.get_dispatch_info().class)]
+		#[weight = (T::WeightInfo::dispatch_as().saturating_add(call.get_dispatch_info().weight), call.get_dispatch_info().class)]
 		pub fn dispatch_as(
 			origin,
 			as_origin: T::AsOriginId,
@@ -201,9 +214,9 @@ decl_module! {
 			Self::deposit_event(RawEvent::Dispatched(e.map(|_| ()).map_err(|e| e.error)));
 		}
 
-		/// Schdule a dispatchable to be dispatched at later block.
+		/// Schedule a dispatchable to be dispatched at later block.
 		/// This is the only way to dispatch a call with `DelayedOrigin`.
-		#[weight = 10_000]
+		#[weight = T::WeightInfo::schedule_dispatch()]
 		pub fn schedule_dispatch(
 			origin,
 			when: DispatchTime<T::BlockNumber>,
@@ -252,7 +265,8 @@ decl_module! {
 		}
 
 		/// Fast track a scheduled dispatchable.
-		#[weight = 10_000]
+		/// WARN: This is not fully implemented.
+		#[weight = T::WeightInfo::fast_track_scheduled_dispatch()]
 		pub fn fast_track_scheduled_dispatch(
 			origin,
 			initial_origin: T::PalletsOrigin,
@@ -281,7 +295,8 @@ decl_module! {
 		}
 
 		/// Delay a scheduled dispatchable.
-		#[weight = 10_000]
+		/// WARN: This is not fully implemented.
+		#[weight = T::WeightInfo::delay_scheduled_dispatch()]
 		pub fn delay_scheduled_dispatch(
 			origin,
 			initial_origin: T::PalletsOrigin,
@@ -296,7 +311,7 @@ decl_module! {
 		}
 
 		/// Cancel a scheduled dispatchable.
-		#[weight = 10_000]
+		#[weight = T::WeightInfo::cancel_scheduled_dispatch()]
 		pub fn cancel_scheduled_dispatch(
 			origin,
 			initial_origin: T::PalletsOrigin,

@@ -31,8 +31,15 @@ use frame_system::ensure_root;
 use sp_runtime::{traits::SaturatedConversion, DispatchResult, RuntimeDebug};
 use sp_std::prelude::Vec;
 
+mod default_weight;
 mod mock;
 mod tests;
+
+pub trait WeightInfo {
+	fn gradually_update() -> Weight;
+	fn cancel_gradually_update() -> Weight;
+	fn on_initialize(need_update: bool, update_len: usize) -> Weight;
+}
 
 type StorageKey = Vec<u8>;
 type StorageValue = Vec<u8>;
@@ -42,11 +49,11 @@ type StorageValue = Vec<u8>;
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub struct GraduallyUpdate {
 	/// The storage key of the value to update
-	key: StorageKey,
+	pub key: StorageKey,
 	/// The target value
-	target_value: StorageValue,
+	pub target_value: StorageValue,
 	/// The amount of the value to update per one block
-	per_block: StorageValue,
+	pub per_block: StorageValue,
 }
 
 pub trait Trait: frame_system::Trait {
@@ -55,6 +62,8 @@ pub trait Trait: frame_system::Trait {
 	type UpdateFrequency: Get<Self::BlockNumber>;
 	/// The origin that can schedule an update
 	type DispatchOrigin: EnsureOrigin<Self::Origin>;
+	/// Weight information for extrinsics in this module.
+	type WeightInfo: WeightInfo;
 }
 
 decl_storage! {
@@ -103,7 +112,7 @@ decl_module! {
 		const UpdateFrequency: T::BlockNumber = T::UpdateFrequency::get();
 
 		/// Add gradually_update to adjust numeric parameter.
-		#[weight = 10_000]
+		#[weight = T::WeightInfo::gradually_update()]
 		pub fn gradually_update(origin, update: GraduallyUpdate) {
 			T::DispatchOrigin::try_origin(origin).map(|_| ()).or_else(ensure_root)?;
 
@@ -127,7 +136,7 @@ decl_module! {
 		}
 
 		/// Cancel gradually_update to adjust numeric parameter.
-		#[weight = 10_000]
+		#[weight = T::WeightInfo::cancel_gradually_update()]
 		pub fn cancel_gradually_update(origin, key: StorageKey) {
 			T::DispatchOrigin::try_origin(origin).map(|_| ()).or_else(ensure_root)?;
 
@@ -143,10 +152,10 @@ decl_module! {
 			Self::deposit_event(RawEvent::GraduallyUpdateCancelled(key));
 		}
 
-		/// dummy `on_initialize` to return the weight used in `on_finalize`.
+		/// `on_initialize` to return the weight used in `on_finalize`.
 		fn on_initialize() -> Weight {
-			// weight of `on_finalize`
-			0
+			let now = <frame_system::Module<T>>::block_number();
+			T::WeightInfo::on_initialize(Self::_need_update(now), GraduallyUpdates::get().len())
 		}
 
 		/// Update gradually_update to adjust numeric parameter.
@@ -157,8 +166,12 @@ decl_module! {
 }
 
 impl<T: Trait> Module<T> {
+	fn _need_update(now: T::BlockNumber) -> bool {
+		now >= Self::last_updated_at() + T::UpdateFrequency::get()
+	}
+
 	fn _on_finalize(now: T::BlockNumber) {
-		if now < Self::last_updated_at() + T::UpdateFrequency::get() {
+		if !Self::_need_update(now) {
 			return;
 		}
 

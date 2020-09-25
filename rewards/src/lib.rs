@@ -12,8 +12,13 @@ use sp_std::{
 	fmt::Debug,
 };
 
+mod default_weight;
 mod mock;
 mod tests;
+
+pub trait WeightInfo {
+	fn on_initialize() -> Weight;
+}
 
 /// The Reward Pool Info.
 #[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug, Default)]
@@ -61,6 +66,9 @@ pub trait Trait: frame_system::Trait {
 		Balance = Self::Balance,
 		PoolId = Self::PoolId,
 	>;
+
+	/// Weight information for extrinsics in this module.
+	type WeightInfo: WeightInfo;
 }
 
 decl_storage! {
@@ -82,8 +90,7 @@ decl_module! {
 					Pools::<T>::mutate(pool, | pool_info | pool_info.total_rewards = pool_info.total_rewards.saturating_add(reward_to_accumulate));
 				}
 			});
-
-			0
+			T::WeightInfo::on_initialize()
 		}
 	}
 }

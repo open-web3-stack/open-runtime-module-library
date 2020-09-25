@@ -3,7 +3,7 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{assert_err, assert_noop, assert_ok, error::BadOrigin, traits::WithdrawReason};
+use frame_support::{assert_noop, assert_ok, error::BadOrigin, traits::WithdrawReason};
 use mock::{ExtBuilder, Origin, PalletBalances, Runtime, System, TestEvent, Vesting, ALICE, BOB, CHARLIE};
 use pallet_balances::{BalanceLock, Reasons};
 
@@ -127,7 +127,7 @@ fn vested_transfer_fails_if_zero_period_or_count() {
 			period_count: 1u32,
 			per_period: 100u64,
 		};
-		assert_err!(
+		assert_noop!(
 			Vesting::vested_transfer(Origin::signed(ALICE), BOB, schedule.clone()),
 			Error::<Runtime>::ZeroVestingPeriod
 		);
@@ -138,7 +138,7 @@ fn vested_transfer_fails_if_zero_period_or_count() {
 			period_count: 0u32,
 			per_period: 100u64,
 		};
-		assert_err!(
+		assert_noop!(
 			Vesting::vested_transfer(Origin::signed(ALICE), BOB, schedule.clone()),
 			Error::<Runtime>::ZeroVestingPeriodCount
 		);
@@ -154,7 +154,7 @@ fn vested_transfer_fails_if_transfer_err() {
 			period_count: 1u32,
 			per_period: 100u64,
 		};
-		assert_err!(
+		assert_noop!(
 			Vesting::vested_transfer(Origin::signed(BOB), ALICE, schedule.clone()),
 			pallet_balances::Error::<Runtime, _>::InsufficientBalance,
 		);
@@ -170,7 +170,7 @@ fn vested_transfer_fails_if_overflow() {
 			period_count: 2u32,
 			per_period: u64::max_value(),
 		};
-		assert_err!(
+		assert_noop!(
 			Vesting::vested_transfer(Origin::signed(ALICE), BOB, schedule),
 			Error::<Runtime>::NumOverflow
 		);
@@ -181,7 +181,7 @@ fn vested_transfer_fails_if_overflow() {
 			period_count: 2u32,
 			per_period: 1u64,
 		};
-		assert_err!(
+		assert_noop!(
 			Vesting::vested_transfer(Origin::signed(ALICE), BOB, another_schedule),
 			Error::<Runtime>::NumOverflow
 		);
@@ -286,7 +286,7 @@ fn vested_transfer_check_for_min() {
 			period_count: 1u32,
 			per_period: 3u64,
 		};
-		assert_err!(
+		assert_noop!(
 			Vesting::vested_transfer(Origin::signed(BOB), ALICE, schedule.clone()),
 			Error::<Runtime>::AmountLow
 		);

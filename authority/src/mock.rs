@@ -43,7 +43,7 @@ impl frame_system::Trait for Runtime {
 	type MaximumBlockLength = MaximumBlockLength;
 	type AvailableBlockRatio = AvailableBlockRatio;
 	type Version = ();
-	type ModuleToIndex = ();
+	type PalletInfo = ();
 	type AccountData = ();
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
@@ -65,6 +65,7 @@ impl pallet_scheduler::Trait for Runtime {
 	type Call = Call;
 	type MaximumWeight = MaximumSchedulerWeight;
 	type ScheduleOrigin = EnsureRoot<u128>;
+	type MaxScheduledPerBlock = ();
 	type WeightInfo = ();
 }
 
@@ -151,6 +152,7 @@ impl Trait for Runtime {
 	type Call = Call;
 	type AsOriginId = MockAsOriginId;
 	type AuthorityConfig = AuthorityConfigImpl;
+	type WeightInfo = ();
 }
 
 pub type Block = sp_runtime::generic::Block<Header, UncheckedExtrinsic>;
