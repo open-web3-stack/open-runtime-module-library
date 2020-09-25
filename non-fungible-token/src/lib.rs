@@ -16,6 +16,7 @@
 //! - `transfer` - Transfer NFT(non fungible token) to another account.
 //! - `mint` - Mint NFT(non fungible token)
 //! - `burn` - Burn NFT(non fungible token)
+//! - `destroy_class` - Destroy NFT(non fungible token) class
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
