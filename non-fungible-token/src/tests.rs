@@ -39,13 +39,12 @@ fn mint_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(NonFungibleTokenModule::create_class(&ALICE, vec![1], ()));
 		Classes::<Runtime>::mutate(CLASS_ID, |class_info| {
-			if let Some(info) = class_info {
-				info.total_issuance = <Runtime as Trait>::TokenId::max_value();
-			}
+			class_info.as_mut().unwrap().total_issuance = <Runtime as Trait>::TokenId::max_value();
 		});
-		assert_noop!(
+		// can't use assert_noop. modify tokenid.
+		assert_eq!(
 			NonFungibleTokenModule::mint(&BOB, CLASS_ID, vec![1], ()),
-			Error::<Runtime>::NumOverflow
+			Err(Error::<Runtime>::NumOverflow.into())
 		);
 
 		NextTokenId::<Runtime>::mutate(|id| *id = <Runtime as Trait>::TokenId::max_value());
@@ -70,15 +69,20 @@ fn transfer_should_work() {
 #[test]
 fn transfer_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		NextClassId::<Runtime>::mutate(|id| *id = <Runtime as Trait>::ClassId::max_value());
+		assert_ok!(NonFungibleTokenModule::create_class(&ALICE, vec![1], ()));
 		assert_ok!(NonFungibleTokenModule::mint(&BOB, CLASS_ID, vec![1], ()));
 		assert_noop!(
 			NonFungibleTokenModule::transfer(&BOB, &ALICE, (CLASS_ID, TOKEN_ID_NOT_EXIST)),
-			Error::<Runtime>::TokenNotFound
+			Error::<Runtime>::NoPermission
 		);
 		assert_noop!(
-			NonFungibleTokenModule::transfer(&ALICE, &ALICE, (CLASS_ID, TOKEN_ID)),
+			NonFungibleTokenModule::transfer(&ALICE, &BOB, (CLASS_ID, TOKEN_ID)),
 			Error::<Runtime>::NoPermission
+		);
+		// can't use assert_noop. modify tokenid.
+		assert_eq!(
+			NonFungibleTokenModule::mint(&BOB, CLASS_ID_NOT_EXIST, vec![1], ()),
+			Err(Error::<Runtime>::ClassNotFound.into())
 		);
 	});
 }
@@ -102,19 +106,24 @@ fn burn_should_fail() {
 			Error::<Runtime>::TokenNotFound
 		);
 
-		assert_noop!(
+		// can't use assert_noop. remove token.
+		assert_eq!(
 			NonFungibleTokenModule::burn(&ALICE, (CLASS_ID, TOKEN_ID)),
-			Error::<Runtime>::NoPermission
+			Err(Error::<Runtime>::NoPermission.into())
 		);
+	});
+
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(NonFungibleTokenModule::create_class(&ALICE, vec![1], ()));
+		assert_ok!(NonFungibleTokenModule::mint(&BOB, CLASS_ID, vec![1], ()));
 
 		Classes::<Runtime>::mutate(CLASS_ID, |class_info| {
-			if let Some(info) = class_info {
-				info.total_issuance = 0;
-			}
+			class_info.as_mut().unwrap().total_issuance = 0;
 		});
-		assert_noop!(
+		// can't use assert_noop. remove token.
+		assert_eq!(
 			NonFungibleTokenModule::burn(&BOB, (CLASS_ID, TOKEN_ID)),
-			Error::<Runtime>::NumOverflow
+			Err(Error::<Runtime>::NumOverflow.into())
 		);
 	});
 }
@@ -151,5 +160,6 @@ fn destroy_class_should_fail() {
 
 		assert_ok!(NonFungibleTokenModule::burn(&BOB, (CLASS_ID, TOKEN_ID)));
 		assert_ok!(NonFungibleTokenModule::destroy_class(&ALICE, CLASS_ID));
+		assert_eq!(Classes::<Runtime>::contains_key(CLASS_ID), false);
 	});
 }
