@@ -26,6 +26,7 @@ use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, Bounded, CheckedAdd, CheckedSub, Member},
 	DispatchError, DispatchResult, RuntimeDebug,
 };
+use sp_std::vec::Vec;
 
 mod mock;
 mod tests;
