@@ -4,7 +4,9 @@
 
 use super::*;
 use frame_support::{assert_noop, assert_ok};
-use mock::{ExtBuilder, NonFungibleTokenModule, Runtime, ALICE, BOB, CLASS_ID, TOKEN_ID, TOKEN_ID_NOT_EXIST};
+use mock::{
+	ExtBuilder, NonFungibleTokenModule, Runtime, ALICE, BOB, CLASS_ID, CLASS_ID_NOT_EXIST, TOKEN_ID, TOKEN_ID_NOT_EXIST,
+};
 
 #[test]
 fn create_class_should_work() {
@@ -114,5 +116,40 @@ fn burn_should_fail() {
 			NonFungibleTokenModule::burn(&BOB, (CLASS_ID, TOKEN_ID)),
 			Error::<Runtime>::NumOverflow
 		);
+	});
+}
+
+#[test]
+fn destroy_class_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(NonFungibleTokenModule::create_class(&ALICE, vec![1], ()));
+		assert_ok!(NonFungibleTokenModule::mint(&BOB, CLASS_ID, vec![1], ()));
+		assert_ok!(NonFungibleTokenModule::burn(&BOB, (CLASS_ID, TOKEN_ID)));
+		assert_ok!(NonFungibleTokenModule::destroy_class(&ALICE, CLASS_ID));
+	});
+}
+
+#[test]
+fn destroy_class_should_fail() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(NonFungibleTokenModule::create_class(&ALICE, vec![1], ()));
+		assert_ok!(NonFungibleTokenModule::mint(&BOB, CLASS_ID, vec![1], ()));
+		assert_noop!(
+			NonFungibleTokenModule::destroy_class(&ALICE, CLASS_ID_NOT_EXIST),
+			Error::<Runtime>::ClassNotFound
+		);
+
+		assert_noop!(
+			NonFungibleTokenModule::destroy_class(&BOB, CLASS_ID),
+			Error::<Runtime>::NoPermission
+		);
+
+		assert_noop!(
+			NonFungibleTokenModule::destroy_class(&ALICE, CLASS_ID),
+			Error::<Runtime>::CannotDestroyClass
+		);
+
+		assert_ok!(NonFungibleTokenModule::burn(&BOB, (CLASS_ID, TOKEN_ID)));
+		assert_ok!(NonFungibleTokenModule::destroy_class(&ALICE, CLASS_ID));
 	});
 }

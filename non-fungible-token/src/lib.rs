@@ -35,24 +35,24 @@ pub type CID = Vec<u8>;
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub struct ClassInfo<TokenId, AccountId, Data> {
 	/// Class metadata
-	metadata: CID,
+	pub metadata: CID,
 	/// Total issuance for the class
-	total_issuance: TokenId,
+	pub total_issuance: TokenId,
 	/// Class owner
-	owner: AccountId,
+	pub owner: AccountId,
 	/// Class Properties
-	data: Data,
+	pub data: Data,
 }
 
 /// Token info
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub struct TokenInfo<AccountId, Data> {
 	/// Token metadata
-	metadata: CID,
+	pub metadata: CID,
 	/// Token owner
-	owner: AccountId,
+	pub owner: AccountId,
 	/// Token Properties
-	data: Data,
+	pub data: Data,
 }
 
 pub trait Trait: frame_system::Trait {
@@ -75,10 +75,15 @@ decl_error! {
 		NoAvailableTokenId,
 		/// Token(ClassId, TokenId) not found
 		TokenNotFound,
+		/// Class not found
+		ClassNotFound,
 		/// The operator is not the owner of the token and has no permission
 		NoPermission,
 		/// Arithmetic calculation overflow
 		NumOverflow,
+		/// Can not destroy class
+		/// Total issuance is not 0
+		CannotDestroyClass,
 	}
 }
 
@@ -199,6 +204,18 @@ impl<T: Trait> Module<T> {
 		})?;
 		Tokens::<T>::remove(token.0, token.1);
 		TokensByOwner::<T>::remove(owner.clone(), token);
+
+		Ok(())
+	}
+
+	/// Destroy NFT(non fungible token) class
+	pub fn destroy_class(owner: &T::AccountId, class_id: T::ClassId) -> DispatchResult {
+		ensure!(Classes::<T>::contains_key(class_id), Error::<T>::ClassNotFound);
+		let class_info = Self::classes(class_id).unwrap();
+
+		ensure!(class_info.owner == *owner, Error::<T>::NoPermission);
+		ensure!(class_info.total_issuance == 0.into(), Error::<T>::CannotDestroyClass);
+		Classes::<T>::remove(class_id);
 
 		Ok(())
 	}
