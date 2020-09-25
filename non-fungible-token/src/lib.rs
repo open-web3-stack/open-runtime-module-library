@@ -123,10 +123,10 @@ impl<T: Trait> Module<T> {
 		ensure!(class_id != T::ClassId::max_value(), Error::<T>::NoAvailableClassId);
 
 		let info = ClassInfo {
-			metadata: metadata,
+			metadata,
 			total_issuance: Default::default(),
 			owner: owner.clone(),
-			data: data,
+			data,
 		};
 		Classes::<T>::insert(class_id, info);
 		NextClassId::<T>::mutate(|id| *id += 1.into());
@@ -167,9 +167,9 @@ impl<T: Trait> Module<T> {
 		let token_id = Self::next_token_id();
 		ensure!(token_id != T::TokenId::max_value(), Error::<T>::NoAvailableTokenId);
 		let token_info = TokenInfo {
-			metadata: metadata,
+			metadata,
 			owner: owner.clone(),
-			data: data,
+			data,
 		};
 		Classes::<T>::try_mutate(class_id, |class_info| -> DispatchResult {
 			if let Some(info) = class_info {
