@@ -1,9 +1,10 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::FullCodec;
-use sp_std::{marker::PhantomData, result, cmp::{Eq, PartialEq}, convert::TryInto, fmt::Debug};
-use sp_runtime::traits::{MaybeSerializeDeserialize, SaturatedConversion};
-use xcm::v0::{MultiAsset, MultiLocation, Error, Result};
+use sp_std::{prelude::*, marker::PhantomData, result, cmp::{Eq, PartialEq}, convert::{TryInto, TryFrom}, fmt::Debug};
+use sp_runtime::{traits::{MaybeSerializeDeserialize, CheckedConversion, SaturatedConversion}, DispatchResult};
+
+use xcm::v0::{MultiAsset, MultiLocation, Error, Result, Junction};
 use xcm_executor::traits::{MatchesFungible, LocationConversion, TransactAsset};
 
 pub trait CurrencyIdConversion<CurrencyId> {
@@ -43,5 +44,25 @@ impl<
 		let balance_amount = amount.try_into().map_err(|_| ())?;
 		MultiCurrency::withdraw(currency_id, &who, balance_amount).map_err(|_| ())?;
 		Ok(asset.clone())
+	}
+}
+
+pub trait XcmHandler {
+	type Origin;
+	type Xcm;
+	fn execute(origin: Self::Origin, xcm: Self::Xcm) -> DispatchResult;
+}
+
+pub struct IsConcreteWithGeneralKey<CurrencyId>(PhantomData<CurrencyId>);
+impl<CurrencyId: TryFrom<Vec<u8>>, B: TryFrom<u128>> MatchesFungible<B> for IsConcreteWithGeneralKey<CurrencyId> {
+	fn matches_fungible(a: &MultiAsset) -> Option<B> {
+		if let MultiAsset::ConcreteFungible { id, amount } = a {
+			if let MultiLocation::X1(Junction::GeneralKey(key)) = id {
+				if TryInto::<CurrencyId>::try_into(key.clone()).is_ok() {
+					return CheckedConversion::checked_from(*amount);
+				}
+			}
+		}
+		None
 	}
 }
