@@ -63,9 +63,9 @@ pub trait Trait: frame_system::Trait {
 	/// The token ID type
 	type TokenId: Parameter + Member + AtLeast32BitUnsigned + Default + Copy;
 	/// The class properties type
-	type ClassData: Parameter + Member + Default + Copy;
+	type ClassData: Parameter + Member;
 	/// The token properties type
-	type TokenData: Parameter + Member + Default + Copy;
+	type TokenData: Parameter + Member;
 }
 
 decl_error! {
@@ -146,13 +146,12 @@ impl<T: Trait> Module<T> {
 		TokensByOwner::<T>::try_mutate_exists(from, token, |token_by_owner| -> DispatchResult {
 			ensure!(token_by_owner.take().is_some(), Error::<T>::NoPermission);
 			TokensByOwner::<T>::insert(to, token, ());
-			Ok(())
-		})?;
 
-		Tokens::<T>::try_mutate_exists(token.0, token.1, |token_info| -> DispatchResult {
-			let mut info = token_info.as_mut().ok_or(Error::<T>::TokenNotFound)?;
-			info.owner = to.clone();
-			Ok(())
+			Tokens::<T>::try_mutate_exists(token.0, token.1, |token_info| -> DispatchResult {
+				let mut info = token_info.as_mut().ok_or(Error::<T>::TokenNotFound)?;
+				info.owner = to.clone();
+				Ok(())
+			})
 		})
 	}
 
@@ -163,50 +162,48 @@ impl<T: Trait> Module<T> {
 		metadata: CID,
 		data: T::TokenData,
 	) -> Result<T::TokenId, DispatchError> {
-		let token_id = NextTokenId::<T>::try_mutate(|id| -> Result<T::TokenId, DispatchError> {
-			let current_id = *id;
+		NextTokenId::<T>::try_mutate(|id| -> Result<T::TokenId, DispatchError> {
+			let token_id = *id;
 			*id = id.checked_add(&One::one()).ok_or(Error::<T>::NoAvailableTokenId)?;
-			Ok(current_id)
-		})?;
 
-		Classes::<T>::try_mutate(class_id, |class_info| -> DispatchResult {
-			let info = class_info.as_mut().ok_or(Error::<T>::ClassNotFound)?;
-			info.total_issuance = info
-				.total_issuance
-				.checked_add(&One::one())
-				.ok_or(Error::<T>::NumOverflow)?;
-			Ok(())
-		})?;
+			Classes::<T>::try_mutate(class_id, |class_info| -> DispatchResult {
+				let info = class_info.as_mut().ok_or(Error::<T>::ClassNotFound)?;
+				info.total_issuance = info
+					.total_issuance
+					.checked_add(&One::one())
+					.ok_or(Error::<T>::NumOverflow)?;
+				Ok(())
+			})?;
 
-		let token_info = TokenInfo {
-			metadata,
-			owner: owner.clone(),
-			data,
-		};
-		Tokens::<T>::insert(class_id, token_id, token_info);
-		TokensByOwner::<T>::insert(owner, (class_id, token_id), ());
+			let token_info = TokenInfo {
+				metadata,
+				owner: owner.clone(),
+				data,
+			};
+			Tokens::<T>::insert(class_id, token_id, token_info);
+			TokensByOwner::<T>::insert(owner, (class_id, token_id), ());
 
-		Ok(token_id)
+			Ok(token_id)
+		})
 	}
 
 	/// Burn NFT(non fungible token) from `owner`
 	pub fn burn(owner: &T::AccountId, token: (T::ClassId, T::TokenId)) -> DispatchResult {
 		Tokens::<T>::try_mutate_exists(token.0, token.1, |token_info| -> DispatchResult {
 			ensure!(token_info.take().is_some(), Error::<T>::TokenNotFound);
-			Ok(())
-		})?;
-		TokensByOwner::<T>::try_mutate_exists(owner, token, |info| -> DispatchResult {
-			ensure!(info.take().is_some(), Error::<T>::NoPermission);
-			Ok(())
-		})?;
 
-		Classes::<T>::try_mutate(token.0, |class_info| -> DispatchResult {
-			let info = class_info.as_mut().ok_or(Error::<T>::ClassNotFound)?;
-			info.total_issuance = info
-				.total_issuance
-				.checked_sub(&One::one())
-				.ok_or(Error::<T>::NumOverflow)?;
-			Ok(())
+			TokensByOwner::<T>::try_mutate_exists(owner, token, |info| -> DispatchResult {
+				ensure!(info.take().is_some(), Error::<T>::NoPermission);
+
+				Classes::<T>::try_mutate(token.0, |class_info| -> DispatchResult {
+					let info = class_info.as_mut().ok_or(Error::<T>::ClassNotFound)?;
+					info.total_issuance = info
+						.total_issuance
+						.checked_sub(&One::one())
+						.ok_or(Error::<T>::NumOverflow)?;
+					Ok(())
+				})
+			})
 		})
 	}
 

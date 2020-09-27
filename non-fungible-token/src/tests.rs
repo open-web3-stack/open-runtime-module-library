@@ -41,10 +41,9 @@ fn mint_should_fail() {
 		Classes::<Runtime>::mutate(CLASS_ID, |class_info| {
 			class_info.as_mut().unwrap().total_issuance = <Runtime as Trait>::TokenId::max_value();
 		});
-		// can't use assert_noop. modify tokenid.
-		assert_eq!(
+		assert_noop!(
 			NonFungibleTokenModule::mint(&BOB, CLASS_ID, vec![1], ()),
-			Err(Error::<Runtime>::NumOverflow.into())
+			Error::<Runtime>::NumOverflow
 		);
 
 		NextTokenId::<Runtime>::mutate(|id| *id = <Runtime as Trait>::TokenId::max_value());
@@ -79,10 +78,9 @@ fn transfer_should_fail() {
 			NonFungibleTokenModule::transfer(&ALICE, &BOB, (CLASS_ID, TOKEN_ID)),
 			Error::<Runtime>::NoPermission
 		);
-		// can't use assert_noop. modify tokenid.
-		assert_eq!(
+		assert_noop!(
 			NonFungibleTokenModule::mint(&BOB, CLASS_ID_NOT_EXIST, vec![1], ()),
-			Err(Error::<Runtime>::ClassNotFound.into())
+			Error::<Runtime>::ClassNotFound
 		);
 	});
 }
@@ -106,10 +104,9 @@ fn burn_should_fail() {
 			Error::<Runtime>::TokenNotFound
 		);
 
-		// can't use assert_noop. remove token.
-		assert_eq!(
+		assert_noop!(
 			NonFungibleTokenModule::burn(&ALICE, (CLASS_ID, TOKEN_ID)),
-			Err(Error::<Runtime>::NoPermission.into())
+			Error::<Runtime>::NoPermission
 		);
 	});
 
@@ -120,10 +117,9 @@ fn burn_should_fail() {
 		Classes::<Runtime>::mutate(CLASS_ID, |class_info| {
 			class_info.as_mut().unwrap().total_issuance = 0;
 		});
-		// can't use assert_noop. remove token.
-		assert_eq!(
+		assert_noop!(
 			NonFungibleTokenModule::burn(&BOB, (CLASS_ID, TOKEN_ID)),
-			Err(Error::<Runtime>::NumOverflow.into())
+			Error::<Runtime>::NumOverflow
 		);
 	});
 }
