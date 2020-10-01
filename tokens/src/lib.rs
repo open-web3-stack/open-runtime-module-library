@@ -474,8 +474,16 @@ impl<T: Trait> MultiCurrencyExtended<T::AccountId> for Module<T> {
 			return Ok(());
 		}
 
+		// Ensure this doesn't overflow. There isn't any traits that exposes
+		// `saturating_abs` so we need to do it manually.
+		let by_amount_abs = if by_amount == Self::Amount::min_value() {
+			Self::Amount::max_value()
+		} else {
+			by_amount.abs()
+		};
+
 		let by_balance =
-			TryInto::<Self::Balance>::try_into(by_amount.abs()).map_err(|_| Error::<T>::AmountIntoBalanceFailed)?;
+			TryInto::<Self::Balance>::try_into(by_amount_abs).map_err(|_| Error::<T>::AmountIntoBalanceFailed)?;
 		if by_amount.is_positive() {
 			Self::deposit(currency_id, who, by_balance)
 		} else {
