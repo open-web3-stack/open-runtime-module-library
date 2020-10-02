@@ -40,8 +40,8 @@ impl XCurrencyId {
 	}
 }
 
-impl XCurrencyId {
-	pub fn into_multilocation(self) -> MultiLocation {
+impl Into<MultiLocation> for XCurrencyId {
+	fn into(self) -> MultiLocation {
 		MultiLocation::X1(Junction::GeneralKey(self.currency_id))
 	}
 }
@@ -202,7 +202,7 @@ impl<T: Trait> Module<T> {
 	) -> Xcm {
 		Xcm::WithdrawAsset {
 			assets: vec![MultiAsset::ConcreteFungible {
-				id: x_currency_id.into_multilocation(),
+				id: x_currency_id.into(),
 				amount: amount.into(),
 			}],
 			effects: vec![Order::DepositReserveAsset {
@@ -246,7 +246,7 @@ impl<T: Trait> Module<T> {
 				dest: MultiLocation::X2(
 					Junction::Parent,
 					Junction::Parachain {
-						id: reserve_chain.into(),
+						id: para_id.into(),
 					},
 				),
 				effects: vec![deposit_to_dest],
@@ -255,7 +255,7 @@ impl<T: Trait> Module<T> {
 
 		Xcm::WithdrawAsset {
 			assets: vec![MultiAsset::ConcreteFungible {
-				id: x_currency_id.into_multilocation(),
+				id: x_currency_id.into(),
 				amount: amount.into(),
 			}],
 			effects: vec![Order::InitiateReserveWithdraw {
