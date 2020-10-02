@@ -18,7 +18,7 @@ frame-support = { version = "2.0.0-rc5", default-features = false }
 frame-system = { version = "2.0.0-rc5", default-features = false }
 
 orml-utilities = { path = "../utilities", version = "0.1.3-dev", default-features = false }
-orml-xmulticurrency = { path = "../xmulticurrency", version = "0.1.3-dev", default-features = false }
+orml-xcm-support = { path = "../xcm-support", version = "0.1.3-dev", default-features = false }
 
 cumulus-primitives = { git = "https://github.com/paritytech/cumulus", branch = "gav-xcmp", default-features = false }
 
@@ -42,6 +42,6 @@ std = [
 	"frame-support/std",
 	"frame-system/std",
 	"orml-utilities/std",
-	'orml-xmulticurrency/std',
+	'orml-xcm-support/std',
 	"cumulus-primitives/std",
 ]

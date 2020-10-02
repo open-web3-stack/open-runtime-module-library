@@ -11,5 +11,5 @@ members = [
 	"utilities",
 	"vesting",
 	"xtokens",
-	"xmulticurrency",
+	"xcm-support",
 ]

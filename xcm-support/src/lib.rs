@@ -7,6 +7,7 @@ use sp_runtime::{
 };
 use sp_std::{
 	cmp::{Eq, PartialEq},
+	collections::btree_set::BTreeSet,
 	convert::{TryFrom, TryInto},
 	fmt::Debug,
 	marker::PhantomData,
@@ -15,9 +16,9 @@ use sp_std::{
 };
 
 use xcm::v0::{Error, Junction, MultiAsset, MultiLocation, Result};
-use xcm_executor::traits::{LocationConversion, MatchesFungible, TransactAsset};
+use xcm_executor::traits::{FilterAssetLocation, LocationConversion, MatchesFungible, NativeAsset, TransactAsset};
 
-use frame_support::debug;
+use frame_support::{debug, traits::Get};
 
 pub trait CurrencyIdConversion<CurrencyId> {
 	fn from_asset(asset: &MultiAsset) -> Option<CurrencyId>;
@@ -91,6 +92,36 @@ impl<CurrencyId: TryFrom<Vec<u8>>, B: TryFrom<u128>> MatchesFungible<B> for IsCo
 				if TryInto::<CurrencyId>::try_into(key.clone()).is_ok() {
 					return CheckedConversion::checked_from(*amount);
 				}
+			}
+		}
+		None
+	}
+}
+
+pub struct NativePalletAssetOr<Pairs>(PhantomData<Pairs>);
+impl<Pairs: Get<BTreeSet<(Vec<u8>, MultiLocation)>>> FilterAssetLocation for NativePalletAssetOr<Pairs> {
+	fn filter_asset_location(asset: &MultiAsset, origin: &MultiLocation) -> bool {
+		if NativeAsset::filter_asset_location(asset, origin) {
+			return true;
+		}
+
+		// native orml-tokens with a general key
+		if let MultiAsset::ConcreteFungible { ref id, .. } = asset {
+			if let Some(Junction::GeneralKey(key)) = id.last() {
+				return Pairs::get().contains(&(key.clone(), origin.clone()));
+			}
+		}
+
+		false
+	}
+}
+
+pub struct GeneralKeyCurrencyIdConverter<CurrencyId>(PhantomData<CurrencyId>);
+impl<CurrencyId: TryFrom<Vec<u8>>> CurrencyIdConversion<CurrencyId> for GeneralKeyCurrencyIdConverter<CurrencyId> {
+	fn from_asset(asset: &MultiAsset) -> Option<CurrencyId> {
+		if let MultiAsset::ConcreteFungible { id: location, .. } = asset {
+			if let Some(Junction::GeneralKey(key)) = location.last() {
+				return CurrencyId::try_from(key.clone()).ok();
 			}
 		}
 		None

@@ -11,7 +11,7 @@ use sp_std::prelude::*;
 
 use cumulus_primitives::{relay_chain::Balance as RelayChainBalance, ParaId};
 use orml_utilities::with_transaction_result;
-use orml_xmulticurrency::XcmHandler;
+use orml_xcm_support::XcmHandler;
 use xcm::v0::{Junction, MultiAsset, MultiLocation, NetworkId, Order, Xcm};
 
 #[derive(Encode, Decode, Eq, PartialEq, Clone, Copy, RuntimeDebug)]
