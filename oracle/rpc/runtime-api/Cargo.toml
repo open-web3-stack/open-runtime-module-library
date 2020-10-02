@@ -1,6 +1,6 @@
 [package]
 name = "orml-oracle-rpc-runtime-api"
-version = "0.3.1"
+version = "0.3.2-dev"
 authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2018"
 

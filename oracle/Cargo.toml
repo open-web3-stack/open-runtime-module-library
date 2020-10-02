@@ -3,7 +3,7 @@ name = "orml-oracle"
 description = "Oracle module that makes off-chain data available on-chain."
 repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/oracle"
 license = "Apache-2.0"
-version = "0.3.1"
+version = "0.3.2-dev"
 authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2018"
 
@@ -19,8 +19,8 @@ sp-std = { version = "2.0.0", default-features = false }
 frame-support = { version = "2.0.0", default-features = false }
 frame-system = { version = "2.0.0", default-features = false }
 
-orml-traits = { path = "../traits", version = "0.3.1", default-features = false }
-orml-utilities = { path = "../utilities", version = "0.3.1", default-features = false }
+orml-traits = { path = "../traits", version = "0.3.2-dev", default-features = false }
+orml-utilities = { path = "../utilities", version = "0.3.2-dev", default-features = false }
 
 [dev-dependencies]
 sp-core = { version = "2.0.0", default-features = false }
