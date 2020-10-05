@@ -226,7 +226,7 @@ impl<T: Trait> Module<T> {
 				reserve: MultiLocation::X1(Junction::Parent),
 				effects: vec![Order::DepositReserveAsset {
 					assets: vec![MultiAsset::All],
-					dest: MultiLocation::X2(Junction::Parent, Junction::Parachain { id: para_id.into() }),
+					dest: MultiLocation::X1(Junction::Parachain { id: para_id.into() }),
 					effects: vec![Order::DepositAsset {
 						assets: vec![asset_on_parachain],
 						dest: MultiLocation::X1(Junction::AccountId32 {
