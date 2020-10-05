@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode};
-use frame_support::{decl_error, decl_event, decl_module, decl_storage, traits::Get, Parameter};
+use frame_support::{decl_event, decl_module, decl_storage, traits::Get, Parameter};
 use frame_system::ensure_signed;
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, Convert, MaybeSerializeDeserialize, Member},
@@ -26,8 +26,8 @@ pub enum ChainId {
 #[derive(Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug)]
 /// Identity of cross chain currency.
 pub struct XCurrencyId {
-	/// The owner chain of the currency. For instance, the owner chain of DOT is
-	/// Polkadot.
+	/// The reserve chain of the currency. For instance, the reserve chain of
+	/// DOT is Polkadot.
 	pub chain_id: ChainId,
 	/// The identity of the currency.
 	pub currency_id: Vec<u8>,
@@ -78,21 +78,8 @@ decl_event! {
 		/// Transferred to relay chain. [src, dest, amount]
 		TransferredToRelayChain(AccountId, AccountId, Balance),
 
-		/// Received transfer from relay chain. [dest, amount]
-		ReceivedTransferFromRelayChain(AccountId, Balance),
-
 		/// Transferred to parachain. [x_currency_id, src, para_id, dest, dest_network, amount]
 		TransferredToParachain(XCurrencyId, AccountId, ParaId, AccountId, NetworkId, Balance),
-
-		/// Received transfer from parachain. [x_currency_id, para_id, dest, dest_network, amount]
-		ReceivedTransferFromParachain(XCurrencyId, ParaId, AccountId, NetworkId, Balance),
-	}
-}
-
-decl_error! {
-	/// Error for xtokens module.
-	pub enum Error for Module<T: Trait> {
-		Unimplemented,
 	}
 }
 
