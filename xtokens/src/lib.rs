@@ -51,15 +51,10 @@ pub trait Trait: frame_system::Trait {
 
 	type Balance: Parameter + Member + AtLeast32BitUnsigned + Default + Copy + MaybeSerializeDeserialize + Into<u128>;
 
-	/// Convertor `RelayChainBalance` to `Balance`.
-	type FromRelayChainBalance: Convert<RelayChainBalance, Self::Balance>;
-
 	/// Convertor `Balance` to `RelayChainBalance`.
 	type ToRelayChainBalance: Convert<Self::Balance, RelayChainBalance>;
 
 	type AccountId32Convert: Convert<Self::AccountId, [u8; 32]>;
-
-	type RelayChainCurrencyKey: Get<Vec<u8>>;
 
 	type RelayChainNetworkId: Get<NetworkId>;
 
