@@ -5,7 +5,7 @@ use frame_support::{decl_error, decl_event, decl_module, decl_storage, traits::G
 use frame_system::ensure_signed;
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, Convert, MaybeSerializeDeserialize, Member},
-	DispatchError, DispatchResult, RuntimeDebug,
+	RuntimeDebug,
 };
 use sp_std::prelude::*;
 
@@ -110,8 +110,12 @@ decl_module! {
 		pub fn transfer_to_relay_chain(origin, dest: T::AccountId, amount: T::Balance) {
 			with_transaction_result(|| {
 				let who = ensure_signed(origin.clone())?;
-				Self::do_transfer_to_relay_chain(origin, &dest, amount)?;
+
+				let xcm = Self::do_transfer_to_relay_chain(&dest, amount);
+				T::XcmHandler::execute(origin, xcm)?;
+
 				Self::deposit_event(Event::<T>::TransferredToRelayChain(who, dest, amount));
+
 				Ok(())
 			})?;
 		}
@@ -139,7 +143,7 @@ decl_module! {
 					&dest,
 					dest_network.clone(),
 					amount,
-				)?;
+				);
 				T::XcmHandler::execute(origin, xcm)?;
 
 				Self::deposit_event(
@@ -152,11 +156,28 @@ decl_module! {
 	}
 }
 
-type XcmResult = sp_std::result::Result<Xcm, DispatchError>;
-
 impl<T: Trait> Module<T> {
-	fn do_transfer_to_relay_chain(_origin: T::Origin, _dest: &T::AccountId, _amount: T::Balance) -> DispatchResult {
-		Err(Error::<T>::Unimplemented.into())
+	fn do_transfer_to_relay_chain(dest: &T::AccountId, amount: T::Balance) -> Xcm {
+		Xcm::WithdrawAsset {
+			assets: vec![MultiAsset::ConcreteFungible {
+				id: MultiLocation::X1(Junction::Parent),
+				amount: amount.into(),
+			}],
+			effects: vec![Order::InitiateReserveWithdraw {
+				assets: vec![MultiAsset::ConcreteFungible {
+					id: MultiLocation::X1(Junction::Parent),
+					amount: T::ToRelayChainBalance::convert(amount).into(),
+				}],
+				reserve: MultiLocation::X1(Junction::Parent),
+				effects: vec![Order::DepositAsset {
+					assets: vec![MultiAsset::All],
+					dest: MultiLocation::X1(Junction::AccountId32 {
+						network: T::RelayChainNetworkId::get(),
+						id: T::AccountId32Convert::convert(dest.clone()),
+					}),
+				}],
+			}],
+		}
 	}
 
 	fn do_transfer_to_parachain(
@@ -165,14 +186,11 @@ impl<T: Trait> Module<T> {
 		dest: &T::AccountId,
 		dest_network: NetworkId,
 		amount: T::Balance,
-	) -> XcmResult {
+	) -> Xcm {
 		match x_currency_id.chain_id {
-			ChainId::RelayChain => {
-				// transfer relay chain tokens to parachain
-				Err(Error::<T>::Unimplemented.into())
-			}
+			ChainId::RelayChain => Self::transfer_relay_chain_tokens_to_parachain(para_id, dest, dest_network, amount),
 			ChainId::ParaChain(reserve_chain) => {
-				let xcm = if T::ParaId::get() == reserve_chain {
+				if T::ParaId::get() == reserve_chain {
 					Self::transfer_owned_tokens_to_parachain(x_currency_id, para_id, dest, dest_network, amount)
 				} else {
 					Self::transfer_non_owned_tokens_to_parachain(
@@ -183,9 +201,41 @@ impl<T: Trait> Module<T> {
 						dest_network,
 						amount,
 					)
-				};
-				Ok(xcm)
+				}
 			}
+		}
+	}
+
+	fn transfer_relay_chain_tokens_to_parachain(
+		para_id: ParaId,
+		dest: &T::AccountId,
+		dest_network: NetworkId,
+		amount: T::Balance,
+	) -> Xcm {
+		let asset_on_parachain = MultiAsset::ConcreteFungible {
+			id: MultiLocation::X1(Junction::Parent),
+			amount: amount.into(),
+		};
+		Xcm::WithdrawAsset {
+			assets: vec![asset_on_parachain.clone()],
+			effects: vec![Order::InitiateReserveWithdraw {
+				assets: vec![MultiAsset::ConcreteFungible {
+					id: MultiLocation::X1(Junction::Parent),
+					amount: T::ToRelayChainBalance::convert(amount).into(),
+				}],
+				reserve: MultiLocation::X1(Junction::Parent),
+				effects: vec![Order::DepositReserveAsset {
+					assets: vec![MultiAsset::All],
+					dest: MultiLocation::X2(Junction::Parent, Junction::Parachain { id: para_id.into() }),
+					effects: vec![Order::DepositAsset {
+						assets: vec![asset_on_parachain],
+						dest: MultiLocation::X1(Junction::AccountId32 {
+							network: dest_network,
+							id: T::AccountId32Convert::convert(dest.clone()),
+						}),
+					}],
+				}],
+			}],
 		}
 	}
 
@@ -243,12 +293,7 @@ impl<T: Trait> Module<T> {
 		} else {
 			Order::DepositReserveAsset {
 				assets: vec![MultiAsset::All],
-				dest: MultiLocation::X2(
-					Junction::Parent,
-					Junction::Parachain {
-						id: para_id.into(),
-					},
-				),
+				dest: MultiLocation::X2(Junction::Parent, Junction::Parachain { id: para_id.into() }),
 				effects: vec![deposit_to_dest],
 			}
 		};

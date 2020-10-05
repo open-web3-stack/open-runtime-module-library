@@ -88,6 +88,9 @@ pub struct IsConcreteWithGeneralKey<CurrencyId>(PhantomData<CurrencyId>);
 impl<CurrencyId: TryFrom<Vec<u8>>, B: TryFrom<u128>> MatchesFungible<B> for IsConcreteWithGeneralKey<CurrencyId> {
 	fn matches_fungible(a: &MultiAsset) -> Option<B> {
 		if let MultiAsset::ConcreteFungible { id, amount } = a {
+			if id == &MultiLocation::X1(Junction::Parent) {
+				return CheckedConversion::checked_from(*amount);
+			}
 			if let Some(Junction::GeneralKey(key)) = id.last() {
 				if TryInto::<CurrencyId>::try_into(key.clone()).is_ok() {
 					return CheckedConversion::checked_from(*amount);
@@ -116,10 +119,21 @@ impl<Pairs: Get<BTreeSet<(Vec<u8>, MultiLocation)>>> FilterAssetLocation for Nat
 	}
 }
 
-pub struct GeneralKeyCurrencyIdConverter<CurrencyId>(PhantomData<CurrencyId>);
-impl<CurrencyId: TryFrom<Vec<u8>>> CurrencyIdConversion<CurrencyId> for GeneralKeyCurrencyIdConverter<CurrencyId> {
+pub struct CurrencyIdConverter<CurrencyId, RelayChainCurrencyId>(
+	PhantomData<CurrencyId>,
+	PhantomData<RelayChainCurrencyId>,
+);
+impl<CurrencyId, RelayChainCurrencyId> CurrencyIdConversion<CurrencyId>
+	for CurrencyIdConverter<CurrencyId, RelayChainCurrencyId>
+where
+	CurrencyId: TryFrom<Vec<u8>>,
+	RelayChainCurrencyId: Get<CurrencyId>,
+{
 	fn from_asset(asset: &MultiAsset) -> Option<CurrencyId> {
 		if let MultiAsset::ConcreteFungible { id: location, .. } = asset {
+			if location == &MultiLocation::X1(Junction::Parent) {
+				return Some(RelayChainCurrencyId::get());
+			}
 			if let Some(Junction::GeneralKey(key)) = location.last() {
 				return CurrencyId::try_from(key.clone()).ok();
 			}
