@@ -2,7 +2,7 @@
 
 use codec::FullCodec;
 use sp_runtime::{
-	traits::{CheckedConversion, MaybeSerializeDeserialize, SaturatedConversion},
+	traits::{CheckedConversion, Convert, MaybeSerializeDeserialize, SaturatedConversion},
 	DispatchResult,
 };
 use sp_std::{
@@ -25,12 +25,14 @@ pub trait CurrencyIdConversion<CurrencyId> {
 }
 
 pub struct MultiCurrencyAdapter<MultiCurrency, Matcher, AccountIdConverter, AccountId, CurrencyIdConverter, CurrencyId>(
-	PhantomData<MultiCurrency>,
-	PhantomData<Matcher>,
-	PhantomData<AccountIdConverter>,
-	PhantomData<AccountId>,
-	PhantomData<CurrencyIdConverter>,
-	PhantomData<CurrencyId>,
+	PhantomData<(
+		MultiCurrency,
+		Matcher,
+		AccountIdConverter,
+		AccountId,
+		CurrencyIdConverter,
+		CurrencyId,
+	)>,
 );
 
 impl<
@@ -84,12 +86,22 @@ pub trait XcmHandler {
 	fn execute(origin: Self::Origin, xcm: Self::Xcm) -> DispatchResult;
 }
 
-pub struct IsConcreteWithGeneralKey<CurrencyId>(PhantomData<CurrencyId>);
-impl<CurrencyId: TryFrom<Vec<u8>>, B: TryFrom<u128>> MatchesFungible<B> for IsConcreteWithGeneralKey<CurrencyId> {
+pub struct IsConcreteWithGeneralKey<CurrencyId, FromRelayChainBalance>(
+	PhantomData<(CurrencyId, FromRelayChainBalance)>,
+);
+impl<CurrencyId, B, FromRelayChainBalance> MatchesFungible<B>
+	for IsConcreteWithGeneralKey<CurrencyId, FromRelayChainBalance>
+where
+	CurrencyId: TryFrom<Vec<u8>>,
+	B: TryFrom<u128>,
+	FromRelayChainBalance: Convert<u128, u128>,
+{
 	fn matches_fungible(a: &MultiAsset) -> Option<B> {
 		if let MultiAsset::ConcreteFungible { id, amount } = a {
 			if id == &MultiLocation::X1(Junction::Parent) {
-				return CheckedConversion::checked_from(*amount);
+				// Convert relay chain decimals to local chain
+				let local_amount = FromRelayChainBalance::convert(*amount);
+				return CheckedConversion::checked_from(local_amount);
 			}
 			if let Some(Junction::GeneralKey(key)) = id.last() {
 				if TryInto::<CurrencyId>::try_into(key.clone()).is_ok() {

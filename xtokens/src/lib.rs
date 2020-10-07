@@ -143,13 +143,10 @@ impl<T: Trait> Module<T> {
 		Xcm::WithdrawAsset {
 			assets: vec![MultiAsset::ConcreteFungible {
 				id: MultiLocation::X1(Junction::Parent),
-				amount: amount.into(),
+				amount: T::ToRelayChainBalance::convert(amount).into(),
 			}],
 			effects: vec![Order::InitiateReserveWithdraw {
-				assets: vec![MultiAsset::ConcreteFungible {
-					id: MultiLocation::X1(Junction::Parent),
-					amount: T::ToRelayChainBalance::convert(amount).into(),
-				}],
+				assets: vec![MultiAsset::All],
 				reserve: MultiLocation::X1(Junction::Parent),
 				effects: vec![Order::DepositAsset {
 					assets: vec![MultiAsset::All],
@@ -194,23 +191,19 @@ impl<T: Trait> Module<T> {
 		dest_network: NetworkId,
 		amount: T::Balance,
 	) -> Xcm {
-		let asset_on_parachain = MultiAsset::ConcreteFungible {
-			id: MultiLocation::X1(Junction::Parent),
-			amount: amount.into(),
-		};
 		Xcm::WithdrawAsset {
-			assets: vec![asset_on_parachain.clone()],
+			assets: vec![MultiAsset::ConcreteFungible {
+				id: MultiLocation::X1(Junction::Parent),
+				amount: T::ToRelayChainBalance::convert(amount).into(),
+			}],
 			effects: vec![Order::InitiateReserveWithdraw {
-				assets: vec![MultiAsset::ConcreteFungible {
-					id: MultiLocation::X1(Junction::Parent),
-					amount: T::ToRelayChainBalance::convert(amount).into(),
-				}],
+				assets: vec![MultiAsset::All],
 				reserve: MultiLocation::X1(Junction::Parent),
 				effects: vec![Order::DepositReserveAsset {
 					assets: vec![MultiAsset::All],
 					dest: MultiLocation::X1(Junction::Parachain { id: para_id.into() }),
 					effects: vec![Order::DepositAsset {
-						assets: vec![asset_on_parachain],
+						assets: vec![MultiAsset::All],
 						dest: MultiLocation::X1(Junction::AccountId32 {
 							network: dest_network,
 							id: T::AccountId32Convert::convert(dest.clone()),
