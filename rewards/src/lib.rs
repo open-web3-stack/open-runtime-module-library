@@ -17,7 +17,7 @@ mod mock;
 mod tests;
 
 pub trait WeightInfo {
-	fn on_initialize() -> Weight;
+	fn on_initialize(c: u32) -> Weight;
 }
 
 /// The Reward Pool Info.
@@ -90,7 +90,7 @@ decl_module! {
 					Pools::<T>::mutate(pool, | pool_info | pool_info.total_rewards = pool_info.total_rewards.saturating_add(reward_to_accumulate));
 				}
 			});
-			T::WeightInfo::on_initialize()
+			T::WeightInfo::on_initialize(Pools::<T>::iter().count() as u32)
 		}
 	}
 }

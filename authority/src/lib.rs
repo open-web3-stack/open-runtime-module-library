@@ -42,7 +42,8 @@ mod tests;
 
 pub trait WeightInfo {
 	fn dispatch_as() -> Weight;
-	fn schedule_dispatch() -> Weight;
+	fn schedule_dispatch_without_delay() -> Weight;
+	fn schedule_dispatch_with_delay() -> Weight;
 	fn fast_track_scheduled_dispatch() -> Weight;
 	fn delay_scheduled_dispatch() -> Weight;
 	fn cancel_scheduled_dispatch() -> Weight;
@@ -216,7 +217,7 @@ decl_module! {
 
 		/// Schedule a dispatchable to be dispatched at later block.
 		/// This is the only way to dispatch a call with `DelayedOrigin`.
-		#[weight = T::WeightInfo::schedule_dispatch()]
+		#[weight = T::WeightInfo::schedule_dispatch_without_delay()]
 		pub fn schedule_dispatch(
 			origin,
 			when: DispatchTime<T::BlockNumber>,

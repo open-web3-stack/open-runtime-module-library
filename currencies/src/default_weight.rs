@@ -1,26 +1,28 @@
-//! Weights for the Currencies Module
+//! THIS FILE WAS AUTO-GENERATED USING THE SUBSTRATE BENCHMARK CLI VERSION 2.0.0
 
-use frame_support::weights::{
-	constants::{RocksDbWeight as DbWeight, WEIGHT_PER_MICROS},
-	Weight,
-};
+#![allow(unused_parens)]
+#![allow(unused_imports)]
+
+use frame_support::weights::{constants::RocksDbWeight as DbWeight, Weight};
 
 impl crate::WeightInfo for () {
-	fn transfer() -> Weight {
-		WEIGHT_PER_MICROS
-			.saturating_mul(90)
-			.saturating_add(DbWeight::get().reads_writes(5, 2))
+	fn transfer_non_native_currency() -> Weight {
+		(172_011_000 as Weight)
+			.saturating_add(DbWeight::get().reads(5 as Weight))
+			.saturating_add(DbWeight::get().writes(2 as Weight))
 	}
-
 	fn transfer_native_currency() -> Weight {
-		WEIGHT_PER_MICROS
-			.saturating_mul(70)
-			.saturating_add(DbWeight::get().reads_writes(2, 2))
+		(43_023_000 as Weight)
 	}
-
-	fn update_balance() -> Weight {
-		WEIGHT_PER_MICROS
-			.saturating_mul(66)
-			.saturating_add(DbWeight::get().reads_writes(5, 2))
+	fn update_balance_non_native_currency() -> Weight {
+		(137_440_000 as Weight)
+			.saturating_add(DbWeight::get().reads(5 as Weight))
+			.saturating_add(DbWeight::get().writes(2 as Weight))
+	}
+	fn update_balance_native_currency_creating() -> Weight {
+		(64_432_000 as Weight)
+	}
+	fn update_balance_native_currency_killing() -> Weight {
+		(62_595_000 as Weight)
 	}
 }

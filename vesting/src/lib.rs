@@ -48,9 +48,9 @@ mod mock;
 mod tests;
 
 pub trait WeightInfo {
-	fn claim() -> Weight;
 	fn vested_transfer() -> Weight;
-	fn update_vesting_schedules() -> Weight;
+	fn claim(i: u32) -> Weight;
+	fn update_vesting_schedules(i: u32) -> Weight;
 }
 
 /// The maximum number of vesting schedules an account can have.
@@ -201,7 +201,8 @@ decl_module! {
 		/// -------------------
 		/// Base Weight: 65.23 µs
 		/// # </weight>
-		#[weight = T::WeightInfo::claim()]
+		// can not get VestingSchedule count from `who`, so use `MAX_VESTINGS / 2`
+		#[weight = T::WeightInfo::claim((MAX_VESTINGS / 2) as u32)]
 		pub fn claim(origin) {
 			let who = ensure_signed(origin)?;
 			let locked_amount = Self::do_claim(&who);
@@ -240,7 +241,7 @@ decl_module! {
 		/// -------------------
 		/// Base Weight: 61.87 µs
 		/// # </weight>
-		#[weight = T::WeightInfo::update_vesting_schedules()]
+		#[weight = T::WeightInfo::update_vesting_schedules(vesting_schedules.len() as u32)]
 		pub fn update_vesting_schedules(
 			origin,
 			who: <T::Lookup as StaticLookup>::Source,
