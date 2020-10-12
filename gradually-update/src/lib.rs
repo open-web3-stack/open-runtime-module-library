@@ -38,7 +38,7 @@ mod tests;
 pub trait WeightInfo {
 	fn gradually_update() -> Weight;
 	fn cancel_gradually_update() -> Weight;
-	fn on_initialize(need_update: bool, update_len: usize) -> Weight;
+	fn on_finalize(u: u32) -> Weight;
 }
 
 type StorageKey = Vec<u8>;
@@ -155,7 +155,11 @@ decl_module! {
 		/// `on_initialize` to return the weight used in `on_finalize`.
 		fn on_initialize() -> Weight {
 			let now = <frame_system::Module<T>>::block_number();
-			T::WeightInfo::on_initialize(Self::_need_update(now), GraduallyUpdates::get().len())
+			if Self::_need_update(now) {
+				T::WeightInfo::on_finalize(GraduallyUpdates::get().len() as u32)
+			} else {
+				0
+			}
 		}
 
 		/// Update gradually_update to adjust numeric parameter.

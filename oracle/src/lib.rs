@@ -25,8 +25,8 @@ mod mock;
 mod tests;
 
 pub trait WeightInfo {
-	fn feed_values(n: usize) -> Weight;
-	fn on_initialize() -> Weight;
+	fn feed_values(c: u32) -> Weight;
+	fn on_finalize() -> Weight;
 }
 
 use codec::{Decode, Encode};
@@ -139,7 +139,7 @@ decl_module! {
 		/// Feed the external value.
 		///
 		/// Require unsigned. However a valid signature signed by session key is required along with payload.
-		#[weight = (T::WeightInfo::feed_values(values.len()), DispatchClass::Operational)]
+		#[weight = (T::WeightInfo::feed_values(values.len() as u32), DispatchClass::Operational)]
 		pub fn feed_values(
 			origin,
 			values: Vec<(T::OracleKey, T::OracleValue)>,
@@ -151,7 +151,7 @@ decl_module! {
 
 		/// `on_initialize` to return the weight used in `on_finalize`.
 		fn on_initialize() -> Weight {
-			T::WeightInfo::on_initialize()
+			T::WeightInfo::on_finalize()
 		}
 
 		fn on_finalize(_n: T::BlockNumber) {

@@ -69,9 +69,11 @@ mod mock;
 mod tests;
 
 pub trait WeightInfo {
-	fn transfer() -> Weight;
+	fn transfer_non_native_currency() -> Weight;
 	fn transfer_native_currency() -> Weight;
-	fn update_balance() -> Weight;
+	fn update_balance_non_native_currency() -> Weight;
+	fn update_balance_native_currency_creating() -> Weight;
+	fn update_balance_native_currency_killing() -> Weight;
 }
 
 type BalanceOf<T> = <<T as Trait>::MultiCurrency as MultiCurrency<<T as frame_system::Trait>::AccountId>>::Balance;
@@ -151,7 +153,7 @@ decl_module! {
 		///		- non-native currency: 90.23 µs
 		///		- native currency in worst case: 70 µs
 		/// # </weight>
-		#[weight = T::WeightInfo::transfer()]
+		#[weight = T::WeightInfo::transfer_non_native_currency()]
 		pub fn transfer(
 			origin,
 			dest: <T::Lookup as StaticLookup>::Source,
@@ -209,7 +211,7 @@ decl_module! {
 		///		- native currency and killing account: 26.33 µs
 		///		- native currency and create account: 27.39 µs
 		/// # </weight>
-		#[weight = T::WeightInfo::transfer_native_currency()]
+		#[weight = T::WeightInfo::update_balance_non_native_currency()]
 		pub fn update_balance(
 			origin,
 			who: <T::Lookup as StaticLookup>::Source,

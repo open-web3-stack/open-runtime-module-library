@@ -28,8 +28,10 @@ mod mock;
 mod tests;
 
 pub trait WeightInfo {
-	fn bid() -> Weight;
-	fn on_finalize(a: u32) -> Weight;
+	fn bid_collateral_auction() -> Weight;
+	fn bid_surplus_auction() -> Weight;
+	fn bid_debit_auction() -> Weight;
+	fn on_finalize(c: u32) -> Weight;
 }
 
 pub trait Trait: frame_system::Trait {
@@ -120,7 +122,7 @@ decl_module! {
 		///             - best cases: 140.7 µs
 		///             - worst cases: 142.8 µs
 		/// # </weight>
-		#[weight = T::WeightInfo::bid()]
+		#[weight = T::WeightInfo::bid_collateral_auction()]
 		pub fn bid(origin, id: T::AuctionId, #[compact] value: T::Balance) {
 			let from = ensure_signed(origin)?;
 
