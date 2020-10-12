@@ -15,14 +15,6 @@ jobs:
       SCCACHE_CACHE_SIZE: "50G"
     steps:
     - uses: actions/checkout@v2
-    - name: Cache cargo
-      uses: actions/cache@v2
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: ${{ runner.os }}-cargo-v2
     - name: Install toolchain
       uses: actions-rs/toolchain@v1
       with:
