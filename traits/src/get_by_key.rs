@@ -1,9 +1,28 @@
+/// A trait for querying a value by a key.
 pub trait GetByKey<Key, Value> {
+	/// Return the value.
 	fn get(k: &Key) -> Value;
 }
 
+/// Create new implementations of the `GetByKey` trait.
+///
+/// The implementation is typically used like a map or set.
+///
+/// Example:
+/// ```ignore
+/// use primitives::CurrencyId;
+/// parameter_type_with_key! {
+/// 	pub Rates: |currency_id: CurrencyId| -> u32 {
+/// 			match currency_id {
+/// 				CurrencyId::DOT => 1,
+/// 				CurrencyId::KSM => 2,
+/// 				_ => 3,
+/// 		}
+/// 	}
+/// }
+/// ```
 #[macro_export]
-macro_rules! get_by_key_type {
+macro_rules! parameter_type_with_key {
 	(
 		pub $name:ident: |$k:ident: $key:ty| -> $value:ty $body:block;
 	) => {
@@ -20,7 +39,7 @@ macro_rules! get_by_key_type {
 mod tests {
 	use super::*;
 
-	get_by_key_type! {
+	parameter_type_with_key! {
 		pub Test: |k: u32| -> u32 {
 			match k {
 				1 => 1,
