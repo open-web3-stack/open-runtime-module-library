@@ -16,6 +16,7 @@ pub use currency::{
 	LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency, OnReceived,
 };
 pub use data_provider::{DataFeeder, DataProvider, DataProviderExtended};
+pub use get_by_key::GetByKey;
 pub use price::{DefaultPriceProvider, PriceProvider};
 pub use rewards::RewardHandler;
 
@@ -23,6 +24,7 @@ pub mod arithmetic;
 pub mod auction;
 pub mod currency;
 pub mod data_provider;
+pub mod get_by_key;
 pub mod price;
 pub mod rewards;
 
