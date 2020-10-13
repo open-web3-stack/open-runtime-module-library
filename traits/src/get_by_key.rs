@@ -12,13 +12,13 @@ pub trait GetByKey<Key, Value> {
 /// ```ignore
 /// use primitives::CurrencyId;
 /// parameter_type_with_key! {
-/// 	pub Rates: |currency_id: CurrencyId| -> u32 {
-/// 			match currency_id {
-/// 				CurrencyId::DOT => 1,
-/// 				CurrencyId::KSM => 2,
-/// 				_ => 3,
-/// 		}
-/// 	}
+///     pub Rates: |currency_id: CurrencyId| -> u32 {
+///         match currency_id {
+///             CurrencyId::DOT => 1,
+///             CurrencyId::KSM => 2,
+///             _ => 3,
+///         }
+///     }
 /// }
 /// ```
 #[macro_export]
