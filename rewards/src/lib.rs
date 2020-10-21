@@ -85,12 +85,14 @@ decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
 
 		fn on_initialize(now: T::BlockNumber) -> Weight {
+			let mut count = 0;
 			T::Handler::accumulate_reward(now, | pool, reward_to_accumulate | {
 				if !reward_to_accumulate.is_zero() {
+					count += 1;
 					Pools::<T>::mutate(pool, | pool_info | pool_info.total_rewards = pool_info.total_rewards.saturating_add(reward_to_accumulate));
 				}
 			});
-			T::WeightInfo::on_initialize(Pools::<T>::iter().count() as u32)
+			T::WeightInfo::on_initialize(count)
 		}
 	}
 }
