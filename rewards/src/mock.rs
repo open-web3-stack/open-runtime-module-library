@@ -79,7 +79,7 @@ impl RewardHandler<AccountId, BlockNumber> for Handler {
 
 	fn accumulate_reward(
 		now: BlockNumber,
-		callback: impl Fn(Self::PoolId, Self::Balance),
+		mut callback: impl FnMut(Self::PoolId, Self::Balance),
 	) -> Vec<(Self::CurrencyId, Self::Balance)> {
 		if now % 2 == 0 {
 			let mut total_accumulated_rewards = 0;
