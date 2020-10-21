@@ -19,7 +19,7 @@ pub trait RewardHandler<AccountId, BlockNumber> {
 	/// Accumulate rewards
 	fn accumulate_reward(
 		now: BlockNumber,
-		callback: impl Fn(Self::PoolId, Self::Balance),
+		callback: impl FnMut(Self::PoolId, Self::Balance),
 	) -> Vec<(Self::CurrencyId, Self::Balance)>;
 
 	/// Payout the reward to `who`
