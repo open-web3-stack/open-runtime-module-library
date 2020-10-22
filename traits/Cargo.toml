@@ -3,7 +3,7 @@ name = "orml-traits"
 description = "Shared traits including `BasicCurrency`, `MultiCurrency`, `Auction` and more."
 repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/traits"
 license = "Apache-2.0"
-version = "0.3.2"
+version = "0.3.3-dev"
 authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2018"
 

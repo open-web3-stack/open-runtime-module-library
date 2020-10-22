@@ -3,7 +3,7 @@ name = "orml-nft"
 description = "Utility pallet to perform ROOT calls in a PoA network"
 repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/nft"
 license = "Apache-2.0"
-version = "0.3.2"
+version = "0.3.3-dev"
 authors = ["Acala Developers"]
 edition = "2018"
 
