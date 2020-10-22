@@ -31,13 +31,11 @@ use sp_std::vec::Vec;
 mod mock;
 mod tests;
 
-pub type CID = Vec<u8>;
-
 /// Class info
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub struct ClassInfo<TokenId, AccountId, Data> {
 	/// Class metadata
-	pub metadata: CID,
+	pub metadata: Vec<u8>,
 	/// Total issuance for the class
 	pub total_issuance: TokenId,
 	/// Class owner
@@ -50,7 +48,7 @@ pub struct ClassInfo<TokenId, AccountId, Data> {
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub struct TokenInfo<AccountId, Data> {
 	/// Token metadata
-	pub metadata: CID,
+	pub metadata: Vec<u8>,
 	/// Token owner
 	pub owner: AccountId,
 	/// Token Properties
@@ -119,7 +117,11 @@ decl_module! {
 
 impl<T: Trait> Module<T> {
 	/// Create NFT(non fungible token) class
-	pub fn create_class(owner: &T::AccountId, metadata: CID, data: T::ClassData) -> Result<T::ClassId, DispatchError> {
+	pub fn create_class(
+		owner: &T::AccountId,
+		metadata: Vec<u8>,
+		data: T::ClassData,
+	) -> Result<T::ClassId, DispatchError> {
 		let class_id = NextClassId::<T>::try_mutate(|id| -> Result<T::ClassId, DispatchError> {
 			let current_id = *id;
 			*id = id.checked_add(&One::one()).ok_or(Error::<T>::NoAvailableClassId)?;
@@ -159,7 +161,7 @@ impl<T: Trait> Module<T> {
 	pub fn mint(
 		owner: &T::AccountId,
 		class_id: T::ClassId,
-		metadata: CID,
+		metadata: Vec<u8>,
 		data: T::TokenData,
 	) -> Result<T::TokenId, DispatchError> {
 		NextTokenId::<T>::try_mutate(|id| -> Result<T::TokenId, DispatchError> {
