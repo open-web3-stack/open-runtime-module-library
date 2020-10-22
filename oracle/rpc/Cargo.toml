@@ -1,6 +1,6 @@
 [package]
 name = "orml-oracle-rpc"
-version = "0.3.2-dev"
+version = "0.3.2"
 authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2018"
 

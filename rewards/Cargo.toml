@@ -3,7 +3,7 @@ name = "orml-rewards"
 description = "Store and manage shares and rewards"
 repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/rewards"
 license = "Apache-2.0"
-version = "0.3.2-dev"
+version = "0.3.2"
 authors = ["Acala Developers"]
 edition = "2018"
 
@@ -15,7 +15,7 @@ sp-io = { version = "2.0.0", default-features = false }
 sp-std = { version = "2.0.0", default-features = false }
 frame-support = { version = "2.0.0", default-features = false }
 frame-system = { version = "2.0.0", default-features = false }
-orml-traits = { path = "../traits", version = "0.3.2-dev", default-features = false }
+orml-traits = { path = "../traits", version = "0.3.2", default-features = false }
 
 [dev-dependencies]
 sp-core = { version = "2.0.0", default-features = false }
