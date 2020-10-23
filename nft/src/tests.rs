@@ -62,6 +62,7 @@ fn transfer_should_work() {
 		assert_ok!(NonFungibleTokenModule::transfer(&BOB, &BOB, (CLASS_ID, TOKEN_ID)));
 		assert_ok!(NonFungibleTokenModule::transfer(&BOB, &ALICE, (CLASS_ID, TOKEN_ID)));
 		assert_ok!(NonFungibleTokenModule::transfer(&ALICE, &BOB, (CLASS_ID, TOKEN_ID)));
+		assert!(NonFungibleTokenModule::is_owner(&BOB, (CLASS_ID, TOKEN_ID)));
 	});
 }
 
@@ -81,6 +82,10 @@ fn transfer_should_fail() {
 		assert_noop!(
 			NonFungibleTokenModule::mint(&BOB, CLASS_ID_NOT_EXIST, vec![1], ()),
 			Error::<Runtime>::ClassNotFound
+		);
+		assert_noop!(
+			NonFungibleTokenModule::transfer(&ALICE, &ALICE, (CLASS_ID, TOKEN_ID)),
+			Error::<Runtime>::NoPermission
 		);
 	});
 }

@@ -141,12 +141,14 @@ impl<T: Trait> Module<T> {
 
 	/// Transfer NFT(non fungible token) from `from` account to `to` account
 	pub fn transfer(from: &T::AccountId, to: &T::AccountId, token: (T::ClassId, T::TokenId)) -> DispatchResult {
-		if from == to {
-			return Ok(());
-		}
-
 		TokensByOwner::<T>::try_mutate_exists(from, token, |token_by_owner| -> DispatchResult {
-			ensure!(token_by_owner.take().is_some(), Error::<T>::NoPermission);
+			ensure!(token_by_owner.is_some(), Error::<T>::NoPermission);
+			if from == to {
+				// no change needed
+				return Ok(());
+			}
+
+			*token_by_owner = None;
 			TokensByOwner::<T>::insert(to, token, ());
 
 			Tokens::<T>::try_mutate_exists(token.0, token.1, |token_info| -> DispatchResult {
@@ -217,5 +219,9 @@ impl<T: Trait> Module<T> {
 			ensure!(info.total_issuance == Zero::zero(), Error::<T>::CannotDestroyClass);
 			Ok(())
 		})
+	}
+
+	pub fn is_owner(account: &T::AccountId, token: (T::ClassId, T::TokenId)) -> bool {
+		TokensByOwner::<T>::contains_key(account, token)
 	}
 }
