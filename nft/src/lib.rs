@@ -96,7 +96,7 @@ decl_storage! {
 		/// Next available class ID.
 		pub NextClassId get(fn next_class_id): T::ClassId;
 		/// Next available token ID.
-		pub NextTokenId get(fn next_token_id): T::TokenId;
+		pub NextTokenId get(fn next_token_id): map hasher(twox_64_concat) T::ClassId => T::TokenId;
 		/// Store class info.
 		///
 		/// Returns `None` if class info not set or removed.
@@ -166,7 +166,7 @@ impl<T: Trait> Module<T> {
 		metadata: Vec<u8>,
 		data: T::TokenData,
 	) -> Result<T::TokenId, DispatchError> {
-		NextTokenId::<T>::try_mutate(|id| -> Result<T::TokenId, DispatchError> {
+		NextTokenId::<T>::try_mutate(class_id, |id| -> Result<T::TokenId, DispatchError> {
 			let token_id = *id;
 			*id = id.checked_add(&One::one()).ok_or(Error::<T>::NoAvailableTokenId)?;
 
@@ -217,6 +217,9 @@ impl<T: Trait> Module<T> {
 			let info = class_info.take().ok_or(Error::<T>::ClassNotFound)?;
 			ensure!(info.owner == *owner, Error::<T>::NoPermission);
 			ensure!(info.total_issuance == Zero::zero(), Error::<T>::CannotDestroyClass);
+
+			NextTokenId::<T>::remove(class_id);
+
 			Ok(())
 		})
 	}

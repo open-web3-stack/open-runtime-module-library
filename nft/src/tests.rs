@@ -29,8 +29,22 @@ fn create_class_should_fail() {
 #[test]
 fn mint_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
+		let next_class_id = NonFungibleTokenModule::next_class_id();
+		assert_eq!(next_class_id, CLASS_ID);
 		assert_ok!(NonFungibleTokenModule::create_class(&ALICE, vec![1], ()));
+		assert_eq!(NonFungibleTokenModule::next_token_id(CLASS_ID), 0);
 		assert_ok!(NonFungibleTokenModule::mint(&BOB, CLASS_ID, vec![1], ()));
+		assert_eq!(NonFungibleTokenModule::next_token_id(CLASS_ID), 1);
+		assert_ok!(NonFungibleTokenModule::mint(&BOB, CLASS_ID, vec![1], ()));
+		assert_eq!(NonFungibleTokenModule::next_token_id(CLASS_ID), 2);
+
+		let next_class_id = NonFungibleTokenModule::next_class_id();
+		assert_ok!(NonFungibleTokenModule::create_class(&ALICE, vec![1], ()));
+		assert_eq!(NonFungibleTokenModule::next_token_id(next_class_id), 0);
+		assert_ok!(NonFungibleTokenModule::mint(&BOB, next_class_id, vec![1], ()));
+		assert_eq!(NonFungibleTokenModule::next_token_id(next_class_id), 1);
+
+		assert_eq!(NonFungibleTokenModule::next_token_id(CLASS_ID), 2);
 	});
 }
 
@@ -46,7 +60,7 @@ fn mint_should_fail() {
 			Error::<Runtime>::NumOverflow
 		);
 
-		NextTokenId::<Runtime>::mutate(|id| *id = <Runtime as Trait>::TokenId::max_value());
+		NextTokenId::<Runtime>::mutate(CLASS_ID, |id| *id = <Runtime as Trait>::TokenId::max_value());
 		assert_noop!(
 			NonFungibleTokenModule::mint(&BOB, CLASS_ID, vec![1], ()),
 			Error::<Runtime>::NoAvailableTokenId
@@ -136,6 +150,8 @@ fn destroy_class_should_work() {
 		assert_ok!(NonFungibleTokenModule::mint(&BOB, CLASS_ID, vec![1], ()));
 		assert_ok!(NonFungibleTokenModule::burn(&BOB, (CLASS_ID, TOKEN_ID)));
 		assert_ok!(NonFungibleTokenModule::destroy_class(&ALICE, CLASS_ID));
+		assert_eq!(Classes::<Runtime>::contains_key(CLASS_ID), false);
+		assert_eq!(NextTokenId::<Runtime>::contains_key(CLASS_ID), false);
 	});
 }
 
