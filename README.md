@@ -69,3 +69,12 @@ Tokens: orml_tokens::{Module, Storage, Call, Event<T>, Config<T>},
 	- Type check the code, with std feature, including tests.
 - `make test`
 	- Run tests.
+
+# Projects using ORML
+
+_In alphabetical order_
+
+- [Acala Network](https://github.com/AcalaNetwork/Acala)
+- [Laminar Chain](https://github.com/laminar-protocol/laminar-chain)
+
+- [_Add yours project there_](https://github.com/open-web3-stack/open-runtime-module-library/edit/master/README.md)
