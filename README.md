@@ -76,5 +76,4 @@ _In alphabetical order_
 
 - [Acala Network](https://github.com/AcalaNetwork/Acala)
 - [Laminar Chain](https://github.com/laminar-protocol/laminar-chain)
-
 - [_Add yours project there_](https://github.com/open-web3-stack/open-runtime-module-library/edit/master/README.md)
