@@ -139,7 +139,7 @@ decl_module! {
 
 		/// Feed the external value.
 		///
-		/// Require unsigned. However a valid signature signed by session key is required along with payload.
+		/// Require authorized operator.
 		#[weight = (T::WeightInfo::feed_values(values.len() as u32), DispatchClass::Operational)]
 		pub fn feed_values(
 			origin,
