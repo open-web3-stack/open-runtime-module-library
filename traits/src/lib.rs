@@ -17,6 +17,7 @@ pub use currency::{
 };
 pub use data_provider::{DataFeeder, DataProvider, DataProviderExtended};
 pub use get_by_key::GetByKey;
+pub use nft::NFT;
 pub use price::{DefaultPriceProvider, PriceProvider};
 pub use rewards::RewardHandler;
 
@@ -25,6 +26,7 @@ pub mod auction;
 pub mod currency;
 pub mod data_provider;
 pub mod get_by_key;
+pub mod nft;
 pub mod price;
 pub mod rewards;
 
