@@ -4,15 +4,11 @@
 
 use frame_support::{
 	impl_outer_event, impl_outer_origin, parameter_types,
-	traits::{ChangeMembers, Contains, ContainsLengthBound},
+	traits::{ChangeMembers, Contains, ContainsLengthBound, CurrencyToVote},
 };
 use frame_system as system;
 use sp_core::H256;
-use sp_runtime::{
-	testing::Header,
-	traits::{Convert, IdentityLookup},
-	ModuleId, Perbill, Percent, Permill,
-};
+use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId, Perbill, Percent, Permill};
 use sp_std::cell::RefCell;
 use std::collections::HashMap;
 
@@ -164,17 +160,15 @@ impl pallet_treasury::Trait for Runtime {
 }
 
 pub struct CurrencyToVoteHandler;
-impl Convert<u64, u64> for CurrencyToVoteHandler {
-	fn convert(x: u64) -> u64 {
-		x
+impl CurrencyToVote<u64> for CurrencyToVoteHandler {
+	fn to_vote(value: u64, _issuance: u64) -> u64 {
+		value
 	}
-}
-impl Convert<u128, u64> for CurrencyToVoteHandler {
-	fn convert(x: u128) -> u64 {
-		x as u64
-	}
-}
 
+	fn to_currency(value: u128, _issuance: u64) -> u64 {
+		value as u64
+	}
+}
 parameter_types! {
 	pub const CandidacyBond: u64 = 3;
 }
