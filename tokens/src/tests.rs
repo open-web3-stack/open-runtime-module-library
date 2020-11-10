@@ -3,7 +3,7 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{assert_noop, assert_ok, traits::WithdrawReason};
+use frame_support::{assert_noop, assert_ok, traits::WithdrawReasons};
 use mock::{
 	Balance, ExtBuilder, Runtime, System, TestEvent, Tokens, TreasuryCurrencyAdapter, ACCUMULATED_RECEIVED, ALICE, BOB,
 	ID_1, ID_2, TEST_TOKEN_ID, TREASURY_ACCOUNT,
@@ -450,7 +450,7 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 				<Runtime as pallet_elections_phragmen::Trait>::Currency::ensure_can_withdraw(
 					&TREASURY_ACCOUNT,
 					10,
-					WithdrawReason::Transfer.into(),
+					WithdrawReasons::TRANSFER,
 					0
 				)
 			);
@@ -493,7 +493,7 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 			let imbalance = <Runtime as pallet_elections_phragmen::Trait>::Currency::withdraw(
 				&TREASURY_ACCOUNT,
 				10,
-				WithdrawReason::Transfer.into(),
+				WithdrawReasons::TRANSFER,
 				ExistenceRequirement::KeepAlive,
 			);
 			assert_eq!(
@@ -675,7 +675,7 @@ fn currency_adapter_double_locking_should_work() {
 		.one_hundred_for_treasury_account()
 		.build()
 		.execute_with(|| {
-			TreasuryCurrencyAdapter::set_lock(ID_1, &TREASURY_ACCOUNT, 5, WithdrawReasons::none());
+			TreasuryCurrencyAdapter::set_lock(ID_1, &TREASURY_ACCOUNT, 5, WithdrawReasons::empty());
 			TreasuryCurrencyAdapter::set_lock(ID_2, &TREASURY_ACCOUNT, 5, WithdrawReasons::all());
 			assert_ok!(TreasuryCurrencyAdapter::transfer(
 				&TREASURY_ACCOUNT,
@@ -693,7 +693,7 @@ fn currency_adapter_combination_locking_should_work() {
 		.build()
 		.execute_with(|| {
 			// withdrawReasons not work
-			TreasuryCurrencyAdapter::set_lock(ID_1, &TREASURY_ACCOUNT, u64::max_value(), WithdrawReasons::none());
+			TreasuryCurrencyAdapter::set_lock(ID_1, &TREASURY_ACCOUNT, u64::max_value(), WithdrawReasons::empty());
 			TreasuryCurrencyAdapter::set_lock(ID_2, &TREASURY_ACCOUNT, 0, WithdrawReasons::all());
 			assert_noop!(
 				TreasuryCurrencyAdapter::transfer(&TREASURY_ACCOUNT, &ALICE, 1, ExistenceRequirement::AllowDeath),
@@ -757,17 +757,17 @@ fn currency_adapter_lock_reasons_extension_should_work() {
 		.one_hundred_for_treasury_account()
 		.build()
 		.execute_with(|| {
-			TreasuryCurrencyAdapter::set_lock(ID_1, &TREASURY_ACCOUNT, 90, WithdrawReason::Transfer.into());
+			TreasuryCurrencyAdapter::set_lock(ID_1, &TREASURY_ACCOUNT, 90, WithdrawReasons::TRANSFER);
 			assert_noop!(
 				TreasuryCurrencyAdapter::transfer(&TREASURY_ACCOUNT, &ALICE, 6, ExistenceRequirement::AllowDeath),
 				Error::<Runtime>::LiquidityRestrictions
 			);
-			TreasuryCurrencyAdapter::extend_lock(ID_1, &TREASURY_ACCOUNT, 90, WithdrawReasons::none());
+			TreasuryCurrencyAdapter::extend_lock(ID_1, &TREASURY_ACCOUNT, 90, WithdrawReasons::empty());
 			assert_noop!(
 				TreasuryCurrencyAdapter::transfer(&TREASURY_ACCOUNT, &ALICE, 6, ExistenceRequirement::AllowDeath),
 				Error::<Runtime>::LiquidityRestrictions
 			);
-			TreasuryCurrencyAdapter::extend_lock(ID_1, &TREASURY_ACCOUNT, 90, WithdrawReason::Reserve.into());
+			TreasuryCurrencyAdapter::extend_lock(ID_1, &TREASURY_ACCOUNT, 90, WithdrawReasons::RESERVE);
 			assert_noop!(
 				TreasuryCurrencyAdapter::transfer(&TREASURY_ACCOUNT, &ALICE, 6, ExistenceRequirement::AllowDeath),
 				Error::<Runtime>::LiquidityRestrictions

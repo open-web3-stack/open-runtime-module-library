@@ -119,20 +119,20 @@ fn schedule_dispatch_after_work() {
 		));
 		run_to_block(1);
 		assert_eq!(
-			Authority::schedule_dispatch(Origin::root(), DispatchTime::After(0), 0, true, Box::new(call.clone())),
-			Err(Error::<Runtime>::FailedToSchedule.into())
+			Authority::schedule_dispatch(Origin::root(), DispatchTime::At(0), 0, true, Box::new(call.clone())),
+			Err(Error::<Runtime>::Overflow.into())
 		);
 
 		assert_ok!(Authority::schedule_dispatch(
 			Origin::root(),
-			DispatchTime::After(1),
+			DispatchTime::After(0),
 			0,
 			true,
 			Box::new(call.clone())
 		));
 		let event = mock::Event::authority(RawEvent::Scheduled(
 			OriginCaller::authority(DelayedOrigin {
-				delay: 1,
+				delay: 0,
 				origin: Box::new(OriginCaller::system(RawOrigin::Root)),
 			}),
 			1,
@@ -142,7 +142,7 @@ fn schedule_dispatch_after_work() {
 		run_to_block(2);
 		let event = mock::Event::pallet_scheduler(pallet_scheduler::RawEvent::Dispatched(
 			(2, 0),
-			Some([1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0].to_vec()),
+			Some([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0].to_vec()),
 			Ok(()),
 		));
 		assert!(System::events().iter().any(|record| record.event == event));
@@ -150,7 +150,7 @@ fn schedule_dispatch_after_work() {
 		// with_delayed_origin = false
 		assert_ok!(Authority::schedule_dispatch(
 			Origin::root(),
-			DispatchTime::After(1),
+			DispatchTime::After(0),
 			0,
 			false,
 			Box::new(call.clone())
