@@ -776,7 +776,9 @@ macro_rules! impl_benchmark {
 		( $( { $( $name_inst:ident )? } $name:ident )* )
 		( $( $name_extra:ident ),* )
 	) => {
-		impl $crate::Benchmarking<$crate::BenchmarkResults> for $pallet::Module<$runtime $(, $instance)?> {
+		pub struct Benchmark;
+
+		impl $crate::Benchmarking<$crate::BenchmarkResults> for Benchmark {
 			fn benchmarks(extra: bool) -> Vec<&'static [u8]> {
 				let mut all = vec![ $( stringify!($name).as_ref() ),* ];
 				if !extra {
@@ -1115,7 +1117,7 @@ macro_rules! add_benchmark {
 						&steps[..],
 						*repeat,
 						whitelist,
-						*verify
+						*verify,
 					)?,
 					pallet: name_string.to_vec(),
 					benchmark: benchmark.clone(),
