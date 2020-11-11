@@ -33,11 +33,19 @@ Checkout [orml-workshop](https://github.com/xlc/orml-workshop) for example usage
 ### Makefile targets
 
 - `make check`
-	- Type check the code, without std feature, exclduing tests.
+	- Type check the code, without std feature, excluding tests.
 - `make check-tests`
 	- Type check the code, with std feature, including tests.
 - `make test`
 	- Run tests.
+
+### `Cargo.toml`
+
+ORML use `Cargo.dev.toml` to avoid workspace conflicts with project cargo config. To use cargo commands in ORML workspace, create `Cargo.toml` by:
+
+```
+cp Cargo.dev.toml Cargo.toml
+```
 
 # Projects using ORML
 
