@@ -64,6 +64,7 @@ use orml_traits::{
 	BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency, BasicReservableCurrency,
 	LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
 };
+use orml_utilities::with_transaction_result;
 
 mod default_weight;
 mod mock;
@@ -695,13 +696,15 @@ where
 
 impl<T: Trait> MergeAccount<T::AccountId> for Module<T> {
 	fn merge_account(source: &T::AccountId, dest: &T::AccountId) -> DispatchResult {
-		// transfer non-native free to dest
-		T::MultiCurrency::merge_account(source, dest)?;
+		with_transaction_result(|| {
+			// transfer non-native free to dest
+			T::MultiCurrency::merge_account(source, dest)?;
 
-		// unreserve all reserved currency
-		T::NativeCurrency::unreserve(source, T::NativeCurrency::reserved_balance(source));
+			// unreserve all reserved currency
+			T::NativeCurrency::unreserve(source, T::NativeCurrency::reserved_balance(source));
 
-		// transfer all free to dest
-		T::NativeCurrency::transfer(source, dest, T::NativeCurrency::free_balance(source))
+			// transfer all free to dest
+			T::NativeCurrency::transfer(source, dest, T::NativeCurrency::free_balance(source))
+		})
 	}
 }
