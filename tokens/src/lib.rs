@@ -45,6 +45,7 @@ use frame_support::{
 		LockableCurrency as PalletLockableCurrency, ReservableCurrency as PalletReservableCurrency, SignedImbalance,
 		WithdrawReasons,
 	},
+	transactional,
 	weights::Weight,
 	Parameter, StorageMap,
 };
@@ -103,9 +104,6 @@ pub trait Trait: frame_system::Trait {
 
 	/// The currency ID type
 	type CurrencyId: Parameter + Member + Copy + MaybeSerializeDeserialize + Ord;
-
-	/// All non-native currency ids.
-	type AllNonNativeCurrencyIds: Get<Vec<Self::CurrencyId>>;
 
 	/// Hook when some fund is deposited into an account
 	type OnReceived: OnReceived<Self::AccountId, Self::CurrencyId, Self::Balance>;
@@ -883,23 +881,15 @@ where
 }
 
 impl<T: Trait> MergeAccount<T::AccountId> for Module<T> {
+	#[transactional]
 	fn merge_account(source: &T::AccountId, dest: &T::AccountId) -> DispatchResult {
-		// handle other non-native currencies
-		for currency_id in T::AllNonNativeCurrencyIds::get() {
+		<Accounts<T>>::drain_prefix(source.clone()).try_for_each(|(currency_id, account_data)| -> DispatchResult {
 			// ensure the account has no active reserved of non-native token
-			ensure!(
-				<Self as MultiReservableCurrency<T::AccountId>>::reserved_balance(currency_id, source).is_zero(),
-				Error::<T>::StillHasActiveReserved
-			);
+			ensure!(account_data.reserved.is_zero(), Error::<T>::StillHasActiveReserved);
 
 			// transfer all free to recipient
-			<Self as MultiCurrency<T::AccountId>>::transfer(
-				currency_id,
-				source,
-				dest,
-				<Self as MultiCurrency<T::AccountId>>::free_balance(currency_id, source),
-			)?;
-		}
-		Ok(())
+			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, source, dest, account_data.free)?;
+			Ok(())
+		})
 	}
 }

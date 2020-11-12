@@ -73,7 +73,6 @@ type Balance = u64;
 
 parameter_types! {
 	pub const ExistentialDeposit: u64 = 1;
-	pub AllNonNativeCurrencyIds: Vec<CurrencyId> = vec![X_TOKEN_ID];
 }
 
 impl pallet_balances::Trait for Runtime {
@@ -94,7 +93,6 @@ impl tokens::Trait for Runtime {
 	type Amount = i64;
 	type CurrencyId = CurrencyId;
 	type OnReceived = ();
-	type AllNonNativeCurrencyIds = AllNonNativeCurrencyIds;
 	type WeightInfo = ();
 }
 pub type Tokens = tokens::Module<Runtime>;
