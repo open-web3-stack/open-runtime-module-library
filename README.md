@@ -41,11 +41,11 @@ Checkout [orml-workshop](https://github.com/xlc/orml-workshop) for example usage
 
 ### `Cargo.toml`
 
-ORML use `Cargo.dev.toml` to avoid workspace conflicts with project cargo config. To use cargo commands in ORML workspace, create `Cargo.toml` by:
+ORML use `Cargo.dev.toml` to avoid workspace conflicts with project cargo config. To use cargo commands in ORML workspace, create `Cargo.toml` by running
 
-```
-cp Cargo.dev.toml Cargo.toml
-```
+- `cp Cargo.dev.toml Cargo.toml`, or
+- `make Cargo.toml`, or
+- change the command to `make dev-check` etc which does the copy. (For the full list of `make` commands, check `Makefile`)
 
 # Projects using ORML
 
