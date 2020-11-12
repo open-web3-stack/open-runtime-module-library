@@ -8,7 +8,7 @@ pub trait MergeAccount<AccountId> {
 
 #[impl_for_tuples(5)]
 impl<AccountId> MergeAccount<AccountId> for Tuple {
-	//#[transactional]
+	#[transactional]
 	fn merge_account(source: &AccountId, dest: &AccountId) -> DispatchResult {
 		for_tuples!( #( Tuple::merge_account(source, dest)?; )* );
 		Ok(())
