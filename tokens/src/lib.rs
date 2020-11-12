@@ -68,6 +68,7 @@ use sp_std::collections::btree_map::BTreeMap;
 
 pub use crate::imbalances::{NegativeImbalance, PositiveImbalance};
 use orml_traits::{
+	account::MergeAccount,
 	arithmetic::{self, Signed},
 	BalanceStatus, LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency,
 	MultiReservableCurrency, OnReceived,
@@ -102,6 +103,9 @@ pub trait Trait: frame_system::Trait {
 
 	/// The currency ID type
 	type CurrencyId: Parameter + Member + Copy + MaybeSerializeDeserialize + Ord;
+
+	/// All non-native currency ids.
+	type AllNonNativeCurrencyIds: Get<Vec<Self::CurrencyId>>;
 
 	/// Hook when some fund is deposited into an account
 	type OnReceived: OnReceived<Self::AccountId, Self::CurrencyId, Self::Balance>;
@@ -280,6 +284,8 @@ decl_error! {
 		AmountIntoBalanceFailed,
 		/// Failed because liquidity restrictions due to locking
 		LiquidityRestrictions,
+		/// Account still has active reserved
+		StillHasActiveReserved,
 	}
 }
 
@@ -873,5 +879,19 @@ where
 
 	fn remove_lock(id: LockIdentifier, who: &T::AccountId) {
 		Module::<T>::remove_lock(id, GetCurrencyId::get(), who)
+	}
+}
+
+impl<T: Trait> MergeAccount<T::AccountId> for Module<T> {
+	fn merge_account(source: &T::AccountId, dest: &T::AccountId) -> DispatchResult {
+		// handle other non-native currencies
+		for currency_id in T::AllNonNativeCurrencyIds::get() {
+			// ensure the account has no active reserved of non-native token
+			ensure!(<Self as MultiReservableCurrency<T::AccountId>>::reserved_balance(currency_id, source).is_zero(), Error::<T>::StillHasActiveReserved);
+
+			// transfer all free to recipient
+			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, source, dest, <Self as MultiCurrency<T::AccountId>>::free_balance(currency_id, source))?;
+		}
+		Ok(())
 	}
 }

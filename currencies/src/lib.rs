@@ -59,6 +59,7 @@ use sp_std::{
 };
 
 use orml_traits::{
+	account::MergeAccount,
 	arithmetic::{Signed, SimpleArithmetic},
 	BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency, BasicReservableCurrency,
 	LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
@@ -85,7 +86,8 @@ type AmountOf<T> =
 
 pub trait Trait: frame_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
-	type MultiCurrency: MultiCurrencyExtended<Self::AccountId>
+	type MultiCurrency: MergeAccount<Self::AccountId>
+		+ MultiCurrencyExtended<Self::AccountId>
 		+ MultiLockableCurrency<Self::AccountId>
 		+ MultiReservableCurrency<Self::AccountId>;
 	type NativeCurrency: BasicCurrencyExtended<Self::AccountId, Balance = BalanceOf<Self>, Amount = AmountOf<Self>>
@@ -688,5 +690,18 @@ where
 		status: BalanceStatus,
 	) -> result::Result<Self::Balance, DispatchError> {
 		Currency::repatriate_reserved(slashed, beneficiary, value, status)
+	}
+}
+
+impl<T: Trait> MergeAccount<T::AccountId> for Module<T> {
+	fn merge_account(source: &T::AccountId, dest: &T::AccountId) -> DispatchResult {
+		// transfer non-native free to dest
+		T::MultiCurrency::merge_account(source, dest)?;
+
+		// unreserve all reserved currency
+		T::NativeCurrency::unreserve(source, T::NativeCurrency::reserved_balance(source));
+
+		// transfer all free to dest
+		T::NativeCurrency::transfer(source, dest, T::NativeCurrency::free_balance(source))
 	}
 }

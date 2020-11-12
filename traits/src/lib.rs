@@ -20,6 +20,7 @@ pub use get_by_key::GetByKey;
 pub use price::{DefaultPriceProvider, PriceProvider};
 pub use rewards::RewardHandler;
 
+pub mod account;
 pub mod arithmetic;
 pub mod auction;
 pub mod currency;
