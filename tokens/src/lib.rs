@@ -45,6 +45,7 @@ use frame_support::{
 		LockableCurrency as PalletLockableCurrency, ReservableCurrency as PalletReservableCurrency, SignedImbalance,
 		WithdrawReasons,
 	},
+	transactional,
 	weights::Weight,
 	Parameter, StorageMap,
 };
@@ -68,6 +69,7 @@ use sp_std::collections::btree_map::BTreeMap;
 
 pub use crate::imbalances::{NegativeImbalance, PositiveImbalance};
 use orml_traits::{
+	account::MergeAccount,
 	arithmetic::{self, Signed},
 	BalanceStatus, LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency,
 	MultiReservableCurrency, OnReceived,
@@ -280,6 +282,8 @@ decl_error! {
 		AmountIntoBalanceFailed,
 		/// Failed because liquidity restrictions due to locking
 		LiquidityRestrictions,
+		/// Account still has active reserved
+		StillHasActiveReserved,
 	}
 }
 
@@ -873,5 +877,19 @@ where
 
 	fn remove_lock(id: LockIdentifier, who: &T::AccountId) {
 		Module::<T>::remove_lock(id, GetCurrencyId::get(), who)
+	}
+}
+
+impl<T: Trait> MergeAccount<T::AccountId> for Module<T> {
+	#[transactional]
+	fn merge_account(source: &T::AccountId, dest: &T::AccountId) -> DispatchResult {
+		<Accounts<T>>::drain_prefix(&source).try_for_each(|(currency_id, account_data)| -> DispatchResult {
+			// ensure the account has no active reserved of non-native token
+			ensure!(account_data.reserved.is_zero(), Error::<T>::StillHasActiveReserved);
+
+			// transfer all free to recipient
+			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, source, dest, account_data.free)?;
+			Ok(())
+		})
 	}
 }

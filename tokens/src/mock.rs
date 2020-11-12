@@ -4,7 +4,7 @@
 
 use frame_support::{
 	impl_outer_event, impl_outer_origin, parameter_types,
-	traits::{ChangeMembers, Contains, ContainsLengthBound, CurrencyToVote},
+	traits::{ChangeMembers, Contains, ContainsLengthBound, SaturatingCurrencyToVote},
 };
 use frame_system as system;
 use sp_core::H256;
@@ -159,16 +159,6 @@ impl pallet_treasury::Trait for Runtime {
 	type WeightInfo = ();
 }
 
-pub struct CurrencyToVoteHandler;
-impl CurrencyToVote<u64> for CurrencyToVoteHandler {
-	fn to_vote(value: u64, _issuance: u64) -> u64 {
-		value
-	}
-
-	fn to_currency(value: u128, _issuance: u64) -> u64 {
-		value as u64
-	}
-}
 parameter_types! {
 	pub const CandidacyBond: u64 = 3;
 }
@@ -264,7 +254,7 @@ impl pallet_elections_phragmen::Trait for Runtime {
 	type ModuleId = ElectionsPhragmenModuleId;
 	type Event = TestEvent;
 	type Currency = CurrencyAdapter<Runtime, GetTokenId>;
-	type CurrencyToVote = CurrencyToVoteHandler;
+	type CurrencyToVote = SaturatingCurrencyToVote;
 	type ChangeMembers = TestChangeMembers;
 	type InitializeMembers = ();
 	type CandidacyBond = CandidacyBond;
