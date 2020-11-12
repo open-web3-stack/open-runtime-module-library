@@ -6,8 +6,8 @@
 mod tests;
 
 pub use frame_benchmarking::{
-	benchmarking, BenchmarkBatch, BenchmarkConfig, BenchmarkParameter, BenchmarkResults, Benchmarking,
-	BenchmarkingSetup, TrackedStorageKey,
+	benchmarking, whitelisted_caller, BenchmarkBatch, BenchmarkConfig, BenchmarkParameter, BenchmarkResults,
+	Benchmarking, BenchmarkingSetup, TrackedStorageKey,
 };
 #[cfg(feature = "std")]
 pub use frame_benchmarking::{Analysis, BenchmarkSelector};
@@ -432,140 +432,235 @@ macro_rules! benchmarks_iter {
 #[doc(hidden)]
 macro_rules! benchmark_backend {
 	// parsing arms
-	( { $( $instance:ident )? } $name:ident $runtime:ident $pallet:ident {
-		$( $common:tt )*
-	} {
-		$( PRE { $( $pre_parsed:tt )* } )*
-	} { $eval:block } {
+	(
+		{ $( $instance:ident )? }
+		$name:ident
+		$runtime:ident
+		$pallet:ident
+		{ $( $common:tt )* }
+		{ $( PRE { $( $pre_parsed:tt )* } )* }
+		{ $eval:block }
+		{
 			let $pre_id:tt : $pre_ty:ty = $pre_ex:expr;
 			$( $rest:tt )*
-	} $postcode:block) => {
+		}
+		$postcode:block
+	) => {
 		$crate::benchmark_backend! {
-			{ $( $instance)? } $name $runtime $pallet { $( $common )* } {
+			{ $( $instance)? }
+			$name
+			$runtime
+			$pallet
+			{ $( $common )* }
+			{
 				$( PRE { $( $pre_parsed )* } )*
 				PRE { $pre_id , $pre_ty , $pre_ex }
-			} { $eval } { $( $rest )* } $postcode
+			}
+			{ $eval }
+			{ $( $rest )* }
+			$postcode
 		}
 	};
-	( { $( $instance:ident )? } $name:ident $runtime:ident $pallet:ident {
-		$( $common:tt )*
-	} {
-		$( $parsed:tt )*
-	} { $eval:block } {
-		let $param:ident in ( $param_from:expr ) .. $param_to:expr => $param_instancer:expr;
-		$( $rest:tt )*
-	} $postcode:block) => {
+	(
+		{ $( $instance:ident )? }
+		$name:ident
+		$runtime:ident
+		$pallet:ident
+		{ $( $common:tt )* }
+		{ $( $parsed:tt )* }
+		{ $eval:block }
+		{
+			let $param:ident in ( $param_from:expr ) .. $param_to:expr => $param_instancer:expr;
+			$( $rest:tt )*
+		}
+		$postcode:block
+	) => {
 		$crate::benchmark_backend! {
-			{ $( $instance)? } $name $runtime $pallet { $( $common )* } {
+			{ $( $instance)? }
+			$name
+			$runtime
+			$pallet
+			{ $( $common )* }
+			{
 				$( $parsed )*
 				PARAM { $param , $param_from , $param_to , $param_instancer }
-			} { $eval } { $( $rest )* } $postcode
+			}
+			{ $eval }
+			{ $( $rest )* }
+			$postcode
 		}
 	};
 	// mutation arm to look after defaulting to a common param
-	( { $( $instance:ident )? } $name:ident $runtime:ident $pallet:ident {
-		$( { $common:ident , $common_from:tt , $common_to:expr , $common_instancer:expr } )*
-	} {
-		$( $parsed:tt )*
-	} { $eval:block } {
-		let $param:ident in ...;
-		$( $rest:tt )*
-	} $postcode:block) => {
+	(
+		{ $( $instance:ident )? }
+		$name:ident
+		$runtime:ident
+		$pallet:ident
+		{ $( { $common:ident , $common_from:tt , $common_to:expr , $common_instancer:expr } )* }
+		{ $( $parsed:tt )* }
+		{ $eval:block }
+		{
+			let $param:ident in ...;
+			$( $rest:tt )*
+		}
+		$postcode:block
+	) => {
 		$crate::benchmark_backend! {
-			{ $( $instance)? } $name $runtime $pallet {
-				$( { $common , $common_from , $common_to , $common_instancer } )*
-			} {
-				$( $parsed )*
-			} { $eval } {
+			{ $( $instance)? }
+			$name
+			$runtime
+			$pallet
+			{ $( { $common , $common_from , $common_to , $common_instancer } )* }
+			{ $( $parsed )* }
+			{ $eval }
+			{
 				let $param
 					in ({ $( let $common = $common_from; )* $param })
 					.. ({ $( let $common = $common_to; )* $param })
 					=> ({ $( let $common = || -> Result<(), &'static str> { $common_instancer ; Ok(()) }; )* $param()? });
 				$( $rest )*
-			} $postcode
+			}
+			$postcode
 		}
 	};
 	// mutation arm to look after defaulting only the range to common param
-	( { $( $instance:ident )? } $name:ident $runtime:ident $pallet:ident {
-		$( { $common:ident , $common_from:tt , $common_to:expr , $common_instancer:expr } )*
-	} {
-		$( $parsed:tt )*
-	} { $eval:block } {
-		let $param:ident in _ .. _ => $param_instancer:expr ;
-		$( $rest:tt )*
-	} $postcode:block) => {
+	(
+		{ $( $instance:ident )? }
+		$name:ident
+		$runtime:ident
+		$pallet:ident
+		{ $( { $common:ident , $common_from:tt , $common_to:expr , $common_instancer:expr } )* }
+		{ $( $parsed:tt )* }
+		{ $eval:block }
+		{
+			let $param:ident in _ .. _ => $param_instancer:expr ;
+			$( $rest:tt )*
+		}
+		$postcode:block
+	) => {
 		$crate::benchmark_backend! {
-			{ $( $instance)? } $name $runtime $pallet {
-				$( { $common , $common_from , $common_to , $common_instancer } )*
-			} {
-				$( $parsed )*
-			} { $eval } {
+			{ $( $instance)? }
+			$name
+			$runtime
+			$pallet
+			{ $( { $common , $common_from , $common_to , $common_instancer } )* }
+			{ $( $parsed )* }
+			{ $eval }
+			{
 				let $param
 					in ({ $( let $common = $common_from; )* $param })
 					.. ({ $( let $common = $common_to; )* $param })
 					=> $param_instancer ;
 				$( $rest )*
-			} $postcode
+			}
+			$postcode
 		}
 	};
 	// mutation arm to look after a single tt for param_from.
-	( { $( $instance:ident )? } $name:ident $runtime:ident $pallet:ident {
-		$( $common:tt )*
-	} {
-		$( $parsed:tt )*
-	} { $eval:block } {
-		let $param:ident in $param_from:tt .. $param_to:expr => $param_instancer:expr ;
-		$( $rest:tt )*
-	} $postcode:block) => {
+	(
+		{ $( $instance:ident )? }
+		$name:ident
+		$runtime:ident
+		$pallet:ident
+		{ $( $common:tt )* }
+		{ $( $parsed:tt )* }
+		{ $eval:block }
+		{
+			let $param:ident in $param_from:tt .. $param_to:expr => $param_instancer:expr ;
+			$( $rest:tt )*
+		}
+		$postcode:block
+	) => {
 		$crate::benchmark_backend! {
 			{ $( $instance)? }
-			$name $runtime $pallet { $( $common )* } { $( $parsed )* } { $eval } {
+			$name
+			$runtime
+			$pallet
+			{ $( $common )* }
+			{ $( $parsed )* }
+			{ $eval }
+			{
 				let $param in ( $param_from ) .. $param_to => $param_instancer;
 				$( $rest )*
-			} $postcode
+			}
+			$postcode
 		}
 	};
 	// mutation arm to look after the default tail of `=> ()`
-	( { $( $instance:ident )? } $name:ident $runtime:ident $pallet:ident {
-		$( $common:tt )*
-	} {
-		$( $parsed:tt )*
-	} { $eval:block } {
-		let $param:ident in $param_from:tt .. $param_to:expr;
-		$( $rest:tt )*
-	} $postcode:block) => {
+	(
+		{ $( $instance:ident )? }
+		$name:ident
+		$runtime:ident
+		$pallet:ident
+		{ $( $common:tt )* }
+		{ $( $parsed:tt )* }
+		{ $eval:block }
+		{
+			let $param:ident in $param_from:tt .. $param_to:expr;
+			$( $rest:tt )*
+		}
+		$postcode:block
+	) => {
 		$crate::benchmark_backend! {
 			{ $( $instance)? }
-			$name $runtime $pallet { $( $common )* } { $( $parsed )* } { $eval } {
+			$name
+			$runtime
+			$pallet
+			{ $( $common )* }
+			{ $( $parsed )* }
+			{ $eval }
+			{
 				let $param in $param_from .. $param_to => ();
 				$( $rest )*
-			} $postcode
+			}
+			$postcode
 		}
 	};
 	// mutation arm to look after `let _ =`
-	( { $( $instance:ident )? } $name:ident $runtime:ident $pallet:ident {
-		$( $common:tt )*
-	} {
-		$( $parsed:tt )*
-	} { $eval:block } {
-		let $pre_id:tt = $pre_ex:expr;
-		$( $rest:tt )*
-	} $postcode:block) => {
+	(
+		{ $( $instance:ident )? }
+		$name:ident
+		$runtime:ident
+		$pallet:ident
+		{ $( $common:tt )* }
+		{ $( $parsed:tt )* }
+		{ $eval:block }
+		{
+			let $pre_id:tt = $pre_ex:expr;
+			$( $rest:tt )*
+		}
+		$postcode:block
+	) => {
 		$crate::benchmark_backend! {
 			{ $( $instance)? }
-			$name $runtime $pallet { $( $common )* } { $( $parsed )* } { $eval } {
+			$name
+			$runtime
+			$pallet
+			{ $( $common )* }
+			{ $( $parsed )* }
+			{ $eval }
+			{
 				let $pre_id : _ = $pre_ex;
 				$( $rest )*
-			} $postcode
+			}
+			$postcode
 		}
 	};
 	// actioning arm
-	( { $( $instance:ident )? } $name:ident $runtime:ident $pallet:ident {
-		$( { $common:ident , $common_from:tt , $common_to:expr , $common_instancer:expr } )*
-	} {
-		$( PRE { $pre_id:tt , $pre_ty:ty , $pre_ex:expr } )*
-		$( PARAM { $param:ident , $param_from:expr , $param_to:expr , $param_instancer:expr } )*
-	} { $eval:block } { $( $post:tt )* } $postcode:block) => {
+	(
+		{ $( $instance:ident )? }
+		$name:ident
+		$runtime:ident
+		$pallet:ident
+		{ $( { $common:ident , $common_from:tt , $common_to:expr , $common_instancer:expr } )* }
+		{
+			$( PRE { $pre_id:tt , $pre_ty:ty , $pre_ex:expr } )*
+			$( PARAM { $param:ident , $param_from:expr , $param_to:expr , $param_instancer:expr } )*
+		}
+		{ $eval:block }
+		{ $( $post:tt )* }
+		$postcode:block
+	) => {
 		#[allow(non_camel_case_types)]
 		struct $name;
 		#[allow(unused_variables)]
@@ -582,9 +677,7 @@ macro_rules! benchmark_backend {
 				&self,
 				components: &[($crate::BenchmarkParameter, u32)],
 				verify: bool
-			)
-				-> Result<Box<dyn FnOnce() -> Result<(), &'static str>>, &'static str>
-			{
+			) -> Result<Box<dyn FnOnce() -> Result<(), &'static str>>, &'static str> {
 				$(
 					let $common = $common_from;
 				)*
@@ -631,7 +724,8 @@ macro_rules! benchmark_backend {
 #[doc(hidden)]
 macro_rules! selected_benchmark {
 	(
-		$runtime:ident $pallet:ident
+		$runtime:ident
+		$pallet:ident
 		{ $( $instance:ident )? }
 		$( { $( $bench_inst:ident )? } $bench:ident )*
 	) => {
@@ -676,15 +770,14 @@ macro_rules! selected_benchmark {
 #[doc(hidden)]
 macro_rules! impl_benchmark {
 	(
-		$runtime:ident $pallet:ident
+		$runtime:ident
+		$pallet:ident
 		{ $( $instance:ident )? }
 		( $( { $( $name_inst:ident )? } $name:ident )* )
 		( $( $name_extra:ident ),* )
 	) => {
-		#[cfg(feature="runtime-benchmarks")]
 		pub struct Benchmark;
 
-		#[cfg(feature="runtime-benchmarks")]
 		impl $crate::Benchmarking<$crate::BenchmarkResults> for Benchmark {
 			fn benchmarks(extra: bool) -> Vec<&'static [u8]> {
 				let mut all = vec![ $( stringify!($name).as_ref() ),* ];
@@ -711,14 +804,19 @@ macro_rules! impl_benchmark {
 					$( stringify!($name) => SelectedBenchmark::$name, )*
 					_ => return Err("Could not find extrinsic."),
 				};
-
 				let mut results: Vec<$crate::BenchmarkResults> = Vec::new();
 				if repeat == 0 {
 					return Ok(results);
 				}
 
-				// Add whitelist to DB
-				$crate::benchmarking::set_whitelist(whitelist.to_vec());
+				// Add whitelist to DB including whitelisted caller
+				let mut whitelist = whitelist.to_vec();
+				let whitelisted_caller_key =
+					<frame_system::Account::<$runtime> as frame_support::storage::StorageMap<_,_>>::hashed_key_for(
+						$crate::whitelisted_caller::<<$runtime as frame_system::Trait>::AccountId>()
+					);
+				whitelist.push(whitelisted_caller_key.into());
+				$crate::benchmarking::set_whitelist(whitelist);
 
 				// Warm up the DB
 				$crate::benchmarking::commit_db();
@@ -747,7 +845,7 @@ macro_rules! impl_benchmark {
 
 						// Set the block number to at least 1 so events are deposited.
 						if $crate::Zero::is_zero(&frame_system::Module::<$runtime>::block_number()) {
-							frame_system::Module::<$runtime>::set_block_number(1u8.into());
+							frame_system::Module::<$runtime>::set_block_number(1u32.into());
 						}
 
 						// Commit the externalities to the database, flushing the DB cache.
@@ -767,7 +865,9 @@ macro_rules! impl_benchmark {
 							);
 
 							let start_extrinsic = $crate::benchmarking::current_time();
+
 							closure_to_benchmark()?;
+
 							let finish_extrinsic = $crate::benchmarking::current_time();
 							let elapsed_extrinsic = finish_extrinsic - start_extrinsic;
 							// Commit the changes to get proper write count
@@ -809,7 +909,7 @@ macro_rules! impl_benchmark {
 				if components.is_empty() {
 					if verify {
 						// If `--verify` is used, run the benchmark once to verify it would complete.
-						repeat_benchmark(repeat, Default::default(), &mut Vec::new(), true)?;
+						repeat_benchmark(1, Default::default(), &mut Vec::new(), true)?;
 					}
 					repeat_benchmark(repeat, Default::default(), &mut results, false)?;
 				} else {
@@ -868,7 +968,8 @@ macro_rules! impl_benchmark {
 #[doc(hidden)]
 macro_rules! impl_benchmark_test {
 	(
-		$runtime:ident $pallet:ident
+		$runtime:ident
+		$pallet:ident
 		{ $( $instance:ident )? }
 		$name:ident
 	) => {
@@ -890,7 +991,7 @@ macro_rules! impl_benchmark_test {
 
 					// Set the block number to at least 1 so events are deposited.
 					if $crate::Zero::is_zero(&frame_system::Module::<$runtime>::block_number()) {
-						frame_system::Module::<$runtime>::set_block_number(1u8.into());
+						frame_system::Module::<$runtime>::set_block_number(1u32.into());
 					}
 
 					// Run execution + verification
@@ -1016,7 +1117,7 @@ macro_rules! add_benchmark {
 						&steps[..],
 						*repeat,
 						whitelist,
-						*verify
+						*verify,
 					)?,
 					pallet: name_string.to_vec(),
 					benchmark: benchmark.clone(),

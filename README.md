@@ -1,4 +1,8 @@
 # open-runtime-module-library
+
+[![Crates.io](https://img.shields.io/crates/v/orml-tokens)](https://crates.io/search?q=orml)
+[![GitHub](https://img.shields.io/github/license/open-web3-stack/open-runtime-module-library)](https://github.com/open-web3-stack/open-runtime-module-library/blob/master/LICENSE)
+
 The Open Runtime Module Library (ORML) is a community maintained collection of Substrate runtime modules.
 
 ## Runtime Modules Overview
@@ -20,44 +24,9 @@ The Open Runtime Module Library (ORML) is a community maintained collection of S
 - [orml-gradually-update](./gradually-update)
     - Provides way to adjust numeric parameter gradually over a period of time.
 
-## Installation
+## Example
 
-### Runtime `Cargo.toml`
-
-To add an `ORML` module to your runtime, simply include the following to your runtime's `Cargo.toml` file. For instance, to add `orml-tokens` module:
-
-```TOML
-[dependencies]
-# --snip--
-orml-tokens = { git = "https://github.com/laminar-protocol/open-runtime-module-library.git", default-features = false }
-```
-
-and update your runtime's `std` feature to include this module:
-
-```TOML
-std = [
-    # --snip--
-    'orml-tokens/std',
-]
-```
-
-### Runtime `lib.rs`
-
-You should implement it's trait like so:
-
-```rust
-/// Used for orml_tokens
-impl orml_tokens::Trait for Runtime {
-	type Event = Event;
-	// --snip--
-}
-```
-
-and include it in your `construct_runtime!` macro:
-
-```rust
-Tokens: orml_tokens::{Module, Storage, Call, Event<T>, Config<T>},
-```
+Checkout [orml-workshop](https://github.com/xlc/orml-workshop) for example usage.
 
 ## Development
 
@@ -69,3 +38,11 @@ Tokens: orml_tokens::{Module, Storage, Call, Event<T>, Config<T>},
 	- Type check the code, with std feature, including tests.
 - `make test`
 	- Run tests.
+
+# Projects using ORML
+
+_In alphabetical order_
+
+- [Acala Network](https://github.com/AcalaNetwork/Acala)
+- [Laminar Chain](https://github.com/laminar-protocol/laminar-chain)
+- [_Add your project here_](https://github.com/open-web3-stack/open-runtime-module-library/edit/master/README.md)

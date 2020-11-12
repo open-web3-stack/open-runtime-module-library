@@ -3,7 +3,6 @@
 #![cfg(test)]
 
 use super::*;
-use codec::Decode;
 use frame_benchmarking::account;
 use frame_support::{
 	assert_err, assert_ok, decl_module, decl_storage, dispatch::DispatchResult, ensure, impl_outer_origin,
@@ -42,11 +41,9 @@ impl_outer_origin! {
 	pub enum Origin for Test {}
 }
 
-pub trait Trait {
+pub trait Trait: frame_system::Trait {
 	type Event;
 	type BlockNumber;
-	type AccountId: 'static + Default + Decode;
-	type Origin: From<frame_system::RawOrigin<Self::AccountId>> + Into<Result<RawOrigin<Self::AccountId>, Self::Origin>>;
 }
 
 type AccountId = u128;
@@ -85,8 +82,6 @@ impl frame_system::Trait for Test {
 impl Trait for Test {
 	type Event = ();
 	type BlockNumber = u32;
-	type Origin = Origin;
-	type AccountId = u128;
 }
 
 // This function basically just builds a genesis storage key/value store

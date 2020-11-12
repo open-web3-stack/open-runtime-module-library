@@ -3,7 +3,7 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{assert_noop, assert_ok, error::BadOrigin, traits::WithdrawReason};
+use frame_support::{assert_noop, assert_ok, error::BadOrigin, traits::WithdrawReasons};
 use mock::{ExtBuilder, Origin, PalletBalances, Runtime, System, TestEvent, Vesting, ALICE, BOB, CHARLIE};
 use pallet_balances::{BalanceLock, Reasons};
 
@@ -13,10 +13,10 @@ fn vesting_from_chain_spec_works() {
 		assert_ok!(PalletBalances::ensure_can_withdraw(
 			&CHARLIE,
 			10,
-			WithdrawReason::Transfer.into(),
+			WithdrawReasons::TRANSFER,
 			20
 		));
-		assert!(PalletBalances::ensure_can_withdraw(&CHARLIE, 11, WithdrawReason::Transfer.into(), 19).is_err());
+		assert!(PalletBalances::ensure_can_withdraw(&CHARLIE, 11, WithdrawReasons::TRANSFER, 19).is_err());
 
 		assert_eq!(
 			Vesting::vesting_schedules(&CHARLIE),
@@ -35,10 +35,10 @@ fn vesting_from_chain_spec_works() {
 		assert_ok!(PalletBalances::ensure_can_withdraw(
 			&CHARLIE,
 			25,
-			WithdrawReason::Transfer.into(),
+			WithdrawReasons::TRANSFER,
 			5
 		));
-		assert!(PalletBalances::ensure_can_withdraw(&CHARLIE, 26, WithdrawReason::Transfer.into(), 4).is_err());
+		assert!(PalletBalances::ensure_can_withdraw(&CHARLIE, 26, WithdrawReasons::TRANSFER, 4).is_err());
 
 		System::set_block_number(14);
 
@@ -47,7 +47,7 @@ fn vesting_from_chain_spec_works() {
 		assert_ok!(PalletBalances::ensure_can_withdraw(
 			&CHARLIE,
 			30,
-			WithdrawReason::Transfer.into(),
+			WithdrawReasons::TRANSFER,
 			0
 		));
 	});
@@ -114,7 +114,7 @@ fn cannot_use_fund_if_not_claimed() {
 			per_period: 50u64,
 		};
 		assert_ok!(Vesting::vested_transfer(Origin::signed(ALICE), BOB, schedule.clone()));
-		assert!(PalletBalances::ensure_can_withdraw(&BOB, 1, WithdrawReason::Transfer.into(), 49).is_err());
+		assert!(PalletBalances::ensure_can_withdraw(&BOB, 1, WithdrawReasons::TRANSFER, 49).is_err());
 	});
 }
 

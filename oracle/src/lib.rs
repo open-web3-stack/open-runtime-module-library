@@ -11,9 +11,10 @@
 //! offchain data. The raw values can be combined to provide an aggregated
 //! value.
 //!
-//! The data are submitted with unsigned transaction so it does not incure a
-//! transaction fee. However the data still needs to be signed by a session key
-//! to prevent spam and ensure the integrity.
+//! The data is valid only if feeded by an authorized operator. This module
+//! implements `frame_support::traits::InitializeMembers` and `frame_support::
+//! traits::ChangeMembers`, to provide a way to manage operators membership.
+//! Typically it could be leveraged to `pallet_membership` in FRAME.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 // Disable the following two lints since they originate from an external macro (namely decl_storage)
@@ -138,7 +139,7 @@ decl_module! {
 
 		/// Feed the external value.
 		///
-		/// Require unsigned. However a valid signature signed by session key is required along with payload.
+		/// Require authorized operator.
 		#[weight = (T::WeightInfo::feed_values(values.len() as u32), DispatchClass::Operational)]
 		pub fn feed_values(
 			origin,
