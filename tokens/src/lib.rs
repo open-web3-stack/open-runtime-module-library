@@ -887,10 +887,18 @@ impl<T: Trait> MergeAccount<T::AccountId> for Module<T> {
 		// handle other non-native currencies
 		for currency_id in T::AllNonNativeCurrencyIds::get() {
 			// ensure the account has no active reserved of non-native token
-			ensure!(<Self as MultiReservableCurrency<T::AccountId>>::reserved_balance(currency_id, source).is_zero(), Error::<T>::StillHasActiveReserved);
+			ensure!(
+				<Self as MultiReservableCurrency<T::AccountId>>::reserved_balance(currency_id, source).is_zero(),
+				Error::<T>::StillHasActiveReserved
+			);
 
 			// transfer all free to recipient
-			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, source, dest, <Self as MultiCurrency<T::AccountId>>::free_balance(currency_id, source))?;
+			<Self as MultiCurrency<T::AccountId>>::transfer(
+				currency_id,
+				source,
+				dest,
+				<Self as MultiCurrency<T::AccountId>>::free_balance(currency_id, source),
+			)?;
 		}
 		Ok(())
 	}
