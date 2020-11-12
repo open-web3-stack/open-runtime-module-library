@@ -45,6 +45,7 @@ use frame_support::{
 		Currency as PalletCurrency, ExistenceRequirement, Get, LockableCurrency as PalletLockableCurrency,
 		ReservableCurrency as PalletReservableCurrency, WithdrawReasons,
 	},
+	transactional,
 	weights::Weight,
 };
 use frame_system::{ensure_root, ensure_signed};
@@ -694,6 +695,7 @@ where
 }
 
 impl<T: Trait> MergeAccount<T::AccountId> for Module<T> {
+	#[transactional]
 	fn merge_account(source: &T::AccountId, dest: &T::AccountId) -> DispatchResult {
 		// transfer non-native free to dest
 		T::MultiCurrency::merge_account(source, dest)?;

@@ -888,8 +888,7 @@ impl<T: Trait> MergeAccount<T::AccountId> for Module<T> {
 			ensure!(account_data.reserved.is_zero(), Error::<T>::StillHasActiveReserved);
 
 			// transfer all free to recipient
-			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, source, dest, account_data.free)?;
-			Ok(())
+			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, source, dest, account_data.free)
 		})
 	}
 }
