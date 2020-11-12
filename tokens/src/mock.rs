@@ -263,7 +263,6 @@ impl ChangeMembers<u64> for TestChangeMembers {
 }
 
 parameter_types! {
-	pub AllNonNativeCurrencyIds: Vec<CurrencyId> = vec![TEST_TOKEN_ID];
 	pub const ElectionsPhragmenModuleId: LockIdentifier = *b"phrelect";
 }
 
@@ -290,7 +289,6 @@ impl Trait for Runtime {
 	type Balance = Balance;
 	type Amount = i64;
 	type CurrencyId = CurrencyId;
-	type AllNonNativeCurrencyIds = AllNonNativeCurrencyIds;
 	type OnReceived = MockOnReceived;
 	type WeightInfo = ();
 }
