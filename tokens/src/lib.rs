@@ -883,12 +883,14 @@ where
 impl<T: Trait> MergeAccount<T::AccountId> for Module<T> {
 	#[transactional]
 	fn merge_account(source: &T::AccountId, dest: &T::AccountId) -> DispatchResult {
-		<Accounts<T>>::drain_prefix(&source).try_for_each(|(currency_id, account_data)| -> DispatchResult {
+		<Accounts<T>>::iter_prefix(source).try_for_each(|(currency_id, account_data)| -> DispatchResult {
 			// ensure the account has no active reserved of non-native token
 			ensure!(account_data.reserved.is_zero(), Error::<T>::StillHasActiveReserved);
 
 			// transfer all free to recipient
-			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, source, dest, account_data.free)
+			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, source, dest, account_data.free)?;
+			<Accounts<T>>::remove(source, currency_id);
+			Ok(())
 		})
 	}
 }
