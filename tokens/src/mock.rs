@@ -281,6 +281,7 @@ pub type Tokens = Module<Runtime>;
 pub type TreasuryCurrencyAdapter = <Runtime as pallet_treasury::Trait>::Currency;
 
 pub const TEST_TOKEN_ID: CurrencyId = 1;
+pub const TEST_TOKEN_ID2: CurrencyId = 2;
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const TREASURY_ACCOUNT: AccountId = 3;

@@ -6,7 +6,7 @@ use super::*;
 use frame_support::{assert_noop, assert_ok, traits::WithdrawReasons};
 use mock::{
 	Balance, ExtBuilder, Runtime, System, TestEvent, Tokens, TreasuryCurrencyAdapter, ACCUMULATED_RECEIVED, ALICE, BOB,
-	ID_1, ID_2, TEST_TOKEN_ID, TREASURY_ACCOUNT,
+	ID_1, ID_2, TEST_TOKEN_ID, TEST_TOKEN_ID2, TREASURY_ACCOUNT,
 };
 
 #[test]
@@ -383,6 +383,31 @@ fn no_op_if_amount_is_zero() {
 		assert_eq!(Tokens::slash(TEST_TOKEN_ID, &ALICE, 1), 1);
 		assert_ok!(Tokens::update_balance(TEST_TOKEN_ID, &ALICE, 0));
 	});
+}
+
+#[test]
+fn merge_account_should_work() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, TEST_TOKEN_ID, 100), (ALICE, TEST_TOKEN_ID2, 200)])
+		.build()
+		.execute_with(|| {
+			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 100);
+			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID2, &ALICE), 200);
+			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &BOB), 0);
+
+			assert_ok!(Tokens::reserve(TEST_TOKEN_ID, &ALICE, 1));
+			assert_noop!(
+				Tokens::merge_account(&ALICE, &BOB),
+				Error::<Runtime>::StillHasActiveReserved
+			);
+			Tokens::unreserve(TEST_TOKEN_ID, &ALICE, 1);
+
+			assert_ok!(Tokens::merge_account(&ALICE, &BOB));
+			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 0);
+			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID2, &ALICE), 0);
+			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &BOB), 100);
+			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID2, &BOB), 200);
+		});
 }
 
 #[test]
