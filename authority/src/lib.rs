@@ -308,7 +308,7 @@ decl_module! {
 
 			// TODO: depends https://github.com/paritytech/substrate/issues/6774
 
-			Self::deposit_event(RawEvent::Delayed(initial_origin, task_id, 0.into()));
+			Self::deposit_event(RawEvent::Delayed(initial_origin, task_id, 0u32.into()));
 		}
 
 		/// Cancel a scheduled dispatchable.
