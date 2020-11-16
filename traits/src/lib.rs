@@ -63,3 +63,8 @@ pub struct TimestampedValue<Value: Ord + PartialOrd, Moment> {
 	pub value: Value,
 	pub timestamp: Moment,
 }
+
+#[impl_trait_for_tuples::impl_for_tuples(30)]
+pub trait Happened<T> {
+	fn happened(t: &T);
+}
