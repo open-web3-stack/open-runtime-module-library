@@ -167,6 +167,10 @@ decl_error! {
 		FailedToSchedule,
 		/// Failed to cancel a task.
 		FailedToCancel,
+		/// Failed to fast track a task.
+		FailedToFastTrack,
+		/// Failed to delay a task.
+		FailedToDelay,
 	}
 }
 
@@ -266,7 +270,6 @@ decl_module! {
 		}
 
 		/// Fast track a scheduled dispatchable.
-		/// WARN: This is not fully implemented.
 		#[weight = T::WeightInfo::fast_track_scheduled_dispatch()]
 		pub fn fast_track_scheduled_dispatch(
 			origin,
@@ -281,34 +284,34 @@ decl_module! {
 				DispatchTime::After(x) => x
 			};
 
-			T::AuthorityConfig::check_fast_track_schedule(origin, &initial_origin, new_delay)?;
-
-			let now = frame_system::Module::<T>::block_number();
-
-			let when = match when {
+			let dispatch_at = match when {
 				DispatchTime::At(x) => x,
 				DispatchTime::After(x) => now.saturating_add(x)
 			};
 
-			// TODO: depends https://github.com/paritytech/substrate/issues/6774
+			T::AuthorityConfig::check_fast_track_schedule(origin, &initial_origin, new_delay)?;
 
-			Self::deposit_event(RawEvent::FastTracked(initial_origin, task_id, when));
+			T::Scheduler::reschedule_named((&initial_origin, task_id).encode(), when).map_err(|_| Error::<T>::FailedToFastTrack)?;
+
+			Self::deposit_event(RawEvent::FastTracked(initial_origin, task_id, dispatch_at));
 		}
 
 		/// Delay a scheduled dispatchable.
-		/// WARN: This is not fully implemented.
 		#[weight = T::WeightInfo::delay_scheduled_dispatch()]
 		pub fn delay_scheduled_dispatch(
 			origin,
 			initial_origin: T::PalletsOrigin,
 			task_id: ScheduleTaskIndex,
-			_additional_delay: T::BlockNumber,
+			additional_delay: T::BlockNumber,
 		) {
 			T::AuthorityConfig::check_delay_schedule(origin, &initial_origin)?;
 
-			// TODO: depends https://github.com/paritytech/substrate/issues/6774
+			T::Scheduler::reschedule_named((&initial_origin, task_id).encode(), DispatchTime::After(additional_delay)).map_err(|_| Error::<T>::FailedToDelay)?;
 
-			Self::deposit_event(RawEvent::Delayed(initial_origin, task_id, 0u32.into()));
+			let now = frame_system::Module::<T>::block_number();
+			let dispatch_at = now.saturating_add(additional_delay);
+
+			Self::deposit_event(RawEvent::Delayed(initial_origin, task_id, dispatch_at));
 		}
 
 		/// Cancel a scheduled dispatchable.
