@@ -172,30 +172,147 @@ fn schedule_dispatch_after_work() {
 fn fast_track_scheduled_dispatch_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		System::set_block_number(1);
-		//let ensure_root_call =
-		// Call::System(frame_system::Call::fill_block(Perbill::one()));
-		// let ensure_signed_call = Call::System(frame_system::Call::remark(vec![]));
+		let ensure_root_call = Call::System(frame_system::Call::fill_block(Perbill::one()));
+		let call = Call::Authority(authority::Call::dispatch_as(
+			MockAsOriginId::Root,
+			Box::new(ensure_root_call.clone()),
+		));
+		run_to_block(1);
+		assert_ok!(Authority::schedule_dispatch(
+			Origin::root(),
+			DispatchTime::At(2),
+			0,
+			true,
+			Box::new(call.clone())
+		));
+		let event = mock::Event::authority(RawEvent::Scheduled(
+			OriginCaller::authority(DelayedOrigin {
+				delay: 1,
+				origin: Box::new(OriginCaller::system(RawOrigin::Root)),
+			}),
+			0,
+		));
+		assert!(System::events().iter().any(|record| record.event == event));
+
+		let schedule_origin = {
+			let origin: <Runtime as Trait>::Origin = From::from(Origin::root());
+			let origin: <Runtime as Trait>::Origin =
+				From::from(DelayedOrigin::<BlockNumber, <Runtime as Trait>::PalletsOrigin> {
+					delay: 1,
+					origin: Box::new(origin.caller().clone()),
+				});
+			origin
+		};
+
+		let pallets_origin = schedule_origin.caller().clone();
 		assert_ok!(Authority::fast_track_scheduled_dispatch(
 			Origin::root(),
-			frame_system::RawOrigin::Root.into(),
+			pallets_origin,
 			0,
 			DispatchTime::At(4),
 		));
+		let event = mock::Event::authority(RawEvent::FastTracked(
+			OriginCaller::authority(DelayedOrigin {
+				delay: 1,
+				origin: Box::new(OriginCaller::system(RawOrigin::Root)),
+			}),
+			0,
+			4,
+		));
+		assert!(System::events().iter().any(|record| record.event == event));
+
+		assert_ok!(Authority::schedule_dispatch(
+			Origin::root(),
+			DispatchTime::At(2),
+			0,
+			false,
+			Box::new(call.clone())
+		));
+		let event = mock::Event::authority(RawEvent::Scheduled(OriginCaller::system(RawOrigin::Root), 1));
+		assert!(System::events().iter().any(|record| record.event == event));
+
+		assert_ok!(Authority::fast_track_scheduled_dispatch(
+			Origin::root(),
+			frame_system::RawOrigin::Root.into(),
+			1,
+			DispatchTime::At(4),
+		));
+		let event = mock::Event::authority(RawEvent::FastTracked(OriginCaller::system(RawOrigin::Root), 1, 4));
+		assert!(System::events().iter().any(|record| record.event == event));
 	});
 }
 
 #[test]
 fn delay_scheduled_dispatch_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		//let ensure_root_call =
-		// Call::System(frame_system::Call::fill_block(Perbill::one()));
-		// let ensure_signed_call = Call::System(frame_system::Call::remark(vec![]));
+		System::set_block_number(1);
+		let ensure_root_call = Call::System(frame_system::Call::fill_block(Perbill::one()));
+		let call = Call::Authority(authority::Call::dispatch_as(
+			MockAsOriginId::Root,
+			Box::new(ensure_root_call.clone()),
+		));
+		run_to_block(1);
+		assert_ok!(Authority::schedule_dispatch(
+			Origin::root(),
+			DispatchTime::At(2),
+			0,
+			true,
+			Box::new(call.clone())
+		));
+		let event = mock::Event::authority(RawEvent::Scheduled(
+			OriginCaller::authority(DelayedOrigin {
+				delay: 1,
+				origin: Box::new(OriginCaller::system(RawOrigin::Root)),
+			}),
+			0,
+		));
+		assert!(System::events().iter().any(|record| record.event == event));
+
+		let schedule_origin = {
+			let origin: <Runtime as Trait>::Origin = From::from(Origin::root());
+			let origin: <Runtime as Trait>::Origin =
+				From::from(DelayedOrigin::<BlockNumber, <Runtime as Trait>::PalletsOrigin> {
+					delay: 1,
+					origin: Box::new(origin.caller().clone()),
+				});
+			origin
+		};
+
+		let pallets_origin = schedule_origin.caller().clone();
 		assert_ok!(Authority::delay_scheduled_dispatch(
 			Origin::root(),
-			frame_system::RawOrigin::Root.into(),
+			pallets_origin,
+			0,
+			4,
+		));
+		let event = mock::Event::authority(RawEvent::Delayed(
+			OriginCaller::authority(DelayedOrigin {
+				delay: 1,
+				origin: Box::new(OriginCaller::system(RawOrigin::Root)),
+			}),
 			0,
 			5,
 		));
+		assert!(System::events().iter().any(|record| record.event == event));
+
+		assert_ok!(Authority::schedule_dispatch(
+			Origin::root(),
+			DispatchTime::At(2),
+			0,
+			false,
+			Box::new(call.clone())
+		));
+		let event = mock::Event::authority(RawEvent::Scheduled(OriginCaller::system(RawOrigin::Root), 1));
+		assert!(System::events().iter().any(|record| record.event == event));
+
+		assert_ok!(Authority::delay_scheduled_dispatch(
+			Origin::root(),
+			frame_system::RawOrigin::Root.into(),
+			1,
+			4,
+		));
+		let event = mock::Event::authority(RawEvent::Delayed(OriginCaller::system(RawOrigin::Root), 1, 5));
+		assert!(System::events().iter().any(|record| record.event == event));
 	});
 }
 
@@ -243,7 +360,6 @@ fn cancel_scheduled_dispatch_work() {
 			}),
 			0,
 		));
-		println!("{:?}", System::events());
 		assert!(System::events().iter().any(|record| record.event == event));
 
 		assert_ok!(Authority::schedule_dispatch(

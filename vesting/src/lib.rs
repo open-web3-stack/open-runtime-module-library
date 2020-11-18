@@ -292,7 +292,8 @@ impl<T: Trait> Module<T> {
 		})
 	}
 
-	fn _do_vested_transfer(from: &T::AccountId, to: &T::AccountId, schedule: VestingScheduleOf<T>) -> DispatchResult {
+	#[transactional]
+	fn do_vested_transfer(from: &T::AccountId, to: &T::AccountId, schedule: VestingScheduleOf<T>) -> DispatchResult {
 		let schedule_amount = Self::ensure_valid_vesting_schedule(&schedule)?;
 
 		ensure!(
@@ -307,15 +308,7 @@ impl<T: Trait> Module<T> {
 		T::Currency::transfer(from, to, schedule_amount, ExistenceRequirement::AllowDeath)?;
 		T::Currency::set_lock(VESTING_LOCK_ID, to, total_amount, WithdrawReasons::all());
 		<VestingSchedules<T>>::append(to, schedule);
-
 		Ok(())
-	}
-
-	#[transactional]
-	fn do_vested_transfer(from: &T::AccountId, to: &T::AccountId, schedule: VestingScheduleOf<T>) -> DispatchResult {
-		// workaround bug of #[transactional] does not handle return in body correctly.
-		// TODO: Update once https://github.com/paritytech/substrate/pull/7188 is available.
-		Self::_do_vested_transfer(from, to, schedule)
 	}
 
 	fn do_update_vesting_schedules(who: &T::AccountId, schedules: Vec<VestingScheduleOf<T>>) -> DispatchResult {
