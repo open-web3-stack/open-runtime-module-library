@@ -28,3 +28,4 @@ std = [
 	"frame-support/std",
 	"frame-system/std",
 ]
+disable-tokens-by-owner = []

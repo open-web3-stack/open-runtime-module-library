@@ -87,7 +87,7 @@ fn transfer_should_fail() {
 		assert_ok!(NonFungibleTokenModule::mint(&BOB, CLASS_ID, vec![1], ()));
 		assert_noop!(
 			NonFungibleTokenModule::transfer(&BOB, &ALICE, (CLASS_ID, TOKEN_ID_NOT_EXIST)),
-			Error::<Runtime>::NoPermission
+			Error::<Runtime>::TokenNotFound
 		);
 		assert_noop!(
 			NonFungibleTokenModule::transfer(&ALICE, &BOB, (CLASS_ID, TOKEN_ID)),
