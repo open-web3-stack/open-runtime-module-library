@@ -106,6 +106,7 @@ decl_storage! {
 		/// Returns `None` if token info not set or removed.
 		pub Tokens get(fn tokens): double_map hasher(twox_64_concat) T::ClassId, hasher(twox_64_concat) T::TokenId => Option<TokenInfoOf<T>>;
 		/// Token existence check by owner and class ID.
+		#[cfg(not(feature = "disable-tokens-by-owner"))]
 		pub TokensByOwner get(fn tokens_by_owner): double_map hasher(twox_64_concat) T::AccountId, hasher(twox_64_concat) (T::ClassId, T::TokenId) => Option<()>;
 	}
 }
@@ -141,21 +142,23 @@ impl<T: Trait> Module<T> {
 
 	/// Transfer NFT(non fungible token) from `from` account to `to` account
 	pub fn transfer(from: &T::AccountId, to: &T::AccountId, token: (T::ClassId, T::TokenId)) -> DispatchResult {
-		TokensByOwner::<T>::try_mutate_exists(from, token, |token_by_owner| -> DispatchResult {
-			ensure!(token_by_owner.is_some(), Error::<T>::NoPermission);
+		Tokens::<T>::try_mutate(token.0, token.1, |token_info| -> DispatchResult {
+			let mut info = token_info.as_mut().ok_or(Error::<T>::TokenNotFound)?;
+			ensure!(info.owner == *from, Error::<T>::NoPermission);
 			if from == to {
 				// no change needed
 				return Ok(());
 			}
 
-			*token_by_owner = None;
-			TokensByOwner::<T>::insert(to, token, ());
+			info.owner = to.clone();
 
-			Tokens::<T>::try_mutate_exists(token.0, token.1, |token_info| -> DispatchResult {
-				let mut info = token_info.as_mut().ok_or(Error::<T>::TokenNotFound)?;
-				info.owner = to.clone();
-				Ok(())
-			})
+			#[cfg(not(feature = "disable-tokens-by-owner"))]
+			{
+				TokensByOwner::<T>::remove(from, token);
+				TokensByOwner::<T>::insert(to, token, ());
+			}
+
+			Ok(())
 		})
 	}
 
@@ -185,6 +188,7 @@ impl<T: Trait> Module<T> {
 				data,
 			};
 			Tokens::<T>::insert(class_id, token_id, token_info);
+			#[cfg(not(feature = "disable-tokens-by-owner"))]
 			TokensByOwner::<T>::insert(owner, (class_id, token_id), ());
 
 			Ok(token_id)
@@ -194,20 +198,22 @@ impl<T: Trait> Module<T> {
 	/// Burn NFT(non fungible token) from `owner`
 	pub fn burn(owner: &T::AccountId, token: (T::ClassId, T::TokenId)) -> DispatchResult {
 		Tokens::<T>::try_mutate_exists(token.0, token.1, |token_info| -> DispatchResult {
-			ensure!(token_info.take().is_some(), Error::<T>::TokenNotFound);
+			let t = token_info.take().ok_or(Error::<T>::TokenNotFound)?;
+			ensure!(t.owner == *owner, Error::<T>::NoPermission);
 
-			TokensByOwner::<T>::try_mutate_exists(owner, token, |info| -> DispatchResult {
-				ensure!(info.take().is_some(), Error::<T>::NoPermission);
+			Classes::<T>::try_mutate(token.0, |class_info| -> DispatchResult {
+				let info = class_info.as_mut().ok_or(Error::<T>::ClassNotFound)?;
+				info.total_issuance = info
+					.total_issuance
+					.checked_sub(&One::one())
+					.ok_or(Error::<T>::NumOverflow)?;
+				Ok(())
+			})?;
 
-				Classes::<T>::try_mutate(token.0, |class_info| -> DispatchResult {
-					let info = class_info.as_mut().ok_or(Error::<T>::ClassNotFound)?;
-					info.total_issuance = info
-						.total_issuance
-						.checked_sub(&One::one())
-						.ok_or(Error::<T>::NumOverflow)?;
-					Ok(())
-				})
-			})
+			#[cfg(not(feature = "disable-tokens-by-owner"))]
+			TokensByOwner::<T>::remove(owner, token);
+
+			Ok(())
 		})
 	}
 
@@ -225,6 +231,10 @@ impl<T: Trait> Module<T> {
 	}
 
 	pub fn is_owner(account: &T::AccountId, token: (T::ClassId, T::TokenId)) -> bool {
+		#[cfg(feature = "disable-tokens-by-owner")]
+		return Tokens::<T>::get(token.0, token.1).map_or(false, |token| token.owner == *account);
+
+		#[cfg(not(feature = "disable-tokens-by-owner"))]
 		TokensByOwner::<T>::contains_key(account, token)
 	}
 }
