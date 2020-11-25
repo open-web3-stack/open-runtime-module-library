@@ -851,23 +851,6 @@ fn currency_adapter_lock_reasons_extension_should_work() {
 }
 
 #[test]
-fn make_work() {
-	ExtBuilder::default().build().execute_with(|| {
-		TreasuryCurrencyAdapter::make_free_balance_be(&ALICE, 2);
-		assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 2);
-		assert_eq!(TreasuryCurrencyAdapter::total_balance(&ALICE), 2);
-		assert_eq!(
-			Tokens::accounts(ALICE, DOT),
-			AccountData {
-				free: 2,
-				reserved: 0,
-				frozen: 0
-			}
-		);
-	});
-}
-
-#[test]
 fn currency_adapter_reward_should_work() {
 	ExtBuilder::default()
 		.one_hundred_for_treasury_account()
