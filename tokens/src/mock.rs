@@ -159,6 +159,7 @@ impl pallet_treasury::Trait for Runtime {
 	type MaximumReasonLength = ();
 	type WeightInfo = ();
 }
+pub type Treasury = pallet_treasury::Module<Runtime>;
 
 parameter_types! {
 	pub const CandidacyBond: u64 = 3;
@@ -336,12 +337,7 @@ impl ExtBuilder {
 	}
 
 	pub fn one_hundred_for_alice_n_bob(self) -> Self {
-		self.balances(vec![
-			(ALICE, DOT, 100),
-			(BOB, DOT, 100),
-			(ALICE, ETH, 100),
-			(BOB, ETH, 100),
-		])
+		self.balances(vec![(ALICE, DOT, 100), (BOB, DOT, 100)])
 	}
 
 	pub fn one_hundred_for_treasury_account(mut self) -> Self {

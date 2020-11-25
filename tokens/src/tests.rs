@@ -5,7 +5,7 @@
 use super::*;
 use frame_support::{assert_noop, assert_ok, traits::WithdrawReasons};
 use mock::{
-	Balance, DustAccount, ExtBuilder, Runtime, System, TestEvent, Tokens, TreasuryCurrencyAdapter,
+	Balance, DustAccount, ExtBuilder, Runtime, System, TestEvent, Tokens, Treasury, TreasuryCurrencyAdapter,
 	ACCUMULATED_RECEIVED, ALICE, BOB, BTC, DOT, ETH, ID_1, ID_2, TREASURY_ACCOUNT,
 };
 
@@ -465,7 +465,8 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 		.one_hundred_for_treasury_account()
 		.build()
 		.execute_with(|| {
-			assert_eq!(Tokens::total_issuance(DOT), 100);
+			assert_eq!(Tokens::total_issuance(DOT), 102);
+			assert_eq!(Tokens::total_balance(DOT, &Treasury::account_id()), 2);
 			assert_eq!(Tokens::total_balance(DOT, &TREASURY_ACCOUNT), 100);
 			// CandidacyBond = 3 VotingBond = 2
 			assert_eq!(Tokens::reserved_balance(DOT, &TREASURY_ACCOUNT), 5);
@@ -480,11 +481,11 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 			);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Trait>::Currency::total_issuance(),
-				100
+				102
 			);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Trait>::Currency::minimum_balance(),
-				0
+				2
 			);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Trait>::Currency::can_reserve(&TREASURY_ACCOUNT, 5),
@@ -495,24 +496,24 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 			let imbalance = <Runtime as pallet_elections_phragmen::Trait>::Currency::burn(10);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Trait>::Currency::total_issuance(),
-				90
+				92
 			);
 			drop(imbalance);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Trait>::Currency::total_issuance(),
-				100
+				102
 			);
 
 			// issue
 			let imbalance = <Runtime as pallet_elections_phragmen::Trait>::Currency::issue(20);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Trait>::Currency::total_issuance(),
-				120
+				122
 			);
 			drop(imbalance);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Trait>::Currency::total_issuance(),
-				100
+				102
 			);
 
 			// transfer
@@ -542,7 +543,7 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 			// deposit
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Trait>::Currency::total_issuance(),
-				100
+				102
 			);
 			let imbalance = TreasuryCurrencyAdapter::deposit_creating(&TREASURY_ACCOUNT, 11);
 			assert_eq!(
@@ -551,7 +552,7 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 			);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Trait>::Currency::total_issuance(),
-				100
+				102
 			);
 			drop(imbalance);
 			assert_eq!(
@@ -560,7 +561,7 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 			);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Trait>::Currency::total_issuance(),
-				111
+				113
 			);
 
 			// withdraw
@@ -576,7 +577,7 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 			);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Trait>::Currency::total_issuance(),
-				111
+				113
 			);
 			drop(imbalance);
 			assert_eq!(
@@ -585,7 +586,7 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 			);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Trait>::Currency::total_issuance(),
-				101
+				103
 			);
 		});
 }
@@ -850,16 +851,34 @@ fn currency_adapter_lock_reasons_extension_should_work() {
 }
 
 #[test]
+fn make_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		TreasuryCurrencyAdapter::make_free_balance_be(&ALICE, 2);
+		assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 2);
+		assert_eq!(TreasuryCurrencyAdapter::total_balance(&ALICE), 2);
+		assert_eq!(
+			Tokens::accounts(ALICE, DOT),
+			AccountData {
+				free: 2,
+				reserved: 0,
+				frozen: 0
+			}
+		);
+	});
+}
+
+#[test]
 fn currency_adapter_reward_should_work() {
 	ExtBuilder::default()
 		.one_hundred_for_treasury_account()
 		.build()
 		.execute_with(|| {
-			assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 100);
+			assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 102);
 			assert_eq!(TreasuryCurrencyAdapter::total_balance(&TREASURY_ACCOUNT), 100);
+			assert_eq!(TreasuryCurrencyAdapter::total_balance(&Treasury::account_id()), 2);
 			assert_ok!(TreasuryCurrencyAdapter::deposit_into_existing(&TREASURY_ACCOUNT, 10).map(drop));
 			assert_eq!(TreasuryCurrencyAdapter::total_balance(&TREASURY_ACCOUNT), 110);
-			assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 110);
+			assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 112);
 		});
 }
 

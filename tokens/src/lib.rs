@@ -209,7 +209,7 @@ decl_storage! {
 					*initial_balance >= Module::<T>::existential_deposit(*currency_id),
 					"the balance of any account should always be more than existential deposit.",
 				);
-				Accounts::<T>::mutate(account_id, currency_id, |account_data| account_data.free = *initial_balance);
+				Module::<T>::mutate_account(account_id, *currency_id, |account_data, _| account_data.free = *initial_balance);
 			})
 		})
 	}
@@ -308,7 +308,7 @@ decl_error! {
 impl<T: Trait> Module<T> {
 	/// Check whether account_id is a module account
 	fn is_module_account_id(account_id: T::AccountId) -> bool {
-		let account: AccountId32 = T::AccountIdConvert::from(account_id).into();
+		let account: AccountId32 = Into::<AccountId32>::into(Into::<T::AccountIdConvert>::into(account_id));
 		let data: [u8; 32] = account.into();
 		data.starts_with(&ModuleId::TYPE_ID)
 	}
@@ -432,8 +432,8 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	type CurrencyId = T::CurrencyId;
 	type Balance = T::Balance;
 
-	fn minimum_balance(_currency_id: Self::CurrencyId) -> Self::Balance {
-		Default::default()
+	fn minimum_balance(currency_id: Self::CurrencyId) -> Self::Balance {
+		Self::existential_deposit(currency_id)
 	}
 
 	fn total_issuance(currency_id: Self::CurrencyId) -> Self::Balance {
@@ -1002,7 +1002,6 @@ impl<T: Trait> MergeAccount<T::AccountId> for Module<T> {
 
 			// transfer all free to recipient
 			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, source, dest, account_data.free)?;
-			Accounts::<T>::remove(source, currency_id);
 			Ok(())
 		})
 	}
