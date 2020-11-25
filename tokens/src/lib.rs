@@ -39,9 +39,8 @@
 use codec::{Decode, Encode};
 use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage, ensure,
-	traits::Get,
 	traits::{
-		BalanceStatus as Status, Currency as PalletCurrency, ExistenceRequirement, Imbalance,
+		BalanceStatus as Status, Currency as PalletCurrency, ExistenceRequirement, Get, Imbalance,
 		LockableCurrency as PalletLockableCurrency, ReservableCurrency as PalletReservableCurrency, SignedImbalance,
 		WithdrawReasons,
 	},
@@ -50,18 +49,20 @@ use frame_support::{
 	Parameter, StorageMap,
 };
 use frame_system::ensure_signed;
+use sp_core::{crypto::AccountId32, TypeId};
 use sp_runtime::{
 	traits::{
 		AtLeast32BitUnsigned, Bounded, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, Saturating,
 		StaticLookup, Zero,
 	},
-	DispatchError, DispatchResult, RuntimeDebug,
+	DispatchError, DispatchResult, ModuleId, RuntimeDebug,
 };
 use sp_std::{
-	convert::{TryFrom, TryInto},
+	convert::{Infallible, TryFrom, TryInto},
 	marker,
 	prelude::*,
 	result,
+	vec::Vec,
 };
 
 #[cfg(feature = "std")]
@@ -72,7 +73,7 @@ use orml_traits::{
 	account::MergeAccount,
 	arithmetic::{self, Signed},
 	BalanceStatus, LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency,
-	MultiReservableCurrency, OnReceived,
+	MultiReservableCurrency, OnDust, OnReceived,
 };
 
 mod default_weight;
@@ -110,6 +111,15 @@ pub trait Trait: frame_system::Trait {
 
 	/// Weight information for extrinsics in this module.
 	type WeightInfo: WeightInfo;
+
+	/// The minimum amount required to keep an account.
+	type ExistenceDeposits: Get<Vec<(Self::CurrencyId, Self::Balance)>>;
+
+	/// Handler for the balance reduction when removing a dust account.
+	type OnDust: OnDust<Self::CurrencyId, Self::Balance>;
+
+	/// AccountId convert
+	type AccountIdConvert: From<Self::AccountId> + Into<Self::AccountId> + From<AccountId32> + Into<AccountId32>;
 }
 
 /// A single lock on a balance. There can be many of these on an account and
@@ -189,12 +199,17 @@ decl_storage! {
 		/// NOTE: This is only used in the case that this module is used to store balances.
 		pub Accounts get(fn accounts): double_map hasher(blake2_128_concat) T::AccountId, hasher(twox_64_concat) T::CurrencyId => AccountData<T::Balance>;
 	}
+
 	add_extra_genesis {
 		config(endowed_accounts): Vec<(T::AccountId, T::CurrencyId, T::Balance)>;
 
 		build(|config: &GenesisConfig<T>| {
 			config.endowed_accounts.iter().for_each(|(account_id, currency_id, initial_balance)| {
-				<Accounts<T>>::mutate(account_id, currency_id, |account_data| account_data.free = *initial_balance)
+				assert!(
+					*initial_balance >= Module::<T>::existential_deposit(*currency_id),
+					"the balance of any account should always be more than existential deposit.",
+				);
+				Accounts::<T>::mutate(account_id, currency_id, |account_data| account_data.free = *initial_balance);
 			})
 		})
 	}
@@ -206,8 +221,11 @@ decl_event!(
 		<T as Trait>::CurrencyId,
 		<T as Trait>::Balance
 	{
-		/// Token transfer success. [currency_id, from, to, amount]
+		/// Token transfer success. \[currency_id, from, to, amount\]
 		Transferred(CurrencyId, AccountId, AccountId, Balance),
+		/// An account was removed whose balance was non-zero but below ExistentialDeposit,
+		/// resulting in an outright loss. \[account, currency_id, amount\]
+		DustLost(AccountId, CurrencyId, Balance),
 	}
 );
 
@@ -288,11 +306,87 @@ decl_error! {
 }
 
 impl<T: Trait> Module<T> {
+	/// Check whether account_id is a module account
+	fn is_module_account_id(account_id: T::AccountId) -> bool {
+		let account: AccountId32 = T::AccountIdConvert::from(account_id).into();
+		let data: [u8; 32] = account.into();
+		data.starts_with(&ModuleId::TYPE_ID)
+	}
+
+	fn existential_deposit(currency_id: T::CurrencyId) -> T::Balance {
+		T::ExistenceDeposits::get()
+			.iter()
+			.find(|&&x| x.0 == currency_id)
+			.map(|a| a.1)
+			.unwrap_or_else(Zero::zero)
+	}
+
+	fn post_account_mutation(
+		who: &T::AccountId,
+		currency_id: T::CurrencyId,
+		new: AccountData<T::Balance>,
+		existed: bool,
+	) -> Option<AccountData<T::Balance>> {
+		let total = new.total();
+		if total < Self::existential_deposit(currency_id) && !Self::is_module_account_id(who.clone()) {
+			// remove dust
+			if !total.is_zero() {
+				TotalIssuance::<T>::mutate(currency_id, |t| {
+					*t = t.checked_sub(&total).expect("ensured non-underflow total amount; qed");
+				});
+				T::OnDust::on_dust(currency_id, total);
+				Self::deposit_event(RawEvent::DustLost(who.clone(), currency_id, total));
+			}
+
+			// if existed before, decrease account ref count
+			if existed {
+				frame_system::Module::<T>::dec_ref(who);
+			}
+
+			None
+		} else {
+			// if new, increase account ref count
+			if !existed {
+				frame_system::Module::<T>::inc_ref(who);
+			}
+
+			Some(new)
+		}
+	}
+
+	fn try_mutate_account<R, E>(
+		who: &T::AccountId,
+		currency_id: T::CurrencyId,
+		f: impl FnOnce(&mut AccountData<T::Balance>, bool) -> sp_std::result::Result<R, E>,
+	) -> sp_std::result::Result<R, E> {
+		Accounts::<T>::try_mutate_exists(who, currency_id, |maybe_account| -> sp_std::result::Result<R, E> {
+			let existed = maybe_account.is_some();
+			let mut account = maybe_account.take().unwrap_or_default();
+			f(&mut account, existed).map(move |result| {
+				*maybe_account = Self::post_account_mutation(who, currency_id, account, existed);
+				result
+			})
+		})
+	}
+
+	fn mutate_account<R>(
+		who: &T::AccountId,
+		currency_id: T::CurrencyId,
+		f: impl FnOnce(&mut AccountData<T::Balance>, bool) -> R,
+	) -> R {
+		Self::try_mutate_account(who, currency_id, |account, existed| -> Result<R, Infallible> {
+			Ok(f(account, existed))
+		})
+		.expect("Error is infallible; qed")
+	}
+
 	/// Set free balance of `who` to a new value.
 	///
 	/// Note this will not maintain total issuance.
-	fn set_free_balance(currency_id: T::CurrencyId, who: &T::AccountId, balance: T::Balance) {
-		<Accounts<T>>::mutate(who, currency_id, |account_data| account_data.free = balance);
+	fn set_free_balance(currency_id: T::CurrencyId, who: &T::AccountId, amount: T::Balance) {
+		Self::mutate_account(who, currency_id, |account, _| {
+			account.free = amount;
+		});
 	}
 
 	/// Set reserved balance of `who` to a new value, meanwhile enforce
@@ -300,17 +394,19 @@ impl<T: Trait> Module<T> {
 	///
 	/// Note this will not maintain total issuance, and the caller is expected
 	/// to do it.
-	fn set_reserved_balance(currency_id: T::CurrencyId, who: &T::AccountId, balance: T::Balance) {
-		<Accounts<T>>::mutate(who, currency_id, |account_data| account_data.reserved = balance);
+	fn set_reserved_balance(currency_id: T::CurrencyId, who: &T::AccountId, amount: T::Balance) {
+		Self::mutate_account(who, currency_id, |account, _| {
+			account.reserved = amount;
+		});
 	}
 
 	/// Update the account entry for `who` under `currency_id`, given the locks.
 	fn update_locks(currency_id: T::CurrencyId, who: &T::AccountId, locks: &[BalanceLock<T::Balance>]) {
 		// update account data
-		<Accounts<T>>::mutate(who, currency_id, |account_data| {
-			account_data.frozen = Zero::zero();
+		Self::mutate_account(who, currency_id, |account, _| {
+			account.frozen = Zero::zero();
 			for lock in locks.iter() {
-				account_data.frozen = account_data.frozen.max(lock.amount);
+				account.frozen = account.frozen.max(lock.amount);
 			}
 		});
 
@@ -335,6 +431,10 @@ impl<T: Trait> Module<T> {
 impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	type CurrencyId = T::CurrencyId;
 	type Balance = T::Balance;
+
+	fn minimum_balance(_currency_id: Self::CurrencyId) -> Self::Balance {
+		Default::default()
+	}
 
 	fn total_issuance(currency_id: Self::CurrencyId) -> Self::Balance {
 		<TotalIssuance<T>>::get(currency_id)
@@ -400,14 +500,16 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 			return Ok(());
 		}
 
-		let new_total = Self::total_issuance(currency_id)
-			.checked_add(&amount)
-			.ok_or(Error::<T>::TotalIssuanceOverflow)?;
-		<TotalIssuance<T>>::insert(currency_id, new_total);
-		Self::set_free_balance(currency_id, who, Self::free_balance(currency_id, who) + amount);
-		T::OnReceived::on_received(who, currency_id, amount);
+		TotalIssuance::<T>::try_mutate(currency_id, |total_issuance| -> DispatchResult {
+			*total_issuance = total_issuance
+				.checked_add(&amount)
+				.ok_or(Error::<T>::TotalIssuanceOverflow)?;
 
-		Ok(())
+			Self::set_free_balance(currency_id, who, Self::free_balance(currency_id, who) + amount);
+			T::OnReceived::on_received(who, currency_id, amount);
+
+			Ok(())
+		})
 	}
 
 	fn withdraw(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
@@ -686,7 +788,7 @@ where
 	}
 
 	fn minimum_balance() -> Self::Balance {
-		Zero::zero()
+		Module::<T>::minimum_balance(GetCurrencyId::get())
 	}
 
 	fn burn(mut amount: Self::Balance) -> Self::PositiveImbalance {
@@ -806,10 +908,21 @@ where
 		who: &T::AccountId,
 		value: Self::Balance,
 	) -> SignedImbalance<Self::Balance, Self::PositiveImbalance> {
-		<Accounts<T>>::mutate(
+		let currency_id = GetCurrencyId::get();
+		Module::<T>::try_mutate_account(
 			who,
-			GetCurrencyId::get(),
-			|account| -> Result<SignedImbalance<Self::Balance, Self::PositiveImbalance>, ()> {
+			currency_id,
+			|account, existed| -> Result<SignedImbalance<Self::Balance, Self::PositiveImbalance>, ()> {
+				// If we're attempting to set an existing account to less than ED, then
+				// bypass the entire operation. It's a no-op if you follow it through, but
+				// since this is an instance where we might account for a negative imbalance
+				// (in the dust cleaner of set_account) before we account for its actual
+				// equal and opposite cause (returned as an Imbalance), then in the
+				// instance that there's no other accounts on the system at all, we might
+				// underflow the issuance and our arithmetic will be off.
+				let ed = Module::<T>::existential_deposit(currency_id);
+				ensure!(value.saturating_add(account.reserved) >= ed || existed, ());
+
 				let imbalance = if account.free <= value {
 					SignedImbalance::Positive(PositiveImbalance::new(value - account.free))
 				} else {
@@ -883,13 +996,13 @@ where
 impl<T: Trait> MergeAccount<T::AccountId> for Module<T> {
 	#[transactional]
 	fn merge_account(source: &T::AccountId, dest: &T::AccountId) -> DispatchResult {
-		<Accounts<T>>::iter_prefix(source).try_for_each(|(currency_id, account_data)| -> DispatchResult {
+		Accounts::<T>::iter_prefix(source).try_for_each(|(currency_id, account_data)| -> DispatchResult {
 			// ensure the account has no active reserved of non-native token
 			ensure!(account_data.reserved.is_zero(), Error::<T>::StillHasActiveReserved);
 
 			// transfer all free to recipient
 			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, source, dest, account_data.free)?;
-			<Accounts<T>>::remove(source, currency_id);
+			Accounts::<T>::remove(source, currency_id);
 			Ok(())
 		})
 	}

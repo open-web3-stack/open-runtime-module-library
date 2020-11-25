@@ -234,6 +234,14 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	type CurrencyId = CurrencyIdOf<T>;
 	type Balance = BalanceOf<T>;
 
+	fn minimum_balance(currency_id: Self::CurrencyId) -> Self::Balance {
+		if currency_id == T::GetNativeCurrencyId::get() {
+			T::NativeCurrency::minimum_balance()
+		} else {
+			T::MultiCurrency::minimum_balance(currency_id)
+		}
+	}
+
 	fn total_issuance(currency_id: Self::CurrencyId) -> Self::Balance {
 		if currency_id == T::GetNativeCurrencyId::get() {
 			T::NativeCurrency::total_issuance()
@@ -434,6 +442,10 @@ where
 {
 	type Balance = BalanceOf<T>;
 
+	fn minimum_balance() -> Self::Balance {
+		<Module<T>>::minimum_balance(GetCurrencyId::get())
+	}
+
 	fn total_issuance() -> Self::Balance {
 		<Module<T>>::total_issuance(GetCurrencyId::get())
 	}
@@ -559,6 +571,10 @@ where
 	T: Trait,
 {
 	type Balance = PalletBalanceOf<AccountId, Currency>;
+
+	fn minimum_balance() -> Self::Balance {
+		Currency::minimum_balance()
+	}
 
 	fn total_issuance() -> Self::Balance {
 		Currency::total_issuance()

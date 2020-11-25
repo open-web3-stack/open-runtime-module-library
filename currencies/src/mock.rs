@@ -5,7 +5,7 @@
 use frame_support::{impl_outer_event, impl_outer_origin, parameter_types};
 use pallet_balances;
 use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
+use sp_runtime::{testing::Header, traits::IdentityLookup, AccountId32, Perbill};
 
 use tokens;
 
@@ -38,7 +38,7 @@ parameter_types! {
 	pub const AvailableBlockRatio: Perbill = Perbill::one();
 }
 
-pub type AccountId = u128;
+pub type AccountId = AccountId32;
 impl frame_system::Trait for Runtime {
 	type Origin = Origin;
 	type Call = ();
@@ -87,6 +87,10 @@ impl pallet_balances::Trait for Runtime {
 
 pub type PalletBalances = pallet_balances::Module<Runtime>;
 
+parameter_types! {
+	pub ExistenceDeposits: Vec<(CurrencyId, Balance)> = vec![];
+}
+
 impl tokens::Trait for Runtime {
 	type Event = TestEvent;
 	type Balance = Balance;
@@ -94,6 +98,9 @@ impl tokens::Trait for Runtime {
 	type CurrencyId = CurrencyId;
 	type OnReceived = ();
 	type WeightInfo = ();
+	type ExistenceDeposits = ExistenceDeposits;
+	type OnDust = ();
+	type AccountIdConvert = AccountId;
 }
 pub type Tokens = tokens::Module<Runtime>;
 
@@ -115,9 +122,9 @@ pub type Currencies = Module<Runtime>;
 pub type NativeCurrency = NativeCurrencyOf<Runtime>;
 pub type AdaptedBasicCurrency = BasicCurrencyAdapter<Runtime, PalletBalances, i64, u64>;
 
-pub const ALICE: AccountId = 1;
-pub const BOB: AccountId = 2;
-pub const EVA: AccountId = 5;
+pub const ALICE: AccountId = AccountId32::new([1u8; 32]);
+pub const BOB: AccountId = AccountId32::new([2u8; 32]);
+pub const EVA: AccountId = AccountId32::new([5u8; 32]);
 pub const ID_1: LockIdentifier = *b"1       ";
 
 pub struct ExtBuilder {
