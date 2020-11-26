@@ -49,11 +49,10 @@ use frame_support::{
 	Parameter, StorageMap,
 };
 use frame_system::ensure_signed;
-use sp_core::{crypto::AccountId32, TypeId};
 use sp_runtime::{
 	traits::{
-		AtLeast32BitUnsigned, Bounded, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, Saturating,
-		StaticLookup, Zero,
+		AccountIdConversion, AtLeast32BitUnsigned, Bounded, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member,
+		Saturating, StaticLookup, Zero,
 	},
 	DispatchError, DispatchResult, ModuleId, RuntimeDebug,
 };
@@ -72,7 +71,7 @@ pub use crate::imbalances::{NegativeImbalance, PositiveImbalance};
 use orml_traits::{
 	account::MergeAccount,
 	arithmetic::{self, Signed},
-	BalanceStatus, LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency,
+	BalanceStatus, GetByKey, LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency,
 	MultiReservableCurrency, OnDust, OnReceived,
 };
 
@@ -113,13 +112,10 @@ pub trait Trait: frame_system::Trait {
 	type WeightInfo: WeightInfo;
 
 	/// The minimum amount required to keep an account.
-	type ExistenceDeposits: Get<Vec<(Self::CurrencyId, Self::Balance)>>;
+	type ExistenceDeposits: GetByKey<Self::CurrencyId, Self::Balance>;
 
 	/// Handler for the balance reduction when removing a dust account.
 	type OnDust: OnDust<Self::CurrencyId, Self::Balance>;
-
-	/// AccountId convert
-	type AccountIdConvert: From<Self::AccountId> + Into<Self::AccountId> + From<AccountId32> + Into<AccountId32>;
 }
 
 /// A single lock on a balance. There can be many of these on an account and
@@ -206,7 +202,7 @@ decl_storage! {
 		build(|config: &GenesisConfig<T>| {
 			config.endowed_accounts.iter().for_each(|(account_id, currency_id, initial_balance)| {
 				assert!(
-					*initial_balance >= Module::<T>::existential_deposit(*currency_id),
+					*initial_balance >= T::ExistenceDeposits::get(&currency_id),
 					"the balance of any account should always be more than existential deposit.",
 				);
 				Module::<T>::mutate_account(account_id, *currency_id, |account_data, _| account_data.free = *initial_balance);
@@ -307,18 +303,8 @@ decl_error! {
 
 impl<T: Trait> Module<T> {
 	/// Check whether account_id is a module account
-	fn is_module_account_id(account_id: T::AccountId) -> bool {
-		let account: AccountId32 = Into::<AccountId32>::into(Into::<T::AccountIdConvert>::into(account_id));
-		let data: [u8; 32] = account.into();
-		data.starts_with(&ModuleId::TYPE_ID)
-	}
-
-	fn existential_deposit(currency_id: T::CurrencyId) -> T::Balance {
-		T::ExistenceDeposits::get()
-			.iter()
-			.find(|&&x| x.0 == currency_id)
-			.map(|a| a.1)
-			.unwrap_or_else(Zero::zero)
+	fn is_module_account_id(account_id: &T::AccountId) -> bool {
+		ModuleId::try_from_account(account_id).is_some()
 	}
 
 	fn post_account_mutation(
@@ -328,7 +314,7 @@ impl<T: Trait> Module<T> {
 		existed: bool,
 	) -> Option<AccountData<T::Balance>> {
 		let total = new.total();
-		if total < Self::existential_deposit(currency_id) && !Self::is_module_account_id(who.clone()) {
+		if total < T::ExistenceDeposits::get(&currency_id) && !Self::is_module_account_id(who) {
 			// remove dust
 			if !total.is_zero() {
 				TotalIssuance::<T>::mutate(currency_id, |t| {
@@ -433,7 +419,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	type Balance = T::Balance;
 
 	fn minimum_balance(currency_id: Self::CurrencyId) -> Self::Balance {
-		Self::existential_deposit(currency_id)
+		T::ExistenceDeposits::get(&currency_id)
 	}
 
 	fn total_issuance(currency_id: Self::CurrencyId) -> Self::Balance {
@@ -920,7 +906,7 @@ where
 				// equal and opposite cause (returned as an Imbalance), then in the
 				// instance that there's no other accounts on the system at all, we might
 				// underflow the issuance and our arithmetic will be off.
-				let ed = Module::<T>::existential_deposit(currency_id);
+				let ed = T::ExistenceDeposits::get(&currency_id);
 				ensure!(value.saturating_add(account.reserved) >= ed || existed, ());
 
 				let imbalance = if account.free <= value {

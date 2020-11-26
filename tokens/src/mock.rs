@@ -7,11 +7,12 @@ use frame_support::{
 	traits::{ChangeMembers, Contains, ContainsLengthBound, SaturatingCurrencyToVote},
 };
 use frame_system as system;
+use orml_traits::parameter_type_with_key;
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
 	traits::{AccountIdConversion, IdentityLookup},
-	ModuleId, Perbill, Percent, Permill,
+	AccountId32, ModuleId, Perbill, Percent, Permill,
 };
 use sp_std::cell::RefCell;
 use std::collections::HashMap;
@@ -297,8 +298,17 @@ impl OnDust<CurrencyId, Balance> for MockOnDust {
 	}
 }
 
+parameter_type_with_key! {
+	pub ExistenceDeposits: |currency_id: CurrencyId| -> Balance {
+		match currency_id {
+			&BTC => 1,
+			&DOT => 2,
+			_ => 0,
+		}
+	};
+}
+
 parameter_types! {
-	pub ExistenceDeposits: Vec<(CurrencyId, Balance)> = vec![(BTC, 1), (DOT, 2)];
 	pub DustAccount: AccountId = ModuleId(*b"aca/dust").into_account();
 }
 
@@ -311,7 +321,6 @@ impl Trait for Runtime {
 	type WeightInfo = ();
 	type ExistenceDeposits = ExistenceDeposits;
 	type OnDust = MockOnDust;
-	type AccountIdConvert = AccountId;
 }
 pub type Tokens = Module<Runtime>;
 pub type TreasuryCurrencyAdapter = <Runtime as pallet_treasury::Trait>::Currency;

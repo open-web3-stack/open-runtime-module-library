@@ -10,21 +10,21 @@ use mock::{
 };
 
 #[test]
-fn existential_deposit_work() {
+fn minimum_balance_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_eq!(Tokens::existential_deposit(BTC), 1);
-		assert_eq!(Tokens::existential_deposit(DOT), 2);
-		assert_eq!(Tokens::existential_deposit(ETH), 0);
+		assert_eq!(Tokens::minimum_balance(BTC), 1);
+		assert_eq!(Tokens::minimum_balance(DOT), 2);
+		assert_eq!(Tokens::minimum_balance(ETH), 0);
 	});
 }
 
 #[test]
 fn is_module_account_id_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_eq!(Tokens::is_module_account_id(ALICE), false);
-		assert_eq!(Tokens::is_module_account_id(BOB), false);
-		assert_eq!(Tokens::is_module_account_id(TREASURY_ACCOUNT), false);
-		assert_eq!(Tokens::is_module_account_id(DustAccount::get()), true);
+		assert_eq!(Tokens::is_module_account_id(&ALICE), false);
+		assert_eq!(Tokens::is_module_account_id(&BOB), false);
+		assert_eq!(Tokens::is_module_account_id(&TREASURY_ACCOUNT), false);
+		assert_eq!(Tokens::is_module_account_id(&DustAccount::get()), true);
 	});
 }
 
