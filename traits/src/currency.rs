@@ -22,6 +22,9 @@ pub trait MultiCurrency<AccountId> {
 
 	// Public immutables
 
+	/// Existential deposit of `currency_id`.
+	fn minimum_balance(currency_id: Self::CurrencyId) -> Self::Balance;
+
 	/// The total amount of issuance of `currency_id`.
 	fn total_issuance(currency_id: Self::CurrencyId) -> Self::Balance;
 
@@ -177,6 +180,9 @@ pub trait BasicCurrency<AccountId> {
 
 	// Public immutables
 
+	/// Existential deposit.
+	fn minimum_balance() -> Self::Balance;
+
 	/// The total amount of issuance.
 	fn total_issuance() -> Self::Balance;
 
@@ -322,4 +328,10 @@ pub trait BasicReservableCurrency<AccountId>: BasicCurrency<AccountId> {
 pub trait OnReceived<AccountId, CurrencyId, Balance> {
 	/// An account have received some assets
 	fn on_received(account: &AccountId, currency: CurrencyId, amount: Balance);
+}
+
+/// Handler for when some currency "account" decreased in balance for some
+/// reason.
+pub trait OnDust<CurrencyId, Balance> {
+	fn on_dust(currency_id: CurrencyId, amount: Balance);
 }

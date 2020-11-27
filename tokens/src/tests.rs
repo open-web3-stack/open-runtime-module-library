@@ -5,9 +5,70 @@
 use super::*;
 use frame_support::{assert_noop, assert_ok, traits::WithdrawReasons};
 use mock::{
-	Balance, ExtBuilder, Runtime, System, TestEvent, Tokens, TreasuryCurrencyAdapter, ACCUMULATED_RECEIVED, ALICE, BOB,
-	ID_1, ID_2, TEST_TOKEN_ID, TEST_TOKEN_ID2, TREASURY_ACCOUNT,
+	Balance, DustAccount, ExtBuilder, Runtime, System, TestEvent, Tokens, Treasury, TreasuryCurrencyAdapter,
+	ACCUMULATED_RECEIVED, ALICE, BOB, BTC, DOT, ETH, ID_1, ID_2, TREASURY_ACCOUNT,
 };
+
+#[test]
+fn minimum_balance_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_eq!(Tokens::minimum_balance(BTC), 1);
+		assert_eq!(Tokens::minimum_balance(DOT), 2);
+		assert_eq!(Tokens::minimum_balance(ETH), 0);
+	});
+}
+
+#[test]
+fn is_module_account_id_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_eq!(Tokens::is_module_account_id(&ALICE), false);
+		assert_eq!(Tokens::is_module_account_id(&BOB), false);
+		assert_eq!(Tokens::is_module_account_id(&TREASURY_ACCOUNT), false);
+		assert_eq!(Tokens::is_module_account_id(&DustAccount::get()), true);
+	});
+}
+
+#[test]
+fn remove_dust_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		System::set_block_number(1);
+
+		assert_ok!(Tokens::deposit(DOT, &ALICE, 100));
+		assert_eq!(Tokens::total_issuance(DOT), 100);
+		assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), true);
+		assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+		assert_eq!(System::refs(&ALICE), 1);
+		assert_eq!(Accounts::<Runtime>::contains_key(DustAccount::get(), DOT), false);
+		assert_eq!(Tokens::free_balance(DOT, &DustAccount::get()), 0);
+		assert_eq!(System::refs(&DustAccount::get()), 0);
+
+		// total is gte ED, will not handle dust
+		assert_ok!(Tokens::withdraw(DOT, &ALICE, 98));
+		assert_eq!(Tokens::total_issuance(DOT), 2);
+		assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), true);
+		assert_eq!(Tokens::free_balance(DOT, &ALICE), 2);
+		assert_eq!(System::refs(&ALICE), 1);
+		assert_eq!(Accounts::<Runtime>::contains_key(DustAccount::get(), DOT), false);
+		assert_eq!(Tokens::free_balance(DOT, &DustAccount::get()), 0);
+		assert_eq!(System::refs(&DustAccount::get()), 0);
+
+		assert_ok!(Tokens::withdraw(DOT, &ALICE, 1));
+
+		// total is lte ED, will handle dust
+		assert_eq!(Tokens::total_issuance(DOT), 1);
+		assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), false);
+		assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
+		assert_eq!(System::refs(&ALICE), 0);
+
+		// will not handle dust for module account
+		assert_eq!(Accounts::<Runtime>::contains_key(DustAccount::get(), DOT), true);
+		assert_eq!(Tokens::free_balance(DOT, &DustAccount::get()), 1);
+		assert_eq!(System::refs(&DustAccount::get()), 1);
+
+		let dust_lost_event = TestEvent::tokens(RawEvent::DustLost(ALICE, DOT, 1));
+		assert!(System::events().iter().any(|record| record.event == dust_lost_event));
+	});
+}
 
 #[test]
 fn set_lock_should_work() {
@@ -15,16 +76,16 @@ fn set_lock_should_work() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
-			Tokens::set_lock(ID_1, TEST_TOKEN_ID, &ALICE, 10);
-			assert_eq!(Tokens::accounts(&ALICE, TEST_TOKEN_ID).frozen, 10);
-			assert_eq!(Tokens::accounts(&ALICE, TEST_TOKEN_ID).frozen(), 10);
-			assert_eq!(Tokens::locks(ALICE, TEST_TOKEN_ID).len(), 1);
-			Tokens::set_lock(ID_1, TEST_TOKEN_ID, &ALICE, 50);
-			assert_eq!(Tokens::accounts(&ALICE, TEST_TOKEN_ID).frozen, 50);
-			assert_eq!(Tokens::locks(ALICE, TEST_TOKEN_ID).len(), 1);
-			Tokens::set_lock(ID_2, TEST_TOKEN_ID, &ALICE, 60);
-			assert_eq!(Tokens::accounts(&ALICE, TEST_TOKEN_ID).frozen, 60);
-			assert_eq!(Tokens::locks(ALICE, TEST_TOKEN_ID).len(), 2);
+			Tokens::set_lock(ID_1, DOT, &ALICE, 10);
+			assert_eq!(Tokens::accounts(&ALICE, DOT).frozen, 10);
+			assert_eq!(Tokens::accounts(&ALICE, DOT).frozen(), 10);
+			assert_eq!(Tokens::locks(ALICE, DOT).len(), 1);
+			Tokens::set_lock(ID_1, DOT, &ALICE, 50);
+			assert_eq!(Tokens::accounts(&ALICE, DOT).frozen, 50);
+			assert_eq!(Tokens::locks(ALICE, DOT).len(), 1);
+			Tokens::set_lock(ID_2, DOT, &ALICE, 60);
+			assert_eq!(Tokens::accounts(&ALICE, DOT).frozen, 60);
+			assert_eq!(Tokens::locks(ALICE, DOT).len(), 2);
 		});
 }
 
@@ -34,15 +95,15 @@ fn extend_lock_should_work() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
-			Tokens::set_lock(ID_1, TEST_TOKEN_ID, &ALICE, 10);
-			assert_eq!(Tokens::locks(ALICE, TEST_TOKEN_ID).len(), 1);
-			assert_eq!(Tokens::accounts(&ALICE, TEST_TOKEN_ID).frozen, 10);
-			Tokens::extend_lock(ID_1, TEST_TOKEN_ID, &ALICE, 20);
-			assert_eq!(Tokens::locks(ALICE, TEST_TOKEN_ID).len(), 1);
-			assert_eq!(Tokens::accounts(&ALICE, TEST_TOKEN_ID).frozen, 20);
-			Tokens::extend_lock(ID_2, TEST_TOKEN_ID, &ALICE, 10);
-			Tokens::extend_lock(ID_1, TEST_TOKEN_ID, &ALICE, 20);
-			assert_eq!(Tokens::locks(ALICE, TEST_TOKEN_ID).len(), 2);
+			Tokens::set_lock(ID_1, DOT, &ALICE, 10);
+			assert_eq!(Tokens::locks(ALICE, DOT).len(), 1);
+			assert_eq!(Tokens::accounts(&ALICE, DOT).frozen, 10);
+			Tokens::extend_lock(ID_1, DOT, &ALICE, 20);
+			assert_eq!(Tokens::locks(ALICE, DOT).len(), 1);
+			assert_eq!(Tokens::accounts(&ALICE, DOT).frozen, 20);
+			Tokens::extend_lock(ID_2, DOT, &ALICE, 10);
+			Tokens::extend_lock(ID_1, DOT, &ALICE, 20);
+			assert_eq!(Tokens::locks(ALICE, DOT).len(), 2);
 		});
 }
 
@@ -52,11 +113,11 @@ fn remove_lock_should_work() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
-			Tokens::set_lock(ID_1, TEST_TOKEN_ID, &ALICE, 10);
-			Tokens::set_lock(ID_2, TEST_TOKEN_ID, &ALICE, 20);
-			assert_eq!(Tokens::locks(ALICE, TEST_TOKEN_ID).len(), 2);
-			Tokens::remove_lock(ID_2, TEST_TOKEN_ID, &ALICE);
-			assert_eq!(Tokens::locks(ALICE, TEST_TOKEN_ID).len(), 1);
+			Tokens::set_lock(ID_1, DOT, &ALICE, 10);
+			Tokens::set_lock(ID_2, DOT, &ALICE, 20);
+			assert_eq!(Tokens::locks(ALICE, DOT).len(), 2);
+			Tokens::remove_lock(ID_2, DOT, &ALICE);
+			assert_eq!(Tokens::locks(ALICE, DOT).len(), 1);
 		});
 }
 
@@ -66,13 +127,13 @@ fn frozen_can_limit_liquidity() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
-			Tokens::set_lock(ID_1, TEST_TOKEN_ID, &ALICE, 90);
+			Tokens::set_lock(ID_1, DOT, &ALICE, 90);
 			assert_noop!(
-				<Tokens as MultiCurrency<_>>::transfer(TEST_TOKEN_ID, &ALICE, &BOB, 11),
+				<Tokens as MultiCurrency<_>>::transfer(DOT, &ALICE, &BOB, 11),
 				Error::<Runtime>::LiquidityRestrictions,
 			);
-			Tokens::set_lock(ID_1, TEST_TOKEN_ID, &ALICE, 10);
-			assert_ok!(<Tokens as MultiCurrency<_>>::transfer(TEST_TOKEN_ID, &ALICE, &BOB, 11),);
+			Tokens::set_lock(ID_1, DOT, &ALICE, 10);
+			assert_ok!(<Tokens as MultiCurrency<_>>::transfer(DOT, &ALICE, &BOB, 11),);
 		});
 }
 
@@ -82,9 +143,9 @@ fn can_reserve_is_correct() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
-			assert_eq!(Tokens::can_reserve(TEST_TOKEN_ID, &ALICE, 0), true);
-			assert_eq!(Tokens::can_reserve(TEST_TOKEN_ID, &ALICE, 101), false);
-			assert_eq!(Tokens::can_reserve(TEST_TOKEN_ID, &ALICE, 100), true);
+			assert_eq!(Tokens::can_reserve(DOT, &ALICE, 0), true);
+			assert_eq!(Tokens::can_reserve(DOT, &ALICE, 101), false);
+			assert_eq!(Tokens::can_reserve(DOT, &ALICE, 100), true);
 		});
 }
 
@@ -94,18 +155,15 @@ fn reserve_should_work() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
-			assert_noop!(
-				Tokens::reserve(TEST_TOKEN_ID, &ALICE, 101),
-				Error::<Runtime>::BalanceTooLow,
-			);
-			assert_ok!(Tokens::reserve(TEST_TOKEN_ID, &ALICE, 0));
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 100);
-			assert_eq!(Tokens::reserved_balance(TEST_TOKEN_ID, &ALICE), 0);
-			assert_eq!(Tokens::total_balance(TEST_TOKEN_ID, &ALICE), 100);
-			assert_ok!(Tokens::reserve(TEST_TOKEN_ID, &ALICE, 50));
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 50);
-			assert_eq!(Tokens::reserved_balance(TEST_TOKEN_ID, &ALICE), 50);
-			assert_eq!(Tokens::total_balance(TEST_TOKEN_ID, &ALICE), 100);
+			assert_noop!(Tokens::reserve(DOT, &ALICE, 101), Error::<Runtime>::BalanceTooLow,);
+			assert_ok!(Tokens::reserve(DOT, &ALICE, 0));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 0);
+			assert_eq!(Tokens::total_balance(DOT, &ALICE), 100);
+			assert_ok!(Tokens::reserve(DOT, &ALICE, 50));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 50);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 50);
+			assert_eq!(Tokens::total_balance(DOT, &ALICE), 100);
 		});
 }
 
@@ -115,19 +173,19 @@ fn unreserve_should_work() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 100);
-			assert_eq!(Tokens::reserved_balance(TEST_TOKEN_ID, &ALICE), 0);
-			assert_eq!(Tokens::unreserve(TEST_TOKEN_ID, &ALICE, 0), 0);
-			assert_eq!(Tokens::unreserve(TEST_TOKEN_ID, &ALICE, 50), 50);
-			assert_ok!(Tokens::reserve(TEST_TOKEN_ID, &ALICE, 30));
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 70);
-			assert_eq!(Tokens::reserved_balance(TEST_TOKEN_ID, &ALICE), 30);
-			assert_eq!(Tokens::unreserve(TEST_TOKEN_ID, &ALICE, 15), 0);
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 85);
-			assert_eq!(Tokens::reserved_balance(TEST_TOKEN_ID, &ALICE), 15);
-			assert_eq!(Tokens::unreserve(TEST_TOKEN_ID, &ALICE, 30), 15);
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 100);
-			assert_eq!(Tokens::reserved_balance(TEST_TOKEN_ID, &ALICE), 0);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 0);
+			assert_eq!(Tokens::unreserve(DOT, &ALICE, 0), 0);
+			assert_eq!(Tokens::unreserve(DOT, &ALICE, 50), 50);
+			assert_ok!(Tokens::reserve(DOT, &ALICE, 30));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 70);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 30);
+			assert_eq!(Tokens::unreserve(DOT, &ALICE, 15), 0);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 85);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 15);
+			assert_eq!(Tokens::unreserve(DOT, &ALICE, 30), 15);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 0);
 		});
 }
 
@@ -137,18 +195,18 @@ fn slash_reserved_should_work() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
-			assert_ok!(Tokens::reserve(TEST_TOKEN_ID, &ALICE, 50));
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 50);
-			assert_eq!(Tokens::reserved_balance(TEST_TOKEN_ID, &ALICE), 50);
-			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 200);
-			assert_eq!(Tokens::slash_reserved(TEST_TOKEN_ID, &ALICE, 0), 0);
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 50);
-			assert_eq!(Tokens::reserved_balance(TEST_TOKEN_ID, &ALICE), 50);
-			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 200);
-			assert_eq!(Tokens::slash_reserved(TEST_TOKEN_ID, &ALICE, 100), 50);
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 50);
-			assert_eq!(Tokens::reserved_balance(TEST_TOKEN_ID, &ALICE), 0);
-			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 150);
+			assert_ok!(Tokens::reserve(DOT, &ALICE, 50));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 50);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 50);
+			assert_eq!(Tokens::total_issuance(DOT), 200);
+			assert_eq!(Tokens::slash_reserved(DOT, &ALICE, 0), 0);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 50);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 50);
+			assert_eq!(Tokens::total_issuance(DOT), 200);
+			assert_eq!(Tokens::slash_reserved(DOT, &ALICE, 100), 50);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 50);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 0);
+			assert_eq!(Tokens::total_issuance(DOT), 150);
 		});
 }
 
@@ -158,48 +216,48 @@ fn repatriate_reserved_should_work() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 100);
-			assert_eq!(Tokens::reserved_balance(TEST_TOKEN_ID, &ALICE), 0);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 0);
 			assert_eq!(
-				Tokens::repatriate_reserved(TEST_TOKEN_ID, &ALICE, &ALICE, 0, BalanceStatus::Free),
+				Tokens::repatriate_reserved(DOT, &ALICE, &ALICE, 0, BalanceStatus::Free),
 				Ok(0)
 			);
 			assert_eq!(
-				Tokens::repatriate_reserved(TEST_TOKEN_ID, &ALICE, &ALICE, 50, BalanceStatus::Free),
+				Tokens::repatriate_reserved(DOT, &ALICE, &ALICE, 50, BalanceStatus::Free),
 				Ok(50)
 			);
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 100);
-			assert_eq!(Tokens::reserved_balance(TEST_TOKEN_ID, &ALICE), 0);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 0);
 
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &BOB), 100);
-			assert_eq!(Tokens::reserved_balance(TEST_TOKEN_ID, &BOB), 0);
-			assert_ok!(Tokens::reserve(TEST_TOKEN_ID, &BOB, 50));
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &BOB), 50);
-			assert_eq!(Tokens::reserved_balance(TEST_TOKEN_ID, &BOB), 50);
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 100);
+			assert_eq!(Tokens::reserved_balance(DOT, &BOB), 0);
+			assert_ok!(Tokens::reserve(DOT, &BOB, 50));
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 50);
+			assert_eq!(Tokens::reserved_balance(DOT, &BOB), 50);
 			assert_eq!(
-				Tokens::repatriate_reserved(TEST_TOKEN_ID, &BOB, &BOB, 60, BalanceStatus::Reserved),
+				Tokens::repatriate_reserved(DOT, &BOB, &BOB, 60, BalanceStatus::Reserved),
 				Ok(10)
 			);
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &BOB), 50);
-			assert_eq!(Tokens::reserved_balance(TEST_TOKEN_ID, &BOB), 50);
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 50);
+			assert_eq!(Tokens::reserved_balance(DOT, &BOB), 50);
 
 			assert_eq!(
-				Tokens::repatriate_reserved(TEST_TOKEN_ID, &BOB, &ALICE, 30, BalanceStatus::Reserved),
+				Tokens::repatriate_reserved(DOT, &BOB, &ALICE, 30, BalanceStatus::Reserved),
 				Ok(0)
 			);
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 100);
-			assert_eq!(Tokens::reserved_balance(TEST_TOKEN_ID, &ALICE), 30);
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &BOB), 50);
-			assert_eq!(Tokens::reserved_balance(TEST_TOKEN_ID, &BOB), 20);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 30);
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 50);
+			assert_eq!(Tokens::reserved_balance(DOT, &BOB), 20);
 
 			assert_eq!(
-				Tokens::repatriate_reserved(TEST_TOKEN_ID, &BOB, &ALICE, 30, BalanceStatus::Free),
+				Tokens::repatriate_reserved(DOT, &BOB, &ALICE, 30, BalanceStatus::Free),
 				Ok(10)
 			);
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 120);
-			assert_eq!(Tokens::reserved_balance(TEST_TOKEN_ID, &ALICE), 30);
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &BOB), 50);
-			assert_eq!(Tokens::reserved_balance(TEST_TOKEN_ID, &BOB), 0);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 120);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 30);
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 50);
+			assert_eq!(Tokens::reserved_balance(DOT, &BOB), 0);
 		});
 }
 
@@ -209,20 +267,20 @@ fn slash_draw_reserved_correct() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
-			assert_ok!(Tokens::reserve(TEST_TOKEN_ID, &ALICE, 50));
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 50);
-			assert_eq!(Tokens::reserved_balance(TEST_TOKEN_ID, &ALICE), 50);
-			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 200);
+			assert_ok!(Tokens::reserve(DOT, &ALICE, 50));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 50);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 50);
+			assert_eq!(Tokens::total_issuance(DOT), 200);
 
-			assert_eq!(Tokens::slash(TEST_TOKEN_ID, &ALICE, 80), 0);
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 0);
-			assert_eq!(Tokens::reserved_balance(TEST_TOKEN_ID, &ALICE), 20);
-			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 120);
+			assert_eq!(Tokens::slash(DOT, &ALICE, 80), 0);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 20);
+			assert_eq!(Tokens::total_issuance(DOT), 120);
 
-			assert_eq!(Tokens::slash(TEST_TOKEN_ID, &ALICE, 50), 30);
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 0);
-			assert_eq!(Tokens::reserved_balance(TEST_TOKEN_ID, &ALICE), 0);
-			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 100);
+			assert_eq!(Tokens::slash(DOT, &ALICE, 50), 30);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 0);
+			assert_eq!(Tokens::total_issuance(DOT), 100);
 		});
 }
 
@@ -232,9 +290,9 @@ fn genesis_issuance_should_work() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 100);
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &BOB), 100);
-			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 200);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 100);
+			assert_eq!(Tokens::total_issuance(DOT), 200);
 		});
 }
 
@@ -246,20 +304,17 @@ fn transfer_should_work() {
 		.execute_with(|| {
 			System::set_block_number(1);
 
-			assert_ok!(Tokens::transfer(Some(ALICE).into(), BOB, TEST_TOKEN_ID, 50));
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 50);
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &BOB), 150);
-			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 200);
-			assert_eq!(
-				ACCUMULATED_RECEIVED.with(|v| *v.borrow().get(&(BOB, TEST_TOKEN_ID)).unwrap()),
-				50
-			);
+			assert_ok!(Tokens::transfer(Some(ALICE).into(), BOB, DOT, 50));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 50);
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 150);
+			assert_eq!(Tokens::total_issuance(DOT), 200);
+			assert_eq!(ACCUMULATED_RECEIVED.with(|v| *v.borrow().get(&(BOB, DOT)).unwrap()), 50);
 
-			let transferred_event = TestEvent::tokens(RawEvent::Transferred(TEST_TOKEN_ID, ALICE, BOB, 50));
+			let transferred_event = TestEvent::tokens(RawEvent::Transferred(DOT, ALICE, BOB, 50));
 			assert!(System::events().iter().any(|record| record.event == transferred_event));
 
 			assert_noop!(
-				Tokens::transfer(Some(ALICE).into(), BOB, TEST_TOKEN_ID, 60),
+				Tokens::transfer(Some(ALICE).into(), BOB, DOT, 60),
 				Error::<Runtime>::BalanceTooLow,
 			);
 		});
@@ -273,11 +328,11 @@ fn transfer_all_should_work() {
 		.execute_with(|| {
 			System::set_block_number(1);
 
-			assert_ok!(Tokens::transfer_all(Some(ALICE).into(), BOB, TEST_TOKEN_ID));
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 0);
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &BOB), 200);
+			assert_ok!(Tokens::transfer_all(Some(ALICE).into(), BOB, DOT));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 200);
 
-			let transferred_event = TestEvent::tokens(RawEvent::Transferred(TEST_TOKEN_ID, ALICE, BOB, 100));
+			let transferred_event = TestEvent::tokens(RawEvent::Transferred(DOT, ALICE, BOB, 100));
 			assert!(System::events().iter().any(|record| record.event == transferred_event));
 		});
 }
@@ -288,12 +343,12 @@ fn deposit_should_work() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
-			assert_ok!(Tokens::deposit(TEST_TOKEN_ID, &ALICE, 100));
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 200);
-			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 300);
+			assert_ok!(Tokens::deposit(DOT, &ALICE, 100));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 200);
+			assert_eq!(Tokens::total_issuance(DOT), 300);
 
 			assert_noop!(
-				Tokens::deposit(TEST_TOKEN_ID, &ALICE, Balance::max_value()),
+				Tokens::deposit(DOT, &ALICE, Balance::max_value()),
 				Error::<Runtime>::TotalIssuanceOverflow,
 			);
 		});
@@ -305,14 +360,11 @@ fn withdraw_should_work() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
-			assert_ok!(Tokens::withdraw(TEST_TOKEN_ID, &ALICE, 50));
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 50);
-			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 150);
+			assert_ok!(Tokens::withdraw(DOT, &ALICE, 50));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 50);
+			assert_eq!(Tokens::total_issuance(DOT), 150);
 
-			assert_noop!(
-				Tokens::withdraw(TEST_TOKEN_ID, &ALICE, 60),
-				Error::<Runtime>::BalanceTooLow
-			);
+			assert_noop!(Tokens::withdraw(DOT, &ALICE, 60), Error::<Runtime>::BalanceTooLow);
 		});
 }
 
@@ -323,14 +375,14 @@ fn slash_should_work() {
 		.build()
 		.execute_with(|| {
 			// slashed_amount < amount
-			assert_eq!(Tokens::slash(TEST_TOKEN_ID, &ALICE, 50), 0);
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 50);
-			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 150);
+			assert_eq!(Tokens::slash(DOT, &ALICE, 50), 0);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 50);
+			assert_eq!(Tokens::total_issuance(DOT), 150);
 
 			// slashed_amount == amount
-			assert_eq!(Tokens::slash(TEST_TOKEN_ID, &ALICE, 51), 1);
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 0);
-			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 100);
+			assert_eq!(Tokens::slash(DOT, &ALICE, 51), 1);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
+			assert_eq!(Tokens::total_issuance(DOT), 100);
 		});
 }
 
@@ -340,18 +392,15 @@ fn update_balance_should_work() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
-			assert_ok!(Tokens::update_balance(TEST_TOKEN_ID, &ALICE, 50));
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 150);
-			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 250);
+			assert_ok!(Tokens::update_balance(DOT, &ALICE, 50));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 150);
+			assert_eq!(Tokens::total_issuance(DOT), 250);
 
-			assert_ok!(Tokens::update_balance(TEST_TOKEN_ID, &BOB, -50));
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &BOB), 50);
-			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 200);
+			assert_ok!(Tokens::update_balance(DOT, &BOB, -50));
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 50);
+			assert_eq!(Tokens::total_issuance(DOT), 200);
 
-			assert_noop!(
-				Tokens::update_balance(TEST_TOKEN_ID, &BOB, -60),
-				Error::<Runtime>::BalanceTooLow
-			);
+			assert_noop!(Tokens::update_balance(DOT, &BOB, -60), Error::<Runtime>::BalanceTooLow);
 		});
 }
 
@@ -362,51 +411,51 @@ fn ensure_can_withdraw_should_work() {
 		.build()
 		.execute_with(|| {
 			assert_noop!(
-				Tokens::ensure_can_withdraw(TEST_TOKEN_ID, &ALICE, 101),
+				Tokens::ensure_can_withdraw(DOT, &ALICE, 101),
 				Error::<Runtime>::BalanceTooLow
 			);
 
-			assert_ok!(Tokens::ensure_can_withdraw(TEST_TOKEN_ID, &ALICE, 1));
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 100);
+			assert_ok!(Tokens::ensure_can_withdraw(DOT, &ALICE, 1));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
 		});
 }
 
 #[test]
 fn no_op_if_amount_is_zero() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(Tokens::ensure_can_withdraw(TEST_TOKEN_ID, &ALICE, 0));
-		assert_ok!(Tokens::transfer(Some(ALICE).into(), BOB, TEST_TOKEN_ID, 0));
-		assert_ok!(Tokens::transfer(Some(ALICE).into(), ALICE, TEST_TOKEN_ID, 0));
-		assert_ok!(Tokens::deposit(TEST_TOKEN_ID, &ALICE, 0));
-		assert_ok!(Tokens::withdraw(TEST_TOKEN_ID, &ALICE, 0));
-		assert_eq!(Tokens::slash(TEST_TOKEN_ID, &ALICE, 0), 0);
-		assert_eq!(Tokens::slash(TEST_TOKEN_ID, &ALICE, 1), 1);
-		assert_ok!(Tokens::update_balance(TEST_TOKEN_ID, &ALICE, 0));
+		assert_ok!(Tokens::ensure_can_withdraw(DOT, &ALICE, 0));
+		assert_ok!(Tokens::transfer(Some(ALICE).into(), BOB, DOT, 0));
+		assert_ok!(Tokens::transfer(Some(ALICE).into(), ALICE, DOT, 0));
+		assert_ok!(Tokens::deposit(DOT, &ALICE, 0));
+		assert_ok!(Tokens::withdraw(DOT, &ALICE, 0));
+		assert_eq!(Tokens::slash(DOT, &ALICE, 0), 0);
+		assert_eq!(Tokens::slash(DOT, &ALICE, 1), 1);
+		assert_ok!(Tokens::update_balance(DOT, &ALICE, 0));
 	});
 }
 
 #[test]
 fn merge_account_should_work() {
 	ExtBuilder::default()
-		.balances(vec![(ALICE, TEST_TOKEN_ID, 100), (ALICE, TEST_TOKEN_ID2, 200)])
+		.balances(vec![(ALICE, DOT, 100), (ALICE, BTC, 200)])
 		.build()
 		.execute_with(|| {
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 100);
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID2, &ALICE), 200);
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &BOB), 0);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+			assert_eq!(Tokens::free_balance(BTC, &ALICE), 200);
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 0);
 
-			assert_ok!(Tokens::reserve(TEST_TOKEN_ID, &ALICE, 1));
+			assert_ok!(Tokens::reserve(DOT, &ALICE, 1));
 			assert_noop!(
 				Tokens::merge_account(&ALICE, &BOB),
 				Error::<Runtime>::StillHasActiveReserved
 			);
-			Tokens::unreserve(TEST_TOKEN_ID, &ALICE, 1);
+			Tokens::unreserve(DOT, &ALICE, 1);
 
 			assert_ok!(Tokens::merge_account(&ALICE, &BOB));
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &ALICE), 0);
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID2, &ALICE), 0);
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &BOB), 100);
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID2, &BOB), 200);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
+			assert_eq!(Tokens::free_balance(BTC, &ALICE), 0);
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 100);
+			assert_eq!(Tokens::free_balance(BTC, &BOB), 200);
 		});
 }
 
@@ -416,11 +465,12 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 		.one_hundred_for_treasury_account()
 		.build()
 		.execute_with(|| {
-			assert_eq!(Tokens::total_issuance(TEST_TOKEN_ID), 100);
-			assert_eq!(Tokens::total_balance(TEST_TOKEN_ID, &TREASURY_ACCOUNT), 100);
+			assert_eq!(Tokens::total_issuance(DOT), 102);
+			assert_eq!(Tokens::total_balance(DOT, &Treasury::account_id()), 2);
+			assert_eq!(Tokens::total_balance(DOT, &TREASURY_ACCOUNT), 100);
 			// CandidacyBond = 3 VotingBond = 2
-			assert_eq!(Tokens::reserved_balance(TEST_TOKEN_ID, &TREASURY_ACCOUNT), 5);
-			assert_eq!(Tokens::free_balance(TEST_TOKEN_ID, &TREASURY_ACCOUNT), 95);
+			assert_eq!(Tokens::reserved_balance(DOT, &TREASURY_ACCOUNT), 5);
+			assert_eq!(Tokens::free_balance(DOT, &TREASURY_ACCOUNT), 95);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Trait>::Currency::total_balance(&TREASURY_ACCOUNT),
 				100
@@ -431,11 +481,11 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 			);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Trait>::Currency::total_issuance(),
-				100
+				102
 			);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Trait>::Currency::minimum_balance(),
-				0
+				2
 			);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Trait>::Currency::can_reserve(&TREASURY_ACCOUNT, 5),
@@ -446,24 +496,24 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 			let imbalance = <Runtime as pallet_elections_phragmen::Trait>::Currency::burn(10);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Trait>::Currency::total_issuance(),
-				90
+				92
 			);
 			drop(imbalance);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Trait>::Currency::total_issuance(),
-				100
+				102
 			);
 
 			// issue
 			let imbalance = <Runtime as pallet_elections_phragmen::Trait>::Currency::issue(20);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Trait>::Currency::total_issuance(),
-				120
+				122
 			);
 			drop(imbalance);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Trait>::Currency::total_issuance(),
-				100
+				102
 			);
 
 			// transfer
@@ -493,7 +543,7 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 			// deposit
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Trait>::Currency::total_issuance(),
-				100
+				102
 			);
 			let imbalance = TreasuryCurrencyAdapter::deposit_creating(&TREASURY_ACCOUNT, 11);
 			assert_eq!(
@@ -502,7 +552,7 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 			);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Trait>::Currency::total_issuance(),
-				100
+				102
 			);
 			drop(imbalance);
 			assert_eq!(
@@ -511,7 +561,7 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 			);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Trait>::Currency::total_issuance(),
-				111
+				113
 			);
 
 			// withdraw
@@ -527,7 +577,7 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 			);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Trait>::Currency::total_issuance(),
-				111
+				113
 			);
 			drop(imbalance);
 			assert_eq!(
@@ -536,7 +586,7 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 			);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Trait>::Currency::total_issuance(),
-				101
+				103
 			);
 		});
 }
@@ -597,7 +647,7 @@ fn currency_adapter_deducting_balance_should_work() {
 fn currency_adapter_refunding_balance_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let _ = TreasuryCurrencyAdapter::deposit_creating(&TREASURY_ACCOUNT, 42);
-		Tokens::set_reserved_balance(TEST_TOKEN_ID, &TREASURY_ACCOUNT, 69);
+		Tokens::set_reserved_balance(DOT, &TREASURY_ACCOUNT, 69);
 		TreasuryCurrencyAdapter::unreserve(&TREASURY_ACCOUNT, 69);
 		assert_eq!(TreasuryCurrencyAdapter::free_balance(&TREASURY_ACCOUNT), 111);
 		assert_eq!(TreasuryCurrencyAdapter::reserved_balance(&TREASURY_ACCOUNT), 0);
@@ -806,11 +856,12 @@ fn currency_adapter_reward_should_work() {
 		.one_hundred_for_treasury_account()
 		.build()
 		.execute_with(|| {
-			assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 100);
+			assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 102);
 			assert_eq!(TreasuryCurrencyAdapter::total_balance(&TREASURY_ACCOUNT), 100);
+			assert_eq!(TreasuryCurrencyAdapter::total_balance(&Treasury::account_id()), 2);
 			assert_ok!(TreasuryCurrencyAdapter::deposit_into_existing(&TREASURY_ACCOUNT, 10).map(drop));
 			assert_eq!(TreasuryCurrencyAdapter::total_balance(&TREASURY_ACCOUNT), 110);
-			assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 110);
+			assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 112);
 		});
 }
 
@@ -842,7 +893,7 @@ fn currency_adapter_slashing_incomplete_reserved_balance_should_work() {
 fn currency_adapter_repatriating_reserved_balance_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let _ = TreasuryCurrencyAdapter::deposit_creating(&TREASURY_ACCOUNT, 110);
-		let _ = TreasuryCurrencyAdapter::deposit_creating(&ALICE, 1);
+		let _ = TreasuryCurrencyAdapter::deposit_creating(&ALICE, 2);
 		assert_ok!(TreasuryCurrencyAdapter::reserve(&TREASURY_ACCOUNT, 110));
 		assert_ok!(
 			TreasuryCurrencyAdapter::repatriate_reserved(&TREASURY_ACCOUNT, &ALICE, 41, Status::Free),
@@ -851,7 +902,7 @@ fn currency_adapter_repatriating_reserved_balance_should_work() {
 		assert_eq!(TreasuryCurrencyAdapter::reserved_balance(&TREASURY_ACCOUNT), 69);
 		assert_eq!(TreasuryCurrencyAdapter::free_balance(&TREASURY_ACCOUNT), 0);
 		assert_eq!(TreasuryCurrencyAdapter::reserved_balance(&ALICE), 0);
-		assert_eq!(TreasuryCurrencyAdapter::free_balance(&ALICE), 42);
+		assert_eq!(TreasuryCurrencyAdapter::free_balance(&ALICE), 43);
 	});
 }
 
@@ -859,7 +910,7 @@ fn currency_adapter_repatriating_reserved_balance_should_work() {
 fn currency_adapter_transferring_reserved_balance_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let _ = TreasuryCurrencyAdapter::deposit_creating(&TREASURY_ACCOUNT, 110);
-		let _ = TreasuryCurrencyAdapter::deposit_creating(&ALICE, 1);
+		let _ = TreasuryCurrencyAdapter::deposit_creating(&ALICE, 2);
 		assert_ok!(TreasuryCurrencyAdapter::reserve(&TREASURY_ACCOUNT, 110));
 		assert_ok!(
 			TreasuryCurrencyAdapter::repatriate_reserved(&TREASURY_ACCOUNT, &ALICE, 41, Status::Reserved),
@@ -868,7 +919,7 @@ fn currency_adapter_transferring_reserved_balance_should_work() {
 		assert_eq!(TreasuryCurrencyAdapter::reserved_balance(&TREASURY_ACCOUNT), 69);
 		assert_eq!(TreasuryCurrencyAdapter::free_balance(&TREASURY_ACCOUNT), 0);
 		assert_eq!(TreasuryCurrencyAdapter::reserved_balance(&ALICE), 41);
-		assert_eq!(TreasuryCurrencyAdapter::free_balance(&ALICE), 1);
+		assert_eq!(TreasuryCurrencyAdapter::free_balance(&ALICE), 2);
 	});
 }
 
@@ -890,7 +941,7 @@ fn currency_adapter_transferring_reserved_balance_to_nonexistent_should_fail() {
 fn currency_adapter_transferring_incomplete_reserved_balance_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let _ = TreasuryCurrencyAdapter::deposit_creating(&TREASURY_ACCOUNT, 110);
-		let _ = TreasuryCurrencyAdapter::deposit_creating(&ALICE, 1);
+		let _ = TreasuryCurrencyAdapter::deposit_creating(&ALICE, 2);
 		assert_ok!(TreasuryCurrencyAdapter::reserve(&TREASURY_ACCOUNT, 41));
 		assert_ok!(
 			TreasuryCurrencyAdapter::repatriate_reserved(&TREASURY_ACCOUNT, &ALICE, 69, Status::Free),
@@ -899,7 +950,7 @@ fn currency_adapter_transferring_incomplete_reserved_balance_should_work() {
 		assert_eq!(TreasuryCurrencyAdapter::reserved_balance(&TREASURY_ACCOUNT), 0);
 		assert_eq!(TreasuryCurrencyAdapter::free_balance(&TREASURY_ACCOUNT), 69);
 		assert_eq!(TreasuryCurrencyAdapter::reserved_balance(&ALICE), 0);
-		assert_eq!(TreasuryCurrencyAdapter::free_balance(&ALICE), 42);
+		assert_eq!(TreasuryCurrencyAdapter::free_balance(&ALICE), 43);
 	});
 }
 
@@ -907,7 +958,7 @@ fn currency_adapter_transferring_incomplete_reserved_balance_should_work() {
 fn currency_adapter_transferring_too_high_value_should_not_panic() {
 	ExtBuilder::default().build().execute_with(|| {
 		TreasuryCurrencyAdapter::make_free_balance_be(&TREASURY_ACCOUNT, u64::max_value());
-		TreasuryCurrencyAdapter::make_free_balance_be(&ALICE, 1);
+		TreasuryCurrencyAdapter::make_free_balance_be(&ALICE, 2);
 
 		assert_noop!(
 			TreasuryCurrencyAdapter::transfer(
@@ -923,6 +974,6 @@ fn currency_adapter_transferring_too_high_value_should_not_panic() {
 			TreasuryCurrencyAdapter::free_balance(&TREASURY_ACCOUNT),
 			u64::max_value()
 		);
-		assert_eq!(TreasuryCurrencyAdapter::free_balance(&ALICE), 1);
+		assert_eq!(TreasuryCurrencyAdapter::free_balance(&ALICE), 2);
 	});
 }

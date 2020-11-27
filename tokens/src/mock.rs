@@ -7,12 +7,30 @@ use frame_support::{
 	traits::{ChangeMembers, Contains, ContainsLengthBound, SaturatingCurrencyToVote},
 };
 use frame_system as system;
+use orml_traits::parameter_type_with_key;
 use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId, Perbill, Percent, Permill};
+use sp_runtime::{
+	testing::Header,
+	traits::{AccountIdConversion, IdentityLookup},
+	AccountId32, ModuleId, Perbill, Percent, Permill,
+};
 use sp_std::cell::RefCell;
 use std::collections::HashMap;
 
 use super::*;
+
+pub type AccountId = AccountId32;
+pub type CurrencyId = u32;
+pub type Balance = u64;
+
+pub const DOT: CurrencyId = 1;
+pub const BTC: CurrencyId = 2;
+pub const ETH: CurrencyId = 3;
+pub const ALICE: AccountId = AccountId32::new([0u8; 32]);
+pub const BOB: AccountId = AccountId32::new([1u8; 32]);
+pub const TREASURY_ACCOUNT: AccountId = AccountId32::new([2u8; 32]);
+pub const ID_1: LockIdentifier = *b"1       ";
+pub const ID_2: LockIdentifier = *b"2       ";
 
 impl_outer_origin! {
 	pub enum Origin for Runtime {}
@@ -41,7 +59,6 @@ parameter_types! {
 	pub const AvailableBlockRatio: Perbill = Perbill::one();
 }
 
-type AccountId = u64;
 impl frame_system::Trait for Runtime {
 	type Origin = Origin;
 	type Call = ();
@@ -71,39 +88,23 @@ impl frame_system::Trait for Runtime {
 }
 pub type System = system::Module<Runtime>;
 
-type CurrencyId = u32;
-pub type Balance = u64;
-
 thread_local! {
-	pub static ACCUMULATED_RECEIVED: RefCell<HashMap<(AccountId, CurrencyId), Balance>> = RefCell::new(HashMap::new());
+	static TEN_TO_FOURTEEN: RefCell<Vec<AccountId>> = RefCell::new(vec![
+		AccountId32::new([10u8; 32]),
+		AccountId32::new([11u8; 32]),
+		AccountId32::new([12u8; 32]),
+		AccountId32::new([13u8; 32]),
+		AccountId32::new([14u8; 32]),
+	]);
 }
 
-pub struct MockOnReceived;
-impl OnReceived<AccountId, CurrencyId, Balance> for MockOnReceived {
-	fn on_received(who: &AccountId, currency_id: CurrencyId, amount: Balance) {
-		ACCUMULATED_RECEIVED.with(|v| {
-			let mut old_map = v.borrow().clone();
-			if let Some(before) = old_map.get_mut(&(*who, currency_id)) {
-				*before += amount;
-			} else {
-				old_map.insert((*who, currency_id), amount);
-			};
-
-			*v.borrow_mut() = old_map;
-		});
-	}
-}
-
-thread_local! {
-	static TEN_TO_FOURTEEN: RefCell<Vec<u64>> = RefCell::new(vec![10,11,12,13,14]);
-}
 pub struct TenToFourteen;
-impl Contains<u64> for TenToFourteen {
-	fn sorted_members() -> Vec<u64> {
+impl Contains<AccountId> for TenToFourteen {
+	fn sorted_members() -> Vec<AccountId> {
 		TEN_TO_FOURTEEN.with(|v| v.borrow().clone())
 	}
 	#[cfg(feature = "runtime-benchmarks")]
-	fn add(new: &u64) {
+	fn add(new: &AccountId) {
 		TEN_TO_FOURTEEN.with(|v| {
 			let mut members = v.borrow_mut();
 			members.push(*new);
@@ -111,6 +112,7 @@ impl Contains<u64> for TenToFourteen {
 		})
 	}
 }
+
 impl ContainsLengthBound for TenToFourteen {
 	fn max_len() -> usize {
 		TEN_TO_FOURTEEN.with(|v| v.borrow().len())
@@ -130,14 +132,14 @@ parameter_types! {
 	pub const SpendPeriod: u64 = 2;
 	pub const Burn: Permill = Permill::from_percent(50);
 	pub const TreasuryModuleId: ModuleId = ModuleId(*b"py/trsry");
-	pub const GetTokenId: CurrencyId = TEST_TOKEN_ID;
+	pub const GetTokenId: CurrencyId = DOT;
 }
 
 impl pallet_treasury::Trait for Runtime {
 	type ModuleId = TreasuryModuleId;
 	type Currency = CurrencyAdapter<Runtime, GetTokenId>;
-	type ApproveOrigin = frame_system::EnsureRoot<u64>;
-	type RejectOrigin = frame_system::EnsureRoot<u64>;
+	type ApproveOrigin = frame_system::EnsureRoot<AccountId>;
+	type RejectOrigin = frame_system::EnsureRoot<AccountId>;
 	type Tippers = TenToFourteen;
 	type TipCountdown = TipCountdown;
 	type TipFindersFee = TipFindersFee;
@@ -158,6 +160,7 @@ impl pallet_treasury::Trait for Runtime {
 	type MaximumReasonLength = ();
 	type WeightInfo = ();
 }
+pub type Treasury = pallet_treasury::Module<Runtime>;
 
 parameter_types! {
 	pub const CandidacyBond: u64 = 3;
@@ -199,13 +202,13 @@ impl Get<u64> for TermDuration {
 }
 
 thread_local! {
-	pub static MEMBERS: RefCell<Vec<u64>> = RefCell::new(vec![]);
-	pub static PRIME: RefCell<Option<u64>> = RefCell::new(None);
+	pub static MEMBERS: RefCell<Vec<AccountId>> = RefCell::new(vec![]);
+	pub static PRIME: RefCell<Option<AccountId>> = RefCell::new(None);
 }
 
 pub struct TestChangeMembers;
-impl ChangeMembers<u64> for TestChangeMembers {
-	fn change_members_sorted(incoming: &[u64], outgoing: &[u64], new: &[u64]) {
+impl ChangeMembers<AccountId> for TestChangeMembers {
+	fn change_members_sorted(incoming: &[AccountId], outgoing: &[AccountId], new: &[AccountId]) {
 		// new, incoming, outgoing must be sorted.
 		let mut new_sorted = new.to_vec();
 		new_sorted.sort();
@@ -241,7 +244,7 @@ impl ChangeMembers<u64> for TestChangeMembers {
 		PRIME.with(|p| *p.borrow_mut() = None);
 	}
 
-	fn set_prime(who: Option<u64>) {
+	fn set_prime(who: Option<AccountId>) {
 		PRIME.with(|p| *p.borrow_mut() = who);
 	}
 }
@@ -268,6 +271,47 @@ impl pallet_elections_phragmen::Trait for Runtime {
 	type WeightInfo = ();
 }
 
+thread_local! {
+	pub static ACCUMULATED_RECEIVED: RefCell<HashMap<(AccountId, CurrencyId), Balance>> = RefCell::new(HashMap::new());
+}
+
+pub struct MockOnReceived;
+impl OnReceived<AccountId, CurrencyId, Balance> for MockOnReceived {
+	fn on_received(who: &AccountId, currency_id: CurrencyId, amount: Balance) {
+		ACCUMULATED_RECEIVED.with(|v| {
+			let mut old_map = v.borrow().clone();
+			if let Some(before) = old_map.get_mut(&(who.clone(), currency_id)) {
+				*before += amount;
+			} else {
+				old_map.insert((who.clone(), currency_id), amount);
+			};
+
+			*v.borrow_mut() = old_map;
+		});
+	}
+}
+
+pub struct MockOnDust;
+impl OnDust<CurrencyId, Balance> for MockOnDust {
+	fn on_dust(currency_id: CurrencyId, amount: Balance) {
+		let _ = Tokens::deposit(currency_id, &DustAccount::get(), amount);
+	}
+}
+
+parameter_type_with_key! {
+	pub ExistenceDeposits: |currency_id: CurrencyId| -> Balance {
+		match currency_id {
+			&BTC => 1,
+			&DOT => 2,
+			_ => 0,
+		}
+	};
+}
+
+parameter_types! {
+	pub DustAccount: AccountId = ModuleId(*b"aca/dust").into_account();
+}
+
 impl Trait for Runtime {
 	type Event = TestEvent;
 	type Balance = Balance;
@@ -275,18 +319,11 @@ impl Trait for Runtime {
 	type CurrencyId = CurrencyId;
 	type OnReceived = MockOnReceived;
 	type WeightInfo = ();
+	type ExistenceDeposits = ExistenceDeposits;
+	type OnDust = MockOnDust;
 }
-
 pub type Tokens = Module<Runtime>;
 pub type TreasuryCurrencyAdapter = <Runtime as pallet_treasury::Trait>::Currency;
-
-pub const TEST_TOKEN_ID: CurrencyId = 1;
-pub const TEST_TOKEN_ID2: CurrencyId = 2;
-pub const ALICE: AccountId = 1;
-pub const BOB: AccountId = 2;
-pub const TREASURY_ACCOUNT: AccountId = 3;
-pub const ID_1: LockIdentifier = *b"1       ";
-pub const ID_2: LockIdentifier = *b"2       ";
 
 pub struct ExtBuilder {
 	endowed_accounts: Vec<(AccountId, CurrencyId, Balance)>,
@@ -309,12 +346,12 @@ impl ExtBuilder {
 	}
 
 	pub fn one_hundred_for_alice_n_bob(self) -> Self {
-		self.balances(vec![(ALICE, TEST_TOKEN_ID, 100), (BOB, TEST_TOKEN_ID, 100)])
+		self.balances(vec![(ALICE, DOT, 100), (BOB, DOT, 100)])
 	}
 
 	pub fn one_hundred_for_treasury_account(mut self) -> Self {
 		self.treasury_genesis = true;
-		self.balances(vec![(TREASURY_ACCOUNT, TEST_TOKEN_ID, 100)])
+		self.balances(vec![(TREASURY_ACCOUNT, DOT, 100)])
 	}
 
 	pub fn build(self) -> sp_io::TestExternalities {
