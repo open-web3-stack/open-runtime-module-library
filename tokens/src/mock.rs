@@ -299,7 +299,7 @@ impl OnDust<CurrencyId, Balance> for MockOnDust {
 }
 
 parameter_type_with_key! {
-	pub ExistenceDeposits: |currency_id: CurrencyId| -> Balance {
+	pub ExistentialDeposits: |currency_id: CurrencyId| -> Balance {
 		match currency_id {
 			&BTC => 1,
 			&DOT => 2,
@@ -309,7 +309,7 @@ parameter_type_with_key! {
 }
 
 parameter_types! {
-	pub DustAccount: AccountId = ModuleId(*b"aca/dust").into_account();
+	pub DustAccount: AccountId = ModuleId(*b"orml/dst").into_account();
 }
 
 impl Trait for Runtime {
@@ -319,7 +319,7 @@ impl Trait for Runtime {
 	type CurrencyId = CurrencyId;
 	type OnReceived = MockOnReceived;
 	type WeightInfo = ();
-	type ExistenceDeposits = ExistenceDeposits;
+	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = MockOnDust;
 }
 pub type Tokens = Module<Runtime>;

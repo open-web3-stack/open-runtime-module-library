@@ -99,7 +99,7 @@ impl OnDust<CurrencyId, Balance> for MockOnDust {
 }
 
 parameter_type_with_key! {
-	pub ExistenceDeposits: |currency_id: CurrencyId| -> Balance {
+	pub ExistentialDeposits: |currency_id: CurrencyId| -> Balance {
 		Default::default()
 	};
 }
@@ -115,7 +115,7 @@ impl tokens::Trait for Runtime {
 	type CurrencyId = CurrencyId;
 	type OnReceived = ();
 	type WeightInfo = ();
-	type ExistenceDeposits = ExistenceDeposits;
+	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = MockOnDust;
 }
 pub type Tokens = tokens::Module<Runtime>;
