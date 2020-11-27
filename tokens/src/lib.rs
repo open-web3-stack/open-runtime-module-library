@@ -112,7 +112,7 @@ pub trait Trait: frame_system::Trait {
 	type WeightInfo: WeightInfo;
 
 	/// The minimum amount required to keep an account.
-	type ExistenceDeposits: GetByKey<Self::CurrencyId, Self::Balance>;
+	type ExistentialDeposits: GetByKey<Self::CurrencyId, Self::Balance>;
 
 	/// Handler for the balance reduction when removing a dust account.
 	type OnDust: OnDust<Self::CurrencyId, Self::Balance>;
@@ -202,7 +202,7 @@ decl_storage! {
 		build(|config: &GenesisConfig<T>| {
 			config.endowed_accounts.iter().for_each(|(account_id, currency_id, initial_balance)| {
 				assert!(
-					*initial_balance >= T::ExistenceDeposits::get(&currency_id),
+					*initial_balance >= T::ExistentialDeposits::get(&currency_id),
 					"the balance of any account should always be more than existential deposit.",
 				);
 				Module::<T>::mutate_account(account_id, *currency_id, |account_data, _| account_data.free = *initial_balance);
@@ -314,12 +314,19 @@ impl<T: Trait> Module<T> {
 		existed: bool,
 	) -> Option<AccountData<T::Balance>> {
 		let total = new.total();
-		if total < T::ExistenceDeposits::get(&currency_id) && !Self::is_module_account_id(who) {
+		if total < T::ExistentialDeposits::get(&currency_id) && !Self::is_module_account_id(who) {
 			// remove dust
 			if !total.is_zero() {
+				// TotalIssuance deduct the dust amount here
 				TotalIssuance::<T>::mutate(currency_id, |t| {
 					*t = t.checked_sub(&total).expect("ensured non-underflow total amount; qed");
 				});
+
+				// NOTE: In any case, do not try to set/get the Accounts of `who` in the hook,
+				// otherwise there may be some unexpected errors.
+				//
+				// It is recommended to deposit the amount of dust into a module account, or
+				// do nothing which is equivalent to burn the dust.
 				T::OnDust::on_dust(currency_id, total);
 				Self::deposit_event(RawEvent::DustLost(who.clone(), currency_id, total));
 			}
@@ -368,15 +375,15 @@ impl<T: Trait> Module<T> {
 
 	/// Set free balance of `who` to a new value.
 	///
-	/// Note this will not maintain total issuance.
+	/// Note this will not maintain total issuance, and the caller is expected
+	/// to do it.
 	fn set_free_balance(currency_id: T::CurrencyId, who: &T::AccountId, amount: T::Balance) {
 		Self::mutate_account(who, currency_id, |account, _| {
 			account.free = amount;
 		});
 	}
 
-	/// Set reserved balance of `who` to a new value, meanwhile enforce
-	/// existential rule.
+	/// Set reserved balance of `who` to a new value.
 	///
 	/// Note this will not maintain total issuance, and the caller is expected
 	/// to do it.
@@ -419,7 +426,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	type Balance = T::Balance;
 
 	fn minimum_balance(currency_id: Self::CurrencyId) -> Self::Balance {
-		T::ExistenceDeposits::get(&currency_id)
+		T::ExistentialDeposits::get(&currency_id)
 	}
 
 	fn total_issuance(currency_id: Self::CurrencyId) -> Self::Balance {
@@ -906,7 +913,7 @@ where
 				// equal and opposite cause (returned as an Imbalance), then in the
 				// instance that there's no other accounts on the system at all, we might
 				// underflow the issuance and our arithmetic will be off.
-				let ed = T::ExistenceDeposits::get(&currency_id);
+				let ed = T::ExistentialDeposits::get(&currency_id);
 				ensure!(value.saturating_add(account.reserved) >= ed || existed, ());
 
 				let imbalance = if account.free <= value {

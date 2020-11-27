@@ -335,3 +335,7 @@ pub trait OnReceived<AccountId, CurrencyId, Balance> {
 pub trait OnDust<CurrencyId, Balance> {
 	fn on_dust(currency_id: CurrencyId, amount: Balance);
 }
+
+impl<CurrencyId, Balance> OnDust<CurrencyId, Balance> for () {
+	fn on_dust(_: CurrencyId, _: Balance) {}
+}
