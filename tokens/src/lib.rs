@@ -114,8 +114,8 @@ pub trait Trait: frame_system::Trait {
 	/// The minimum amount required to keep an account.
 	type ExistentialDeposits: GetByKey<Self::CurrencyId, Self::Balance>;
 
-	/// Handler for the balance reduction when removing a dust account.
-	type OnDust: OnDust<Self::CurrencyId, Self::Balance>;
+	/// Handler to burn or transfer account's dust
+	type OnDust: OnDust<Self::AccountId, Self::CurrencyId, Self::Balance>;
 }
 
 /// A single lock on a balance. There can be many of these on an account and
@@ -307,58 +307,48 @@ impl<T: Trait> Module<T> {
 		ModuleId::try_from_account(account_id).is_some()
 	}
 
-	fn post_account_mutation(
-		who: &T::AccountId,
-		currency_id: T::CurrencyId,
-		new: AccountData<T::Balance>,
-		existed: bool,
-	) -> Option<AccountData<T::Balance>> {
-		let total = new.total();
-		if total < T::ExistentialDeposits::get(&currency_id) && !Self::is_module_account_id(who) {
-			// remove dust
-			if !total.is_zero() {
-				// TotalIssuance deduct the dust amount here
-				TotalIssuance::<T>::mutate(currency_id, |t| {
-					*t = t.checked_sub(&total).expect("ensured non-underflow total amount; qed");
-				});
-
-				// NOTE: In any case, do not try to set/get the Accounts of `who` in the hook,
-				// otherwise there may be some unexpected errors.
-				//
-				// It is recommended to deposit the amount of dust into a module account, or
-				// do nothing which is equivalent to burn the dust.
-				T::OnDust::on_dust(currency_id, total);
-				Self::deposit_event(RawEvent::DustLost(who.clone(), currency_id, total));
-			}
-
-			// if existed before, decrease account ref count
-			if existed {
-				frame_system::Module::<T>::dec_ref(who);
-			}
-
-			None
-		} else {
-			// if new, increase account ref count
-			if !existed {
-				frame_system::Module::<T>::inc_ref(who);
-			}
-
-			Some(new)
-		}
-	}
-
 	fn try_mutate_account<R, E>(
 		who: &T::AccountId,
 		currency_id: T::CurrencyId,
 		f: impl FnOnce(&mut AccountData<T::Balance>, bool) -> sp_std::result::Result<R, E>,
 	) -> sp_std::result::Result<R, E> {
-		Accounts::<T>::try_mutate_exists(who, currency_id, |maybe_account| -> sp_std::result::Result<R, E> {
+		Accounts::<T>::try_mutate_exists(who, currency_id, |maybe_account| {
 			let existed = maybe_account.is_some();
 			let mut account = maybe_account.take().unwrap_or_default();
 			f(&mut account, existed).map(move |result| {
-				*maybe_account = Self::post_account_mutation(who, currency_id, account, existed);
-				result
+				let mut handle_dust: Option<T::Balance> = None;
+				let total = account.total();
+				*maybe_account = if total.is_zero() {
+					None
+				} else {
+					// if non_zero total is below existential deposit and the account is not a
+					// module account, should handle the dust.
+					if total < T::ExistentialDeposits::get(&currency_id) && !Self::is_module_account_id(who) {
+						handle_dust = Some(total);
+					}
+					Some(account)
+				};
+
+				(existed, maybe_account.is_some(), handle_dust, result)
 			})
+		})
+		.map(|(existed, exists, handle_dust, result)| {
+			if existed && !exists {
+				// if existed before, decrease account ref count
+				frame_system::Module::<T>::dec_ref(who);
+			} else if !existed && exists {
+				// if new, increase account ref count
+				frame_system::Module::<T>::inc_ref(who);
+			}
+
+			if let Some(dust_amount) = handle_dust {
+				// `OnDust` maybe get/set storage `Accounts` of `who`, trigger handler here
+				// to avoid some unexpected errors.
+				T::OnDust::on_dust(who, currency_id, dust_amount);
+				Self::deposit_event(RawEvent::DustLost(who.clone(), currency_id, dust_amount));
+			}
+
+			result
 		})
 	}
 

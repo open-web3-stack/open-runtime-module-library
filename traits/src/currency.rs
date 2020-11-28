@@ -330,12 +330,11 @@ pub trait OnReceived<AccountId, CurrencyId, Balance> {
 	fn on_received(account: &AccountId, currency: CurrencyId, amount: Balance);
 }
 
-/// Handler for when some currency "account" decreased in balance for some
-/// reason.
-pub trait OnDust<CurrencyId, Balance> {
-	fn on_dust(currency_id: CurrencyId, amount: Balance);
+/// Handler for account which has dust, need to burn or recycle it
+pub trait OnDust<AccountId, CurrencyId, Balance> {
+	fn on_dust(who: &AccountId, currency_id: CurrencyId, amount: Balance);
 }
 
-impl<CurrencyId, Balance> OnDust<CurrencyId, Balance> for () {
-	fn on_dust(_: CurrencyId, _: Balance) {}
+impl<AccountId, CurrencyId, Balance> OnDust<AccountId, CurrencyId, Balance> for () {
+	fn on_dust(_: &AccountId, _: CurrencyId, _: Balance) {}
 }

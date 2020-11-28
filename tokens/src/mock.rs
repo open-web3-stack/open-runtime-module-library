@@ -292,9 +292,9 @@ impl OnReceived<AccountId, CurrencyId, Balance> for MockOnReceived {
 }
 
 pub struct MockOnDust;
-impl OnDust<CurrencyId, Balance> for MockOnDust {
-	fn on_dust(currency_id: CurrencyId, amount: Balance) {
-		let _ = Tokens::deposit(currency_id, &DustAccount::get(), amount);
+impl OnDust<AccountId, CurrencyId, Balance> for MockOnDust {
+	fn on_dust(who: &AccountId, currency_id: CurrencyId, amount: Balance) {
+		let _ = <Tokens as MultiCurrency<_>>::transfer(currency_id, who, &DustAccount::get(), amount);
 	}
 }
 
