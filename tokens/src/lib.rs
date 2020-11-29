@@ -72,7 +72,7 @@ use orml_traits::{
 	account::MergeAccount,
 	arithmetic::{self, Signed},
 	BalanceStatus, GetByKey, LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency,
-	MultiReservableCurrency, OnDust, OnReceived,
+	MultiReservableCurrency, OnDust,
 };
 
 mod default_weight;
@@ -104,9 +104,6 @@ pub trait Trait: frame_system::Trait {
 
 	/// The currency ID type
 	type CurrencyId: Parameter + Member + Copy + MaybeSerializeDeserialize + Ord;
-
-	/// Hook when some fund is deposited into an account
-	type OnReceived: OnReceived<Self::AccountId, Self::CurrencyId, Self::Balance>;
 
 	/// Weight information for extrinsics in this module.
 	type WeightInfo: WeightInfo;
@@ -470,7 +467,6 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 		// Cannot underflow because ensure_can_withdraw check
 		Self::set_free_balance(currency_id, from, from_balance - amount);
 		Self::set_free_balance(currency_id, to, to_balance);
-		T::OnReceived::on_received(to, currency_id, amount);
 
 		Ok(())
 	}
@@ -489,7 +485,6 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 				.ok_or(Error::<T>::TotalIssuanceOverflow)?;
 
 			Self::set_free_balance(currency_id, who, Self::free_balance(currency_id, who) + amount);
-			T::OnReceived::on_received(who, currency_id, amount);
 
 			Ok(())
 		})
@@ -701,7 +696,7 @@ impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
 		let actual = account.reserved.min(value);
 		Self::set_reserved_balance(currency_id, who, account.reserved - actual);
 		Self::set_free_balance(currency_id, who, account.free + actual);
-		T::OnReceived::on_received(who, currency_id, actual);
+
 		value - actual
 	}
 
@@ -736,7 +731,6 @@ impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
 		match status {
 			BalanceStatus::Free => {
 				Self::set_free_balance(currency_id, beneficiary, to_account.free + actual);
-				T::OnReceived::on_received(beneficiary, currency_id, actual);
 			}
 			BalanceStatus::Reserved => {
 				Self::set_reserved_balance(currency_id, beneficiary, to_account.reserved + actual);

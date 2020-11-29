@@ -323,13 +323,6 @@ pub trait BasicReservableCurrency<AccountId>: BasicCurrency<AccountId> {
 	) -> result::Result<Self::Balance, DispatchError>;
 }
 
-/// Handler when an account received some assets
-#[impl_trait_for_tuples::impl_for_tuples(30)]
-pub trait OnReceived<AccountId, CurrencyId, Balance> {
-	/// An account have received some assets
-	fn on_received(account: &AccountId, currency: CurrencyId, amount: Balance);
-}
-
 /// Handler for account which has dust, need to burn or recycle it
 pub trait OnDust<AccountId, CurrencyId, Balance> {
 	fn on_dust(who: &AccountId, currency_id: CurrencyId, amount: Balance);

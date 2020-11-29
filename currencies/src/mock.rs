@@ -113,7 +113,6 @@ impl tokens::Trait for Runtime {
 	type Balance = Balance;
 	type Amount = i64;
 	type CurrencyId = CurrencyId;
-	type OnReceived = ();
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = MockOnDust;
