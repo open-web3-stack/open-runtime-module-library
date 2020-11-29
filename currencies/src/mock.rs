@@ -92,9 +92,9 @@ impl pallet_balances::Trait for Runtime {
 pub type PalletBalances = pallet_balances::Module<Runtime>;
 
 pub struct MockOnDust;
-impl OnDust<CurrencyId, Balance> for MockOnDust {
-	fn on_dust(currency_id: CurrencyId, amount: Balance) {
-		let _ = Tokens::deposit(currency_id, &DustAccount::get(), amount);
+impl OnDust<AccountId, CurrencyId, Balance> for MockOnDust {
+	fn on_dust(who: &AccountId, currency_id: CurrencyId, amount: Balance) {
+		let _ = <Tokens as MultiCurrency<_>>::transfer(currency_id, who, &DustAccount::get(), amount);
 	}
 }
 
@@ -113,7 +113,6 @@ impl tokens::Trait for Runtime {
 	type Balance = Balance;
 	type Amount = i64;
 	type CurrencyId = CurrencyId;
-	type OnReceived = ();
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = MockOnDust;

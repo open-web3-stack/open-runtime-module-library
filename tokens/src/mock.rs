@@ -15,7 +15,6 @@ use sp_runtime::{
 	AccountId32, ModuleId, Perbill, Percent, Permill,
 };
 use sp_std::cell::RefCell;
-use std::collections::HashMap;
 
 use super::*;
 
@@ -271,30 +270,10 @@ impl pallet_elections_phragmen::Trait for Runtime {
 	type WeightInfo = ();
 }
 
-thread_local! {
-	pub static ACCUMULATED_RECEIVED: RefCell<HashMap<(AccountId, CurrencyId), Balance>> = RefCell::new(HashMap::new());
-}
-
-pub struct MockOnReceived;
-impl OnReceived<AccountId, CurrencyId, Balance> for MockOnReceived {
-	fn on_received(who: &AccountId, currency_id: CurrencyId, amount: Balance) {
-		ACCUMULATED_RECEIVED.with(|v| {
-			let mut old_map = v.borrow().clone();
-			if let Some(before) = old_map.get_mut(&(who.clone(), currency_id)) {
-				*before += amount;
-			} else {
-				old_map.insert((who.clone(), currency_id), amount);
-			};
-
-			*v.borrow_mut() = old_map;
-		});
-	}
-}
-
 pub struct MockOnDust;
-impl OnDust<CurrencyId, Balance> for MockOnDust {
-	fn on_dust(currency_id: CurrencyId, amount: Balance) {
-		let _ = Tokens::deposit(currency_id, &DustAccount::get(), amount);
+impl OnDust<AccountId, CurrencyId, Balance> for MockOnDust {
+	fn on_dust(who: &AccountId, currency_id: CurrencyId, amount: Balance) {
+		let _ = <Tokens as MultiCurrency<_>>::transfer(currency_id, who, &DustAccount::get(), amount);
 	}
 }
 
@@ -317,7 +296,6 @@ impl Trait for Runtime {
 	type Balance = Balance;
 	type Amount = i64;
 	type CurrencyId = CurrencyId;
-	type OnReceived = MockOnReceived;
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = MockOnDust;

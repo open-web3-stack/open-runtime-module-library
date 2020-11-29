@@ -5,8 +5,8 @@
 use super::*;
 use frame_support::{assert_noop, assert_ok, traits::WithdrawReasons};
 use mock::{
-	Balance, DustAccount, ExtBuilder, Runtime, System, TestEvent, Tokens, Treasury, TreasuryCurrencyAdapter,
-	ACCUMULATED_RECEIVED, ALICE, BOB, BTC, DOT, ETH, ID_1, ID_2, TREASURY_ACCOUNT,
+	Balance, DustAccount, ExtBuilder, Runtime, System, TestEvent, Tokens, Treasury, TreasuryCurrencyAdapter, ALICE,
+	BOB, BTC, DOT, ETH, ID_1, ID_2, TREASURY_ACCOUNT,
 };
 
 #[test]
@@ -308,7 +308,6 @@ fn transfer_should_work() {
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 50);
 			assert_eq!(Tokens::free_balance(DOT, &BOB), 150);
 			assert_eq!(Tokens::total_issuance(DOT), 200);
-			assert_eq!(ACCUMULATED_RECEIVED.with(|v| *v.borrow().get(&(BOB, DOT)).unwrap()), 50);
 
 			let transferred_event = TestEvent::tokens(RawEvent::Transferred(DOT, ALICE, BOB, 50));
 			assert!(System::events().iter().any(|record| record.event == transferred_event));
