@@ -15,6 +15,7 @@
 //! - `create_class` - Create NFT(non fungible token) class
 //! - `transfer` - Transfer NFT(non fungible token) to another account.
 //! - `mint` - Mint NFT(non fungible token)
+//! - `set_mint_mode` - Set mode for NFT(non fungible token) class
 //! - `burn` - Burn NFT(non fungible token)
 //! - `destroy_class` - Destroy NFT(non fungible token) class
 
@@ -31,6 +32,13 @@ use sp_std::vec::Vec;
 mod mock;
 mod tests;
 
+/// Mint mode enum
+#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, Copy)]
+pub enum MintMode {
+	Private,
+	Public,
+}
+
 /// Class info
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub struct ClassInfo<TokenId, AccountId, Data> {
@@ -40,6 +48,8 @@ pub struct ClassInfo<TokenId, AccountId, Data> {
 	pub total_issuance: TokenId,
 	/// Class owner
 	pub owner: AccountId,
+	/// Mint mode
+	pub mint_mode: MintMode,
 	/// Class Properties
 	pub data: Data,
 }
@@ -84,6 +94,8 @@ decl_error! {
 		/// Can not destroy class
 		/// Total issuance is not 0
 		CannotDestroyClass,
+		/// Class does not have public minting permission
+		PublicMintingNotAllowed,
 	}
 }
 
@@ -121,6 +133,7 @@ impl<T: Trait> Module<T> {
 	pub fn create_class(
 		owner: &T::AccountId,
 		metadata: Vec<u8>,
+		public_mint: bool,
 		data: T::ClassData,
 	) -> Result<T::ClassId, DispatchError> {
 		let class_id = NextClassId::<T>::try_mutate(|id| -> Result<T::ClassId, DispatchError> {
@@ -129,10 +142,17 @@ impl<T: Trait> Module<T> {
 			Ok(current_id)
 		})?;
 
+		let mode: MintMode = if public_mint == true {
+			MintMode::Public
+		} else {
+			MintMode::Private
+		};
+
 		let info = ClassInfo {
 			metadata,
 			total_issuance: Default::default(),
 			owner: owner.clone(),
+			mint_mode: mode,
 			data,
 		};
 		Classes::<T>::insert(class_id, info);
@@ -171,10 +191,15 @@ impl<T: Trait> Module<T> {
 	) -> Result<T::TokenId, DispatchError> {
 		NextTokenId::<T>::try_mutate(class_id, |id| -> Result<T::TokenId, DispatchError> {
 			let token_id = *id;
-			*id = id.checked_add(&One::one()).ok_or(Error::<T>::NoAvailableTokenId)?;
-
 			Classes::<T>::try_mutate(class_id, |class_info| -> DispatchResult {
 				let info = class_info.as_mut().ok_or(Error::<T>::ClassNotFound)?;
+
+				ensure!(
+					info.mint_mode == MintMode::Public || (info.mint_mode == MintMode::Private && info.owner == *owner),
+					Error::<T>::PublicMintingNotAllowed
+				);
+
+				*id = id.checked_add(&One::one()).ok_or(Error::<T>::NoAvailableTokenId)?;
 				info.total_issuance = info
 					.total_issuance
 					.checked_add(&One::one())
@@ -192,6 +217,28 @@ impl<T: Trait> Module<T> {
 			TokensByOwner::<T>::insert(owner, (class_id, token_id), ());
 
 			Ok(token_id)
+		})
+	}
+
+	/// Set mint mode for class
+	pub fn set_mint_mode(owner: &T::AccountId, class_id: T::ClassId, public: bool) -> DispatchResult {
+		Classes::<T>::try_mutate(class_id, |class_info| -> DispatchResult {
+			let mut info = class_info.as_mut().ok_or(Error::<T>::ClassNotFound)?;
+			ensure!(info.owner == *owner, Error::<T>::NoPermission);
+
+			let mode: MintMode = if public == true {
+				MintMode::Public
+			} else {
+				MintMode::Private
+			};
+			if info.mint_mode == mode {
+				// no change needed
+				return Ok(());
+			}
+
+			info.mint_mode = mode;
+
+			Ok(())
 		})
 	}
 
