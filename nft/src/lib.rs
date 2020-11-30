@@ -142,7 +142,7 @@ impl<T: Trait> Module<T> {
 			Ok(current_id)
 		})?;
 
-		let mode: MintMode = if public_mint == true {
+		let mode: MintMode = if public_mint {
 			MintMode::Public
 		} else {
 			MintMode::Private
@@ -226,7 +226,7 @@ impl<T: Trait> Module<T> {
 			let mut info = class_info.as_mut().ok_or(Error::<T>::ClassNotFound)?;
 			ensure!(info.owner == *owner, Error::<T>::NoPermission);
 
-			let mode: MintMode = if public == true {
+			let mode: MintMode = if public {
 				MintMode::Public
 			} else {
 				MintMode::Private
