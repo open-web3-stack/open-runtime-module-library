@@ -133,7 +133,7 @@ impl<T: Trait> Module<T> {
 	pub fn create_class(
 		owner: &T::AccountId,
 		metadata: Vec<u8>,
-		public_mint: bool,
+		public: bool,
 		data: T::ClassData,
 	) -> Result<T::ClassId, DispatchError> {
 		let class_id = NextClassId::<T>::try_mutate(|id| -> Result<T::ClassId, DispatchError> {
