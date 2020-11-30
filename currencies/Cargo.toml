@@ -23,7 +23,7 @@ orml-utilities = { path = "../utilities", version = "0.3.3-dev", default-feature
 [dev-dependencies]
 sp-core = { version = "2.0.0", default-features = false }
 pallet-balances = "2.0.0"
-tokens = { package = "orml-tokens", path = "../tokens" }
+orml_tokens = { package = "orml-tokens", path = "../tokens", version = "0.3.3-dev" }
 
 clear_on_drop = { version = "0.2.4", features = ["no_cc"] }	# https://github.com/paritytech/substrate/issues/4179
 
