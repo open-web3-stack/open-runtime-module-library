@@ -85,6 +85,28 @@ pub trait WeightInfo {
 	fn transfer_all() -> Weight;
 }
 
+pub struct TransferDust<T, GetAccountId>(marker::PhantomData<(T, GetAccountId)>);
+impl<T, GetAccountId> OnDust<T::AccountId, T::CurrencyId, T::Balance> for TransferDust<T, GetAccountId>
+where
+	T: Trait,
+	GetAccountId: Get<T::AccountId>,
+{
+	fn on_dust(who: &T::AccountId, currency_id: T::CurrencyId, amount: T::Balance) {
+		// transfer the dust to treasury account, ignore the result,
+		// if failed will leave some dust which still could be recycled.
+		let _ = <Module<T> as MultiCurrency<T::AccountId>>::transfer(currency_id, who, &GetAccountId::get(), amount);
+	}
+}
+
+pub struct BurnDust<T>(marker::PhantomData<T>);
+impl<T: Trait> OnDust<T::AccountId, T::CurrencyId, T::Balance> for BurnDust<T> {
+	fn on_dust(who: &T::AccountId, currency_id: T::CurrencyId, amount: T::Balance) {
+		// burn the dust, ignore the result,
+		// if failed will leave some dust which still could be recycled.
+		let _ = Module::<T>::withdraw(currency_id, who, amount);
+	}
+}
+
 pub trait Trait: frame_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
 

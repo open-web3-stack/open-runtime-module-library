@@ -270,13 +270,6 @@ impl pallet_elections_phragmen::Trait for Runtime {
 	type WeightInfo = ();
 }
 
-pub struct MockOnDust;
-impl OnDust<AccountId, CurrencyId, Balance> for MockOnDust {
-	fn on_dust(who: &AccountId, currency_id: CurrencyId, amount: Balance) {
-		let _ = <Tokens as MultiCurrency<_>>::transfer(currency_id, who, &DustAccount::get(), amount);
-	}
-}
-
 parameter_type_with_key! {
 	pub ExistentialDeposits: |currency_id: CurrencyId| -> Balance {
 		match currency_id {
@@ -298,7 +291,7 @@ impl Trait for Runtime {
 	type CurrencyId = CurrencyId;
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
-	type OnDust = MockOnDust;
+	type OnDust = TransferDust<Runtime, DustAccount>;
 }
 pub type Tokens = Module<Runtime>;
 pub type TreasuryCurrencyAdapter = <Runtime as pallet_treasury::Trait>::Currency;

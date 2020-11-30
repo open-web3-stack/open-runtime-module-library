@@ -3,7 +3,7 @@
 #![cfg(test)]
 
 use frame_support::{impl_outer_event, impl_outer_origin, parameter_types};
-use orml_traits::{parameter_type_with_key, OnDust};
+use orml_traits::parameter_type_with_key;
 use pallet_balances;
 use sp_core::H256;
 use sp_runtime::{
@@ -11,8 +11,6 @@ use sp_runtime::{
 	traits::{AccountIdConversion, IdentityLookup},
 	AccountId32, ModuleId, Perbill,
 };
-
-use tokens;
 
 use super::*;
 
@@ -24,7 +22,7 @@ impl_outer_event! {
 	pub enum TestEvent for Runtime {
 		frame_system<T>,
 		currencies<T>,
-		tokens<T>,
+		orml_tokens<T>,
 		pallet_balances<T>,
 	}
 }
@@ -91,13 +89,6 @@ impl pallet_balances::Trait for Runtime {
 }
 pub type PalletBalances = pallet_balances::Module<Runtime>;
 
-pub struct MockOnDust;
-impl OnDust<AccountId, CurrencyId, Balance> for MockOnDust {
-	fn on_dust(who: &AccountId, currency_id: CurrencyId, amount: Balance) {
-		let _ = <Tokens as MultiCurrency<_>>::transfer(currency_id, who, &DustAccount::get(), amount);
-	}
-}
-
 parameter_type_with_key! {
 	pub ExistentialDeposits: |currency_id: CurrencyId| -> Balance {
 		Default::default()
@@ -108,16 +99,16 @@ parameter_types! {
 	pub DustAccount: AccountId = ModuleId(*b"orml/dst").into_account();
 }
 
-impl tokens::Trait for Runtime {
+impl orml_tokens::Trait for Runtime {
 	type Event = TestEvent;
 	type Balance = Balance;
 	type Amount = i64;
 	type CurrencyId = CurrencyId;
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
-	type OnDust = MockOnDust;
+	type OnDust = orml_tokens::TransferDust<Runtime, DustAccount>;
 }
-pub type Tokens = tokens::Module<Runtime>;
+pub type Tokens = orml_tokens::Module<Runtime>;
 
 pub const NATIVE_CURRENCY_ID: CurrencyId = 1;
 pub const X_TOKEN_ID: CurrencyId = 2;
@@ -186,7 +177,7 @@ impl ExtBuilder {
 		.assimilate_storage(&mut t)
 		.unwrap();
 
-		tokens::GenesisConfig::<Runtime> {
+		orml_tokens::GenesisConfig::<Runtime> {
 			endowed_accounts: self
 				.endowed_accounts
 				.into_iter()
