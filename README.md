@@ -52,5 +52,6 @@ ORML use `Cargo.dev.toml` to avoid workspace conflicts with project cargo config
 _In alphabetical order_
 
 - [Acala Network](https://github.com/AcalaNetwork/Acala)
+- [ChainX](https://github.com/chainx-org/ChainX)
 - [Laminar Chain](https://github.com/laminar-protocol/laminar-chain)
 - [_Add your project here_](https://github.com/open-web3-stack/open-runtime-module-library/edit/master/README.md)
