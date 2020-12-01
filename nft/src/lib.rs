@@ -32,13 +32,6 @@ use sp_std::vec::Vec;
 mod mock;
 mod tests;
 
-/// Mint mode enum
-#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, Copy)]
-pub enum MintMode {
-	Private,
-	Public,
-}
-
 /// Class info
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub struct ClassInfo<TokenId, AccountId, Data> {
@@ -49,7 +42,7 @@ pub struct ClassInfo<TokenId, AccountId, Data> {
 	/// Class owner
 	pub owner: AccountId,
 	/// Mint mode
-	pub mint_mode: MintMode,
+	pub allow_public_mint: bool,
 	/// Class Properties
 	pub data: Data,
 }
@@ -133,7 +126,7 @@ impl<T: Trait> Module<T> {
 	pub fn create_class(
 		owner: &T::AccountId,
 		metadata: Vec<u8>,
-		public: bool,
+		public_mint: bool,
 		data: T::ClassData,
 	) -> Result<T::ClassId, DispatchError> {
 		let class_id = NextClassId::<T>::try_mutate(|id| -> Result<T::ClassId, DispatchError> {
@@ -142,13 +135,11 @@ impl<T: Trait> Module<T> {
 			Ok(current_id)
 		})?;
 
-		let mode: MintMode = if public { MintMode::Public } else { MintMode::Private };
-
 		let info = ClassInfo {
 			metadata,
 			total_issuance: Default::default(),
 			owner: owner.clone(),
-			mint_mode: mode,
+			allow_public_mint: public_mint,
 			data,
 		};
 		Classes::<T>::insert(class_id, info);
@@ -189,12 +180,10 @@ impl<T: Trait> Module<T> {
 			let token_id = *id;
 			Classes::<T>::try_mutate(class_id, |class_info| -> DispatchResult {
 				let info = class_info.as_mut().ok_or(Error::<T>::ClassNotFound)?;
-
 				ensure!(
-					info.mint_mode == MintMode::Public || (info.mint_mode == MintMode::Private && info.owner == *owner),
+					info.allow_public_mint || info.owner == *owner,
 					Error::<T>::PublicMintingNotAllowed
 				);
-
 				*id = id.checked_add(&One::one()).ok_or(Error::<T>::NoAvailableTokenId)?;
 				info.total_issuance = info
 					.total_issuance
@@ -217,18 +206,11 @@ impl<T: Trait> Module<T> {
 	}
 
 	/// Set mint mode for class
-	pub fn set_mint_mode(owner: &T::AccountId, class_id: T::ClassId, public: bool) -> DispatchResult {
+	pub fn set_mint_mode(owner: &T::AccountId, class_id: T::ClassId, allow_public_mint: bool) -> DispatchResult {
 		Classes::<T>::try_mutate(class_id, |class_info| -> DispatchResult {
 			let mut info = class_info.as_mut().ok_or(Error::<T>::ClassNotFound)?;
 			ensure!(info.owner == *owner, Error::<T>::NoPermission);
-
-			let mode: MintMode = if public { MintMode::Public } else { MintMode::Private };
-			if info.mint_mode == mode {
-				// no change needed
-				return Ok(());
-			}
-
-			info.mint_mode = mode;
+			info.allow_public_mint = allow_public_mint;
 
 			Ok(())
 		})
