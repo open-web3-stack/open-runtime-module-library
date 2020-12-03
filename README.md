@@ -54,5 +54,6 @@ _In alphabetical order_
 - [Acala Network](https://github.com/AcalaNetwork/Acala)
 - [Bit.Country](https://github.com/bit-country/Bit-Country-Blockchain)
 - [ChainX](https://github.com/chainx-org/ChainX)
+- [HydraDX](https://github.com/galacticcouncil/hack.HydraDX-node)
 - [Laminar Chain](https://github.com/laminar-protocol/laminar-chain)
 - [_Add your project here_](https://github.com/open-web3-stack/open-runtime-module-library/edit/master/README.md)
