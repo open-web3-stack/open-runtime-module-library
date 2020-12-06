@@ -127,7 +127,7 @@ pub use sp_runtime::traits::Zero;
 /// Test functions are automatically generated for each benchmark and are
 /// accessible to you when you run `cargo test`. All tests are named
 /// `test_benchmark_<benchmark_name>`, expect you to pass them the Runtime
-/// Trait, and run them in a test externalities environment. The test function
+/// Config, and run them in a test externalities environment. The test function
 /// runs your benchmark just like a regular benchmark, but only testing at the
 /// lowest and highest values for each component. The function will return
 /// `Ok(())` if the benchmarks return no errors.
@@ -813,7 +813,7 @@ macro_rules! impl_benchmark {
 				let mut whitelist = whitelist.to_vec();
 				let whitelisted_caller_key =
 					<frame_system::Account::<$runtime> as frame_support::storage::StorageMap<_,_>>::hashed_key_for(
-						$crate::whitelisted_caller::<<$runtime as frame_system::Trait>::AccountId>()
+						$crate::whitelisted_caller::<<$runtime as frame_system::Config>::AccountId>()
 					);
 				whitelist.push(whitelisted_caller_key.into());
 				$crate::benchmarking::set_whitelist(whitelist);

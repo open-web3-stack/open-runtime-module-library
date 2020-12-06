@@ -37,14 +37,14 @@ mod tests {
 	use sp_io::TestExternalities;
 	use sp_runtime::{DispatchError, DispatchResult};
 
-	pub trait Trait: frame_system::Trait {}
+	pub trait Config: frame_system::Config {}
 
 	decl_module! {
-		pub struct Module<T: Trait> for enum Call where origin: T::Origin {}
+		pub struct Module<T: Config> for enum Call where origin: T::Origin {}
 	}
 
 	decl_storage! {
-		trait Store for Module<T: Trait> as StorageTransactions {
+		trait Store for Module<T: Config> as StorageTransactions {
 			pub Value: u32;
 			pub Map: map hasher(twox_64_concat) String => u32;
 		}

@@ -88,7 +88,7 @@ pub trait WeightInfo {
 pub struct TransferDust<T, GetAccountId>(marker::PhantomData<(T, GetAccountId)>);
 impl<T, GetAccountId> OnDust<T::AccountId, T::CurrencyId, T::Balance> for TransferDust<T, GetAccountId>
 where
-	T: Trait,
+	T: Config,
 	GetAccountId: Get<T::AccountId>,
 {
 	fn on_dust(who: &T::AccountId, currency_id: T::CurrencyId, amount: T::Balance) {
@@ -99,7 +99,7 @@ where
 }
 
 pub struct BurnDust<T>(marker::PhantomData<T>);
-impl<T: Trait> OnDust<T::AccountId, T::CurrencyId, T::Balance> for BurnDust<T> {
+impl<T: Config> OnDust<T::AccountId, T::CurrencyId, T::Balance> for BurnDust<T> {
 	fn on_dust(who: &T::AccountId, currency_id: T::CurrencyId, amount: T::Balance) {
 		// burn the dust, ignore the result,
 		// if failed will leave some dust which still could be recycled.
@@ -107,8 +107,8 @@ impl<T: Trait> OnDust<T::AccountId, T::CurrencyId, T::Balance> for BurnDust<T> {
 	}
 }
 
-pub trait Trait: frame_system::Trait {
-	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
+pub trait Config: frame_system::Config {
+	type Event: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
 
 	/// The balance type
 	type Balance: Parameter + Member + AtLeast32BitUnsigned + Default + Copy + MaybeSerializeDeserialize;
@@ -184,7 +184,7 @@ impl<Balance: Saturating + Copy + Ord> AccountData<Balance> {
 }
 
 decl_storage! {
-	trait Store for Module<T: Trait> as Tokens {
+	trait Store for Module<T: Config> as Tokens {
 		/// The total issuance of a token type.
 		pub TotalIssuance get(fn total_issuance) build(|config: &GenesisConfig<T>| {
 			config
@@ -232,9 +232,9 @@ decl_storage! {
 
 decl_event!(
 	pub enum Event<T> where
-		<T as frame_system::Trait>::AccountId,
-		<T as Trait>::CurrencyId,
-		<T as Trait>::Balance
+		<T as frame_system::Config>::AccountId,
+		<T as Config>::CurrencyId,
+		<T as Config>::Balance
 	{
 		/// Token transfer success. \[currency_id, from, to, amount\]
 		Transferred(CurrencyId, AccountId, AccountId, Balance),
@@ -245,7 +245,7 @@ decl_event!(
 );
 
 decl_module! {
-	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+	pub struct Module<T: Config> for enum Call where origin: T::Origin {
 		type Error = Error<T>;
 
 		fn deposit_event() = default;
@@ -304,7 +304,7 @@ decl_module! {
 
 decl_error! {
 	/// Error for token module.
-	pub enum Error for Module<T: Trait> {
+	pub enum Error for Module<T: Config> {
 		/// The balance is too low
 		BalanceTooLow,
 		/// This operation will cause balance to overflow
@@ -320,7 +320,7 @@ decl_error! {
 	}
 }
 
-impl<T: Trait> Module<T> {
+impl<T: Config> Module<T> {
 	/// Check whether account_id is a module account
 	fn is_module_account_id(account_id: &T::AccountId) -> bool {
 		ModuleId::try_from_account(account_id).is_some()
@@ -430,7 +430,7 @@ impl<T: Trait> Module<T> {
 	}
 }
 
-impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
+impl<T: Config> MultiCurrency<T::AccountId> for Module<T> {
 	type CurrencyId = T::CurrencyId;
 	type Balance = T::Balance;
 
@@ -572,7 +572,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	}
 }
 
-impl<T: Trait> MultiCurrencyExtended<T::AccountId> for Module<T> {
+impl<T: Config> MultiCurrencyExtended<T::AccountId> for Module<T> {
 	type Amount = T::Amount;
 
 	fn update_balance(currency_id: Self::CurrencyId, who: &T::AccountId, by_amount: Self::Amount) -> DispatchResult {
@@ -598,7 +598,7 @@ impl<T: Trait> MultiCurrencyExtended<T::AccountId> for Module<T> {
 	}
 }
 
-impl<T: Trait> MultiLockableCurrency<T::AccountId> for Module<T> {
+impl<T: Config> MultiLockableCurrency<T::AccountId> for Module<T> {
 	type Moment = T::BlockNumber;
 
 	// Set a lock on the balance of `who` under `currency_id`.
@@ -657,7 +657,7 @@ impl<T: Trait> MultiLockableCurrency<T::AccountId> for Module<T> {
 	}
 }
 
-impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
+impl<T: Config> MultiReservableCurrency<T::AccountId> for Module<T> {
 	/// Check if `who` can reserve `value` from their free balance.
 	///
 	/// Always `true` if value to be reserved is zero.
@@ -767,7 +767,7 @@ pub struct CurrencyAdapter<T, GetCurrencyId>(marker::PhantomData<(T, GetCurrency
 
 impl<T, GetCurrencyId> PalletCurrency<T::AccountId> for CurrencyAdapter<T, GetCurrencyId>
 where
-	T: Trait,
+	T: Config,
 	GetCurrencyId: Get<T::CurrencyId>,
 {
 	type Balance = T::Balance;
@@ -937,7 +937,7 @@ where
 
 impl<T, GetCurrencyId> PalletReservableCurrency<T::AccountId> for CurrencyAdapter<T, GetCurrencyId>
 where
-	T: Trait,
+	T: Config,
 	GetCurrencyId: Get<T::CurrencyId>,
 {
 	fn can_reserve(who: &T::AccountId, value: Self::Balance) -> bool {
@@ -973,7 +973,7 @@ where
 
 impl<T, GetCurrencyId> PalletLockableCurrency<T::AccountId> for CurrencyAdapter<T, GetCurrencyId>
 where
-	T: Trait,
+	T: Config,
 	GetCurrencyId: Get<T::CurrencyId>,
 {
 	type Moment = T::BlockNumber;
@@ -992,7 +992,7 @@ where
 	}
 }
 
-impl<T: Trait> MergeAccount<T::AccountId> for Module<T> {
+impl<T: Config> MergeAccount<T::AccountId> for Module<T> {
 	#[transactional]
 	fn merge_account(source: &T::AccountId, dest: &T::AccountId) -> DispatchResult {
 		Accounts::<T>::iter_prefix(source).try_for_each(|(currency_id, account_data)| -> DispatchResult {

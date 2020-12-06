@@ -1,7 +1,7 @@
 //! # Oracle
 //! A module to allow oracle operators to feed external data.
 //!
-//! - [`Trait`](./trait.Trait.html)
+//! - [`Config`](./trait.Config.html)
 //! - [`Call`](./enum.Call.html)
 //! - [`Module`](./struct.Module.html)
 //!
@@ -48,8 +48,8 @@ use serde::{Deserialize, Serialize};
 use sp_runtime::{traits::Member, DispatchResult, RuntimeDebug};
 use sp_std::{prelude::*, vec};
 
-type MomentOf<T, I = DefaultInstance> = <<T as Trait<I>>::Time as Time>::Moment;
-pub type TimestampedValueOf<T, I = DefaultInstance> = TimestampedValue<<T as Trait<I>>::OracleValue, MomentOf<T, I>>;
+type MomentOf<T, I = DefaultInstance> = <<T as Config<I>>::Time as Time>::Moment;
+pub type TimestampedValueOf<T, I = DefaultInstance> = TimestampedValue<<T as Config<I>>::OracleValue, MomentOf<T, I>>;
 
 #[derive(Encode, Decode, RuntimeDebug, Eq, PartialEq, Clone, Copy, Ord, PartialOrd)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -58,8 +58,8 @@ pub struct TimestampedValue<Value, Moment> {
 	pub timestamp: Moment,
 }
 
-pub trait Trait<I: Instance = DefaultInstance>: frame_system::Trait {
-	type Event: From<Event<Self, I>> + Into<<Self as frame_system::Trait>::Event>;
+pub trait Config<I: Instance = DefaultInstance>: frame_system::Config {
+	type Event: From<Event<Self, I>> + Into<<Self as frame_system::Config>::Event>;
 
 	/// Hook on new data received
 	type OnNewData: OnNewData<Self::AccountId, Self::OracleKey, Self::OracleValue>;
@@ -85,7 +85,7 @@ pub trait Trait<I: Instance = DefaultInstance>: frame_system::Trait {
 }
 
 decl_error! {
-	pub enum Error for Module<T: Trait<I>, I: Instance> {
+	pub enum Error for Module<T: Config<I>, I: Instance> {
 		/// Sender does not have permission
 		NoPermission,
 		/// Feeder has already feeded at this block
@@ -95,9 +95,9 @@ decl_error! {
 
 decl_event!(
 	pub enum Event<T, I=DefaultInstance> where
-		<T as frame_system::Trait>::AccountId,
-		<T as Trait<I>>::OracleKey,
-		<T as Trait<I>>::OracleValue,
+		<T as frame_system::Config>::AccountId,
+		<T as Config<I>>::OracleKey,
+		<T as Config<I>>::OracleValue,
 	{
 		/// New feed data is submitted. [sender, values]
 		NewFeedData(AccountId, Vec<(OracleKey, OracleValue)>),
@@ -105,16 +105,16 @@ decl_event!(
 );
 
 decl_storage! {
-	trait Store for Module<T: Trait<I>, I: Instance=DefaultInstance> as Oracle {
+	trait Store for Module<T: Config<I>, I: Instance=DefaultInstance> as Oracle {
 
 		/// Raw values for each oracle operators
 		pub RawValues get(fn raw_values): double_map hasher(twox_64_concat) T::AccountId, hasher(twox_64_concat) T::OracleKey => Option<TimestampedValueOf<T, I>>;
 
 		/// True if Self::values(key) is up to date, otherwise the value is stale
-		pub IsUpdated get(fn is_updated): map hasher(twox_64_concat) <T as Trait<I>>::OracleKey => bool;
+		pub IsUpdated get(fn is_updated): map hasher(twox_64_concat) <T as Config<I>>::OracleKey => bool;
 
 		/// Combined value, may not be up to date
-		pub Values get(fn values): map hasher(twox_64_concat) <T as Trait<I>>::OracleKey => Option<TimestampedValueOf<T, I>>;
+		pub Values get(fn values): map hasher(twox_64_concat) <T as Config<I>>::OracleKey => Option<TimestampedValueOf<T, I>>;
 
 		/// If an oracle operator has feed a value in this block
 		HasDispatched: OrderedSet<T::AccountId>;
@@ -132,7 +132,7 @@ decl_storage! {
 }
 
 decl_module! {
-	pub struct Module<T: Trait<I>, I: Instance=DefaultInstance> for enum Call where origin: T::Origin {
+	pub struct Module<T: Config<I>, I: Instance=DefaultInstance> for enum Call where origin: T::Origin {
 		type Error = Error<T, I>;
 
 		fn deposit_event() = default;
@@ -162,7 +162,7 @@ decl_module! {
 	}
 }
 
-impl<T: Trait<I>, I: Instance> Module<T, I> {
+impl<T: Config<I>, I: Instance> Module<T, I> {
 	pub fn read_raw_values(key: &T::OracleKey) -> Vec<TimestampedValueOf<T, I>> {
 		Self::members()
 			.0
@@ -242,7 +242,7 @@ impl<T: Trait<I>, I: Instance> Module<T, I> {
 	}
 }
 
-impl<T: Trait<I>, I: Instance> InitializeMembers<T::AccountId> for Module<T, I> {
+impl<T: Config<I>, I: Instance> InitializeMembers<T::AccountId> for Module<T, I> {
 	fn initialize_members(members: &[T::AccountId]) {
 		if !members.is_empty() {
 			assert!(Members::<T, I>::get().0.is_empty(), "Members are already initialized!");
@@ -251,7 +251,7 @@ impl<T: Trait<I>, I: Instance> InitializeMembers<T::AccountId> for Module<T, I> 
 	}
 }
 
-impl<T: Trait<I>, I: Instance> ChangeMembers<T::AccountId> for Module<T, I> {
+impl<T: Config<I>, I: Instance> ChangeMembers<T::AccountId> for Module<T, I> {
 	fn change_members_sorted(_incoming: &[T::AccountId], outgoing: &[T::AccountId], new: &[T::AccountId]) {
 		// remove session keys and its values
 		for removed in outgoing {
@@ -269,12 +269,12 @@ impl<T: Trait<I>, I: Instance> ChangeMembers<T::AccountId> for Module<T, I> {
 	}
 }
 
-impl<T: Trait<I>, I: Instance> DataProvider<T::OracleKey, T::OracleValue> for Module<T, I> {
+impl<T: Config<I>, I: Instance> DataProvider<T::OracleKey, T::OracleValue> for Module<T, I> {
 	fn get(key: &T::OracleKey) -> Option<T::OracleValue> {
 		Self::get(key).map(|timestamped_value| timestamped_value.value)
 	}
 }
-impl<T: Trait<I>, I: Instance> DataProviderExtended<T::OracleKey, TimestampedValueOf<T, I>> for Module<T, I> {
+impl<T: Config<I>, I: Instance> DataProviderExtended<T::OracleKey, TimestampedValueOf<T, I>> for Module<T, I> {
 	fn get_no_op(key: &T::OracleKey) -> Option<TimestampedValueOf<T, I>> {
 		Self::get_no_op(key)
 	}
@@ -284,7 +284,7 @@ impl<T: Trait<I>, I: Instance> DataProviderExtended<T::OracleKey, TimestampedVal
 	}
 }
 
-impl<T: Trait<I>, I: Instance> DataFeeder<T::OracleKey, T::OracleValue, T::AccountId> for Module<T, I> {
+impl<T: Config<I>, I: Instance> DataFeeder<T::OracleKey, T::OracleValue, T::AccountId> for Module<T, I> {
 	fn feed_value(who: T::AccountId, key: T::OracleKey, value: T::OracleValue) -> DispatchResult {
 		Self::do_feed_values(who, vec![(key, value)])?;
 		Ok(())

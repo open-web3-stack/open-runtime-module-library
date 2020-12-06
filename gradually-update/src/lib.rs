@@ -1,7 +1,7 @@
 //! # Gradually Update
 //! A module for scheduling gradually updates to storage values.
 //!
-//! - [`Trait`](./trait.Trait.html)
+//! - [`Config`](./trait.Config.html)
 //! - [`Call`](./enum.Call.html)
 //! - [`Module`](./struct.Module.html)
 //!
@@ -56,8 +56,8 @@ pub struct GraduallyUpdate {
 	pub per_block: StorageValue,
 }
 
-pub trait Trait: frame_system::Trait {
-	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
+pub trait Config: frame_system::Config {
+	type Event: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
 	/// The frequency of updating values between blocks
 	type UpdateFrequency: Get<Self::BlockNumber>;
 	/// The origin that can schedule an update
@@ -67,7 +67,7 @@ pub trait Trait: frame_system::Trait {
 }
 
 decl_storage! {
-	trait Store for Module<T: Trait> as GraduallyUpdate {
+	trait Store for Module<T: Config> as GraduallyUpdate {
 		/// All the on-going updates
 		pub GraduallyUpdates get(fn gradually_updates): Vec<GraduallyUpdate>;
 		/// The last updated block number
@@ -78,7 +78,7 @@ decl_storage! {
 decl_event!(
 	/// Event for gradually-update module.
 	pub enum Event<T> where
-	<T as frame_system::Trait>::BlockNumber,
+	<T as frame_system::Config>::BlockNumber,
 	{
 		/// Gradually update added. [key, per_block, target_value]
 		GraduallyUpdateAdded(StorageKey, StorageValue, StorageValue),
@@ -91,7 +91,7 @@ decl_event!(
 
 decl_error! {
 	/// Error for gradually-update module.
-	pub enum Error for Module<T: Trait> {
+	pub enum Error for Module<T: Config> {
 		/// The `per_block` or `target_value` is invalid.
 		InvalidPerBlockOrTargetValue,
 		/// The `target_value` is invalid.
@@ -104,7 +104,7 @@ decl_error! {
 }
 
 decl_module! {
-	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+	pub struct Module<T: Config> for enum Call where origin: T::Origin {
 		type Error = Error<T>;
 
 		fn deposit_event() = default;
@@ -169,7 +169,7 @@ decl_module! {
 	}
 }
 
-impl<T: Trait> Module<T> {
+impl<T: Config> Module<T> {
 	fn _need_update(now: T::BlockNumber) -> bool {
 		now >= Self::last_updated_at() + T::UpdateFrequency::get()
 	}

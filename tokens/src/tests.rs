@@ -471,120 +471,120 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 			assert_eq!(Tokens::reserved_balance(DOT, &TREASURY_ACCOUNT), 5);
 			assert_eq!(Tokens::free_balance(DOT, &TREASURY_ACCOUNT), 95);
 			assert_eq!(
-				<Runtime as pallet_elections_phragmen::Trait>::Currency::total_balance(&TREASURY_ACCOUNT),
+				<Runtime as pallet_elections_phragmen::Config>::Currency::total_balance(&TREASURY_ACCOUNT),
 				100
 			);
 			assert_eq!(
-				<Runtime as pallet_elections_phragmen::Trait>::Currency::can_slash(&TREASURY_ACCOUNT, 10),
+				<Runtime as pallet_elections_phragmen::Config>::Currency::can_slash(&TREASURY_ACCOUNT, 10),
 				true
 			);
 			assert_eq!(
-				<Runtime as pallet_elections_phragmen::Trait>::Currency::total_issuance(),
+				<Runtime as pallet_elections_phragmen::Config>::Currency::total_issuance(),
 				102
 			);
 			assert_eq!(
-				<Runtime as pallet_elections_phragmen::Trait>::Currency::minimum_balance(),
+				<Runtime as pallet_elections_phragmen::Config>::Currency::minimum_balance(),
 				2
 			);
 			assert_eq!(
-				<Runtime as pallet_elections_phragmen::Trait>::Currency::can_reserve(&TREASURY_ACCOUNT, 5),
+				<Runtime as pallet_elections_phragmen::Config>::Currency::can_reserve(&TREASURY_ACCOUNT, 5),
 				true
 			);
 
 			// burn
-			let imbalance = <Runtime as pallet_elections_phragmen::Trait>::Currency::burn(10);
+			let imbalance = <Runtime as pallet_elections_phragmen::Config>::Currency::burn(10);
 			assert_eq!(
-				<Runtime as pallet_elections_phragmen::Trait>::Currency::total_issuance(),
+				<Runtime as pallet_elections_phragmen::Config>::Currency::total_issuance(),
 				92
 			);
 			drop(imbalance);
 			assert_eq!(
-				<Runtime as pallet_elections_phragmen::Trait>::Currency::total_issuance(),
+				<Runtime as pallet_elections_phragmen::Config>::Currency::total_issuance(),
 				102
 			);
 
 			// issue
-			let imbalance = <Runtime as pallet_elections_phragmen::Trait>::Currency::issue(20);
+			let imbalance = <Runtime as pallet_elections_phragmen::Config>::Currency::issue(20);
 			assert_eq!(
-				<Runtime as pallet_elections_phragmen::Trait>::Currency::total_issuance(),
+				<Runtime as pallet_elections_phragmen::Config>::Currency::total_issuance(),
 				122
 			);
 			drop(imbalance);
 			assert_eq!(
-				<Runtime as pallet_elections_phragmen::Trait>::Currency::total_issuance(),
+				<Runtime as pallet_elections_phragmen::Config>::Currency::total_issuance(),
 				102
 			);
 
 			// transfer
 			assert_eq!(
-				<Runtime as pallet_elections_phragmen::Trait>::Currency::free_balance(&TREASURY_ACCOUNT),
+				<Runtime as pallet_elections_phragmen::Config>::Currency::free_balance(&TREASURY_ACCOUNT),
 				95
 			);
 			assert_ok!(
-				<Runtime as pallet_elections_phragmen::Trait>::Currency::ensure_can_withdraw(
+				<Runtime as pallet_elections_phragmen::Config>::Currency::ensure_can_withdraw(
 					&TREASURY_ACCOUNT,
 					10,
 					WithdrawReasons::TRANSFER,
 					0
 				)
 			);
-			assert_ok!(<Runtime as pallet_elections_phragmen::Trait>::Currency::transfer(
+			assert_ok!(<Runtime as pallet_elections_phragmen::Config>::Currency::transfer(
 				&TREASURY_ACCOUNT,
 				&ALICE,
 				11,
 				ExistenceRequirement::KeepAlive
 			));
 			assert_eq!(
-				<Runtime as pallet_elections_phragmen::Trait>::Currency::free_balance(&TREASURY_ACCOUNT),
+				<Runtime as pallet_elections_phragmen::Config>::Currency::free_balance(&TREASURY_ACCOUNT),
 				84
 			);
 
 			// deposit
 			assert_eq!(
-				<Runtime as pallet_elections_phragmen::Trait>::Currency::total_issuance(),
+				<Runtime as pallet_elections_phragmen::Config>::Currency::total_issuance(),
 				102
 			);
 			let imbalance = TreasuryCurrencyAdapter::deposit_creating(&TREASURY_ACCOUNT, 11);
 			assert_eq!(
-				<Runtime as pallet_elections_phragmen::Trait>::Currency::free_balance(&TREASURY_ACCOUNT),
+				<Runtime as pallet_elections_phragmen::Config>::Currency::free_balance(&TREASURY_ACCOUNT),
 				95
 			);
 			assert_eq!(
-				<Runtime as pallet_elections_phragmen::Trait>::Currency::total_issuance(),
+				<Runtime as pallet_elections_phragmen::Config>::Currency::total_issuance(),
 				102
 			);
 			drop(imbalance);
 			assert_eq!(
-				<Runtime as pallet_elections_phragmen::Trait>::Currency::free_balance(&TREASURY_ACCOUNT),
+				<Runtime as pallet_elections_phragmen::Config>::Currency::free_balance(&TREASURY_ACCOUNT),
 				95
 			);
 			assert_eq!(
-				<Runtime as pallet_elections_phragmen::Trait>::Currency::total_issuance(),
+				<Runtime as pallet_elections_phragmen::Config>::Currency::total_issuance(),
 				113
 			);
 
 			// withdraw
-			let imbalance = <Runtime as pallet_elections_phragmen::Trait>::Currency::withdraw(
+			let imbalance = <Runtime as pallet_elections_phragmen::Config>::Currency::withdraw(
 				&TREASURY_ACCOUNT,
 				10,
 				WithdrawReasons::TRANSFER,
 				ExistenceRequirement::KeepAlive,
 			);
 			assert_eq!(
-				<Runtime as pallet_elections_phragmen::Trait>::Currency::free_balance(&TREASURY_ACCOUNT),
+				<Runtime as pallet_elections_phragmen::Config>::Currency::free_balance(&TREASURY_ACCOUNT),
 				85
 			);
 			assert_eq!(
-				<Runtime as pallet_elections_phragmen::Trait>::Currency::total_issuance(),
+				<Runtime as pallet_elections_phragmen::Config>::Currency::total_issuance(),
 				113
 			);
 			drop(imbalance);
 			assert_eq!(
-				<Runtime as pallet_elections_phragmen::Trait>::Currency::free_balance(&TREASURY_ACCOUNT),
+				<Runtime as pallet_elections_phragmen::Config>::Currency::free_balance(&TREASURY_ACCOUNT),
 				85
 			);
 			assert_eq!(
-				<Runtime as pallet_elections_phragmen::Trait>::Currency::total_issuance(),
+				<Runtime as pallet_elections_phragmen::Config>::Currency::total_issuance(),
 				103
 			);
 		});

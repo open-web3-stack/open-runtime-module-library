@@ -1,7 +1,7 @@
 //! # Non Fungible Token
 //! The module provides implementations for non-fungible-token.
 //!
-//! - [`Trait`](./trait.Trait.html)
+//! - [`Config`](./trait.Config.html)
 //! - [`Call`](./enum.Call.html)
 //! - [`Module`](./struct.Module.html)
 //!
@@ -55,7 +55,7 @@ pub struct TokenInfo<AccountId, Data> {
 	pub data: Data,
 }
 
-pub trait Trait: frame_system::Trait {
+pub trait Config: frame_system::Config {
 	/// The class ID type
 	type ClassId: Parameter + Member + AtLeast32BitUnsigned + Default + Copy;
 	/// The token ID type
@@ -68,7 +68,7 @@ pub trait Trait: frame_system::Trait {
 
 decl_error! {
 	/// Error for non-fungible-token module.
-	pub enum Error for Module<T: Trait> {
+	pub enum Error for Module<T: Config> {
 		/// No available class ID
 		NoAvailableClassId,
 		/// No available token ID
@@ -88,11 +88,11 @@ decl_error! {
 }
 
 pub type ClassInfoOf<T> =
-	ClassInfo<<T as Trait>::TokenId, <T as frame_system::Trait>::AccountId, <T as Trait>::ClassData>;
-pub type TokenInfoOf<T> = TokenInfo<<T as frame_system::Trait>::AccountId, <T as Trait>::TokenData>;
+	ClassInfo<<T as Config>::TokenId, <T as frame_system::Config>::AccountId, <T as Config>::ClassData>;
+pub type TokenInfoOf<T> = TokenInfo<<T as frame_system::Config>::AccountId, <T as Config>::TokenData>;
 
 decl_storage! {
-	trait Store for Module<T: Trait> as NonFungibleToken {
+	trait Store for Module<T: Config> as NonFungibleToken {
 		/// Next available class ID.
 		pub NextClassId get(fn next_class_id): T::ClassId;
 		/// Next available token ID.
@@ -112,11 +112,11 @@ decl_storage! {
 }
 
 decl_module! {
-	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+	pub struct Module<T: Config> for enum Call where origin: T::Origin {
 	}
 }
 
-impl<T: Trait> Module<T> {
+impl<T: Config> Module<T> {
 	/// Create NFT(non fungible token) class
 	pub fn create_class(
 		owner: &T::AccountId,

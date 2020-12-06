@@ -12,7 +12,7 @@
 //! The currencies module provides functionality of both `MultiCurrencyExtended`
 //! and `BasicCurrencyExtended`, via unified interfaces, and all calls would be
 //! delegated to the underlying multi-currency and base currency system.
-//! A native currency ID could be set by `Trait::GetNativeCurrencyId`, to
+//! A native currency ID could be set by `Config::GetNativeCurrencyId`, to
 //! identify the native currency.
 //!
 //! ### Implementations
@@ -32,7 +32,7 @@
 //!   currency.
 //! - `transfer_native_currency` - Transfer some balance to another account, in
 //!   native currency set in
-//! `Trait::NativeCurrency`.
+//! `Config::NativeCurrency`.
 //! - `update_balance` - Update balance by signed integer amount, in a given
 //!   currency, root origin required.
 
@@ -78,15 +78,15 @@ pub trait WeightInfo {
 	fn update_balance_native_currency_killing() -> Weight;
 }
 
-type BalanceOf<T> = <<T as Trait>::MultiCurrency as MultiCurrency<<T as frame_system::Trait>::AccountId>>::Balance;
+type BalanceOf<T> = <<T as Config>::MultiCurrency as MultiCurrency<<T as frame_system::Config>::AccountId>>::Balance;
 type CurrencyIdOf<T> =
-	<<T as Trait>::MultiCurrency as MultiCurrency<<T as frame_system::Trait>::AccountId>>::CurrencyId;
+	<<T as Config>::MultiCurrency as MultiCurrency<<T as frame_system::Config>::AccountId>>::CurrencyId;
 
 type AmountOf<T> =
-	<<T as Trait>::MultiCurrency as MultiCurrencyExtended<<T as frame_system::Trait>::AccountId>>::Amount;
+	<<T as Config>::MultiCurrency as MultiCurrencyExtended<<T as frame_system::Config>::AccountId>>::Amount;
 
-pub trait Trait: frame_system::Trait {
-	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
+pub trait Config: frame_system::Config {
+	type Event: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
 	type MultiCurrency: MergeAccount<Self::AccountId>
 		+ MultiCurrencyExtended<Self::AccountId>
 		+ MultiLockableCurrency<Self::AccountId>
@@ -101,12 +101,12 @@ pub trait Trait: frame_system::Trait {
 }
 
 decl_storage! {
-	trait Store for Module<T: Trait> as Currencies {}
+	trait Store for Module<T: Config> as Currencies {}
 }
 
 decl_event!(
 	pub enum Event<T> where
-		<T as frame_system::Trait>::AccountId,
+		<T as frame_system::Config>::AccountId,
 		Amount = AmountOf<T>,
 		Balance = BalanceOf<T>,
 		CurrencyId = CurrencyIdOf<T>
@@ -124,7 +124,7 @@ decl_event!(
 
 decl_error! {
 	/// Error for currencies module.
-	pub enum Error for Module<T: Trait> {
+	pub enum Error for Module<T: Config> {
 		/// Unable to convert the Amount type into Balance.
 		AmountIntoBalanceFailed,
 		/// Balance is too low.
@@ -133,7 +133,7 @@ decl_error! {
 }
 
 decl_module! {
-	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+	pub struct Module<T: Config> for enum Call where origin: T::Origin {
 		type Error = Error<T>;
 
 		const NativeCurrencyId: CurrencyIdOf<T> = T::GetNativeCurrencyId::get();
@@ -228,9 +228,9 @@ decl_module! {
 	}
 }
 
-impl<T: Trait> Module<T> {}
+impl<T: Config> Module<T> {}
 
-impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
+impl<T: Config> MultiCurrency<T::AccountId> for Module<T> {
 	type CurrencyId = CurrencyIdOf<T>;
 	type Balance = BalanceOf<T>;
 
@@ -335,7 +335,7 @@ impl<T: Trait> MultiCurrency<T::AccountId> for Module<T> {
 	}
 }
 
-impl<T: Trait> MultiCurrencyExtended<T::AccountId> for Module<T> {
+impl<T: Config> MultiCurrencyExtended<T::AccountId> for Module<T> {
 	type Amount = AmountOf<T>;
 
 	fn update_balance(currency_id: Self::CurrencyId, who: &T::AccountId, by_amount: Self::Amount) -> DispatchResult {
@@ -349,7 +349,7 @@ impl<T: Trait> MultiCurrencyExtended<T::AccountId> for Module<T> {
 	}
 }
 
-impl<T: Trait> MultiLockableCurrency<T::AccountId> for Module<T> {
+impl<T: Config> MultiLockableCurrency<T::AccountId> for Module<T> {
 	type Moment = T::BlockNumber;
 
 	fn set_lock(lock_id: LockIdentifier, currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) {
@@ -377,7 +377,7 @@ impl<T: Trait> MultiLockableCurrency<T::AccountId> for Module<T> {
 	}
 }
 
-impl<T: Trait> MultiReservableCurrency<T::AccountId> for Module<T> {
+impl<T: Config> MultiReservableCurrency<T::AccountId> for Module<T> {
 	fn can_reserve(currency_id: Self::CurrencyId, who: &T::AccountId, value: Self::Balance) -> bool {
 		if currency_id == T::GetNativeCurrencyId::get() {
 			T::NativeCurrency::can_reserve(who, value)
@@ -437,7 +437,7 @@ pub struct Currency<T, GetCurrencyId>(marker::PhantomData<T>, marker::PhantomDat
 
 impl<T, GetCurrencyId> BasicCurrency<T::AccountId> for Currency<T, GetCurrencyId>
 where
-	T: Trait,
+	T: Config,
 	GetCurrencyId: Get<CurrencyIdOf<T>>,
 {
 	type Balance = BalanceOf<T>;
@@ -485,7 +485,7 @@ where
 
 impl<T, GetCurrencyId> BasicCurrencyExtended<T::AccountId> for Currency<T, GetCurrencyId>
 where
-	T: Trait,
+	T: Config,
 	GetCurrencyId: Get<CurrencyIdOf<T>>,
 {
 	type Amount = AmountOf<T>;
@@ -497,7 +497,7 @@ where
 
 impl<T, GetCurrencyId> BasicLockableCurrency<T::AccountId> for Currency<T, GetCurrencyId>
 where
-	T: Trait,
+	T: Config,
 	GetCurrencyId: Get<CurrencyIdOf<T>>,
 {
 	type Moment = T::BlockNumber;
@@ -517,7 +517,7 @@ where
 
 impl<T, GetCurrencyId> BasicReservableCurrency<T::AccountId> for Currency<T, GetCurrencyId>
 where
-	T: Trait,
+	T: Config,
 	GetCurrencyId: Get<CurrencyIdOf<T>>,
 {
 	fn can_reserve(who: &T::AccountId, value: Self::Balance) -> bool {
@@ -556,7 +556,7 @@ where
 	}
 }
 
-pub type NativeCurrencyOf<T> = Currency<T, <T as Trait>::GetNativeCurrencyId>;
+pub type NativeCurrencyOf<T> = Currency<T, <T as Config>::GetNativeCurrencyId>;
 
 /// Adapt other currency traits implementation to `BasicCurrency`.
 pub struct BasicCurrencyAdapter<T, Currency, Amount, Moment>(marker::PhantomData<(T, Currency, Amount, Moment)>);
@@ -568,7 +568,7 @@ impl<T, AccountId, Currency, Amount, Moment> BasicCurrency<AccountId>
 	for BasicCurrencyAdapter<T, Currency, Amount, Moment>
 where
 	Currency: PalletCurrency<AccountId>,
-	T: Trait,
+	T: Config,
 {
 	type Balance = PalletBalanceOf<AccountId, Currency>;
 
@@ -633,7 +633,7 @@ where
 		+ Debug
 		+ Default,
 	Currency: PalletCurrency<AccountId>,
-	T: Trait,
+	T: Config,
 {
 	type Amount = Amount;
 
@@ -655,7 +655,7 @@ impl<T, AccountId, Currency, Amount, Moment> BasicLockableCurrency<AccountId>
 	for BasicCurrencyAdapter<T, Currency, Amount, Moment>
 where
 	Currency: PalletLockableCurrency<AccountId>,
-	T: Trait,
+	T: Config,
 {
 	type Moment = Moment;
 
@@ -677,7 +677,7 @@ impl<T, AccountId, Currency, Amount, Moment> BasicReservableCurrency<AccountId>
 	for BasicCurrencyAdapter<T, Currency, Amount, Moment>
 where
 	Currency: PalletReservableCurrency<AccountId>,
-	T: Trait,
+	T: Config,
 {
 	fn can_reserve(who: &AccountId, value: Self::Balance) -> bool {
 		Currency::can_reserve(who, value)
@@ -710,7 +710,7 @@ where
 	}
 }
 
-impl<T: Trait> MergeAccount<T::AccountId> for Module<T> {
+impl<T: Config> MergeAccount<T::AccountId> for Module<T> {
 	fn merge_account(source: &T::AccountId, dest: &T::AccountId) -> DispatchResult {
 		with_transaction_result(|| {
 			// transfer non-native free to dest

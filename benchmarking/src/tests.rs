@@ -15,13 +15,13 @@ use sp_runtime::{
 use sp_std::prelude::*;
 
 decl_storage! {
-	trait Store for Module<T: Trait> as Test {
+	trait Store for Module<T: Config> as Test {
 		Value get(fn value): Option<u32>;
 	}
 }
 
 decl_module! {
-	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+	pub struct Module<T: Config> for enum Call where origin: T::Origin {
 		#[weight = 0]
 		fn set_value(origin, n: u32) -> DispatchResult {
 			let _sender = ensure_signed(origin)?;
@@ -41,7 +41,7 @@ impl_outer_origin! {
 	pub enum Origin for Test {}
 }
 
-pub trait Trait: frame_system::Trait {
+pub trait Config: frame_system::Config {
 	type Event;
 	type BlockNumber;
 }
@@ -51,7 +51,7 @@ type AccountId = u128;
 #[derive(Clone, Eq, PartialEq)]
 pub struct Test;
 
-impl frame_system::Trait for Test {
+impl frame_system::Config for Test {
 	type Origin = Origin;
 	type Index = u64;
 	type BlockNumber = u64;
@@ -79,7 +79,7 @@ impl frame_system::Trait for Test {
 	type SystemWeightInfo = ();
 }
 
-impl Trait for Test {
+impl Config for Test {
 	type Event = ();
 	type BlockNumber = u32;
 }
