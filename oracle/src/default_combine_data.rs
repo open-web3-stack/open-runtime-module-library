@@ -1,4 +1,4 @@
-use crate::{DefaultInstance, Instance, MomentOf, TimestampedValueOf, Trait};
+use crate::{Config, DefaultInstance, Instance, MomentOf, TimestampedValueOf};
 use frame_support::traits::{Get, Time};
 use orml_traits::CombineData;
 use sp_std::{marker, prelude::*};
@@ -9,16 +9,16 @@ pub struct DefaultCombineData<T, MinimumCount, ExpiresIn, I = DefaultInstance>(
 	marker::PhantomData<(T, I, MinimumCount, ExpiresIn)>,
 );
 
-impl<T, I, MinimumCount, ExpiresIn> CombineData<<T as Trait<I>>::OracleKey, TimestampedValueOf<T, I>>
+impl<T, I, MinimumCount, ExpiresIn> CombineData<<T as Config<I>>::OracleKey, TimestampedValueOf<T, I>>
 	for DefaultCombineData<T, MinimumCount, ExpiresIn, I>
 where
-	T: Trait<I>,
+	T: Config<I>,
 	I: Instance,
 	MinimumCount: Get<u32>,
 	ExpiresIn: Get<MomentOf<T, I>>,
 {
 	fn combine_data(
-		_key: &<T as Trait<I>>::OracleKey,
+		_key: &<T as Config<I>>::OracleKey,
 		mut values: Vec<TimestampedValueOf<T, I>>,
 		prev_value: Option<TimestampedValueOf<T, I>>,
 	) -> Option<TimestampedValueOf<T, I>> {

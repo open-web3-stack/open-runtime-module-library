@@ -106,18 +106,18 @@ impl<BlockNumber: AtLeast32Bit + Copy, Balance: AtLeast32Bit + Copy> VestingSche
 	}
 }
 
-pub type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as frame_system::Trait>::AccountId>>::Balance;
-pub type VestingScheduleOf<T> = VestingSchedule<<T as frame_system::Trait>::BlockNumber, BalanceOf<T>>;
+pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+pub type VestingScheduleOf<T> = VestingSchedule<<T as frame_system::Config>::BlockNumber, BalanceOf<T>>;
 pub type ScheduledItem<T> = (
-	<T as frame_system::Trait>::AccountId,
-	<T as frame_system::Trait>::BlockNumber,
-	<T as frame_system::Trait>::BlockNumber,
+	<T as frame_system::Config>::AccountId,
+	<T as frame_system::Config>::BlockNumber,
+	<T as frame_system::Config>::BlockNumber,
 	u32,
 	BalanceOf<T>,
 );
 
-pub trait Trait: frame_system::Trait {
-	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
+pub trait Config: frame_system::Config {
+	type Event: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
 	type Currency: LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
 
 	/// The minimum amount transferred to call `vested_transfer`.
@@ -131,7 +131,7 @@ pub trait Trait: frame_system::Trait {
 }
 
 decl_storage! {
-	trait Store for Module<T: Trait> as Vesting {
+	trait Store for Module<T: Config> as Vesting {
 		/// Vesting schedules of an account.
 		pub VestingSchedules get(fn vesting_schedules) build(|config: &GenesisConfig<T>| {
 			config.vesting.iter()
@@ -152,7 +152,7 @@ decl_storage! {
 
 decl_event!(
 	pub enum Event<T> where
-		<T as frame_system::Trait>::AccountId,
+		<T as frame_system::Config>::AccountId,
 		Balance = BalanceOf<T>,
 		VestingSchedule = VestingScheduleOf<T>
 	{
@@ -167,7 +167,7 @@ decl_event!(
 
 decl_error! {
 	/// Error for vesting module.
-	pub enum Error for Module<T: Trait> {
+	pub enum Error for Module<T: Config> {
 		/// Vesting period is zero
 		ZeroVestingPeriod,
 		/// Number of vests is zero
@@ -184,7 +184,7 @@ decl_error! {
 }
 
 decl_module! {
-	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+	pub struct Module<T: Config> for enum Call where origin: T::Origin {
 		type Error = Error<T>;
 
 		/// The minimum amount to be transferred to create a new vesting schedule.
@@ -259,7 +259,7 @@ decl_module! {
 
 const VESTING_LOCK_ID: LockIdentifier = *b"ormlvest";
 
-impl<T: Trait> Module<T> {
+impl<T: Config> Module<T> {
 	fn do_claim(who: &T::AccountId) -> BalanceOf<T> {
 		let locked = Self::locked_balance(who);
 		if locked.is_zero() {

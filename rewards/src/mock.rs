@@ -38,7 +38,7 @@ parameter_types! {
 	pub const AvailableBlockRatio: Perbill = Perbill::one();
 }
 
-impl frame_system::Trait for Runtime {
+impl frame_system::Config for Runtime {
 	type Origin = Origin;
 	type Index = u64;
 	type BlockNumber = BlockNumber;
@@ -113,7 +113,7 @@ impl RewardHandler<AccountId, BlockNumber> for Handler {
 	}
 }
 
-impl Trait for Runtime {
+impl Config for Runtime {
 	type Share = Share;
 	type Balance = Balance;
 	type PoolId = PoolId;

@@ -48,7 +48,7 @@ parameter_types! {
 	pub const MaximumBlockLength: u32 = 2 * 1024;
 	pub const AvailableBlockRatio: Perbill = Perbill::from_percent(75);
 }
-impl frame_system::Trait for Test {
+impl frame_system::Config for Test {
 	type Origin = Origin;
 	type Call = Call;
 	type Index = u64;
@@ -102,7 +102,7 @@ parameter_types! {
 	pub const RootOperatorAccountId: AccountId = 4;
 }
 
-impl Trait for Test {
+impl Config for Test {
 	type Event = TestEvent;
 	type OnNewData = ();
 	type CombineData = DefaultCombineData<Self, MinimumCount, ExpiresIn>;

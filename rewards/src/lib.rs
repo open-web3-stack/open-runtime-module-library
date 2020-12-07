@@ -34,7 +34,7 @@ pub struct PoolInfo<Share: HasCompact, Balance: HasCompact> {
 	pub total_withdrawn_rewards: Balance,
 }
 
-pub trait Trait: frame_system::Trait {
+pub trait Config: frame_system::Config {
 	/// The share type of pool.
 	type Share: Parameter
 		+ Member
@@ -72,7 +72,7 @@ pub trait Trait: frame_system::Trait {
 }
 
 decl_storage! {
-	trait Store for Module<T: Trait> as Rewards {
+	trait Store for Module<T: Config> as Rewards {
 		/// Stores reward pool info.
 		pub Pools get(fn pools): map hasher(twox_64_concat) T::PoolId => PoolInfo<T::Share, T::Balance>;
 
@@ -82,7 +82,7 @@ decl_storage! {
 }
 
 decl_module! {
-	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+	pub struct Module<T: Config> for enum Call where origin: T::Origin {
 
 		fn on_initialize(now: T::BlockNumber) -> Weight {
 			let mut count = 0;
@@ -97,7 +97,7 @@ decl_module! {
 	}
 }
 
-impl<T: Trait> Module<T> {
+impl<T: Config> Module<T> {
 	pub fn add_share(who: &T::AccountId, pool: T::PoolId, add_amount: T::Share) {
 		if add_amount.is_zero() {
 			return;

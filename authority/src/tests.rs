@@ -195,9 +195,9 @@ fn fast_track_scheduled_dispatch_work() {
 		assert!(System::events().iter().any(|record| record.event == event));
 
 		let schedule_origin = {
-			let origin: <Runtime as Trait>::Origin = From::from(Origin::root());
-			let origin: <Runtime as Trait>::Origin =
-				From::from(DelayedOrigin::<BlockNumber, <Runtime as Trait>::PalletsOrigin> {
+			let origin: <Runtime as Config>::Origin = From::from(Origin::root());
+			let origin: <Runtime as Config>::Origin =
+				From::from(DelayedOrigin::<BlockNumber, <Runtime as Config>::PalletsOrigin> {
 					delay: 1,
 					origin: Box::new(origin.caller().clone()),
 				});
@@ -269,9 +269,9 @@ fn delay_scheduled_dispatch_work() {
 		assert!(System::events().iter().any(|record| record.event == event));
 
 		let schedule_origin = {
-			let origin: <Runtime as Trait>::Origin = From::from(Origin::root());
-			let origin: <Runtime as Trait>::Origin =
-				From::from(DelayedOrigin::<BlockNumber, <Runtime as Trait>::PalletsOrigin> {
+			let origin: <Runtime as Config>::Origin = From::from(Origin::root());
+			let origin: <Runtime as Config>::Origin =
+				From::from(DelayedOrigin::<BlockNumber, <Runtime as Config>::PalletsOrigin> {
 					delay: 1,
 					origin: Box::new(origin.caller().clone()),
 				});
@@ -342,9 +342,9 @@ fn cancel_scheduled_dispatch_work() {
 		assert!(System::events().iter().any(|record| record.event == event));
 
 		let schedule_origin = {
-			let origin: <Runtime as Trait>::Origin = From::from(Origin::root());
-			let origin: <Runtime as Trait>::Origin =
-				From::from(DelayedOrigin::<BlockNumber, <Runtime as Trait>::PalletsOrigin> {
+			let origin: <Runtime as Config>::Origin = From::from(Origin::root());
+			let origin: <Runtime as Config>::Origin =
+				From::from(DelayedOrigin::<BlockNumber, <Runtime as Config>::PalletsOrigin> {
 					delay: 1,
 					origin: Box::new(origin.caller().clone()),
 				});

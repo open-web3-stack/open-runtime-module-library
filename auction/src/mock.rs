@@ -38,7 +38,7 @@ pub type Balance = u64;
 pub type BlockNumber = u64;
 pub type AuctionId = u64;
 
-impl frame_system::Trait for Runtime {
+impl frame_system::Config for Runtime {
 	type Origin = Origin;
 	type Index = u64;
 	type BlockNumber = BlockNumber;
@@ -92,7 +92,7 @@ impl AuctionHandler<AccountId, Balance, BlockNumber, AuctionId> for Handler {
 	fn on_auction_ended(_id: AuctionId, _winner: Option<(AccountId, Balance)>) {}
 }
 
-impl Trait for Runtime {
+impl Config for Runtime {
 	type Event = TestEvent;
 	type Balance = Balance;
 	type AuctionId = AuctionId;

@@ -37,7 +37,7 @@ parameter_types! {
 pub type AccountId = u128;
 pub type BlockNumber = u64;
 
-impl frame_system::Trait for Runtime {
+impl frame_system::Config for Runtime {
 	type Origin = Origin;
 	type Index = u64;
 	type BlockNumber = BlockNumber;
@@ -70,7 +70,7 @@ parameter_types! {
 	pub const UpdateFrequency: BlockNumber = 10;
 }
 
-impl Trait for Runtime {
+impl Config for Runtime {
 	type Event = TestEvent;
 	type UpdateFrequency = UpdateFrequency;
 	type DispatchOrigin = system::EnsureRoot<AccountId>;

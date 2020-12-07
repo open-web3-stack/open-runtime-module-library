@@ -18,7 +18,7 @@ fn create_class_should_work() {
 #[test]
 fn create_class_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		NextClassId::<Runtime>::mutate(|id| *id = <Runtime as Trait>::ClassId::max_value());
+		NextClassId::<Runtime>::mutate(|id| *id = <Runtime as Config>::ClassId::max_value());
 		assert_noop!(
 			NonFungibleTokenModule::create_class(&ALICE, vec![1], ()),
 			Error::<Runtime>::NoAvailableClassId
@@ -53,14 +53,14 @@ fn mint_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(NonFungibleTokenModule::create_class(&ALICE, vec![1], ()));
 		Classes::<Runtime>::mutate(CLASS_ID, |class_info| {
-			class_info.as_mut().unwrap().total_issuance = <Runtime as Trait>::TokenId::max_value();
+			class_info.as_mut().unwrap().total_issuance = <Runtime as Config>::TokenId::max_value();
 		});
 		assert_noop!(
 			NonFungibleTokenModule::mint(&BOB, CLASS_ID, vec![1], ()),
 			Error::<Runtime>::NumOverflow
 		);
 
-		NextTokenId::<Runtime>::mutate(CLASS_ID, |id| *id = <Runtime as Trait>::TokenId::max_value());
+		NextTokenId::<Runtime>::mutate(CLASS_ID, |id| *id = <Runtime as Config>::TokenId::max_value());
 		assert_noop!(
 			NonFungibleTokenModule::mint(&BOB, CLASS_ID, vec![1], ()),
 			Error::<Runtime>::NoAvailableTokenId

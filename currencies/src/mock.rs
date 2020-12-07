@@ -42,7 +42,7 @@ parameter_types! {
 }
 
 pub type AccountId = AccountId32;
-impl frame_system::Trait for Runtime {
+impl frame_system::Config for Runtime {
 	type Origin = Origin;
 	type Call = ();
 	type Index = u64;
@@ -78,7 +78,7 @@ parameter_types! {
 	pub const ExistentialDeposit: u64 = 1;
 }
 
-impl pallet_balances::Trait for Runtime {
+impl pallet_balances::Config for Runtime {
 	type Balance = Balance;
 	type DustRemoval = ();
 	type Event = TestEvent;
@@ -99,7 +99,7 @@ parameter_types! {
 	pub DustAccount: AccountId = ModuleId(*b"orml/dst").into_account();
 }
 
-impl orml_tokens::Trait for Runtime {
+impl orml_tokens::Config for Runtime {
 	type Event = TestEvent;
 	type Balance = Balance;
 	type Amount = i64;
@@ -117,7 +117,7 @@ parameter_types! {
 	pub const GetNativeCurrencyId: CurrencyId = NATIVE_CURRENCY_ID;
 }
 
-impl Trait for Runtime {
+impl Config for Runtime {
 	type Event = TestEvent;
 	type MultiCurrency = Tokens;
 	type NativeCurrency = AdaptedBasicCurrency;

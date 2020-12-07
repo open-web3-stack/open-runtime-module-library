@@ -27,7 +27,7 @@ parameter_types! {
 	pub const AvailableBlockRatio: Perbill = Perbill::one();
 }
 
-impl frame_system::Trait for Runtime {
+impl frame_system::Config for Runtime {
 	type Origin = Origin;
 	type Index = u64;
 	type BlockNumber = BlockNumber;
@@ -58,7 +58,7 @@ impl frame_system::Trait for Runtime {
 parameter_types! {
 	pub MaximumSchedulerWeight: u32 = Perbill::from_percent(80) * MaximumBlockWeight::get();
 }
-impl pallet_scheduler::Trait for Runtime {
+impl pallet_scheduler::Config for Runtime {
 	type Event = Event;
 	type Origin = Origin;
 	type PalletsOrigin = OriginCaller;
@@ -144,7 +144,7 @@ impl AsOriginId<Origin, OriginCaller> for MockAsOriginId {
 	}
 }
 
-impl Trait for Runtime {
+impl Config for Runtime {
 	type Event = Event;
 	type Origin = Origin;
 	type PalletsOrigin = OriginCaller;

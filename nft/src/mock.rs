@@ -25,7 +25,7 @@ parameter_types! {
 pub type AccountId = u128;
 pub type BlockNumber = u64;
 
-impl frame_system::Trait for Runtime {
+impl frame_system::Config for Runtime {
 	type Origin = Origin;
 	type Index = u64;
 	type BlockNumber = BlockNumber;
@@ -54,7 +54,7 @@ impl frame_system::Trait for Runtime {
 }
 pub type System = frame_system::Module<Runtime>;
 
-impl Trait for Runtime {
+impl Config for Runtime {
 	type ClassId = u64;
 	type TokenId = u64;
 	type ClassData = ();
@@ -64,10 +64,10 @@ pub type NonFungibleTokenModule = Module<Runtime>;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
-pub const CLASS_ID: <Runtime as Trait>::ClassId = 0;
-pub const CLASS_ID_NOT_EXIST: <Runtime as Trait>::ClassId = 100;
-pub const TOKEN_ID: <Runtime as Trait>::TokenId = 0;
-pub const TOKEN_ID_NOT_EXIST: <Runtime as Trait>::TokenId = 100;
+pub const CLASS_ID: <Runtime as Config>::ClassId = 0;
+pub const CLASS_ID_NOT_EXIST: <Runtime as Config>::ClassId = 100;
+pub const TOKEN_ID: <Runtime as Config>::TokenId = 0;
+pub const TOKEN_ID_NOT_EXIST: <Runtime as Config>::TokenId = 100;
 
 pub struct ExtBuilder;
 

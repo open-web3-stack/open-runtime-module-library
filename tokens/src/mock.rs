@@ -58,7 +58,7 @@ parameter_types! {
 	pub const AvailableBlockRatio: Perbill = Perbill::one();
 }
 
-impl frame_system::Trait for Runtime {
+impl frame_system::Config for Runtime {
 	type Origin = Origin;
 	type Call = ();
 	type Index = u64;
@@ -134,7 +134,7 @@ parameter_types! {
 	pub const GetTokenId: CurrencyId = DOT;
 }
 
-impl pallet_treasury::Trait for Runtime {
+impl pallet_treasury::Config for Runtime {
 	type ModuleId = TreasuryModuleId;
 	type Currency = CurrencyAdapter<Runtime, GetTokenId>;
 	type ApproveOrigin = frame_system::EnsureRoot<AccountId>;
@@ -252,7 +252,7 @@ parameter_types! {
 	pub const ElectionsPhragmenModuleId: LockIdentifier = *b"phrelect";
 }
 
-impl pallet_elections_phragmen::Trait for Runtime {
+impl pallet_elections_phragmen::Config for Runtime {
 	type ModuleId = ElectionsPhragmenModuleId;
 	type Event = TestEvent;
 	type Currency = CurrencyAdapter<Runtime, GetTokenId>;
@@ -284,7 +284,7 @@ parameter_types! {
 	pub DustAccount: AccountId = ModuleId(*b"orml/dst").into_account();
 }
 
-impl Trait for Runtime {
+impl Config for Runtime {
 	type Event = TestEvent;
 	type Balance = Balance;
 	type Amount = i64;
@@ -294,7 +294,7 @@ impl Trait for Runtime {
 	type OnDust = TransferDust<Runtime, DustAccount>;
 }
 pub type Tokens = Module<Runtime>;
-pub type TreasuryCurrencyAdapter = <Runtime as pallet_treasury::Trait>::Currency;
+pub type TreasuryCurrencyAdapter = <Runtime as pallet_treasury::Config>::Currency;
 
 pub struct ExtBuilder {
 	endowed_accounts: Vec<(AccountId, CurrencyId, Balance)>,

@@ -36,7 +36,7 @@ parameter_types! {
 }
 
 pub type AccountId = u128;
-impl frame_system::Trait for Runtime {
+impl frame_system::Config for Runtime {
 	type Origin = Origin;
 	type Call = ();
 	type Index = u64;
@@ -72,7 +72,7 @@ parameter_types! {
 	pub const MinVestedTransfer: u64 = 5;
 }
 
-impl pallet_balances::Trait for Runtime {
+impl pallet_balances::Config for Runtime {
 	type Balance = Balance;
 	type DustRemoval = ();
 	type Event = TestEvent;
@@ -101,7 +101,7 @@ impl EnsureOrigin<Origin> for EnsureAliceOrBob {
 	}
 }
 
-impl Trait for Runtime {
+impl Config for Runtime {
 	type Event = TestEvent;
 	type Currency = PalletBalances;
 	type MinVestedTransfer = MinVestedTransfer;

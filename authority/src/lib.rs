@@ -2,7 +2,7 @@
 //! A module to provide features for governance including dispatch method on
 //! behalf of other accounts and schedule dispatchables.
 //!
-//! - [`Trait`](./trait.Trait.html)
+//! - [`Config`](./trait.Config.html)
 //! - [`Call`](./enum.Call.html)
 //! - [`Module`](./struct.Module.html)
 //!
@@ -90,7 +90,7 @@ impl<
 }
 
 /// Origin for the authority module.
-pub type Origin<T> = DelayedOrigin<<T as frame_system::Trait>::BlockNumber, <T as Trait>::PalletsOrigin>;
+pub type Origin<T> = DelayedOrigin<<T as frame_system::Config>::BlockNumber, <T as Config>::PalletsOrigin>;
 
 /// Config for orml-authority
 pub trait AuthorityConfig<Origin, PalletsOrigin, BlockNumber> {
@@ -123,44 +123,48 @@ pub trait AsOriginId<Origin, PalletsOrigin> {
 	fn check_dispatch_from(&self, origin: Origin) -> DispatchResult;
 }
 
-type CallOf<T> = <T as Trait>::Call;
+type CallOf<T> = <T as Config>::Call;
 
 /// The schedule task index type.
 pub type ScheduleTaskIndex = u32;
 
 /// orml-authority configuration trait.
-pub trait Trait: frame_system::Trait {
+pub trait Config: frame_system::Config {
 	/// The overarching event type.
-	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
+	type Event: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
 
 	/// The outer origin type.
-	type Origin: From<DelayedOrigin<Self::BlockNumber, <Self as Trait>::PalletsOrigin>>
-		+ IsType<<Self as frame_system::Trait>::Origin>
+	type Origin: From<DelayedOrigin<Self::BlockNumber, <Self as Config>::PalletsOrigin>>
+		+ IsType<<Self as frame_system::Config>::Origin>
 		+ OriginTrait<PalletsOrigin = Self::PalletsOrigin>;
 
 	/// The caller origin, overarching type of all pallets origins.
-	type PalletsOrigin: Parameter + Into<<Self as frame_system::Trait>::Origin>;
+	type PalletsOrigin: Parameter + Into<<Self as frame_system::Config>::Origin>;
 
 	/// The aggregated call type.
 	type Call: Parameter
-		+ Dispatchable<Origin = <Self as frame_system::Trait>::Origin, PostInfo = PostDispatchInfo>
+		+ Dispatchable<Origin = <Self as frame_system::Config>::Origin, PostInfo = PostDispatchInfo>
 		+ GetDispatchInfo;
 
 	/// The Scheduler.
-	type Scheduler: ScheduleNamed<Self::BlockNumber, <Self as Trait>::Call, Self::PalletsOrigin>;
+	type Scheduler: ScheduleNamed<Self::BlockNumber, <Self as Config>::Call, Self::PalletsOrigin>;
 
 	/// The type represent origin that can be dispatched by other origins.
-	type AsOriginId: Parameter + AsOriginId<<Self as frame_system::Trait>::Origin, Self::PalletsOrigin>;
+	type AsOriginId: Parameter + AsOriginId<<Self as frame_system::Config>::Origin, Self::PalletsOrigin>;
 
 	/// Additional permission config.
-	type AuthorityConfig: AuthorityConfig<<Self as frame_system::Trait>::Origin, Self::PalletsOrigin, Self::BlockNumber>;
+	type AuthorityConfig: AuthorityConfig<
+		<Self as frame_system::Config>::Origin,
+		Self::PalletsOrigin,
+		Self::BlockNumber,
+	>;
 
 	/// Weight information for extrinsics in this module.
 	type WeightInfo: WeightInfo;
 }
 
 decl_error! {
-	pub enum Error for Module<T: Trait> {
+	pub enum Error for Module<T: Config> {
 		/// Calculation overflow.
 		Overflow,
 		/// Failed to schedule a task.
@@ -175,7 +179,7 @@ decl_error! {
 }
 
 decl_storage! {
-	trait Store for Module<T: Trait> as Authority {
+	trait Store for Module<T: Config> as Authority {
 		/// Track the next task ID.
 		pub NextTaskIndex get(fn next_task_index): ScheduleTaskIndex;
 	}
@@ -183,8 +187,8 @@ decl_storage! {
 
 decl_event! {
 	pub enum Event<T> where
-		<T as Trait>::PalletsOrigin,
-		<T as frame_system::Trait>::BlockNumber,
+		<T as Config>::PalletsOrigin,
+		<T as frame_system::Config>::BlockNumber,
 	{
 		/// A call is dispatched. [result]
 		Dispatched(DispatchResult),
@@ -200,7 +204,7 @@ decl_event! {
 }
 
 decl_module! {
-	pub struct Module<T: Trait> for enum Call where origin: <T as frame_system::Trait>::Origin {
+	pub struct Module<T: Config> for enum Call where origin: <T as frame_system::Config>::Origin {
 		type Error = Error<T>;
 
 		fn deposit_event() = default;
@@ -245,14 +249,14 @@ decl_module! {
 			};
 
 			let schedule_origin = if with_delayed_origin {
-				let origin: <T as Trait>::Origin = From::from(origin);
-				let origin: <T as Trait>::Origin = From::from(DelayedOrigin::<T::BlockNumber, T::PalletsOrigin> {
+				let origin: <T as Config>::Origin = From::from(origin);
+				let origin: <T as Config>::Origin = From::from(DelayedOrigin::<T::BlockNumber, T::PalletsOrigin> {
 					delay,
 					origin: Box::new(origin.caller().clone())
 				});
 				origin
 			} else {
-				<T as Trait>::Origin::from(origin)
+				<T as Config>::Origin::from(origin)
 			};
 
 			let pallets_origin = schedule_origin.caller().clone();

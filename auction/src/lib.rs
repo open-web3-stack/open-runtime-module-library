@@ -34,8 +34,8 @@ pub trait WeightInfo {
 	fn on_finalize(c: u32) -> Weight;
 }
 
-pub trait Trait: frame_system::Trait {
-	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
+pub trait Config: frame_system::Config {
+	type Event: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
 
 	/// The balance type for bidding
 	type Balance: Parameter + Member + AtLeast32BitUnsigned + Default + Copy + MaybeSerializeDeserialize;
@@ -53,9 +53,9 @@ pub trait Trait: frame_system::Trait {
 
 decl_event!(
 	pub enum Event<T> where
-		<T as frame_system::Trait>::AccountId,
-		<T as Trait>::Balance,
-		<T as Trait>::AuctionId,
+		<T as frame_system::Config>::AccountId,
+		<T as Config>::Balance,
+		<T as Config>::AuctionId,
 	{
 		/// A bid is placed. [auction_id, bidder, bidding_amount]
 		Bid(AuctionId, AccountId, Balance),
@@ -63,7 +63,7 @@ decl_event!(
 );
 
 decl_storage! {
-	trait Store for Module<T: Trait> as Auction {
+	trait Store for Module<T: Config> as Auction {
 		/// Stores on-going and future auctions. Closed auction are removed.
 		pub Auctions get(fn auctions): map hasher(twox_64_concat) T::AuctionId => Option<AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>>;
 
@@ -76,7 +76,7 @@ decl_storage! {
 }
 
 decl_module! {
-	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+	pub struct Module<T: Config> for enum Call where origin: T::Origin {
 		type Error = Error<T>;
 
 		fn deposit_event() = default;
@@ -180,7 +180,7 @@ decl_module! {
 
 decl_error! {
 	/// Error for auction module.
-	pub enum Error for Module<T: Trait> {
+	pub enum Error for Module<T: Config> {
 		AuctionNotExist,
 		AuctionNotStarted,
 		BidNotAccepted,
@@ -189,7 +189,7 @@ decl_error! {
 	}
 }
 
-impl<T: Trait> Module<T> {
+impl<T: Config> Module<T> {
 	fn _on_finalize(now: T::BlockNumber) {
 		for (auction_id, _) in <AuctionEndTime<T>>::drain_prefix(&now) {
 			if let Some(auction) = <Auctions<T>>::take(&auction_id) {
@@ -199,7 +199,7 @@ impl<T: Trait> Module<T> {
 	}
 }
 
-impl<T: Trait> Auction<T::AccountId, T::BlockNumber> for Module<T> {
+impl<T: Config> Auction<T::AccountId, T::BlockNumber> for Module<T> {
 	type AuctionId = T::AuctionId;
 	type Balance = T::Balance;
 
