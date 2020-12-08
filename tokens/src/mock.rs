@@ -161,45 +161,6 @@ impl pallet_treasury::Config for Runtime {
 }
 pub type Treasury = pallet_treasury::Module<Runtime>;
 
-parameter_types! {
-	pub const CandidacyBond: u64 = 3;
-}
-
-thread_local! {
-	static VOTING_BOND: RefCell<u64> = RefCell::new(2);
-	static DESIRED_MEMBERS: RefCell<u32> = RefCell::new(2);
-	static DESIRED_RUNNERS_UP: RefCell<u32> = RefCell::new(2);
-	static TERM_DURATION: RefCell<u64> = RefCell::new(5);
-}
-
-pub struct VotingBond;
-impl Get<u64> for VotingBond {
-	fn get() -> u64 {
-		VOTING_BOND.with(|v| *v.borrow())
-	}
-}
-
-pub struct DesiredMembers;
-impl Get<u32> for DesiredMembers {
-	fn get() -> u32 {
-		DESIRED_MEMBERS.with(|v| *v.borrow())
-	}
-}
-
-pub struct DesiredRunnersUp;
-impl Get<u32> for DesiredRunnersUp {
-	fn get() -> u32 {
-		DESIRED_RUNNERS_UP.with(|v| *v.borrow())
-	}
-}
-
-pub struct TermDuration;
-impl Get<u64> for TermDuration {
-	fn get() -> u64 {
-		TERM_DURATION.with(|v| *v.borrow())
-	}
-}
-
 thread_local! {
 	pub static MEMBERS: RefCell<Vec<AccountId>> = RefCell::new(vec![]);
 	pub static PRIME: RefCell<Option<AccountId>> = RefCell::new(None);
@@ -250,6 +211,11 @@ impl ChangeMembers<AccountId> for TestChangeMembers {
 
 parameter_types! {
 	pub const ElectionsPhragmenModuleId: LockIdentifier = *b"phrelect";
+	pub const CandidacyBond: u64 = 3;
+	pub const VotingBond: u64 = 2;
+	pub const DesiredMembers: u32 = 2;
+	pub const DesiredRunnersUp: u32 = 2;
+	pub const TermDuration: u64 = 5;
 }
 
 impl pallet_elections_phragmen::Config for Runtime {
