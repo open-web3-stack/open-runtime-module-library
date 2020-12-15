@@ -22,9 +22,8 @@ pub type BlockNumber = u64;
 
 parameter_types! {
 	pub const BlockHashCount: u64 = 250;
-	pub const MaximumBlockWeight: u32 = 1024;
-	pub const MaximumBlockLength: u32 = 2 * 1024;
-	pub const AvailableBlockRatio: Perbill = Perbill::one();
+	pub BlockWeights: frame_system::limits::BlockWeights =
+			frame_system::limits::BlockWeights::simple_max(2_000_000_000_000);
 }
 
 impl frame_system::Config for Runtime {
@@ -39,24 +38,20 @@ impl frame_system::Config for Runtime {
 	type Header = Header;
 	type Event = Event;
 	type BlockHashCount = BlockHashCount;
-	type MaximumBlockWeight = MaximumBlockWeight;
-	type MaximumBlockLength = MaximumBlockLength;
-	type AvailableBlockRatio = AvailableBlockRatio;
+	type BlockWeights = ();
+	type BlockLength = ();
 	type Version = ();
 	type PalletInfo = ();
 	type AccountData = ();
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type DbWeight = ();
-	type BlockExecutionWeight = ();
-	type ExtrinsicBaseWeight = ();
-	type MaximumExtrinsicWeight = ();
 	type BaseCallFilter = ();
 	type SystemWeightInfo = ();
 }
 
 parameter_types! {
-	pub MaximumSchedulerWeight: u32 = Perbill::from_percent(80) * MaximumBlockWeight::get();
+	pub MaximumSchedulerWeight: Weight = Perbill::from_percent(80) * BlockWeights::get().max_block;
 }
 impl pallet_scheduler::Config for Runtime {
 	type Event = Event;
