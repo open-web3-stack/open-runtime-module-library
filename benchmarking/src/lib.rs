@@ -1080,6 +1080,7 @@ macro_rules! impl_benchmark_test {
 macro_rules! add_benchmark {
 	( $params:ident, $batches:ident, $name:ident, $( $location:tt )* ) => (
 		let name_string = stringify!($name).as_bytes();
+		let instance_string = stringify!( $( $location )* ).as_bytes();
 		let (config, whitelist) = $params;
 		let $crate::BenchmarkConfig {
 			pallet,
@@ -1095,6 +1096,7 @@ macro_rules! add_benchmark {
 			if &pallet[..] == &b"*"[..] || &benchmark[..] == &b"*"[..] {
 				for benchmark in $( $location )*::Benchmark::benchmarks(*extra).into_iter() {
 					$batches.push($crate::BenchmarkBatch {
+						instance: instance_string.to_vec(),
 						results: $( $location )*::Benchmark::run_benchmark(
 							benchmark,
 							&lowest_range_values[..],
@@ -1110,6 +1112,7 @@ macro_rules! add_benchmark {
 				}
 			} else {
 				$batches.push($crate::BenchmarkBatch {
+					instance: instance_string.to_vec(),
 					results: $( $location )*::Benchmark::run_benchmark(
 						&benchmark[..],
 						&lowest_range_values[..],
