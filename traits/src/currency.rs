@@ -99,7 +99,12 @@ pub trait MultiLockableCurrency<AccountId>: MultiCurrency<AccountId> {
 	/// than a user has.
 	///
 	/// If the lock `lock_id` already exists, this will update it.
-	fn set_lock(lock_id: LockIdentifier, currency_id: Self::CurrencyId, who: &AccountId, amount: Self::Balance);
+	fn set_lock(
+		lock_id: LockIdentifier,
+		currency_id: Self::CurrencyId,
+		who: &AccountId,
+		amount: Self::Balance,
+	) -> DispatchResult;
 
 	/// Changes a balance lock (selected by `lock_id`) so that it becomes less
 	/// liquid in all parameters or creates a new one if it does not exist.
@@ -109,10 +114,15 @@ pub trait MultiLockableCurrency<AccountId>: MultiCurrency<AccountId> {
 	/// while `set_lock` replaces the lock with the new parameters. As in,
 	/// `extend_lock` will set:
 	/// - maximum `amount`
-	fn extend_lock(lock_id: LockIdentifier, currency_id: Self::CurrencyId, who: &AccountId, amount: Self::Balance);
+	fn extend_lock(
+		lock_id: LockIdentifier,
+		currency_id: Self::CurrencyId,
+		who: &AccountId,
+		amount: Self::Balance,
+	) -> DispatchResult;
 
 	/// Remove an existing lock.
-	fn remove_lock(lock_id: LockIdentifier, currency_id: Self::CurrencyId, who: &AccountId);
+	fn remove_lock(lock_id: LockIdentifier, currency_id: Self::CurrencyId, who: &AccountId) -> DispatchResult;
 }
 
 /// A fungible multi-currency system where funds can be reserved from the user.
@@ -250,7 +260,7 @@ pub trait BasicLockableCurrency<AccountId>: BasicCurrency<AccountId> {
 	/// than a user has.
 	///
 	/// If the lock `lock_id` already exists, this will update it.
-	fn set_lock(lock_id: LockIdentifier, who: &AccountId, amount: Self::Balance);
+	fn set_lock(lock_id: LockIdentifier, who: &AccountId, amount: Self::Balance) -> DispatchResult;
 
 	/// Changes a balance lock (selected by `lock_id`) so that it becomes less
 	/// liquid in all parameters or creates a new one if it does not exist.
@@ -260,10 +270,10 @@ pub trait BasicLockableCurrency<AccountId>: BasicCurrency<AccountId> {
 	/// while `set_lock` replaces the lock with the new parameters. As in,
 	/// `extend_lock` will set:
 	/// - maximum `amount`
-	fn extend_lock(lock_id: LockIdentifier, who: &AccountId, amount: Self::Balance);
+	fn extend_lock(lock_id: LockIdentifier, who: &AccountId, amount: Self::Balance) -> DispatchResult;
 
 	/// Remove an existing lock.
-	fn remove_lock(lock_id: LockIdentifier, who: &AccountId);
+	fn remove_lock(lock_id: LockIdentifier, who: &AccountId) -> DispatchResult;
 }
 
 /// A fungible single currency system where funds can be reserved from the user.

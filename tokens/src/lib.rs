@@ -603,9 +603,14 @@ impl<T: Config> MultiLockableCurrency<T::AccountId> for Module<T> {
 
 	// Set a lock on the balance of `who` under `currency_id`.
 	// Is a no-op if lock amount is zero.
-	fn set_lock(lock_id: LockIdentifier, currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) {
+	fn set_lock(
+		lock_id: LockIdentifier,
+		currency_id: Self::CurrencyId,
+		who: &T::AccountId,
+		amount: Self::Balance,
+	) -> DispatchResult {
 		if amount.is_zero() {
-			return;
+			return Ok(());
 		}
 		let mut new_lock = Some(BalanceLock { id: lock_id, amount });
 		let mut locks = Self::locks(who, currency_id)
@@ -622,13 +627,19 @@ impl<T: Config> MultiLockableCurrency<T::AccountId> for Module<T> {
 			locks.push(lock)
 		}
 		Self::update_locks(currency_id, who, &locks[..]);
+		Ok(())
 	}
 
 	// Extend a lock on the balance of `who` under `currency_id`.
 	// Is a no-op if lock amount is zero
-	fn extend_lock(lock_id: LockIdentifier, currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) {
+	fn extend_lock(
+		lock_id: LockIdentifier,
+		currency_id: Self::CurrencyId,
+		who: &T::AccountId,
+		amount: Self::Balance,
+	) -> DispatchResult {
 		if amount.is_zero() {
-			return;
+			return Ok(());
 		}
 		let mut new_lock = Some(BalanceLock { id: lock_id, amount });
 		let mut locks = Self::locks(who, currency_id)
@@ -648,12 +659,14 @@ impl<T: Config> MultiLockableCurrency<T::AccountId> for Module<T> {
 			locks.push(lock)
 		}
 		Self::update_locks(currency_id, who, &locks[..]);
+		Ok(())
 	}
 
-	fn remove_lock(lock_id: LockIdentifier, currency_id: Self::CurrencyId, who: &T::AccountId) {
+	fn remove_lock(lock_id: LockIdentifier, currency_id: Self::CurrencyId, who: &T::AccountId) -> DispatchResult {
 		let mut locks = Self::locks(who, currency_id);
 		locks.retain(|lock| lock.id != lock_id);
 		Self::update_locks(currency_id, who, &locks[..]);
+		Ok(())
 	}
 }
 
@@ -980,15 +993,15 @@ where
 	type MaxLocks = ();
 
 	fn set_lock(id: LockIdentifier, who: &T::AccountId, amount: Self::Balance, _reasons: WithdrawReasons) {
-		Module::<T>::set_lock(id, GetCurrencyId::get(), who, amount)
+		let _ = Module::<T>::set_lock(id, GetCurrencyId::get(), who, amount);
 	}
 
 	fn extend_lock(id: LockIdentifier, who: &T::AccountId, amount: Self::Balance, _reasons: WithdrawReasons) {
-		Module::<T>::extend_lock(id, GetCurrencyId::get(), who, amount)
+		let _ = Module::<T>::extend_lock(id, GetCurrencyId::get(), who, amount);
 	}
 
 	fn remove_lock(id: LockIdentifier, who: &T::AccountId) {
-		Module::<T>::remove_lock(id, GetCurrencyId::get(), who)
+		let _ = Module::<T>::remove_lock(id, GetCurrencyId::get(), who);
 	}
 }
 
