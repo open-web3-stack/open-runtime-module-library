@@ -76,14 +76,14 @@ fn set_lock_should_work() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
-			Tokens::set_lock(ID_1, DOT, &ALICE, 10);
+			assert_ok!(Tokens::set_lock(ID_1, DOT, &ALICE, 10));
 			assert_eq!(Tokens::accounts(&ALICE, DOT).frozen, 10);
 			assert_eq!(Tokens::accounts(&ALICE, DOT).frozen(), 10);
 			assert_eq!(Tokens::locks(ALICE, DOT).len(), 1);
-			Tokens::set_lock(ID_1, DOT, &ALICE, 50);
+			assert_ok!(Tokens::set_lock(ID_1, DOT, &ALICE, 50));
 			assert_eq!(Tokens::accounts(&ALICE, DOT).frozen, 50);
 			assert_eq!(Tokens::locks(ALICE, DOT).len(), 1);
-			Tokens::set_lock(ID_2, DOT, &ALICE, 60);
+			assert_ok!(Tokens::set_lock(ID_2, DOT, &ALICE, 60));
 			assert_eq!(Tokens::accounts(&ALICE, DOT).frozen, 60);
 			assert_eq!(Tokens::locks(ALICE, DOT).len(), 2);
 		});
@@ -95,14 +95,14 @@ fn extend_lock_should_work() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
-			Tokens::set_lock(ID_1, DOT, &ALICE, 10);
+			assert_ok!(Tokens::set_lock(ID_1, DOT, &ALICE, 10));
 			assert_eq!(Tokens::locks(ALICE, DOT).len(), 1);
 			assert_eq!(Tokens::accounts(&ALICE, DOT).frozen, 10);
-			Tokens::extend_lock(ID_1, DOT, &ALICE, 20);
+			assert_ok!(Tokens::extend_lock(ID_1, DOT, &ALICE, 20));
 			assert_eq!(Tokens::locks(ALICE, DOT).len(), 1);
 			assert_eq!(Tokens::accounts(&ALICE, DOT).frozen, 20);
-			Tokens::extend_lock(ID_2, DOT, &ALICE, 10);
-			Tokens::extend_lock(ID_1, DOT, &ALICE, 20);
+			assert_ok!(Tokens::extend_lock(ID_2, DOT, &ALICE, 10));
+			assert_ok!(Tokens::extend_lock(ID_1, DOT, &ALICE, 20));
 			assert_eq!(Tokens::locks(ALICE, DOT).len(), 2);
 		});
 }
@@ -113,10 +113,10 @@ fn remove_lock_should_work() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
-			Tokens::set_lock(ID_1, DOT, &ALICE, 10);
-			Tokens::set_lock(ID_2, DOT, &ALICE, 20);
+			assert_ok!(Tokens::set_lock(ID_1, DOT, &ALICE, 10));
+			assert_ok!(Tokens::set_lock(ID_2, DOT, &ALICE, 20));
 			assert_eq!(Tokens::locks(ALICE, DOT).len(), 2);
-			Tokens::remove_lock(ID_2, DOT, &ALICE);
+			assert_ok!(Tokens::remove_lock(ID_2, DOT, &ALICE));
 			assert_eq!(Tokens::locks(ALICE, DOT).len(), 1);
 		});
 }
@@ -127,12 +127,12 @@ fn frozen_can_limit_liquidity() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
-			Tokens::set_lock(ID_1, DOT, &ALICE, 90);
+			assert_ok!(Tokens::set_lock(ID_1, DOT, &ALICE, 90));
 			assert_noop!(
 				<Tokens as MultiCurrency<_>>::transfer(DOT, &ALICE, &BOB, 11),
 				Error::<Runtime>::LiquidityRestrictions,
 			);
-			Tokens::set_lock(ID_1, DOT, &ALICE, 10);
+			assert_ok!(Tokens::set_lock(ID_1, DOT, &ALICE, 10));
 			assert_ok!(<Tokens as MultiCurrency<_>>::transfer(DOT, &ALICE, &BOB, 11),);
 		});
 }
