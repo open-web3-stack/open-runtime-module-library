@@ -56,4 +56,5 @@ _In alphabetical order_
 - [ChainX](https://github.com/chainx-org/ChainX)
 - [HydraDX](https://github.com/galacticcouncil/hack.HydraDX-node)
 - [Laminar Chain](https://github.com/laminar-protocol/laminar-chain)
+- [Setheum Network](https://github.com/Setheum-Labs/Setheum)
 - [_Add your project here_](https://github.com/open-web3-stack/open-runtime-module-library/edit/master/README.md)
