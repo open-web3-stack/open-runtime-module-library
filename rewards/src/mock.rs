@@ -57,6 +57,7 @@ impl frame_system::Config for Runtime {
 	type DbWeight = ();
 	type BaseCallFilter = ();
 	type SystemWeightInfo = ();
+	type SS58Prefix = ();
 }
 
 thread_local! {

@@ -73,6 +73,7 @@ impl frame_system::Config for Test {
 	type OnKilledAccount = ();
 	type BaseCallFilter = ();
 	type SystemWeightInfo = ();
+	type SS58Prefix = ();
 }
 
 impl Config for Test {

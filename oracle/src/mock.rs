@@ -66,6 +66,7 @@ impl frame_system::Config for Test {
 	type DbWeight = ();
 	type BaseCallFilter = ();
 	type SystemWeightInfo = ();
+	type SS58Prefix = ();
 }
 pub type System = frame_system::Module<Test>;
 
