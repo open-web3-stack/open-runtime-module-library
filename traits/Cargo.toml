@@ -19,8 +19,6 @@ frame-support = { version = "2.0.0", default-features = false }
 orml-utilities = { path = "../utilities", version = "0.3.3-dev", default-features = false }
 
 [dev-dependencies]
-clear_on_drop = { version = "0.2.4", features = ["no_cc"] }	# https://github.com/paritytech/substrate/issues/4179
-
 
 [features]
 default = ["std"]
