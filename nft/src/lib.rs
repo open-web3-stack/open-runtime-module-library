@@ -91,12 +91,6 @@ pub type ClassInfoOf<T> =
 	ClassInfo<<T as Config>::TokenId, <T as frame_system::Config>::AccountId, <T as Config>::ClassData>;
 pub type TokenInfoOf<T> = TokenInfo<<T as frame_system::Config>::AccountId, <T as Config>::TokenData>;
 
-#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
-pub struct NftGenesisConfig<AccountId, ClassData, TokenData> {
-
-    pub tokenList: BTreeMap<AccountId, BTreeMap<(Vec<u8>, ClassData), Vec<(Vec<u8>, TokenData)>>>
-}
-
 decl_storage! {
 	trait Store for Module<T: Config> as NonFungibleToken {
 		/// Next available class ID.
