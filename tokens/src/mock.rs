@@ -12,7 +12,7 @@ use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
 	traits::{AccountIdConversion, IdentityLookup},
-	AccountId32, ModuleId, Percent, Permill,
+	AccountId32, ModuleId, Permill,
 };
 use sp_std::cell::RefCell;
 
@@ -44,8 +44,6 @@ impl_outer_event! {
 		frame_system<T>,
 		tokens<T>,
 		pallet_treasury<T>,
-		pallet_bounties<T>,
-		pallet_tips<T>,
 		pallet_elections_phragmen<T>,
 	}
 }
@@ -120,20 +118,10 @@ impl ContainsLengthBound for TenToFourteen {
 parameter_types! {
 	pub const ProposalBond: Permill = Permill::from_percent(5);
 	pub const ProposalBondMinimum: u64 = 1;
-	pub const TipCountdown: u64 = 1;
-	pub const TipFindersFee: Percent = Percent::from_percent(20);
-	pub const TipReportDepositBase: u64 = 1;
-	pub const DataDepositPerByte: u64 = 1;
 	pub const SpendPeriod: u64 = 2;
 	pub const Burn: Permill = Permill::from_percent(50);
 	pub const TreasuryModuleId: ModuleId = ModuleId(*b"py/trsry");
 	pub const GetTokenId: CurrencyId = DOT;
-	pub const BountyDepositBase: Balance = 1;
-	pub const BountyDepositPayoutDelay: u64 = 1;
-	pub const BountyUpdatePeriod: u64 = 1;
-	pub const BountyCuratorDeposit: Permill = Permill::from_percent(50);
-	pub const BountyValueMinimum: Balance = 5;
-	pub const MaximumReasonLength: u32 = 16384;
 }
 
 impl pallet_treasury::Config for Runtime {
@@ -148,35 +136,11 @@ impl pallet_treasury::Config for Runtime {
 	type SpendPeriod = SpendPeriod;
 	type Burn = Burn;
 	type BurnDestination = ();
-	type SpendFunds = Bounties;
-	type WeightInfo = ();
-}
-
-impl pallet_bounties::Config for Runtime {
-	type Event = TestEvent;
-	type BountyDepositBase = BountyDepositBase;
-	type BountyDepositPayoutDelay = BountyDepositPayoutDelay;
-	type BountyUpdatePeriod = BountyUpdatePeriod;
-	type BountyCuratorDeposit = BountyCuratorDeposit;
-	type BountyValueMinimum = BountyValueMinimum;
-	type DataDepositPerByte = DataDepositPerByte;
-	type MaximumReasonLength = MaximumReasonLength;
-	type WeightInfo = ();
-}
-
-impl pallet_tips::Config for Runtime {
-	type Event = TestEvent;
-	type DataDepositPerByte = DataDepositPerByte;
-	type MaximumReasonLength = MaximumReasonLength;
-	type Tippers = TenToFourteen;
-	type TipCountdown = TipCountdown;
-	type TipFindersFee = TipFindersFee;
-	type TipReportDepositBase = TipReportDepositBase;
+	type SpendFunds = ();
 	type WeightInfo = ();
 }
 
 pub type Treasury = pallet_treasury::Module<Runtime>;
-pub type Bounties = pallet_bounties::Module<Runtime>;
 
 thread_local! {
 	pub static MEMBERS: RefCell<Vec<AccountId>> = RefCell::new(vec![]);
