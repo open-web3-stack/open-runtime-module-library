@@ -210,7 +210,10 @@ decl_module! {
 		fn deposit_event() = default;
 
 		/// Dispatch a dispatchable on behalf of other origin
-		#[weight = (T::WeightInfo::dispatch_as().saturating_add(call.get_dispatch_info().weight), call.get_dispatch_info().class)]
+		#[weight = {
+			let info = call.get_dispatch_info();
+			(T::WeightInfo::dispatch_as().saturating_add(info.weight), info.class)
+		}]
 		pub fn dispatch_as(
 			origin,
 			as_origin: T::AsOriginId,

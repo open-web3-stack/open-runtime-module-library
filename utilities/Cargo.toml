@@ -19,8 +19,6 @@ sp-io = { version = "2.0.0", default-features = false }
 serde_json = "1.0.53"
 frame-system = { version = "2.0.0" }
 
-clear_on_drop = { version = "0.2.4", features = ["no_cc"] }	# https://github.com/paritytech/substrate/issues/4179
-
 [features]
 default = ["std"]
 std = [
