@@ -26,7 +26,7 @@ use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedSub, Member, One, Zero},
 	DispatchError, DispatchResult, RuntimeDebug,
 };
-use sp_std::vec::Vec;
+use sp_std::{collections::btree_map::BTreeMap, vec::Vec};
 
 mod mock;
 mod tests;
@@ -91,6 +91,12 @@ pub type ClassInfoOf<T> =
 	ClassInfo<<T as Config>::TokenId, <T as frame_system::Config>::AccountId, <T as Config>::ClassData>;
 pub type TokenInfoOf<T> = TokenInfo<<T as frame_system::Config>::AccountId, <T as Config>::TokenData>;
 
+#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
+pub struct NftGenesisConfig<AccountId, ClassData, TokenData> {
+
+    pub tokenList: BTreeMap<AccountId, BTreeMap<(Vec<u8>, ClassData), Vec<(Vec<u8>, TokenData)>>>
+}
+
 decl_storage! {
 	trait Store for Module<T: Config> as NonFungibleToken {
 		/// Next available class ID.
@@ -108,6 +114,50 @@ decl_storage! {
 		/// Token existence check by owner and class ID.
 		#[cfg(not(feature = "disable-tokens-by-owner"))]
 		pub TokensByOwner get(fn tokens_by_owner): double_map hasher(twox_64_concat) T::AccountId, hasher(twox_64_concat) (T::ClassId, T::TokenId) => Option<()>;
+	}
+	add_extra_genesis {
+		config(endowed_accounts): BTreeMap<T::AccountId, BTreeMap<(Vec<u8>, T::ClassData), Vec<(Vec<u8>, T::TokenData)>>>;
+
+		build(|config: &GenesisConfig<T>| {
+			for(account_id, tokens_data) in config.endowed_accounts() {
+				for((metadata, class_data), tokens) in tokens_data {
+					let class_id = NextClassId::<T>::try_mutate(|id| -> Result<T::ClassId, DispatchError> {
+						let current_id = *id;
+						*id = id.checked_add(&One::one()).ok_or(Error::<T>::NoAvailableClassId)?;
+						Ok(current_id)
+					})?;
+					let info = ClassInfo {
+						metadata,
+						total_issuance: Default::default(),
+						owner: account_id,
+						class_data,
+					};
+					Classes::<T>::insert(class_id, info);
+					for (token_metadata, token_data) in tokens {
+						NextTokenId::<T>::try_mutate(class_id, |id| -> Result<T::TokenId, DispatchError> {
+								let token_id = *id;
+								*id = id.checked_add(&One::one()).ok_or(Error::<T>::NoAvailableTokenId)?;
+
+								Classes::<T>::try_mutate(class_id, |class_info| -> DispatchResult {
+									let info = class_info.as_mut().ok_or(Error::<T>::ClassNotFound)?;
+									info.total_issuance = info
+										.total_issuance
+										.checked_add(&One::one())
+										.ok_or(Error::<T>::NumOverflow)?;
+									Ok(())
+								})?;
+
+								let token_info = TokenInfo {
+									token_metadata,
+									owner: account_id.clone(),
+									token_data,
+								};
+								Tokens::<T>::insert(class_id, token_id, token_info);
+						})
+					}
+				}
+			}
+		})
 	}
 }
 
