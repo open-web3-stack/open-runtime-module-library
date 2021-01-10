@@ -61,7 +61,7 @@ pub trait Config: frame_system::Config {
 	/// The token ID type
 	type TokenId: Parameter + Member + AtLeast32BitUnsigned + Default + Copy;
 	/// The class properties type
-	type ClassData: Parameter + Member;
+	type ClassData: Parameter + Member + Ord;
 	/// The token properties type
 	type TokenData: Parameter + Member;
 }
@@ -91,6 +91,13 @@ pub type ClassInfoOf<T> =
 	ClassInfo<<T as Config>::TokenId, <T as frame_system::Config>::AccountId, <T as Config>::ClassData>;
 pub type TokenInfoOf<T> = TokenInfo<<T as frame_system::Config>::AccountId, <T as Config>::TokenData>;
 
+pub type GenesisTokenData<T> = (Vec<u8>, <T as Config>::TokenData);
+pub type GenesisClassData<T> = (
+	<T as frame_system::Config>::AccountId,
+	Vec<u8>,
+	<T as Config>::ClassData,
+);
+
 decl_storage! {
 	trait Store for Module<T: Config> as NonFungibleToken {
 		/// Next available class ID.
@@ -110,47 +117,25 @@ decl_storage! {
 		pub TokensByOwner get(fn tokens_by_owner): double_map hasher(twox_64_concat) T::AccountId, hasher(twox_64_concat) (T::ClassId, T::TokenId) => Option<()>;
 	}
 	add_extra_genesis {
-		config(endowed_accounts): BTreeMap<T::AccountId, BTreeMap<(Vec<u8>, T::ClassData), Vec<(Vec<u8>, T::TokenData)>>>;
+		config(endowed_accounts): BTreeMap<GenesisClassData<T>, BTreeMap<T::AccountId, Vec<GenesisTokenData<T>>>>;
 
 		build(|config: &GenesisConfig<T>| {
-			for(account_id, tokens_data) in config.endowed_accounts() {
-				for((metadata, class_data), tokens) in tokens_data {
-					let class_id = NextClassId::<T>::try_mutate(|id| -> Result<T::ClassId, DispatchError> {
-						let current_id = *id;
-						*id = id.checked_add(&One::one()).ok_or(Error::<T>::NoAvailableClassId)?;
-						Ok(current_id)
-					})?;
-					let info = ClassInfo {
-						metadata,
-						total_issuance: Default::default(),
-						owner: account_id,
-						class_data,
-					};
-					Classes::<T>::insert(class_id, info);
-					for (token_metadata, token_data) in tokens {
-						NextTokenId::<T>::try_mutate(class_id, |id| -> Result<T::TokenId, DispatchError> {
-								let token_id = *id;
-								*id = id.checked_add(&One::one()).ok_or(Error::<T>::NoAvailableTokenId)?;
-
-								Classes::<T>::try_mutate(class_id, |class_info| -> DispatchResult {
-									let info = class_info.as_mut().ok_or(Error::<T>::ClassNotFound)?;
-									info.total_issuance = info
-										.total_issuance
-										.checked_add(&One::one())
-										.ok_or(Error::<T>::NumOverflow)?;
-									Ok(())
-								})?;
-
-								let token_info = TokenInfo {
-									token_metadata,
-									owner: account_id.clone(),
-									token_data,
-								};
-								Tokens::<T>::insert(class_id, token_id, token_info);
-						})
+			config.endowed_accounts.iter().for_each(|(class_data, tokens)| {
+				let result = Module::<T>::create_class(&class_data.0, class_data.1.to_vec(), class_data.2.clone());
+				let class_id = match result {
+					Ok(class_id) => class_id,
+					_ => return,
+				};
+				for (account_id, tokens_data) in tokens {
+					for (token_metadata, token_data) in tokens_data {
+						let _result = Module::<T>::mint(&account_id, class_id, token_metadata.to_vec(), token_data.clone());
+						let _token_id = match result {
+							Ok(_token_id) => (),
+							_ => return,
+						};
 					}
 				}
-			}
+			})
 		})
 	}
 }
