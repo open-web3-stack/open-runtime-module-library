@@ -23,8 +23,8 @@ orml-traits = { path = "../traits", version = "0.3.3-dev", default-features = fa
 sp-core = { version = "2.0.0", default-features = false }
 pallet-treasury = { version = "2.0.0" }
 #TODO: use cargo version once `bounties` and `tips` pallets are released.
-pallet-bounties = { git = "https://github.com/paritytech/substrate.git", rev = "c9d93653e567f10867273b0171f3025419795c37" }
-pallet-tips = { git = "https://github.com/paritytech/substrate.git", rev = "c9d93653e567f10867273b0171f3025419795c37" }
+pallet-bounties = { git = "https://github.com/paritytech/substrate.git", rev = "df287fe393d7d4ee3b42b2594c42cac5a24ea2ab" }
+pallet-tips = { git = "https://github.com/paritytech/substrate.git", rev = "df287fe393d7d4ee3b42b2594c42cac5a24ea2ab" }
 pallet-elections-phragmen = { version = "2.0.0" }
 
 clear_on_drop = { version = "0.2.4", features = ["no_cc"] }	# https://github.com/paritytech/substrate/issues/4179
