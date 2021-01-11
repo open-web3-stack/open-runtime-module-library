@@ -121,18 +121,12 @@ decl_storage! {
 
 		build(|config: &GenesisConfig<T>| {
 			config.endowed_accounts.iter().for_each(|(class_data, tokens)| {
-				let result = Module::<T>::create_class(&class_data.0, class_data.1.to_vec(), class_data.2.clone());
-				let class_id = match result {
-					Ok(class_id) => class_id,
-					_ => return,
-				};
+				let class_id = Module::<T>::create_class(&class_data.0, class_data.1.to_vec(), class_data.2.clone())
+					.expect("Create class cannot fail while building genesis");
 				for (account_id, tokens_data) in tokens {
 					for (token_metadata, token_data) in tokens_data {
-						let _result = Module::<T>::mint(&account_id, class_id, token_metadata.to_vec(), token_data.clone());
-						let _token_id = match result {
-							Ok(_token_id) => (),
-							_ => return,
-						};
+						Module::<T>::mint(&account_id, class_id, token_metadata.to_vec(), token_data.clone())
+							.expect("Token mint cannot fail during genesis");
 					}
 				}
 			})
