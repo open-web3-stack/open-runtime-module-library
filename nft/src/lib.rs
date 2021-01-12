@@ -92,15 +92,15 @@ pub type ClassInfoOf<T> =
 pub type TokenInfoOf<T> = TokenInfo<<T as frame_system::Config>::AccountId, <T as Config>::TokenData>;
 
 pub type GenesisTokenData<T> = (
-	<T as frame_system::Config>::AccountId,
-	Vec<u8>,
+	<T as frame_system::Config>::AccountId, // Token owner
+	Vec<u8>,                                // Token metadata
 	<T as Config>::TokenData,
 );
 pub type GenesisTokens<T> = (
-	<T as frame_system::Config>::AccountId,
-	Vec<u8>,
+	<T as frame_system::Config>::AccountId, // Token class owner
+	Vec<u8>,                                // Token class metadata
 	<T as Config>::ClassData,
-	Vec<GenesisTokenData<T>>,
+	Vec<GenesisTokenData<T>>, // Vector of tokens belonging to this class
 );
 
 decl_storage! {
