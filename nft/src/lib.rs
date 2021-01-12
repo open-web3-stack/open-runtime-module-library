@@ -91,6 +91,18 @@ pub type ClassInfoOf<T> =
 	ClassInfo<<T as Config>::TokenId, <T as frame_system::Config>::AccountId, <T as Config>::ClassData>;
 pub type TokenInfoOf<T> = TokenInfo<<T as frame_system::Config>::AccountId, <T as Config>::TokenData>;
 
+pub type GenesisTokenData<T> = (
+	<T as frame_system::Config>::AccountId, // Token owner
+	Vec<u8>,                                // Token metadata
+	<T as Config>::TokenData,
+);
+pub type GenesisTokens<T> = (
+	<T as frame_system::Config>::AccountId, // Token class owner
+	Vec<u8>,                                // Token class metadata
+	<T as Config>::ClassData,
+	Vec<GenesisTokenData<T>>, // Vector of tokens belonging to this class
+);
+
 decl_storage! {
 	trait Store for Module<T: Config> as NonFungibleToken {
 		/// Next available class ID.
@@ -108,6 +120,20 @@ decl_storage! {
 		/// Token existence check by owner and class ID.
 		#[cfg(not(feature = "disable-tokens-by-owner"))]
 		pub TokensByOwner get(fn tokens_by_owner): double_map hasher(twox_64_concat) T::AccountId, hasher(twox_64_concat) (T::ClassId, T::TokenId) => Option<()>;
+	}
+	add_extra_genesis {
+		config(tokens): Vec<GenesisTokens<T>>;
+
+		build(|config: &GenesisConfig<T>| {
+			config.tokens.iter().for_each(|token_class| {
+				let class_id = Module::<T>::create_class(&token_class.0, token_class.1.to_vec(), token_class.2.clone())
+					.expect("Create class cannot fail while building genesis");
+				for (account_id, token_metadata, token_data) in &token_class.3 {
+					Module::<T>::mint(&account_id, class_id, token_metadata.to_vec(), token_data.clone())
+						.expect("Token mint cannot fail during genesis");
+				}
+			})
+		})
 	}
 }
 
