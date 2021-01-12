@@ -26,7 +26,7 @@ use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedSub, Member, One, Zero},
 	DispatchError, DispatchResult, RuntimeDebug,
 };
-use sp_std::{collections::btree_map::BTreeMap, vec::Vec};
+use sp_std::vec::Vec;
 
 mod mock;
 mod tests;
@@ -61,7 +61,7 @@ pub trait Config: frame_system::Config {
 	/// The token ID type
 	type TokenId: Parameter + Member + AtLeast32BitUnsigned + Default + Copy;
 	/// The class properties type
-	type ClassData: Parameter + Member + Ord;
+	type ClassData: Parameter + Member;
 	/// The token properties type
 	type TokenData: Parameter + Member;
 }
@@ -91,11 +91,16 @@ pub type ClassInfoOf<T> =
 	ClassInfo<<T as Config>::TokenId, <T as frame_system::Config>::AccountId, <T as Config>::ClassData>;
 pub type TokenInfoOf<T> = TokenInfo<<T as frame_system::Config>::AccountId, <T as Config>::TokenData>;
 
-pub type GenesisTokenData<T> = (Vec<u8>, <T as Config>::TokenData);
-pub type GenesisClassData<T> = (
+pub type GenesisTokenData<T> = (
+	<T as frame_system::Config>::AccountId,
+	Vec<u8>,
+	<T as Config>::TokenData,
+);
+pub type GenesisTokens<T> = (
 	<T as frame_system::Config>::AccountId,
 	Vec<u8>,
 	<T as Config>::ClassData,
+	Vec<GenesisTokenData<T>>,
 );
 
 decl_storage! {
@@ -117,17 +122,15 @@ decl_storage! {
 		pub TokensByOwner get(fn tokens_by_owner): double_map hasher(twox_64_concat) T::AccountId, hasher(twox_64_concat) (T::ClassId, T::TokenId) => Option<()>;
 	}
 	add_extra_genesis {
-		config(endowed_accounts): BTreeMap<GenesisClassData<T>, BTreeMap<T::AccountId, Vec<GenesisTokenData<T>>>>;
+		config(tokens): Vec<GenesisTokens<T>>;
 
 		build(|config: &GenesisConfig<T>| {
-			config.endowed_accounts.iter().for_each(|(class_data, tokens)| {
-				let class_id = Module::<T>::create_class(&class_data.0, class_data.1.to_vec(), class_data.2.clone())
+			config.tokens.iter().for_each(|token_class| {
+				let class_id = Module::<T>::create_class(&token_class.0, token_class.1.to_vec(), token_class.2.clone())
 					.expect("Create class cannot fail while building genesis");
-				for (account_id, tokens_data) in tokens {
-					for (token_metadata, token_data) in tokens_data {
-						Module::<T>::mint(&account_id, class_id, token_metadata.to_vec(), token_data.clone())
-							.expect("Token mint cannot fail during genesis");
-					}
+				for (account_id, token_metadata, token_data) in &token_class.3 {
+					Module::<T>::mint(&account_id, class_id, token_metadata.to_vec(), token_data.clone())
+						.expect("Token mint cannot fail during genesis");
 				}
 			})
 		})
