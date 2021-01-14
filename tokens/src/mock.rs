@@ -3,11 +3,12 @@
 #![cfg(test)]
 
 use frame_support::{
-	impl_outer_event, impl_outer_origin, parameter_types,
+	impl_outer_event, impl_outer_origin,
+	pallet_prelude::GenesisBuild,
+	parameter_types,
 	traits::{ChangeMembers, Contains, ContainsLengthBound, SaturatingCurrencyToVote},
 };
-use frame_system as system;
-use orml_traits::parameter_type_with_key;
+use orml_traits::{parameter_type_with_key, LockIdentifier};
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
@@ -79,7 +80,7 @@ impl frame_system::Config for Runtime {
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
 }
-pub type System = system::Module<Runtime>;
+pub type System = frame_system::Module<Runtime>;
 
 thread_local! {
 	static TEN_TO_FOURTEEN: RefCell<Vec<AccountId>> = RefCell::new(vec![
