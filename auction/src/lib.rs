@@ -64,6 +64,39 @@ pub mod module {
 	#[pallet::pallet]
 	pub struct Pallet<T>(PhantomData<T>);
 
+	#[pallet::error]
+	pub enum Error<T> {
+		AuctionNotExist,
+		AuctionNotStarted,
+		BidNotAccepted,
+		InvalidBidPrice,
+		NoAvailableAuctionId,
+	}
+
+	#[pallet::event]
+	#[pallet::generate_deposit(fn deposit_event)]
+	pub enum Event<T: Config> {
+		/// A bid is placed. [auction_id, bidder, bidding_amount]
+		Bid(T::AuctionId, T::AccountId, T::Balance),
+	}
+
+	#[pallet::storage]
+	#[pallet::getter(fn auctions)]
+	/// Stores on-going and future auctions. Closed auction are removed.
+	pub type Auctions<T: Config> =
+		StorageMap<_, Twox64Concat, T::AuctionId, AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>, OptionQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn auctions_index)]
+	/// Track the next auction ID.
+	pub type AuctionsIndex<T: Config> = StorageValue<_, T::AuctionId, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn auction_end_time)]
+	/// Index auctions by end time.
+	pub type AuctionEndTime<T: Config> =
+		StorageDoubleMap<_, Twox64Concat, T::BlockNumber, Blake2_128Concat, T::AuctionId, (), OptionQuery>;
+
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
 		fn on_initialize(now: T::BlockNumber) -> Weight {
@@ -182,37 +215,4 @@ pub mod module {
 			}
 		}
 	}
-
-	#[pallet::error]
-	pub enum Error<T> {
-		AuctionNotExist,
-		AuctionNotStarted,
-		BidNotAccepted,
-		InvalidBidPrice,
-		NoAvailableAuctionId,
-	}
-
-	#[pallet::event]
-	#[pallet::generate_deposit(fn deposit_event)]
-	pub enum Event<T: Config> {
-		/// A bid is placed. [auction_id, bidder, bidding_amount]
-		Bid(T::AuctionId, T::AccountId, T::Balance),
-	}
-
-	#[pallet::storage]
-	#[pallet::getter(fn auctions)]
-	/// Stores on-going and future auctions. Closed auction are removed.
-	pub type Auctions<T: Config> =
-		StorageMap<_, Twox64Concat, T::AuctionId, AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>, OptionQuery>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn auctions_index)]
-	/// Track the next auction ID.
-	pub type AuctionsIndex<T: Config> = StorageValue<_, T::AuctionId, ValueQuery>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn auction_end_time)]
-	/// Index auctions by end time.
-	pub type AuctionEndTime<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, T::BlockNumber, Blake2_128Concat, T::AuctionId, (), OptionQuery>;
 }

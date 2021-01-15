@@ -171,6 +171,39 @@ pub mod module {
 	#[pallet::pallet]
 	pub struct Pallet<T>(PhantomData<T>);
 
+	#[pallet::error]
+	pub enum Error<T> {
+		/// Calculation overflow.
+		Overflow,
+		/// Failed to schedule a task.
+		FailedToSchedule,
+		/// Failed to cancel a task.
+		FailedToCancel,
+		/// Failed to fast track a task.
+		FailedToFastTrack,
+		/// Failed to delay a task.
+		FailedToDelay,
+	}
+
+	#[pallet::event]
+	#[pallet::generate_deposit(fn deposit_event)]
+	pub enum Event<T: Config> {
+		/// A call is dispatched. [result]
+		Dispatched(DispatchResult),
+		/// A call is scheduled. [origin, index]
+		Scheduled(T::PalletsOrigin, ScheduleTaskIndex),
+		/// A scheduled call is fast tracked. [origin, index, when]
+		FastTracked(T::PalletsOrigin, ScheduleTaskIndex, T::BlockNumber),
+		/// A scheduled call is delayed. [origin, index, when]
+		Delayed(T::PalletsOrigin, ScheduleTaskIndex, T::BlockNumber),
+		/// A scheduled call is cancelled. [origin, index]
+		Cancelled(T::PalletsOrigin, ScheduleTaskIndex),
+	}
+
+	#[pallet::storage]
+	#[pallet::getter(fn next_task_index)]
+	pub type NextTaskIndex<T: Config> = StorageValue<_, ScheduleTaskIndex, ValueQuery>;
+
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
 
@@ -305,37 +338,4 @@ pub mod module {
 			Ok(().into())
 		}
 	}
-
-	#[pallet::error]
-	pub enum Error<T> {
-		/// Calculation overflow.
-		Overflow,
-		/// Failed to schedule a task.
-		FailedToSchedule,
-		/// Failed to cancel a task.
-		FailedToCancel,
-		/// Failed to fast track a task.
-		FailedToFastTrack,
-		/// Failed to delay a task.
-		FailedToDelay,
-	}
-
-	#[pallet::event]
-	#[pallet::generate_deposit(fn deposit_event)]
-	pub enum Event<T: Config> {
-		/// A call is dispatched. [result]
-		Dispatched(DispatchResult),
-		/// A call is scheduled. [origin, index]
-		Scheduled(T::PalletsOrigin, ScheduleTaskIndex),
-		/// A scheduled call is fast tracked. [origin, index, when]
-		FastTracked(T::PalletsOrigin, ScheduleTaskIndex, T::BlockNumber),
-		/// A scheduled call is delayed. [origin, index, when]
-		Delayed(T::PalletsOrigin, ScheduleTaskIndex, T::BlockNumber),
-		/// A scheduled call is cancelled. [origin, index]
-		Cancelled(T::PalletsOrigin, ScheduleTaskIndex),
-	}
-
-	#[pallet::storage]
-	#[pallet::getter(fn next_task_index)]
-	pub type NextTaskIndex<T: Config> = StorageValue<_, ScheduleTaskIndex, ValueQuery>;
 }

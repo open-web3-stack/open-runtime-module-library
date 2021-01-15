@@ -188,6 +188,117 @@ pub mod module {
 	#[pallet::pallet]
 	pub struct Pallet<T>(PhantomData<T>);
 
+	#[pallet::error]
+	pub enum Error<T> {
+		/// The balance is too low
+		BalanceTooLow,
+		/// This operation will cause balance to overflow
+		BalanceOverflow,
+		/// This operation will cause total issuance to overflow
+		TotalIssuanceOverflow,
+		/// Cannot convert Amount into Balance type
+		AmountIntoBalanceFailed,
+		/// Failed because liquidity restrictions due to locking
+		LiquidityRestrictions,
+		/// Account still has active reserved
+		StillHasActiveReserved,
+	}
+
+	#[pallet::event]
+	#[pallet::generate_deposit(fn deposit_event)]
+	pub enum Event<T: Config> {
+		/// Token transfer success. \[currency_id, from, to, amount\]
+		Transferred(T::CurrencyId, T::AccountId, T::AccountId, T::Balance),
+		/// An account was removed whose balance was non-zero but below
+		/// ExistentialDeposit, resulting in an outright loss. \[account,
+		/// currency_id, amount\]
+		DustLost(T::AccountId, T::CurrencyId, T::Balance),
+	}
+
+	#[pallet::storage]
+	#[pallet::getter(fn total_issuance)]
+	/// The total issuance of a token type.
+	pub type TotalIssuance<T: Config> = StorageMap<_, Twox64Concat, T::CurrencyId, T::Balance, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn locks)]
+	/// Any liquidity locks of a token type under an account.
+	/// NOTE: Should only be accessed when setting, changing and freeing a lock.
+	pub type Locks<T: Config> = StorageDoubleMap<
+		_,
+		Blake2_128Concat,
+		T::AccountId,
+		Twox64Concat,
+		T::CurrencyId,
+		Vec<BalanceLock<T::Balance>>,
+		ValueQuery,
+	>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn accounts)]
+	/// The balance of a token type under an account.
+	///
+	/// NOTE: If the total is ever zero, decrease account ref account.
+	///
+	/// NOTE: This is only used in the case that this module is used to store
+	/// balances.
+	pub type Accounts<T: Config> = StorageDoubleMap<
+		_,
+		Blake2_128Concat,
+		T::AccountId,
+		Twox64Concat,
+		T::CurrencyId,
+		AccountData<T::Balance>,
+		ValueQuery,
+	>;
+
+	#[pallet::genesis_config]
+	pub struct GenesisConfig<T: Config> {
+		pub endowed_accounts: Vec<(T::AccountId, T::CurrencyId, T::Balance)>,
+	}
+
+	#[cfg(feature = "std")]
+	impl<T: Config> Default for GenesisConfig<T> {
+		fn default() -> Self {
+			GenesisConfig {
+				endowed_accounts: vec![],
+			}
+		}
+	}
+
+	#[pallet::genesis_build]
+	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+		fn build(&self) {
+			// ensure no duplicates exist.
+			let unique_endowed_accounts = self
+				.endowed_accounts
+				.iter()
+				.map(|(account_id, currency_id, _)| (account_id, currency_id))
+				.collect::<std::collections::BTreeSet<_>>();
+			assert!(
+				unique_endowed_accounts.len() == self.endowed_accounts.len(),
+				"duplicate endowed accounts in genesis."
+			);
+
+			self.endowed_accounts
+				.iter()
+				.for_each(|(account_id, currency_id, initial_balance)| {
+					assert!(
+						*initial_balance >= T::ExistentialDeposits::get(&currency_id),
+						"the balance of any account should always be more than existential deposit.",
+					);
+					Pallet::<T>::mutate_account(account_id, *currency_id, |account_data, _| {
+						account_data.free = *initial_balance
+					});
+					TotalIssuance::<T>::mutate(*currency_id, |total_issuance| {
+						*total_issuance = total_issuance
+							.checked_add(initial_balance)
+							.expect("total issuance cannot overflow when building genesis")
+					});
+				});
+		}
+	}
+
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
 
@@ -938,117 +1049,6 @@ pub mod module {
 				<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, source, dest, account_data.free)?;
 				Ok(())
 			})
-		}
-	}
-
-	#[pallet::error]
-	pub enum Error<T> {
-		/// The balance is too low
-		BalanceTooLow,
-		/// This operation will cause balance to overflow
-		BalanceOverflow,
-		/// This operation will cause total issuance to overflow
-		TotalIssuanceOverflow,
-		/// Cannot convert Amount into Balance type
-		AmountIntoBalanceFailed,
-		/// Failed because liquidity restrictions due to locking
-		LiquidityRestrictions,
-		/// Account still has active reserved
-		StillHasActiveReserved,
-	}
-
-	#[pallet::event]
-	#[pallet::generate_deposit(fn deposit_event)]
-	pub enum Event<T: Config> {
-		/// Token transfer success. \[currency_id, from, to, amount\]
-		Transferred(T::CurrencyId, T::AccountId, T::AccountId, T::Balance),
-		/// An account was removed whose balance was non-zero but below
-		/// ExistentialDeposit, resulting in an outright loss. \[account,
-		/// currency_id, amount\]
-		DustLost(T::AccountId, T::CurrencyId, T::Balance),
-	}
-
-	#[pallet::storage]
-	#[pallet::getter(fn total_issuance)]
-	/// The total issuance of a token type.
-	pub type TotalIssuance<T: Config> = StorageMap<_, Twox64Concat, T::CurrencyId, T::Balance, ValueQuery>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn locks)]
-	/// Any liquidity locks of a token type under an account.
-	/// NOTE: Should only be accessed when setting, changing and freeing a lock.
-	pub type Locks<T: Config> = StorageDoubleMap<
-		_,
-		Blake2_128Concat,
-		T::AccountId,
-		Twox64Concat,
-		T::CurrencyId,
-		Vec<BalanceLock<T::Balance>>,
-		ValueQuery,
-	>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn accounts)]
-	/// The balance of a token type under an account.
-	///
-	/// NOTE: If the total is ever zero, decrease account ref account.
-	///
-	/// NOTE: This is only used in the case that this module is used to store
-	/// balances.
-	pub type Accounts<T: Config> = StorageDoubleMap<
-		_,
-		Blake2_128Concat,
-		T::AccountId,
-		Twox64Concat,
-		T::CurrencyId,
-		AccountData<T::Balance>,
-		ValueQuery,
-	>;
-
-	#[pallet::genesis_config]
-	pub struct GenesisConfig<T: Config> {
-		pub endowed_accounts: Vec<(T::AccountId, T::CurrencyId, T::Balance)>,
-	}
-
-	#[cfg(feature = "std")]
-	impl<T: Config> Default for GenesisConfig<T> {
-		fn default() -> Self {
-			GenesisConfig {
-				endowed_accounts: vec![],
-			}
-		}
-	}
-
-	#[pallet::genesis_build]
-	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
-		fn build(&self) {
-			// ensure no duplicates exist.
-			let unique_endowed_accounts = self
-				.endowed_accounts
-				.iter()
-				.map(|(account_id, currency_id, _)| (account_id, currency_id))
-				.collect::<std::collections::BTreeSet<_>>();
-			assert!(
-				unique_endowed_accounts.len() == self.endowed_accounts.len(),
-				"duplicate endowed accounts in genesis."
-			);
-
-			self.endowed_accounts
-				.iter()
-				.for_each(|(account_id, currency_id, initial_balance)| {
-					assert!(
-						*initial_balance >= T::ExistentialDeposits::get(&currency_id),
-						"the balance of any account should always be more than existential deposit.",
-					);
-					Pallet::<T>::mutate_account(account_id, *currency_id, |account_data, _| {
-						account_data.free = *initial_balance
-					});
-					TotalIssuance::<T>::mutate(*currency_id, |total_issuance| {
-						*total_issuance = total_issuance
-							.checked_add(initial_balance)
-							.expect("total issuance cannot overflow when building genesis")
-					});
-				});
 		}
 	}
 }
