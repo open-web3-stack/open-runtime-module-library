@@ -46,6 +46,7 @@ pub use module::*;
 
 #[frame_support::pallet]
 pub mod module {
+	pub use crate::imbalances::{NegativeImbalance, PositiveImbalance};
 	use frame_support::{
 		ensure,
 		pallet_prelude::*,
@@ -76,8 +77,6 @@ pub mod module {
 		prelude::*,
 		vec::Vec,
 	};
-
-	pub use crate::imbalances::{NegativeImbalance, PositiveImbalance};
 
 	pub trait WeightInfo {
 		fn transfer() -> Weight;
