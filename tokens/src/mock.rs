@@ -2,6 +2,7 @@
 
 #![cfg(test)]
 
+use super::*;
 use frame_support::{
 	impl_outer_event, impl_outer_origin,
 	pallet_prelude::GenesisBuild,
@@ -16,8 +17,6 @@ use sp_runtime::{
 	AccountId32, ModuleId, Permill,
 };
 use sp_std::cell::RefCell;
-
-use super::*;
 
 pub type AccountId = AccountId32;
 pub type CurrencyId = u32;
