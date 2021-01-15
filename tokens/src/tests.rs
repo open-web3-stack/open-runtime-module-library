@@ -3,11 +3,22 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{assert_noop, assert_ok, traits::WithdrawReasons};
+use frame_support::{
+	assert_noop, assert_ok,
+	traits::{
+		BalanceStatus as Status, Currency, ExistenceRequirement, LockableCurrency as PalletLockableCurrency,
+		ReservableCurrency as PalletReservableCurrency, WithdrawReasons,
+	},
+};
 use mock::{
 	Balance, DustAccount, ExtBuilder, Runtime, System, TestEvent, Tokens, Treasury, TreasuryCurrencyAdapter, ALICE,
 	BOB, BTC, DOT, ETH, ID_1, ID_2, TREASURY_ACCOUNT,
 };
+use orml_traits::{
+	account::MergeAccount, BalanceStatus, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency,
+	MultiReservableCurrency,
+};
+use sp_runtime::traits::Zero;
 
 #[test]
 fn minimum_balance_work() {
@@ -65,7 +76,7 @@ fn remove_dust_work() {
 		assert_eq!(Tokens::free_balance(DOT, &DustAccount::get()), 1);
 		assert_eq!(System::refs(&DustAccount::get()), 1);
 
-		let dust_lost_event = TestEvent::tokens(RawEvent::DustLost(ALICE, DOT, 1));
+		let dust_lost_event = TestEvent::tokens(Event::DustLost(ALICE, DOT, 1));
 		assert!(System::events().iter().any(|record| record.event == dust_lost_event));
 	});
 }
@@ -309,7 +320,7 @@ fn transfer_should_work() {
 			assert_eq!(Tokens::free_balance(DOT, &BOB), 150);
 			assert_eq!(Tokens::total_issuance(DOT), 200);
 
-			let transferred_event = TestEvent::tokens(RawEvent::Transferred(DOT, ALICE, BOB, 50));
+			let transferred_event = TestEvent::tokens(Event::Transferred(DOT, ALICE, BOB, 50));
 			assert!(System::events().iter().any(|record| record.event == transferred_event));
 
 			assert_noop!(
@@ -331,7 +342,7 @@ fn transfer_all_should_work() {
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
 			assert_eq!(Tokens::free_balance(DOT, &BOB), 200);
 
-			let transferred_event = TestEvent::tokens(RawEvent::Transferred(DOT, ALICE, BOB, 100));
+			let transferred_event = TestEvent::tokens(Event::Transferred(DOT, ALICE, BOB, 100));
 			assert!(System::events().iter().any(|record| record.event == transferred_event));
 		});
 }

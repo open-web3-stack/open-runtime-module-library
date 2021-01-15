@@ -2,19 +2,21 @@
 
 #![cfg(test)]
 
+use super::*;
+use codec::{Decode, Encode};
 use frame_support::{
 	parameter_types,
-	traits::{OnFinalize, OnInitialize},
+	traits::{schedule::Priority, OnFinalize, OnInitialize, OriginTrait},
+	weights::Weight,
 };
 use frame_system::{ensure_root, ensure_signed, EnsureRoot};
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
 	traits::{BadOrigin, Block as BlockT, IdentityLookup},
-	Perbill,
+	DispatchResult, Perbill,
 };
 
-use super::*;
 pub use crate as authority;
 
 pub type AccountId = u128;

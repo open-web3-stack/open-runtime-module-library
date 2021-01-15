@@ -5,6 +5,7 @@
 use super::*;
 use frame_support::{impl_outer_event, impl_outer_origin, parameter_types};
 use orml_traits::OnNewBidResult;
+use orml_traits::{AuctionHandler, Change};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 
