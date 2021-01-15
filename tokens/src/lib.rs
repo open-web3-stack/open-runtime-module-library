@@ -34,8 +34,8 @@
 //! The tokens module depends on the `GenesisConfig`. Endowed accounts could be
 //! configured in genesis configs.
 
-#![allow(clippy::unused_unit)]
 #![cfg_attr(not(feature = "std"), no_std)]
+#![allow(clippy::unused_unit)]
 
 mod default_weight;
 mod imbalances;

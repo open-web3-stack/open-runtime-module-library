@@ -65,7 +65,7 @@ pub mod module {
 	pub trait Config: frame_system::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
-		//#[pallet::constant]
+		#[pallet::constant]
 		/// The frequency of updating values between blocks
 		type UpdateFrequency: Get<Self::BlockNumber>;
 
