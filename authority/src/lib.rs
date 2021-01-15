@@ -17,6 +17,7 @@
 #![allow(clippy::string_lit_as_bytes)]
 #![allow(clippy::boxed_local)]
 #![allow(clippy::borrowed_box)]
+#![allow(clippy::unused_unit)]
 
 mod default_weight;
 mod mock;

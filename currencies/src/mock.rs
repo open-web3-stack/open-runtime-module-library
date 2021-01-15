@@ -2,7 +2,7 @@
 
 #![cfg(test)]
 
-use frame_support::{impl_outer_event, impl_outer_origin, parameter_types};
+use frame_support::{impl_outer_event, impl_outer_origin, pallet_prelude::GenesisBuild, parameter_types};
 use orml_traits::parameter_type_with_key;
 use pallet_balances;
 use sp_core::H256;
