@@ -4,6 +4,7 @@
 
 use super::*;
 use frame_support::{impl_outer_origin, parameter_types};
+use orml_traits::RewardHandler;
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 use sp_std::cell::RefCell;

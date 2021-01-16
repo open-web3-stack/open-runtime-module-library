@@ -2,8 +2,9 @@
 
 #![cfg(test)]
 
-use frame_support::{impl_outer_event, impl_outer_origin, pallet_prelude::GenesisBuild, parameter_types};
-use orml_traits::parameter_type_with_key;
+use super::*;
+use frame_support::{impl_outer_event, impl_outer_origin, parameter_types, traits::GenesisBuild};
+use orml_traits::{parameter_type_with_key, LockIdentifier};
 use pallet_balances;
 use sp_core::H256;
 use sp_runtime::{
@@ -11,8 +12,6 @@ use sp_runtime::{
 	traits::{AccountIdConversion, IdentityLookup},
 	AccountId32, ModuleId,
 };
-
-use super::*;
 
 mod currencies {
 	pub use crate::Event;

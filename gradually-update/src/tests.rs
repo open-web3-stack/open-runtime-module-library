@@ -3,16 +3,17 @@
 #![cfg(test)]
 
 use super::*;
+use codec::Encode;
 use frame_support::{assert_noop, assert_ok, traits::OnFinalize};
 use mock::{ExtBuilder, GraduallyUpdateModule, Origin, Runtime, System, TestEvent};
 use sp_runtime::{FixedPointNumber, FixedU128, Permill};
 
 fn storage_set(key: &Vec<u8>, value: &Vec<u8>) {
-	storage::unhashed::put(key, value);
+	frame_support::storage::unhashed::put(key, value);
 }
 
 fn storage_get(key: &Vec<u8>) -> Vec<u8> {
-	storage::unhashed::get::<StorageValue>(key).unwrap_or_default()
+	frame_support::storage::unhashed::get::<StorageValueBytes>(key).unwrap_or_default()
 }
 
 #[test]
@@ -27,7 +28,7 @@ fn gradually_update_should_work() {
 		};
 		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()));
 
-		let gradually_update_event = TestEvent::gradually_update(RawEvent::GraduallyUpdateAdded(
+		let gradually_update_event = TestEvent::gradually_update(Event::GraduallyUpdateAdded(
 			update.key,
 			update.per_block,
 			update.target_value,
@@ -88,7 +89,7 @@ fn cancel_gradually_update_should_work() {
 			per_block: vec![1],
 		};
 		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()));
-		let gradually_update_event = TestEvent::gradually_update(RawEvent::GraduallyUpdateAdded(
+		let gradually_update_event = TestEvent::gradually_update(Event::GraduallyUpdateAdded(
 			update.key.clone(),
 			update.per_block,
 			update.target_value,
@@ -101,7 +102,7 @@ fn cancel_gradually_update_should_work() {
 			Origin::root(),
 			update.key.clone()
 		));
-		let cancel_gradually_update_event = TestEvent::gradually_update(RawEvent::GraduallyUpdateCancelled(update.key));
+		let cancel_gradually_update_event = TestEvent::gradually_update(Event::GraduallyUpdateCancelled(update.key));
 		assert!(System::events()
 			.iter()
 			.any(|record| record.event == cancel_gradually_update_event));
@@ -146,7 +147,7 @@ fn add_on_finalize_should_work() {
 		GraduallyUpdateModule::on_finalize(10);
 		assert_eq!(storage_get(&update.key), vec![10]);
 		let gradually_update_blocknumber_event =
-			TestEvent::gradually_update(RawEvent::Updated(10, update.key.clone(), vec![10]));
+			TestEvent::gradually_update(Event::Updated(10, update.key.clone(), vec![10]));
 		assert!(System::events()
 			.iter()
 			.any(|record| record.event == gradually_update_blocknumber_event));
@@ -159,7 +160,7 @@ fn add_on_finalize_should_work() {
 		GraduallyUpdateModule::on_finalize(20);
 		assert_eq!(storage_get(&update.key), vec![20]);
 		let gradually_update_blocknumber_event =
-			TestEvent::gradually_update(RawEvent::Updated(20, update.key.clone(), vec![20]));
+			TestEvent::gradually_update(Event::Updated(20, update.key.clone(), vec![20]));
 		assert!(System::events()
 			.iter()
 			.any(|record| record.event == gradually_update_blocknumber_event));
@@ -168,7 +169,7 @@ fn add_on_finalize_should_work() {
 		GraduallyUpdateModule::on_finalize(40);
 		assert_eq!(storage_get(&update.key), vec![30]);
 		let gradually_update_blocknumber_event =
-			TestEvent::gradually_update(RawEvent::Updated(40, update.key.clone(), vec![30]));
+			TestEvent::gradually_update(Event::Updated(40, update.key.clone(), vec![30]));
 		assert!(System::events()
 			.iter()
 			.any(|record| record.event == gradually_update_blocknumber_event));
@@ -193,7 +194,7 @@ fn sub_on_finalize_should_work() {
 		GraduallyUpdateModule::on_finalize(10);
 		assert_eq!(storage_get(&update.key), vec![20]);
 		let gradually_update_blocknumber_event =
-			TestEvent::gradually_update(RawEvent::Updated(10, update.key.clone(), vec![20]));
+			TestEvent::gradually_update(Event::Updated(10, update.key.clone(), vec![20]));
 		assert!(System::events()
 			.iter()
 			.any(|record| record.event == gradually_update_blocknumber_event));
@@ -206,7 +207,7 @@ fn sub_on_finalize_should_work() {
 		GraduallyUpdateModule::on_finalize(20);
 		assert_eq!(storage_get(&update.key), vec![10]);
 		let gradually_update_blocknumber_event =
-			TestEvent::gradually_update(RawEvent::Updated(20, update.key.clone(), vec![10]));
+			TestEvent::gradually_update(Event::Updated(20, update.key.clone(), vec![10]));
 		assert!(System::events()
 			.iter()
 			.any(|record| record.event == gradually_update_blocknumber_event));
@@ -215,7 +216,7 @@ fn sub_on_finalize_should_work() {
 		GraduallyUpdateModule::on_finalize(40);
 		assert_eq!(storage_get(&update.key), vec![5]);
 		let gradually_update_blocknumber_event =
-			TestEvent::gradually_update(RawEvent::Updated(40, update.key.clone(), vec![5]));
+			TestEvent::gradually_update(Event::Updated(40, update.key.clone(), vec![5]));
 		assert!(System::events()
 			.iter()
 			.any(|record| record.event == gradually_update_blocknumber_event));
