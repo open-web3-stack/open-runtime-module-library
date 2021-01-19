@@ -1,14 +1,12 @@
 #![cfg(test)]
 
-use crate::{
-	mock::{new_test_ext, AccountId, ModuleOracle, Origin, RootOperatorAccountId, System, Test, TestEvent, Timestamp},
-	Error, RawEvent, TimestampedValue,
-};
+use super::*;
 use frame_support::{
 	assert_noop, assert_ok,
 	traits::{ChangeMembers, OnFinalize},
 	weights::Pays,
 };
+use mock::*;
 
 #[test]
 fn should_feed_values_from_member() {
@@ -28,7 +26,7 @@ fn should_feed_values_from_member() {
 			Pays::No
 		);
 
-		let new_feed_data_event = TestEvent::oracle(RawEvent::NewFeedData(1, vec![(50, 1000), (51, 900), (52, 800)]));
+		let new_feed_data_event = TestEvent::oracle(Event::NewFeedData(1, vec![(50, 1000), (51, 900), (52, 800)]));
 		assert!(System::events()
 			.iter()
 			.any(|record| record.event == new_feed_data_event));
