@@ -19,56 +19,81 @@
 //! - `destroy_class` - Destroy NFT(non fungible token) class
 
 #![cfg_attr(not(feature = "std"), no_std)]
-
-use codec::{Decode, Encode};
-use frame_support::{decl_error, decl_module, decl_storage, ensure, Parameter};
-use sp_runtime::{
-	traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedSub, Member, One, Zero},
-	DispatchError, DispatchResult, RuntimeDebug,
-};
-use sp_std::vec::Vec;
+#![allow(clippy::unused_unit)]
 
 mod mock;
 mod tests;
 
-/// Class info
-#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
-pub struct ClassInfo<TokenId, AccountId, Data> {
-	/// Class metadata
-	pub metadata: Vec<u8>,
-	/// Total issuance for the class
-	pub total_issuance: TokenId,
-	/// Class owner
-	pub owner: AccountId,
-	/// Class Properties
-	pub data: Data,
-}
+pub use module::*;
 
-/// Token info
-#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
-pub struct TokenInfo<AccountId, Data> {
-	/// Token metadata
-	pub metadata: Vec<u8>,
-	/// Token owner
-	pub owner: AccountId,
-	/// Token Properties
-	pub data: Data,
-}
+#[frame_support::pallet]
+pub mod module {
+	use codec::{Decode, Encode};
+	use frame_support::{ensure, pallet_prelude::*, Parameter};
+	use sp_runtime::{
+		traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, One, Zero},
+		DispatchError, DispatchResult, RuntimeDebug,
+	};
+	use sp_std::vec::Vec;
 
-pub trait Config: frame_system::Config {
-	/// The class ID type
-	type ClassId: Parameter + Member + AtLeast32BitUnsigned + Default + Copy;
-	/// The token ID type
-	type TokenId: Parameter + Member + AtLeast32BitUnsigned + Default + Copy;
-	/// The class properties type
-	type ClassData: Parameter + Member;
-	/// The token properties type
-	type TokenData: Parameter + Member;
-}
+	/// Class info
+	#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
+	pub struct ClassInfo<TokenId, AccountId, Data> {
+		/// Class metadata
+		pub metadata: Vec<u8>,
+		/// Total issuance for the class
+		pub total_issuance: TokenId,
+		/// Class owner
+		pub owner: AccountId,
+		/// Class Properties
+		pub data: Data,
+	}
 
-decl_error! {
+	/// Token info
+	#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
+	pub struct TokenInfo<AccountId, Data> {
+		/// Token metadata
+		pub metadata: Vec<u8>,
+		/// Token owner
+		pub owner: AccountId,
+		/// Token Properties
+		pub data: Data,
+	}
+
+	#[pallet::config]
+	pub trait Config: frame_system::Config {
+		/// The class ID type
+		type ClassId: Parameter + Member + AtLeast32BitUnsigned + Default + Copy;
+		/// The token ID type
+		type TokenId: Parameter + Member + AtLeast32BitUnsigned + Default + Copy;
+		/// The class properties type
+		type ClassData: Parameter + Member + MaybeSerializeDeserialize;
+		/// The token properties type
+		type TokenData: Parameter + Member + MaybeSerializeDeserialize;
+	}
+
+	pub type ClassInfoOf<T> =
+		ClassInfo<<T as Config>::TokenId, <T as frame_system::Config>::AccountId, <T as Config>::ClassData>;
+	pub type TokenInfoOf<T> = TokenInfo<<T as frame_system::Config>::AccountId, <T as Config>::TokenData>;
+
+	pub type GenesisTokenData<T> = (
+		<T as frame_system::Config>::AccountId, // Token owner
+		Vec<u8>,                                // Token metadata
+		<T as Config>::TokenData,
+	);
+	pub type GenesisTokens<T> = (
+		<T as frame_system::Config>::AccountId, // Token class owner
+		Vec<u8>,                                // Token class metadata
+		<T as Config>::ClassData,
+		Vec<GenesisTokenData<T>>, // Vector of tokens belonging to this class
+	);
+
+	#[pallet::pallet]
+	pub struct Pallet<T>(PhantomData<T>);
+
 	/// Error for non-fungible-token module.
-	pub enum Error for Module<T: Config> {
+	#[pallet::error]
+	pub enum Error<T> {
 		/// No available class ID
 		NoAvailableClassId,
 		/// No available token ID
@@ -85,182 +110,193 @@ decl_error! {
 		/// Total issuance is not 0
 		CannotDestroyClass,
 	}
-}
 
-pub type ClassInfoOf<T> =
-	ClassInfo<<T as Config>::TokenId, <T as frame_system::Config>::AccountId, <T as Config>::ClassData>;
-pub type TokenInfoOf<T> = TokenInfo<<T as frame_system::Config>::AccountId, <T as Config>::TokenData>;
+	/// Next available class ID.
+	#[pallet::storage]
+	#[pallet::getter(fn next_class_id)]
+	pub type NextClassId<T: Config> = StorageValue<_, T::ClassId, ValueQuery>;
 
-pub type GenesisTokenData<T> = (
-	<T as frame_system::Config>::AccountId, // Token owner
-	Vec<u8>,                                // Token metadata
-	<T as Config>::TokenData,
-);
-pub type GenesisTokens<T> = (
-	<T as frame_system::Config>::AccountId, // Token class owner
-	Vec<u8>,                                // Token class metadata
-	<T as Config>::ClassData,
-	Vec<GenesisTokenData<T>>, // Vector of tokens belonging to this class
-);
+	/// Next available token ID.
+	#[pallet::storage]
+	#[pallet::getter(fn next_token_id)]
+	pub type NextTokenId<T: Config> = StorageMap<_, Twox64Concat, T::ClassId, T::TokenId, ValueQuery>;
 
-decl_storage! {
-	trait Store for Module<T: Config> as NonFungibleToken {
-		/// Next available class ID.
-		pub NextClassId get(fn next_class_id): T::ClassId;
-		/// Next available token ID.
-		pub NextTokenId get(fn next_token_id): map hasher(twox_64_concat) T::ClassId => T::TokenId;
-		/// Store class info.
-		///
-		/// Returns `None` if class info not set or removed.
-		pub Classes get(fn classes): map hasher(twox_64_concat) T::ClassId => Option<ClassInfoOf<T>>;
-		/// Store token info.
-		///
-		/// Returns `None` if token info not set or removed.
-		pub Tokens get(fn tokens): double_map hasher(twox_64_concat) T::ClassId, hasher(twox_64_concat) T::TokenId => Option<TokenInfoOf<T>>;
-		/// Token existence check by owner and class ID.
-		#[cfg(not(feature = "disable-tokens-by-owner"))]
-		pub TokensByOwner get(fn tokens_by_owner): double_map hasher(twox_64_concat) T::AccountId, hasher(twox_64_concat) (T::ClassId, T::TokenId) => Option<()>;
+	/// Store class info.
+	///
+	/// Returns `None` if class info not set or removed.
+	#[pallet::storage]
+	#[pallet::getter(fn classes)]
+	pub type Classes<T: Config> = StorageMap<_, Twox64Concat, T::ClassId, ClassInfoOf<T>>;
+
+	/// Store token info.
+	///
+	/// Returns `None` if token info not set or removed.
+	#[pallet::storage]
+	#[pallet::getter(fn tokens)]
+	pub type Tokens<T: Config> =
+		StorageDoubleMap<_, Twox64Concat, T::ClassId, Twox64Concat, T::TokenId, TokenInfoOf<T>>;
+
+	/// Token existence check by owner and class ID.
+	// TODO: pallet macro doesn't support conditional compiling. Always having `TokensByOwner` storage doesn't hurt but
+	// it could be removed once conditional compiling supported.
+	// #[cfg(not(feature = "disable-tokens-by-owner"))]
+	#[pallet::storage]
+	#[pallet::getter(fn tokens_by_owner)]
+	pub type TokensByOwner<T: Config> =
+		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, (T::ClassId, T::TokenId), (), ValueQuery>;
+
+	#[pallet::genesis_config]
+	pub struct GenesisConfig<T: Config> {
+		pub tokens: Vec<GenesisTokens<T>>,
 	}
-	add_extra_genesis {
-		config(tokens): Vec<GenesisTokens<T>>;
 
-		build(|config: &GenesisConfig<T>| {
-			config.tokens.iter().for_each(|token_class| {
-				let class_id = Module::<T>::create_class(&token_class.0, token_class.1.to_vec(), token_class.2.clone())
+	#[cfg(feature = "std")]
+	impl<T: Config> Default for GenesisConfig<T> {
+		fn default() -> Self {
+			GenesisConfig { tokens: vec![] }
+		}
+	}
+
+	#[pallet::genesis_build]
+	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+		fn build(&self) {
+			self.tokens.iter().for_each(|token_class| {
+				let class_id = Pallet::<T>::create_class(&token_class.0, token_class.1.to_vec(), token_class.2.clone())
 					.expect("Create class cannot fail while building genesis");
 				for (account_id, token_metadata, token_data) in &token_class.3 {
-					Module::<T>::mint(&account_id, class_id, token_metadata.to_vec(), token_data.clone())
+					Pallet::<T>::mint(&account_id, class_id, token_metadata.to_vec(), token_data.clone())
 						.expect("Token mint cannot fail during genesis");
 				}
 			})
-		})
-	}
-}
-
-decl_module! {
-	pub struct Module<T: Config> for enum Call where origin: T::Origin {
-	}
-}
-
-impl<T: Config> Module<T> {
-	/// Create NFT(non fungible token) class
-	pub fn create_class(
-		owner: &T::AccountId,
-		metadata: Vec<u8>,
-		data: T::ClassData,
-	) -> Result<T::ClassId, DispatchError> {
-		let class_id = NextClassId::<T>::try_mutate(|id| -> Result<T::ClassId, DispatchError> {
-			let current_id = *id;
-			*id = id.checked_add(&One::one()).ok_or(Error::<T>::NoAvailableClassId)?;
-			Ok(current_id)
-		})?;
-
-		let info = ClassInfo {
-			metadata,
-			total_issuance: Default::default(),
-			owner: owner.clone(),
-			data,
-		};
-		Classes::<T>::insert(class_id, info);
-
-		Ok(class_id)
+		}
 	}
 
-	/// Transfer NFT(non fungible token) from `from` account to `to` account
-	pub fn transfer(from: &T::AccountId, to: &T::AccountId, token: (T::ClassId, T::TokenId)) -> DispatchResult {
-		Tokens::<T>::try_mutate(token.0, token.1, |token_info| -> DispatchResult {
-			let mut info = token_info.as_mut().ok_or(Error::<T>::TokenNotFound)?;
-			ensure!(info.owner == *from, Error::<T>::NoPermission);
-			if from == to {
-				// no change needed
-				return Ok(());
-			}
+	#[pallet::hooks]
+	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
 
-			info.owner = to.clone();
+	#[pallet::call]
+	impl<T: Config> Pallet<T> {}
 
-			#[cfg(not(feature = "disable-tokens-by-owner"))]
-			{
-				TokensByOwner::<T>::remove(from, token);
-				TokensByOwner::<T>::insert(to, token, ());
-			}
-
-			Ok(())
-		})
-	}
-
-	/// Mint NFT(non fungible token) to `owner`
-	pub fn mint(
-		owner: &T::AccountId,
-		class_id: T::ClassId,
-		metadata: Vec<u8>,
-		data: T::TokenData,
-	) -> Result<T::TokenId, DispatchError> {
-		NextTokenId::<T>::try_mutate(class_id, |id| -> Result<T::TokenId, DispatchError> {
-			let token_id = *id;
-			*id = id.checked_add(&One::one()).ok_or(Error::<T>::NoAvailableTokenId)?;
-
-			Classes::<T>::try_mutate(class_id, |class_info| -> DispatchResult {
-				let info = class_info.as_mut().ok_or(Error::<T>::ClassNotFound)?;
-				info.total_issuance = info
-					.total_issuance
-					.checked_add(&One::one())
-					.ok_or(Error::<T>::NumOverflow)?;
-				Ok(())
+	impl<T: Config> Pallet<T> {
+		/// Create NFT(non fungible token) class
+		pub fn create_class(
+			owner: &T::AccountId,
+			metadata: Vec<u8>,
+			data: T::ClassData,
+		) -> Result<T::ClassId, DispatchError> {
+			let class_id = NextClassId::<T>::try_mutate(|id| -> Result<T::ClassId, DispatchError> {
+				let current_id = *id;
+				*id = id.checked_add(&One::one()).ok_or(Error::<T>::NoAvailableClassId)?;
+				Ok(current_id)
 			})?;
 
-			let token_info = TokenInfo {
+			let info = ClassInfo {
 				metadata,
+				total_issuance: Default::default(),
 				owner: owner.clone(),
 				data,
 			};
-			Tokens::<T>::insert(class_id, token_id, token_info);
-			#[cfg(not(feature = "disable-tokens-by-owner"))]
-			TokensByOwner::<T>::insert(owner, (class_id, token_id), ());
+			Classes::<T>::insert(class_id, info);
 
-			Ok(token_id)
-		})
-	}
+			Ok(class_id)
+		}
 
-	/// Burn NFT(non fungible token) from `owner`
-	pub fn burn(owner: &T::AccountId, token: (T::ClassId, T::TokenId)) -> DispatchResult {
-		Tokens::<T>::try_mutate_exists(token.0, token.1, |token_info| -> DispatchResult {
-			let t = token_info.take().ok_or(Error::<T>::TokenNotFound)?;
-			ensure!(t.owner == *owner, Error::<T>::NoPermission);
+		/// Transfer NFT(non fungible token) from `from` account to `to` account
+		pub fn transfer(from: &T::AccountId, to: &T::AccountId, token: (T::ClassId, T::TokenId)) -> DispatchResult {
+			Tokens::<T>::try_mutate(token.0, token.1, |token_info| -> DispatchResult {
+				let mut info = token_info.as_mut().ok_or(Error::<T>::TokenNotFound)?;
+				ensure!(info.owner == *from, Error::<T>::NoPermission);
+				if from == to {
+					// no change needed
+					return Ok(());
+				}
 
-			Classes::<T>::try_mutate(token.0, |class_info| -> DispatchResult {
-				let info = class_info.as_mut().ok_or(Error::<T>::ClassNotFound)?;
-				info.total_issuance = info
-					.total_issuance
-					.checked_sub(&One::one())
-					.ok_or(Error::<T>::NumOverflow)?;
+				info.owner = to.clone();
+
+				#[cfg(not(feature = "disable-tokens-by-owner"))]
+				{
+					TokensByOwner::<T>::remove(from, token);
+					TokensByOwner::<T>::insert(to, token, ());
+				}
+
 				Ok(())
-			})?;
+			})
+		}
+
+		/// Mint NFT(non fungible token) to `owner`
+		pub fn mint(
+			owner: &T::AccountId,
+			class_id: T::ClassId,
+			metadata: Vec<u8>,
+			data: T::TokenData,
+		) -> Result<T::TokenId, DispatchError> {
+			NextTokenId::<T>::try_mutate(class_id, |id| -> Result<T::TokenId, DispatchError> {
+				let token_id = *id;
+				*id = id.checked_add(&One::one()).ok_or(Error::<T>::NoAvailableTokenId)?;
+
+				Classes::<T>::try_mutate(class_id, |class_info| -> DispatchResult {
+					let info = class_info.as_mut().ok_or(Error::<T>::ClassNotFound)?;
+					info.total_issuance = info
+						.total_issuance
+						.checked_add(&One::one())
+						.ok_or(Error::<T>::NumOverflow)?;
+					Ok(())
+				})?;
+
+				let token_info = TokenInfo {
+					metadata,
+					owner: owner.clone(),
+					data,
+				};
+				Tokens::<T>::insert(class_id, token_id, token_info);
+				#[cfg(not(feature = "disable-tokens-by-owner"))]
+				TokensByOwner::<T>::insert(owner, (class_id, token_id), ());
+
+				Ok(token_id)
+			})
+		}
+
+		/// Burn NFT(non fungible token) from `owner`
+		pub fn burn(owner: &T::AccountId, token: (T::ClassId, T::TokenId)) -> DispatchResult {
+			Tokens::<T>::try_mutate_exists(token.0, token.1, |token_info| -> DispatchResult {
+				let t = token_info.take().ok_or(Error::<T>::TokenNotFound)?;
+				ensure!(t.owner == *owner, Error::<T>::NoPermission);
+
+				Classes::<T>::try_mutate(token.0, |class_info| -> DispatchResult {
+					let info = class_info.as_mut().ok_or(Error::<T>::ClassNotFound)?;
+					info.total_issuance = info
+						.total_issuance
+						.checked_sub(&One::one())
+						.ok_or(Error::<T>::NumOverflow)?;
+					Ok(())
+				})?;
+
+				#[cfg(not(feature = "disable-tokens-by-owner"))]
+				TokensByOwner::<T>::remove(owner, token);
+
+				Ok(())
+			})
+		}
+
+		/// Destroy NFT(non fungible token) class
+		pub fn destroy_class(owner: &T::AccountId, class_id: T::ClassId) -> DispatchResult {
+			Classes::<T>::try_mutate_exists(class_id, |class_info| -> DispatchResult {
+				let info = class_info.take().ok_or(Error::<T>::ClassNotFound)?;
+				ensure!(info.owner == *owner, Error::<T>::NoPermission);
+				ensure!(info.total_issuance == Zero::zero(), Error::<T>::CannotDestroyClass);
+
+				NextTokenId::<T>::remove(class_id);
+
+				Ok(())
+			})
+		}
+
+		pub fn is_owner(account: &T::AccountId, token: (T::ClassId, T::TokenId)) -> bool {
+			#[cfg(feature = "disable-tokens-by-owner")]
+			return Tokens::<T>::get(token.0, token.1).map_or(false, |token| token.owner == *account);
 
 			#[cfg(not(feature = "disable-tokens-by-owner"))]
-			TokensByOwner::<T>::remove(owner, token);
-
-			Ok(())
-		})
-	}
-
-	/// Destroy NFT(non fungible token) class
-	pub fn destroy_class(owner: &T::AccountId, class_id: T::ClassId) -> DispatchResult {
-		Classes::<T>::try_mutate_exists(class_id, |class_info| -> DispatchResult {
-			let info = class_info.take().ok_or(Error::<T>::ClassNotFound)?;
-			ensure!(info.owner == *owner, Error::<T>::NoPermission);
-			ensure!(info.total_issuance == Zero::zero(), Error::<T>::CannotDestroyClass);
-
-			NextTokenId::<T>::remove(class_id);
-
-			Ok(())
-		})
-	}
-
-	pub fn is_owner(account: &T::AccountId, token: (T::ClassId, T::TokenId)) -> bool {
-		#[cfg(feature = "disable-tokens-by-owner")]
-		return Tokens::<T>::get(token.0, token.1).map_or(false, |token| token.owner == *account);
-
-		#[cfg(not(feature = "disable-tokens-by-owner"))]
-		TokensByOwner::<T>::contains_key(account, token)
+			TokensByOwner::<T>::contains_key(account, token)
+		}
 	}
 }

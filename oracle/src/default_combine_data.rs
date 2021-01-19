@@ -1,19 +1,17 @@
-use crate::{Config, DefaultInstance, Instance, MomentOf, TimestampedValueOf};
+use crate::{Config, MomentOf, TimestampedValueOf};
 use frame_support::traits::{Get, Time};
 use orml_traits::CombineData;
 use sp_std::{marker, prelude::*};
 
 /// Sort by value and returns median timestamped value.
 /// Returns prev_value if not enough valid values.
-pub struct DefaultCombineData<T, MinimumCount, ExpiresIn, I = DefaultInstance>(
-	marker::PhantomData<(T, I, MinimumCount, ExpiresIn)>,
-);
+pub struct DefaultCombineData<T, MinimumCount, ExpiresIn, I = ()>(marker::PhantomData<(T, I, MinimumCount, ExpiresIn)>);
 
 impl<T, I, MinimumCount, ExpiresIn> CombineData<<T as Config<I>>::OracleKey, TimestampedValueOf<T, I>>
 	for DefaultCombineData<T, MinimumCount, ExpiresIn, I>
 where
 	T: Config<I>,
-	I: Instance,
+	I: 'static,
 	MinimumCount: Get<u32>,
 	ExpiresIn: Get<MomentOf<T, I>>,
 {
