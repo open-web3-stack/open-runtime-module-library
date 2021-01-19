@@ -150,6 +150,7 @@ pub mod module {
 		pub phantom: sp_std::marker::PhantomData<I>,
 	}
 
+	#[cfg(feature = "std")]
 	impl<T: Config<I>, I: 'static> Default for GenesisConfig<T, I> {
 		fn default() -> Self {
 			GenesisConfig {
