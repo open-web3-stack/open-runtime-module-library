@@ -76,12 +76,6 @@ impl<
 	}
 }
 
-pub trait XcmHandler {
-	type Origin;
-	type Xcm;
-	fn execute(origin: Self::Origin, xcm: Self::Xcm) -> DispatchResult;
-}
-
 pub struct IsConcreteWithGeneralKey<CurrencyId, FromRelayChainBalance>(
 	PhantomData<(CurrencyId, FromRelayChainBalance)>,
 );

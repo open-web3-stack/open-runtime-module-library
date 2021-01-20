@@ -15,8 +15,8 @@ pub mod module {
 	use sp_std::prelude::*;
 
 	use cumulus_primitives::{relay_chain::Balance as RelayChainBalance, ParaId};
-	use orml_xcm_support::XcmHandler;
-	use xcm::v0::{Junction, MultiAsset, MultiLocation, NetworkId, Order, Xcm};
+	use xcm::v0::{Error as XcmError, ExecuteXcm, Junction, MultiAsset, MultiLocation, NetworkId, Order, Xcm};
+	use xcm_executor::traits::LocationConversion;
 
 	#[derive(Encode, Decode, Eq, PartialEq, Clone, Copy, RuntimeDebug)]
 	/// Identity of chain.
@@ -72,7 +72,9 @@ pub mod module {
 		/// Parachain ID.
 		type ParaId: Get<ParaId>;
 
-		type XcmHandler: XcmHandler<Origin = Self::Origin, Xcm = Xcm>;
+		type AccountIdConverter: LocationConversion<Self::AccountId>;
+
+		type XcmExecutor: ExecuteXcm;
 	}
 
 	#[pallet::event]
@@ -81,9 +83,30 @@ pub mod module {
 		/// Transferred to relay chain. \[src, dest, amount\]
 		TransferredToRelayChain(T::AccountId, T::AccountId, T::Balance),
 
+		/// Transfer to relay chain failed. \[src, dest, amount, error\]
+		TransferToRelayChainFailed(T::AccountId, T::AccountId, T::Balance, XcmError),
+
 		/// Transferred to parachain. \[x_currency_id, src, para_id, dest,
 		/// dest_network, amount\]
 		TransferredToParachain(XCurrencyId, T::AccountId, ParaId, T::AccountId, NetworkId, T::Balance),
+
+		/// Transfer to parachain failed. \[x_currency_id, src, para_id, dest,
+		/// dest_network, amount, error\]
+		TransferToParachainFailed(
+			XCurrencyId,
+			T::AccountId,
+			ParaId,
+			T::AccountId,
+			NetworkId,
+			T::Balance,
+			XcmError,
+		),
+	}
+
+	#[pallet::error]
+	pub enum Error<T> {
+		/// Bad location
+		BadLocation,
 	}
 
 	#[pallet::hooks]
@@ -102,7 +125,7 @@ pub mod module {
 			dest: T::AccountId,
 			amount: T::Balance,
 		) -> DispatchResultWithPostInfo {
-			let who = ensure_signed(origin.clone())?;
+			let who = ensure_signed(origin)?;
 
 			let xcm = Xcm::WithdrawAsset {
 				assets: vec![MultiAsset::ConcreteFungible {
@@ -122,9 +145,12 @@ pub mod module {
 				}],
 			};
 
-			T::XcmHandler::execute(origin, xcm)?;
-
-			Self::deposit_event(Event::<T>::TransferredToRelayChain(who, dest, amount));
+			let xcm_origin =
+				T::AccountIdConverter::try_into_location(who.clone()).map_err(|_| Error::<T>::BadLocation)?;
+			match T::XcmExecutor::execute_xcm(xcm_origin, xcm) {
+				Ok(_) => Self::deposit_event(Event::<T>::TransferredToRelayChain(who, dest, amount)),
+				Err(err) => Self::deposit_event(Event::<T>::TransferToRelayChainFailed(who, dest, amount, err)),
+			}
 
 			Ok(().into())
 		}
@@ -139,7 +165,7 @@ pub mod module {
 			dest_network: NetworkId,
 			amount: T::Balance,
 		) -> DispatchResultWithPostInfo {
-			let who = ensure_signed(origin.clone())?;
+			let who = ensure_signed(origin)?;
 
 			if para_id == T::ParaId::get() {
 				return Ok(().into());
@@ -171,22 +197,33 @@ pub mod module {
 				}
 			};
 
-			T::XcmHandler::execute(origin, xcm)?;
-
-			Self::deposit_event(Event::<T>::TransferredToParachain(
-				x_currency_id,
-				who,
-				para_id,
-				dest,
-				dest_network,
-				amount,
-			));
+			let xcm_origin =
+				T::AccountIdConverter::try_into_location(who.clone()).map_err(|_| Error::<T>::BadLocation)?;
+			match T::XcmExecutor::execute_xcm(xcm_origin, xcm) {
+				Ok(_) => Self::deposit_event(Event::<T>::TransferredToParachain(
+					x_currency_id,
+					who,
+					para_id,
+					dest,
+					dest_network,
+					amount,
+				)),
+				Err(err) => Self::deposit_event(Event::<T>::TransferToParachainFailed(
+					x_currency_id,
+					who,
+					para_id,
+					dest,
+					dest_network,
+					amount,
+					err,
+				)),
+			}
 
 			Ok(().into())
 		}
 	}
 
-	impl<T: Config> Module<T> {
+	impl<T: Config> Pallet<T> {
 		fn transfer_relay_chain_tokens_to_parachain(
 			para_id: ParaId,
 			dest: &T::AccountId,
