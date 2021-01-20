@@ -107,7 +107,7 @@ pub mod module {
 			let xcm = Xcm::WithdrawAsset {
 				assets: vec![MultiAsset::ConcreteFungible {
 					id: MultiLocation::X1(Junction::Parent),
-					amount: T::ToRelayChainBalance::convert(amount).into(),
+					amount: T::ToRelayChainBalance::convert(amount),
 				}],
 				effects: vec![Order::InitiateReserveWithdraw {
 					assets: vec![MultiAsset::All],
@@ -196,7 +196,7 @@ pub mod module {
 			Xcm::WithdrawAsset {
 				assets: vec![MultiAsset::ConcreteFungible {
 					id: MultiLocation::X1(Junction::Parent),
-					amount: T::ToRelayChainBalance::convert(amount).into(),
+					amount: T::ToRelayChainBalance::convert(amount),
 				}],
 				effects: vec![Order::InitiateReserveWithdraw {
 					assets: vec![MultiAsset::All],

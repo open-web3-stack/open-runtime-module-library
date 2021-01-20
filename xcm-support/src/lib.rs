@@ -54,9 +54,7 @@ impl<
 		debug::info!("currency_id: {:?}", currency_id);
 		let amount: MultiCurrency::Balance = Matcher::matches_fungible(&asset).ok_or(())?.saturated_into();
 		debug::info!("amount: {:?}", amount);
-		let balance_amount = amount.try_into().map_err(|_| ())?;
-		debug::info!("balance amount: {:?}", balance_amount);
-		MultiCurrency::deposit(currency_id, &who, balance_amount).map_err(|_| ())?;
+		MultiCurrency::deposit(currency_id, &who, amount).map_err(|_| ())?;
 		debug::info!(">>> success deposit.");
 		debug::info!("------------------------------------------------");
 		Ok(())
@@ -71,9 +69,7 @@ impl<
 		debug::info!("currency_id: {:?}", currency_id);
 		let amount: MultiCurrency::Balance = Matcher::matches_fungible(&asset).ok_or(())?.saturated_into();
 		debug::info!("amount: {:?}", amount);
-		let balance_amount = amount.try_into().map_err(|_| ())?;
-		debug::info!("balance amount: {:?}", balance_amount);
-		MultiCurrency::withdraw(currency_id, &who, balance_amount).map_err(|_| ())?;
+		MultiCurrency::withdraw(currency_id, &who, amount).map_err(|_| ())?;
 		debug::info!(">>> success withdraw.");
 		debug::info!("------------------------------------------------");
 		Ok(asset.clone())
