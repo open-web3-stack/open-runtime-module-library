@@ -22,7 +22,6 @@ orml-traits = { path = "../traits", version = "0.3.3-dev", default-features = fa
 [dev-dependencies]
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
 pallet-scheduler = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
-clear_on_drop = { version = "0.2.4", features = ["no_cc"] }	# https://github.com/paritytech/substrate/issues/4179
 
 [features]
 default = ["std"]
@@ -30,7 +29,6 @@ std = [
 	"serde",
 	"codec/std",
 	"sp-runtime/std",
-	"sp-io/std",
 	"sp-std/std",
 	"frame-support/std",
 	"frame-system/std",

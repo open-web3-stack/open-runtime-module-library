@@ -21,8 +21,6 @@ frame-system = { git = "https://github.com/paritytech/substrate", branch = "roco
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
 
-clear_on_drop = { version = "0.2.4", features = ["no_cc"] }	# https://github.com/paritytech/substrate/issues/4179
-
 [features]
 default = ["std"]
 std = [

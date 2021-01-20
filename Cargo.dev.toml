@@ -1,3 +1,5 @@
+cargo-features = ["resolver"]
+
 [workspace]
 members = [
 	"auction",
@@ -15,6 +17,7 @@ members = [
 	"xtokens",
 	"xcm-support",
 ]
+resolver = "2"
 
 [patch.crates-io]
 frame-benchmarking = { git = "https://github.com/paritytech/substrate.git", branch = "rococo-v1" }
