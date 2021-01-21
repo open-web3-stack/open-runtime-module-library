@@ -93,9 +93,6 @@ pub mod module {
 		type WeightInfo: WeightInfo;
 	}
 
-	#[pallet::pallet]
-	pub struct Pallet<T, I = ()>(PhantomData<(T, I)>);
-
 	#[pallet::error]
 	pub enum Error<T, I = ()> {
 		/// Sender does not have permission
@@ -166,6 +163,9 @@ pub mod module {
 			<Members<T, I>>::put(self.members.clone());
 		}
 	}
+
+	#[pallet::pallet]
+	pub struct Pallet<T, I = ()>(PhantomData<(T, I)>);
 
 	#[pallet::hooks]
 	impl<T: Config<I>, I: 'static> Hooks<T::BlockNumber> for Pallet<T, I> {

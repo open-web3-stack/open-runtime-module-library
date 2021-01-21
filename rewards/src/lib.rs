@@ -77,9 +77,6 @@ pub mod module {
 		type WeightInfo: WeightInfo;
 	}
 
-	#[pallet::pallet]
-	pub struct Pallet<T>(PhantomData<T>);
-
 	#[pallet::storage]
 	#[pallet::getter(fn pools)]
 	/// Stores reward pool info.
@@ -91,6 +88,9 @@ pub mod module {
 	/// under `PoolId`.
 	pub type ShareAndWithdrawnReward<T: Config> =
 		StorageDoubleMap<_, Twox64Concat, T::PoolId, Twox64Concat, T::AccountId, (T::Share, T::Balance), ValueQuery>;
+
+	#[pallet::pallet]
+	pub struct Pallet<T>(PhantomData<T>);
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
