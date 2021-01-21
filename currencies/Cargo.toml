@@ -22,7 +22,7 @@ orml-utilities = { path = "../utilities", version = "0.4.0-dev", default-feature
 
 [dev-dependencies]
 sp-core = { version = "2.0.1", default-features = false }
-pallet-balances = "2.0.0"
+pallet-balances = "2.0.1"
 orml_tokens = { package = "orml-tokens", path = "../tokens", version = "0.4.0-dev" }
 
 [features]
