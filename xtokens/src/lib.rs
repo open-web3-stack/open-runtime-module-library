@@ -105,7 +105,7 @@ pub mod module {
 
 	#[pallet::error]
 	pub enum Error<T> {
-		/// Bad location
+		/// Bad location.
 		BadLocation,
 	}
 
@@ -148,6 +148,7 @@ pub mod module {
 
 			let xcm_origin =
 				T::AccountIdConverter::try_into_location(who.clone()).map_err(|_| Error::<T>::BadLocation)?;
+			// TODO: revert state on xcm execution failure.
 			match T::XcmExecutor::execute_xcm(xcm_origin, xcm) {
 				Ok(_) => Self::deposit_event(Event::<T>::TransferredToRelayChain(who, dest, amount)),
 				Err(err) => Self::deposit_event(Event::<T>::TransferToRelayChainFailed(who, dest, amount, err)),
@@ -201,6 +202,7 @@ pub mod module {
 
 			let xcm_origin =
 				T::AccountIdConverter::try_into_location(who.clone()).map_err(|_| Error::<T>::BadLocation)?;
+			// TODO: revert state on xcm execution failure.
 			match T::XcmExecutor::execute_xcm(xcm_origin, xcm) {
 				Ok(_) => Self::deposit_event(Event::<T>::TransferredToParachain(
 					x_currency_id,
