@@ -158,6 +158,7 @@ pub mod module {
 
 		/// Transfer tokens to parachain.
 		#[pallet::weight(10)]
+		#[transactional]
 		pub fn transfer_to_parachain(
 			origin: OriginFor<T>,
 			x_currency_id: XCurrencyId,
