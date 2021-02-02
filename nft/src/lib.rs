@@ -88,9 +88,6 @@ pub mod module {
 		Vec<GenesisTokenData<T>>, // Vector of tokens belonging to this class
 	);
 
-	#[pallet::pallet]
-	pub struct Pallet<T>(PhantomData<T>);
-
 	/// Error for non-fungible-token module.
 	#[pallet::error]
 	pub enum Error<T> {
@@ -170,6 +167,9 @@ pub mod module {
 			})
 		}
 	}
+
+	#[pallet::pallet]
+	pub struct Pallet<T>(PhantomData<T>);
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}

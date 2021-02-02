@@ -76,9 +76,6 @@ pub mod module {
 		type WeightInfo: WeightInfo;
 	}
 
-	#[pallet::pallet]
-	pub struct Pallet<T>(PhantomData<T>);
-
 	#[pallet::error]
 	pub enum Error<T> {
 		/// The `per_block` or `target_value` is invalid.
@@ -111,6 +108,9 @@ pub mod module {
 	#[pallet::getter(fn last_updated_at)]
 	/// The last updated block number
 	type LastUpdatedAt<T: Config> = StorageValue<_, T::BlockNumber, ValueQuery>;
+
+	#[pallet::pallet]
+	pub struct Pallet<T>(PhantomData<T>);
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {

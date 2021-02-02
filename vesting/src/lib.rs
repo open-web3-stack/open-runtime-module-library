@@ -142,9 +142,6 @@ pub mod module {
 		type WeightInfo: WeightInfo;
 	}
 
-	#[pallet::pallet]
-	pub struct Pallet<T>(PhantomData<T>);
-
 	#[pallet::error]
 	pub enum Error<T> {
 		/// Vesting period is zero
@@ -216,6 +213,9 @@ pub mod module {
 				});
 		}
 	}
+
+	#[pallet::pallet]
+	pub struct Pallet<T>(PhantomData<T>);
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}

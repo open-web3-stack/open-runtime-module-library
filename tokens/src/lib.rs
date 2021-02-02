@@ -184,9 +184,6 @@ pub mod module {
 		type OnDust: OnDust<Self::AccountId, Self::CurrencyId, Self::Balance>;
 	}
 
-	#[pallet::pallet]
-	pub struct Pallet<T>(PhantomData<T>);
-
 	#[pallet::error]
 	pub enum Error<T> {
 		/// The balance is too low
@@ -297,6 +294,9 @@ pub mod module {
 				});
 		}
 	}
+
+	#[pallet::pallet]
+	pub struct Pallet<T>(PhantomData<T>);
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}

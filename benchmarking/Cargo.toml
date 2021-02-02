@@ -3,7 +3,7 @@ name = "orml-benchmarking"
 description = "Provide macro to benchmark Substrate runtime."
 repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/benchmarking"
 license = "Apache-2.0"
-version = "0.3.3-dev"
+version = "0.4.0-dev"
 authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2018"
 

@@ -61,9 +61,6 @@ pub mod module {
 		type WeightInfo: WeightInfo;
 	}
 
-	#[pallet::pallet]
-	pub struct Pallet<T>(PhantomData<T>);
-
 	#[pallet::error]
 	pub enum Error<T> {
 		AuctionNotExist,
@@ -96,6 +93,9 @@ pub mod module {
 	/// Index auctions by end time.
 	pub type AuctionEndTime<T: Config> =
 		StorageDoubleMap<_, Twox64Concat, T::BlockNumber, Blake2_128Concat, T::AuctionId, (), OptionQuery>;
+
+	#[pallet::pallet]
+	pub struct Pallet<T>(PhantomData<T>);
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
