@@ -195,6 +195,8 @@ parameter_types! {
 	pub const DesiredMembers: u32 = 2;
 	pub const DesiredRunnersUp: u32 = 2;
 	pub const TermDuration: u64 = 5;
+	pub const VotingBondBase: u64 = 2;
+	pub const VotingBondFactor: u64 = 0;
 }
 
 impl pallet_elections_phragmen::Config for Runtime {
@@ -205,13 +207,13 @@ impl pallet_elections_phragmen::Config for Runtime {
 	type ChangeMembers = TestChangeMembers;
 	type InitializeMembers = ();
 	type CandidacyBond = CandidacyBond;
-	type VotingBond = VotingBond;
+	type VotingBondBase = VotingBondBase;
+	type VotingBondFactor = VotingBondFactor;
 	type TermDuration = TermDuration;
 	type DesiredMembers = DesiredMembers;
 	type DesiredRunnersUp = DesiredRunnersUp;
 	type LoserCandidate = ();
 	type KickedMember = ();
-	type BadReport = ();
 	type WeightInfo = ();
 }
 

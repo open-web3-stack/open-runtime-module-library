@@ -48,20 +48,20 @@ fn remove_dust_work() {
 		assert_eq!(Tokens::total_issuance(DOT), 100);
 		assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), true);
 		assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
-		assert_eq!(System::refs(&ALICE), 1);
+		assert_eq!(System::providers(&ALICE), 1);
 		assert_eq!(Accounts::<Runtime>::contains_key(DustAccount::get(), DOT), false);
 		assert_eq!(Tokens::free_balance(DOT, &DustAccount::get()), 0);
-		assert_eq!(System::refs(&DustAccount::get()), 0);
+		assert_eq!(System::providers(&DustAccount::get()), 0);
 
 		// total is gte ED, will not handle dust
 		assert_ok!(Tokens::withdraw(DOT, &ALICE, 98));
 		assert_eq!(Tokens::total_issuance(DOT), 2);
 		assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), true);
 		assert_eq!(Tokens::free_balance(DOT, &ALICE), 2);
-		assert_eq!(System::refs(&ALICE), 1);
+		assert_eq!(System::providers(&ALICE), 1);
 		assert_eq!(Accounts::<Runtime>::contains_key(DustAccount::get(), DOT), false);
 		assert_eq!(Tokens::free_balance(DOT, &DustAccount::get()), 0);
-		assert_eq!(System::refs(&DustAccount::get()), 0);
+		assert_eq!(System::providers(&DustAccount::get()), 0);
 
 		assert_ok!(Tokens::withdraw(DOT, &ALICE, 1));
 
@@ -69,12 +69,12 @@ fn remove_dust_work() {
 		assert_eq!(Tokens::total_issuance(DOT), 1);
 		assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), false);
 		assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
-		assert_eq!(System::refs(&ALICE), 0);
+		assert_eq!(System::providers(&ALICE), 0);
 
 		// will not handle dust for module account
 		assert_eq!(Accounts::<Runtime>::contains_key(DustAccount::get(), DOT), true);
 		assert_eq!(Tokens::free_balance(DOT, &DustAccount::get()), 1);
-		assert_eq!(System::refs(&DustAccount::get()), 1);
+		assert_eq!(System::providers(&DustAccount::get()), 1);
 
 		let dust_lost_event = TestEvent::tokens(Event::DustLost(ALICE, DOT, 1));
 		assert!(System::events().iter().any(|record| record.event == dust_lost_event));
@@ -478,9 +478,8 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 			assert_eq!(Tokens::total_issuance(DOT), 102);
 			assert_eq!(Tokens::total_balance(DOT, &Treasury::account_id()), 2);
 			assert_eq!(Tokens::total_balance(DOT, &TREASURY_ACCOUNT), 100);
-			// CandidacyBond = 3 VotingBond = 2
-			assert_eq!(Tokens::reserved_balance(DOT, &TREASURY_ACCOUNT), 5);
-			assert_eq!(Tokens::free_balance(DOT, &TREASURY_ACCOUNT), 95);
+			assert_eq!(Tokens::reserved_balance(DOT, &TREASURY_ACCOUNT), 0);
+			assert_eq!(Tokens::free_balance(DOT, &TREASURY_ACCOUNT), 100);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Config>::Currency::total_balance(&TREASURY_ACCOUNT),
 				100
@@ -529,7 +528,7 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 			// transfer
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Config>::Currency::free_balance(&TREASURY_ACCOUNT),
-				95
+				100
 			);
 			assert_ok!(
 				<Runtime as pallet_elections_phragmen::Config>::Currency::ensure_can_withdraw(
@@ -547,7 +546,7 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 			));
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Config>::Currency::free_balance(&TREASURY_ACCOUNT),
-				84
+				89
 			);
 
 			// deposit
@@ -558,7 +557,7 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 			let imbalance = TreasuryCurrencyAdapter::deposit_creating(&TREASURY_ACCOUNT, 11);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Config>::Currency::free_balance(&TREASURY_ACCOUNT),
-				95
+				100
 			);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Config>::Currency::total_issuance(),
@@ -567,7 +566,7 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 			drop(imbalance);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Config>::Currency::free_balance(&TREASURY_ACCOUNT),
-				95
+				100
 			);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Config>::Currency::total_issuance(),
@@ -583,7 +582,7 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 			);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Config>::Currency::free_balance(&TREASURY_ACCOUNT),
-				85
+				90
 			);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Config>::Currency::total_issuance(),
@@ -592,7 +591,7 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 			drop(imbalance);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Config>::Currency::free_balance(&TREASURY_ACCOUNT),
-				85
+				90
 			);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Config>::Currency::total_issuance(),
@@ -694,11 +693,10 @@ fn currency_adapter_basic_locking_should_work() {
 		.one_hundred_for_treasury_account()
 		.build()
 		.execute_with(|| {
-			// CandidacyBond = 3 VotingBond = 2
-			assert_eq!(TreasuryCurrencyAdapter::free_balance(&TREASURY_ACCOUNT), 95);
+			assert_eq!(TreasuryCurrencyAdapter::free_balance(&TREASURY_ACCOUNT), 100);
 			TreasuryCurrencyAdapter::set_lock(ID_1, &TREASURY_ACCOUNT, 91, WithdrawReasons::all());
 			assert_noop!(
-				TreasuryCurrencyAdapter::transfer(&TREASURY_ACCOUNT, &ALICE, 5, ExistenceRequirement::AllowDeath),
+				TreasuryCurrencyAdapter::transfer(&TREASURY_ACCOUNT, &ALICE, 10, ExistenceRequirement::AllowDeath),
 				Error::<Runtime>::LiquidityRestrictions
 			);
 		});
@@ -844,17 +842,17 @@ fn currency_adapter_lock_reasons_extension_should_work() {
 		.execute_with(|| {
 			TreasuryCurrencyAdapter::set_lock(ID_1, &TREASURY_ACCOUNT, 90, WithdrawReasons::TRANSFER);
 			assert_noop!(
-				TreasuryCurrencyAdapter::transfer(&TREASURY_ACCOUNT, &ALICE, 6, ExistenceRequirement::AllowDeath),
+				TreasuryCurrencyAdapter::transfer(&TREASURY_ACCOUNT, &ALICE, 11, ExistenceRequirement::AllowDeath),
 				Error::<Runtime>::LiquidityRestrictions
 			);
 			TreasuryCurrencyAdapter::extend_lock(ID_1, &TREASURY_ACCOUNT, 90, WithdrawReasons::empty());
 			assert_noop!(
-				TreasuryCurrencyAdapter::transfer(&TREASURY_ACCOUNT, &ALICE, 6, ExistenceRequirement::AllowDeath),
+				TreasuryCurrencyAdapter::transfer(&TREASURY_ACCOUNT, &ALICE, 11, ExistenceRequirement::AllowDeath),
 				Error::<Runtime>::LiquidityRestrictions
 			);
 			TreasuryCurrencyAdapter::extend_lock(ID_1, &TREASURY_ACCOUNT, 90, WithdrawReasons::RESERVE);
 			assert_noop!(
-				TreasuryCurrencyAdapter::transfer(&TREASURY_ACCOUNT, &ALICE, 6, ExistenceRequirement::AllowDeath),
+				TreasuryCurrencyAdapter::transfer(&TREASURY_ACCOUNT, &ALICE, 11, ExistenceRequirement::AllowDeath),
 				Error::<Runtime>::LiquidityRestrictions
 			);
 		});

@@ -13,7 +13,7 @@ use frame_system::{ensure_root, ensure_signed, EnsureRoot};
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
-	traits::{BadOrigin, Block as BlockT, IdentityLookup},
+	traits::{BadOrigin, IdentityLookup},
 	DispatchResult, Perbill,
 };
 

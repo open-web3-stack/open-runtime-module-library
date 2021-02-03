@@ -8,7 +8,7 @@ authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2018"
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "1.3.0", default-features = false }
+codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
 frame-support = { version = "2.0.1", default-features = false }
 frame-system = { version = "2.0.1", default-features = false }
 sp-io = { version = "2.0.1", default-features = false }
