@@ -4,7 +4,6 @@
 
 use super::*;
 use frame_support::{impl_outer_event, impl_outer_origin, parameter_types};
-use frame_system as system;
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 
@@ -57,7 +56,7 @@ impl frame_system::Config for Runtime {
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
 }
-pub type System = system::Module<Runtime>;
+pub type System = frame_system::Module<Runtime>;
 
 parameter_types! {
 	pub const UpdateFrequency: BlockNumber = 10;
@@ -66,7 +65,7 @@ parameter_types! {
 impl Config for Runtime {
 	type Event = TestEvent;
 	type UpdateFrequency = UpdateFrequency;
-	type DispatchOrigin = system::EnsureRoot<AccountId>;
+	type DispatchOrigin = frame_system::EnsureRoot<AccountId>;
 	type WeightInfo = ();
 }
 pub type GraduallyUpdateModule = Module<Runtime>;

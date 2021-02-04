@@ -19,29 +19,106 @@
 #![allow(clippy::borrowed_box)]
 #![allow(clippy::unused_unit)]
 
+use frame_support::{
+	dispatch::PostDispatchInfo,
+	pallet_prelude::*,
+	traits::{
+		schedule::{DispatchTime, Named as ScheduleNamed, Priority},
+		EnsureOrigin, Get, IsType, OriginTrait,
+	},
+	weights::GetDispatchInfo,
+};
+use frame_system::pallet_prelude::*;
+use sp_runtime::{
+	traits::{CheckedSub, Dispatchable, Saturating},
+	DispatchError, DispatchResult, RuntimeDebug,
+};
+use sp_std::prelude::*;
+
 mod default_weight;
 mod mock;
 mod tests;
+
+/// A delayed origin. Can only be dispatched via `dispatch_as` with a delay.
+#[derive(PartialEq, Eq, Clone, RuntimeDebug, Encode, Decode)]
+pub struct DelayedOrigin<BlockNumber, PalletsOrigin> {
+	/// Number of blocks that this call have been delayed.
+	pub delay: BlockNumber,
+	/// The initial origin.
+	pub origin: Box<PalletsOrigin>,
+}
+
+/// Ensure the origin have a minimum amount of delay.
+pub struct EnsureDelayed<Delay, Inner, BlockNumber, PalletsOrigin>(
+	sp_std::marker::PhantomData<(Delay, Inner, BlockNumber, PalletsOrigin)>,
+);
+impl<
+		PalletsOrigin: Into<O>,
+		O: Into<Result<DelayedOrigin<BlockNumber, PalletsOrigin>, O>> + From<DelayedOrigin<BlockNumber, PalletsOrigin>>,
+		Delay: Get<BlockNumber>,
+		Inner: EnsureOrigin<O>,
+		BlockNumber: PartialOrd,
+	> EnsureOrigin<O> for EnsureDelayed<Delay, Inner, BlockNumber, PalletsOrigin>
+{
+	type Success = Inner::Success;
+
+	fn try_origin(o: O) -> Result<Self::Success, O> {
+		o.into().and_then(|delayed_origin| {
+			if delayed_origin.delay >= Delay::get() {
+				let pallets_origin = *delayed_origin.origin;
+				Inner::try_origin(pallets_origin.into())
+			} else {
+				Err(delayed_origin.into())
+			}
+		})
+	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn successful_origin() -> O {
+		unimplemented!()
+	}
+}
+
+/// Config for orml-authority
+pub trait AuthorityConfig<Origin, PalletsOrigin, BlockNumber> {
+	/// Check if the `origin` is allowed to schedule a dispatchable call
+	/// with a given `priority`.
+	fn check_schedule_dispatch(origin: Origin, priority: Priority) -> DispatchResult;
+	/// Check if the `origin` is allow to fast track a scheduled task that
+	/// initially created by `initial_origin`. `new_delay` is number of
+	/// blocks this dispatchable will be dispatched from now after fast
+	/// track.
+	fn check_fast_track_schedule(
+		origin: Origin,
+		initial_origin: &PalletsOrigin,
+		new_delay: BlockNumber,
+	) -> DispatchResult;
+	/// Check if the `origin` is allow to delay a scheduled task that
+	/// initially created by `inital_origin`.
+	fn check_delay_schedule(origin: Origin, initial_origin: &PalletsOrigin) -> DispatchResult;
+	/// Check if the `origin` is allow to cancel a scheduled task that
+	/// initially created by `inital_origin`.
+	fn check_cancel_schedule(origin: Origin, initial_origin: &PalletsOrigin) -> DispatchResult;
+}
+
+/// Represent an origin that can be dispatched by other origins with
+/// permission check.
+pub trait AsOriginId<Origin, PalletsOrigin> {
+	/// Convert into `PalletsOrigin`
+	fn into_origin(self) -> PalletsOrigin;
+	/// Check if the `origin` is allow to dispatch call on behalf of this
+	/// origin.
+	fn check_dispatch_from(&self, origin: Origin) -> DispatchResult;
+}
+
+/// The schedule task index type.
+pub type ScheduleTaskIndex = u32;
 
 pub use module::*;
 
 #[frame_support::pallet]
 pub mod module {
-	use frame_support::{
-		dispatch::PostDispatchInfo,
-		pallet_prelude::*,
-		traits::{
-			schedule::{DispatchTime, Named as ScheduleNamed, Priority},
-			EnsureOrigin, Get, IsType, OriginTrait,
-		},
-		weights::GetDispatchInfo,
-	};
-	use frame_system::pallet_prelude::*;
-	use sp_runtime::{
-		traits::{CheckedSub, Dispatchable, Saturating},
-		DispatchError, DispatchResult, RuntimeDebug,
-	};
-	use sp_std::prelude::*;
+	use super::*;
 
 	pub trait WeightInfo {
 		fn dispatch_as() -> Weight;
@@ -52,86 +129,9 @@ pub mod module {
 		fn cancel_scheduled_dispatch() -> Weight;
 	}
 
-	/// A delayed origin. Can only be dispatched via `dispatch_as` with a delay.
-	#[derive(PartialEq, Eq, Clone, RuntimeDebug, Encode, Decode)]
-	pub struct DelayedOrigin<BlockNumber, PalletsOrigin> {
-		/// Number of blocks that this call have been delayed.
-		pub delay: BlockNumber,
-		/// The initial origin.
-		pub origin: Box<PalletsOrigin>,
-	}
-
-	/// Ensure the origin have a minimum amount of delay.
-	pub struct EnsureDelayed<Delay, Inner, BlockNumber, PalletsOrigin>(
-		sp_std::marker::PhantomData<(Delay, Inner, BlockNumber, PalletsOrigin)>,
-	);
-	impl<
-			PalletsOrigin: Into<O>,
-			O: Into<Result<DelayedOrigin<BlockNumber, PalletsOrigin>, O>>
-				+ From<DelayedOrigin<BlockNumber, PalletsOrigin>>,
-			Delay: Get<BlockNumber>,
-			Inner: EnsureOrigin<O>,
-			BlockNumber: PartialOrd,
-		> EnsureOrigin<O> for EnsureDelayed<Delay, Inner, BlockNumber, PalletsOrigin>
-	{
-		type Success = Inner::Success;
-
-		fn try_origin(o: O) -> Result<Self::Success, O> {
-			o.into().and_then(|delayed_origin| {
-				if delayed_origin.delay >= Delay::get() {
-					let pallets_origin = *delayed_origin.origin;
-					Inner::try_origin(pallets_origin.into())
-				} else {
-					Err(delayed_origin.into())
-				}
-			})
-		}
-
-		#[cfg(feature = "runtime-benchmarks")]
-		fn successful_origin() -> O {
-			unimplemented!()
-		}
-	}
-
 	/// Origin for the authority module.
 	pub type Origin<T> = DelayedOrigin<<T as frame_system::Config>::BlockNumber, <T as Config>::PalletsOrigin>;
-
-	/// Config for orml-authority
-	pub trait AuthorityConfig<Origin, PalletsOrigin, BlockNumber> {
-		/// Check if the `origin` is allowed to schedule a dispatchable call
-		/// with a given `priority`.
-		fn check_schedule_dispatch(origin: Origin, priority: Priority) -> DispatchResult;
-		/// Check if the `origin` is allow to fast track a scheduled task that
-		/// initially created by `initial_origin`. `new_delay` is number of
-		/// blocks this dispatchable will be dispatched from now after fast
-		/// track.
-		fn check_fast_track_schedule(
-			origin: Origin,
-			initial_origin: &PalletsOrigin,
-			new_delay: BlockNumber,
-		) -> DispatchResult;
-		/// Check if the `origin` is allow to delay a scheduled task that
-		/// initially created by `inital_origin`.
-		fn check_delay_schedule(origin: Origin, initial_origin: &PalletsOrigin) -> DispatchResult;
-		/// Check if the `origin` is allow to cancel a scheduled task that
-		/// initially created by `inital_origin`.
-		fn check_cancel_schedule(origin: Origin, initial_origin: &PalletsOrigin) -> DispatchResult;
-	}
-
-	/// Represent an origin that can be dispatched by other origins with
-	/// permission check.
-	pub trait AsOriginId<Origin, PalletsOrigin> {
-		/// Convert into `PalletsOrigin`
-		fn into_origin(self) -> PalletsOrigin;
-		/// Check if the `origin` is allow to dispatch call on behalf of this
-		/// origin.
-		fn check_dispatch_from(&self, origin: Origin) -> DispatchResult;
-	}
-
-	type CallOf<T> = <T as Config>::Call;
-
-	/// The schedule task index type.
-	pub type ScheduleTaskIndex = u32;
+	pub(crate) type CallOf<T> = <T as Config>::Call;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {

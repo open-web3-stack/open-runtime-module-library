@@ -3,12 +3,8 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{
-	assert_noop, assert_ok,
-	error::BadOrigin,
-	traits::{Currency, LockableCurrency, WithdrawReasons},
-};
-use mock::{ExtBuilder, Origin, PalletBalances, Runtime, System, TestEvent, Vesting, ALICE, BOB, CHARLIE};
+use frame_support::{assert_noop, assert_ok, error::BadOrigin};
+use mock::*;
 use pallet_balances::{BalanceLock, Reasons};
 
 #[test]

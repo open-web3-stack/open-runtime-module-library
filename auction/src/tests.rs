@@ -3,9 +3,8 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{assert_noop, assert_ok, traits::OnFinalize};
+use frame_support::{assert_noop, assert_ok};
 use mock::*;
-use orml_traits::{Auction, AuctionInfo};
 
 #[test]
 fn new_auction_should_work() {

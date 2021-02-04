@@ -4,8 +4,8 @@
 
 use super::*;
 use codec::Encode;
-use frame_support::{assert_noop, assert_ok, traits::OnFinalize};
-use mock::{ExtBuilder, GraduallyUpdateModule, Origin, Runtime, System, TestEvent};
+use frame_support::{assert_noop, assert_ok};
+use mock::*;
 use sp_runtime::{FixedPointNumber, FixedU128, Permill};
 
 fn storage_set(key: &Vec<u8>, value: &Vec<u8>) {

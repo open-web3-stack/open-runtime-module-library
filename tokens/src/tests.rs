@@ -3,22 +3,8 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{
-	assert_noop, assert_ok,
-	traits::{
-		BalanceStatus as Status, Currency, ExistenceRequirement, LockableCurrency as PalletLockableCurrency,
-		ReservableCurrency as PalletReservableCurrency, WithdrawReasons,
-	},
-};
-use mock::{
-	Balance, DustAccount, ExtBuilder, Runtime, System, TestEvent, Tokens, Treasury, TreasuryCurrencyAdapter, ALICE,
-	BOB, BTC, DOT, ETH, ID_1, ID_2, TREASURY_ACCOUNT,
-};
-use orml_traits::{
-	account::MergeAccount, BalanceStatus, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency,
-	MultiReservableCurrency,
-};
-use sp_runtime::traits::Zero;
+use frame_support::{assert_noop, assert_ok};
+use mock::*;
 
 #[test]
 fn minimum_balance_work() {
