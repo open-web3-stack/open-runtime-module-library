@@ -3,15 +3,8 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{assert_noop, assert_ok, traits::Currency};
-use mock::{
-	AccountId, AdaptedBasicCurrency, Currencies, ExtBuilder, NativeCurrency, Origin, PalletBalances, System, TestEvent,
-	Tokens, ALICE, BOB, EVA, ID_1, NATIVE_CURRENCY_ID, X_TOKEN_ID,
-};
-use orml_traits::{
-	BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency, BasicReservableCurrency, MultiCurrency,
-	MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
-};
+use frame_support::{assert_noop, assert_ok};
+use mock::*;
 use sp_runtime::traits::BadOrigin;
 
 #[test]

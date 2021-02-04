@@ -4,8 +4,7 @@
 
 use super::*;
 use frame_support::{impl_outer_event, impl_outer_origin, parameter_types, traits::GenesisBuild};
-use orml_traits::{parameter_type_with_key, LockIdentifier};
-use pallet_balances;
+use orml_traits::parameter_type_with_key;
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,

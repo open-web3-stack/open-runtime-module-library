@@ -7,13 +7,9 @@ use frame_support::{
 	impl_outer_event, impl_outer_origin, parameter_types,
 	traits::{ChangeMembers, Contains, ContainsLengthBound, GenesisBuild, SaturatingCurrencyToVote},
 };
-use orml_traits::{parameter_type_with_key, LockIdentifier};
+use orml_traits::parameter_type_with_key;
 use sp_core::H256;
-use sp_runtime::{
-	testing::Header,
-	traits::{AccountIdConversion, IdentityLookup},
-	AccountId32, ModuleId, Permill,
-};
+use sp_runtime::{testing::Header, traits::IdentityLookup, AccountId32, Permill};
 use sp_std::cell::RefCell;
 
 pub type AccountId = AccountId32;
