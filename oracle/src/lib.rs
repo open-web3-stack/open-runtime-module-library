@@ -57,8 +57,8 @@ pub mod module {
 		fn on_finalize() -> Weight;
 	}
 
-	pub type MomentOf<T, I = ()> = <<T as Config<I>>::Time as Time>::Moment;
-	pub type TimestampedValueOf<T, I = ()> = TimestampedValue<<T as Config<I>>::OracleValue, MomentOf<T, I>>;
+	pub(crate) type MomentOf<T, I = ()> = <<T as Config<I>>::Time as Time>::Moment;
+	pub(crate) type TimestampedValueOf<T, I = ()> = TimestampedValue<<T as Config<I>>::OracleValue, MomentOf<T, I>>;
 
 	#[derive(Encode, Decode, RuntimeDebug, Eq, PartialEq, Clone, Copy, Ord, PartialOrd)]
 	#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -103,7 +103,7 @@ pub mod module {
 	}
 
 	#[pallet::event]
-	#[pallet::generate_deposit(fn deposit_event)]
+	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event<T: Config<I>, I: 'static = ()> {
 		/// New feed data is submitted. [sender, values]
 		NewFeedData(T::AccountId, Vec<(T::OracleKey, T::OracleValue)>),
@@ -129,7 +129,8 @@ pub mod module {
 
 	/// If an oracle operator has feed a value in this block
 	#[pallet::storage]
-	type HasDispatched<T: Config<I>, I: 'static = ()> = StorageValue<_, OrderedSet<T::AccountId>, ValueQuery>;
+	pub(crate) type HasDispatched<T: Config<I>, I: 'static = ()> =
+		StorageValue<_, OrderedSet<T::AccountId>, ValueQuery>;
 
 	// TODO: this shouldn't be required https://github.com/paritytech/substrate/issues/6041
 	/// The current members of the collective. This is stored sorted (just by

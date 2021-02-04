@@ -6,7 +6,7 @@ use super::*;
 use codec::{Decode, Encode};
 use frame_support::{
 	parameter_types,
-	traits::{schedule::Priority, OnFinalize, OnInitialize, OriginTrait},
+	traits::{OnFinalize, OnInitialize},
 	weights::Weight,
 };
 use frame_system::{ensure_root, ensure_signed, EnsureRoot};
@@ -14,7 +14,7 @@ use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
 	traits::{BadOrigin, IdentityLookup},
-	DispatchResult, Perbill,
+	Perbill,
 };
 
 pub use crate as authority;

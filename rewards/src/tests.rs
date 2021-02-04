@@ -3,7 +3,6 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::traits::OnInitialize;
 use mock::*;
 
 #[test]

@@ -4,9 +4,7 @@
 
 use super::*;
 use frame_support::{assert_noop, assert_ok};
-use mock::{
-	ExtBuilder, NonFungibleTokenModule, Runtime, ALICE, BOB, CLASS_ID, CLASS_ID_NOT_EXIST, TOKEN_ID, TOKEN_ID_NOT_EXIST,
-};
+use mock::*;
 
 #[test]
 fn create_class_should_work() {
