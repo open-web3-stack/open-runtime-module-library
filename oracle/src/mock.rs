@@ -2,10 +2,7 @@
 
 use super::*;
 
-use frame_support::{
-	impl_outer_dispatch, impl_outer_event, impl_outer_origin, parameter_types,
-	traits::{GenesisBuild, Time},
-};
+use frame_support::{impl_outer_dispatch, impl_outer_event, impl_outer_origin, parameter_types, traits::GenesisBuild};
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
