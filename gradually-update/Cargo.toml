@@ -8,6 +8,7 @@ authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2018"
 
 [dependencies]
+serde = { version = "1.0.111", optional = true }
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
 frame-support = { version = "2.0.1", default-features = false }
 frame-system = { version = "2.0.1", default-features = false }
@@ -19,6 +20,7 @@ sp-runtime = { version = "2.0.1", default-features = false }
 [features]
 default = ["std"]
 std = [
+	"serde",
 	"codec/std",
 	"frame-support/std",
 	"frame-system/std",
