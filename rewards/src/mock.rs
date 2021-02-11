@@ -3,11 +3,13 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{impl_outer_origin, parameter_types};
+use frame_support::{construct_runtime, parameter_types};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 use sp_std::cell::RefCell;
 use std::collections::HashMap;
+
+use crate as rewards;
 
 pub type AccountId = u128;
 pub type Balance = u64;
@@ -23,14 +25,6 @@ pub const DOT_POOL: PoolId = 1;
 pub const BTC_POOL: PoolId = 2;
 pub const XBTC_POOL: PoolId = 3;
 
-impl_outer_origin! {
-	pub enum Origin for Runtime {}
-}
-
-// Workaround for https://github.com/rust-lang/rust/issues/26925 . Remove when sorted.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct Runtime;
-
 parameter_types! {
 	pub const BlockHashCount: u64 = 250;
 }
@@ -39,18 +33,18 @@ impl frame_system::Config for Runtime {
 	type Origin = Origin;
 	type Index = u64;
 	type BlockNumber = BlockNumber;
-	type Call = ();
+	type Call = Call;
 	type Hash = H256;
 	type Hashing = ::sp_runtime::traits::BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
-	type Event = ();
+	type Event = Event;
 	type BlockHashCount = BlockHashCount;
 	type BlockWeights = ();
 	type BlockLength = ();
 	type Version = ();
-	type PalletInfo = ();
+	type PalletInfo = PalletInfo;
 	type AccountData = ();
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
@@ -114,7 +108,21 @@ impl Config for Runtime {
 	type Handler = Handler;
 	type WeightInfo = ();
 }
-pub type RewardsModule = Module<Runtime>;
+
+pub type Block = sp_runtime::generic::Block<Header, UncheckedExtrinsic>;
+pub type UncheckedExtrinsic = sp_runtime::generic::UncheckedExtrinsic<u32, Call, u32, ()>;
+
+construct_runtime!(
+	pub enum Runtime where
+		Block = Block,
+		NodeBlock = Block,
+		UncheckedExtrinsic = UncheckedExtrinsic,
+	{
+		System: frame_system::{Module, Call, Storage, Config, Event<T>},
+		RewardsModule: rewards::{Module, Storage, Call},
+
+	}
+);
 
 pub struct ExtBuilder;
 
