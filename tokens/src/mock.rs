@@ -4,7 +4,7 @@
 
 use super::*;
 use frame_support::{
-	impl_outer_event, impl_outer_origin, parameter_types,
+	construct_runtime, parameter_types,
 	traits::{ChangeMembers, Contains, ContainsLengthBound, GenesisBuild, SaturatingCurrencyToVote},
 };
 use orml_traits::parameter_type_with_key;
@@ -25,33 +25,15 @@ pub const TREASURY_ACCOUNT: AccountId = AccountId32::new([2u8; 32]);
 pub const ID_1: LockIdentifier = *b"1       ";
 pub const ID_2: LockIdentifier = *b"2       ";
 
-impl_outer_origin! {
-	pub enum Origin for Runtime {}
-}
+use crate as tokens;
 
-mod tokens {
-	pub use crate::Event;
-}
-
-impl_outer_event! {
-	pub enum TestEvent for Runtime {
-		frame_system<T>,
-		tokens<T>,
-		pallet_treasury<T>,
-		pallet_elections_phragmen<T>,
-	}
-}
-
-// Workaround for https://github.com/rust-lang/rust/issues/26925 . Remove when sorted.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct Runtime;
 parameter_types! {
 	pub const BlockHashCount: u64 = 250;
 }
 
 impl frame_system::Config for Runtime {
 	type Origin = Origin;
-	type Call = ();
+	type Call = Call;
 	type Index = u64;
 	type BlockNumber = u64;
 	type Hash = H256;
@@ -59,12 +41,12 @@ impl frame_system::Config for Runtime {
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
-	type Event = TestEvent;
+	type Event = Event;
 	type BlockHashCount = BlockHashCount;
 	type BlockWeights = ();
 	type BlockLength = ();
 	type Version = ();
-	type PalletInfo = ();
+	type PalletInfo = PalletInfo;
 	type AccountData = ();
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
@@ -73,7 +55,6 @@ impl frame_system::Config for Runtime {
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
 }
-pub type System = frame_system::Module<Runtime>;
 
 thread_local! {
 	static TEN_TO_FOURTEEN: RefCell<Vec<AccountId>> = RefCell::new(vec![
@@ -123,7 +104,7 @@ impl pallet_treasury::Config for Runtime {
 	type Currency = CurrencyAdapter<Runtime, GetTokenId>;
 	type ApproveOrigin = frame_system::EnsureRoot<AccountId>;
 	type RejectOrigin = frame_system::EnsureRoot<AccountId>;
-	type Event = TestEvent;
+	type Event = Event;
 	type OnSlash = ();
 	type ProposalBond = ProposalBond;
 	type ProposalBondMinimum = ProposalBondMinimum;
@@ -133,8 +114,6 @@ impl pallet_treasury::Config for Runtime {
 	type SpendFunds = ();
 	type WeightInfo = ();
 }
-
-pub type Treasury = pallet_treasury::Module<Runtime>;
 
 thread_local! {
 	pub static MEMBERS: RefCell<Vec<AccountId>> = RefCell::new(vec![]);
@@ -197,7 +176,7 @@ parameter_types! {
 
 impl pallet_elections_phragmen::Config for Runtime {
 	type ModuleId = ElectionsPhragmenModuleId;
-	type Event = TestEvent;
+	type Event = Event;
 	type Currency = CurrencyAdapter<Runtime, GetTokenId>;
 	type CurrencyToVote = SaturatingCurrencyToVote;
 	type ChangeMembers = TestChangeMembers;
@@ -228,7 +207,7 @@ parameter_types! {
 }
 
 impl Config for Runtime {
-	type Event = TestEvent;
+	type Event = Event;
 	type Balance = Balance;
 	type Amount = i64;
 	type CurrencyId = CurrencyId;
@@ -236,8 +215,23 @@ impl Config for Runtime {
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = TransferDust<Runtime, DustAccount>;
 }
-pub type Tokens = Module<Runtime>;
 pub type TreasuryCurrencyAdapter = <Runtime as pallet_treasury::Config>::Currency;
+
+pub type Block = sp_runtime::generic::Block<Header, UncheckedExtrinsic>;
+pub type UncheckedExtrinsic = sp_runtime::generic::UncheckedExtrinsic<u32, Call, u32, ()>;
+
+construct_runtime!(
+	pub enum Runtime where
+		Block = Block,
+		NodeBlock = Block,
+		UncheckedExtrinsic = UncheckedExtrinsic,
+	{
+		System: frame_system::{Module, Call, Storage, Config, Event<T>},
+		Tokens: tokens::{Module, Storage, Event<T>, Config<T>},
+		Treasury: pallet_treasury::{Module, Call, Storage, Config, Event<T>},
+		ElectionsPhragmen: pallet_elections_phragmen::{Module, Call, Storage, Event<T>},
+	}
+);
 
 pub struct ExtBuilder {
 	endowed_accounts: Vec<(AccountId, CurrencyId, Balance)>,
@@ -273,7 +267,7 @@ impl ExtBuilder {
 			.build_storage::<Runtime>()
 			.unwrap();
 
-		GenesisConfig::<Runtime> {
+		tokens::GenesisConfig::<Runtime> {
 			endowed_accounts: self.endowed_accounts,
 		}
 		.assimilate_storage(&mut t)
