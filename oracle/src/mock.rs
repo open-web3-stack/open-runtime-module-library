@@ -2,7 +2,7 @@
 
 use super::*;
 
-use frame_support::{impl_outer_dispatch, impl_outer_event, impl_outer_origin, parameter_types, traits::GenesisBuild};
+use frame_support::{construct_runtime, parameter_types, traits::GenesisBuild};
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
@@ -15,32 +15,10 @@ mod oracle {
 	pub use super::super::*;
 }
 
-impl_outer_event! {
-	pub enum TestEvent for Test {
-		frame_system<T>,
-		oracle<T>,
-	}
-}
-
-impl_outer_origin! {
-	pub enum Origin for Test {}
-}
-
-impl_outer_dispatch! {
-	pub enum Call for Test where origin: Origin {
-		oracle::ModuleOracle,
-	}
-}
-
 pub type AccountId = u128;
 type Key = u32;
 type Value = u32;
 
-// For testing the module, we construct most of a mock runtime. This means
-// first constructing a configuration type (`Test`) which `impl`s each of the
-// configuration traits of modules we want to use.
-#[derive(Clone, Eq, PartialEq, Debug)]
-pub struct Test;
 parameter_types! {
 	pub const BlockHashCount: u64 = 250;
 }
@@ -54,12 +32,12 @@ impl frame_system::Config for Test {
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
-	type Event = TestEvent;
+	type Event = Event;
 	type BlockHashCount = BlockHashCount;
 	type BlockWeights = ();
 	type BlockLength = ();
 	type Version = ();
-	type PalletInfo = ();
+	type PalletInfo = PalletInfo;
 	type AccountData = ();
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
@@ -68,7 +46,6 @@ impl frame_system::Config for Test {
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
 }
-pub type System = frame_system::Module<Test>;
 
 thread_local! {
 	static TIME: RefCell<u32> = RefCell::new(0);
@@ -96,7 +73,7 @@ parameter_types! {
 }
 
 impl Config for Test {
-	type Event = TestEvent;
+	type Event = Event;
 	type OnNewData = ();
 	type CombineData = DefaultCombineData<Self, MinimumCount, ExpiresIn>;
 	type Time = Timestamp;
@@ -106,13 +83,27 @@ impl Config for Test {
 	type WeightInfo = ();
 }
 
-pub type ModuleOracle = Module<Test>;
+pub type Block = sp_runtime::generic::Block<Header, UncheckedExtrinsic>;
+pub type UncheckedExtrinsic = sp_runtime::generic::UncheckedExtrinsic<u32, Call, u32, ()>;
+
+construct_runtime!(
+	pub enum Test where
+		Block = Block,
+		NodeBlock = Block,
+		UncheckedExtrinsic = UncheckedExtrinsic,
+	{
+		System: frame_system::{Module, Call, Storage, Config, Event<T>},
+		ModuleOracle: oracle::{Module, Storage, Call, Config<T>, Event<T>},
+
+	}
+);
+
 // This function basically just builds a genesis storage key/value store
 // according to our desired mockup.
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut storage = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
 
-	let _ = GenesisConfig::<Test> {
+	let _ = oracle::GenesisConfig::<Test> {
 		members: vec![1, 2, 3].into(),
 		phantom: Default::default(),
 	}
