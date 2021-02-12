@@ -15,7 +15,7 @@ pub mod module {
 	use sp_std::prelude::*;
 
 	use cumulus_primitives::{relay_chain::Balance as RelayChainBalance, ParaId};
-	use xcm::v0::{Error as XcmError, ExecuteXcm, Junction, MultiAsset, MultiLocation, NetworkId, Order, Xcm};
+	use xcm::v0::{Error as XcmError, ExecuteXcm, Junction::*, MultiAsset, MultiLocation, NetworkId, Order, Xcm};
 	use xcm_executor::traits::LocationConversion;
 
 	#[derive(Encode, Decode, Eq, PartialEq, Clone, Copy, RuntimeDebug)]
@@ -46,7 +46,7 @@ pub mod module {
 
 	impl Into<MultiLocation> for XCurrencyId {
 		fn into(self) -> MultiLocation {
-			MultiLocation::X1(Junction::GeneralKey(self.currency_id))
+			GeneralKey(self.currency_id).into()
 		}
 	}
 
@@ -129,15 +129,15 @@ pub mod module {
 
 			let xcm = Xcm::WithdrawAsset {
 				assets: vec![MultiAsset::ConcreteFungible {
-					id: Junction::Parent.into(),
+					id: Parent.into(),
 					amount: T::ToRelayChainBalance::convert(amount),
 				}],
 				effects: vec![Order::InitiateReserveWithdraw {
 					assets: vec![MultiAsset::All],
-					reserve: Junction::Parent.into(),
+					reserve: Parent.into(),
 					effects: vec![Order::DepositAsset {
 						assets: vec![MultiAsset::All],
-						dest: Junction::AccountId32 {
+						dest: AccountId32 {
 							network: T::RelayChainNetworkId::get(),
 							id: T::AccountId32Convert::convert(dest.clone()),
 						}
@@ -236,18 +236,18 @@ pub mod module {
 		) -> Xcm {
 			Xcm::WithdrawAsset {
 				assets: vec![MultiAsset::ConcreteFungible {
-					id: Junction::Parent.into(),
+					id: Parent.into(),
 					amount: T::ToRelayChainBalance::convert(amount),
 				}],
 				effects: vec![Order::InitiateReserveWithdraw {
 					assets: vec![MultiAsset::All],
-					reserve: Junction::Parent.into(),
+					reserve: Parent.into(),
 					effects: vec![Order::DepositReserveAsset {
 						assets: vec![MultiAsset::All],
-						dest: Junction::Parachain { id: para_id.into() }.into(),
+						dest: (Parent, Parachain { id: para_id.into() }).into(),
 						effects: vec![Order::DepositAsset {
 							assets: vec![MultiAsset::All],
-							dest: Junction::AccountId32 {
+							dest: AccountId32 {
 								network: dest_network,
 								id: T::AccountId32Convert::convert(dest.clone()),
 							}
@@ -276,10 +276,10 @@ pub mod module {
 				}],
 				effects: vec![Order::DepositReserveAsset {
 					assets: vec![MultiAsset::All],
-					dest: Junction::Parachain { id: para_id.into() }.into(),
+					dest: (Parent, Parachain { id: para_id.into() }).into(),
 					effects: vec![Order::DepositAsset {
 						assets: vec![MultiAsset::All],
-						dest: Junction::AccountId32 {
+						dest: AccountId32 {
 							network: dest_network,
 							id: T::AccountId32Convert::convert(dest.clone()),
 						}
@@ -301,7 +301,7 @@ pub mod module {
 		) -> Xcm {
 			let deposit_to_dest = Order::DepositAsset {
 				assets: vec![MultiAsset::All],
-				dest: Junction::AccountId32 {
+				dest: AccountId32 {
 					network: dest_network,
 					id: T::AccountId32Convert::convert(dest.clone()),
 				}
@@ -314,7 +314,7 @@ pub mod module {
 			} else {
 				Order::DepositReserveAsset {
 					assets: vec![MultiAsset::All],
-					dest: Junction::Parachain { id: para_id.into() }.into(),
+					dest: (Parent, Parachain { id: para_id.into() }).into(),
 					effects: vec![deposit_to_dest],
 				}
 			};
@@ -326,7 +326,7 @@ pub mod module {
 				}],
 				effects: vec![Order::InitiateReserveWithdraw {
 					assets: vec![MultiAsset::All],
-					reserve: Junction::Parachain {
+					reserve: Parachain {
 						id: reserve_chain.into(),
 					}
 					.into(),
