@@ -4,41 +4,46 @@
 
 use super::*;
 use frame_benchmarking::account;
-use frame_support::{
-	assert_err, assert_ok, decl_module, decl_storage, dispatch::DispatchResult, ensure, impl_outer_origin,
-};
-use frame_system::{ensure_none, ensure_signed, RawOrigin};
+use frame_support::{assert_err, assert_ok, construct_runtime, ensure};
+use frame_system::RawOrigin;
 use sp_runtime::{
 	testing::{Header, H256},
 	traits::{BlakeTwo256, IdentityLookup},
 };
 use sp_std::prelude::*;
 
-decl_storage! {
-	trait Store for Module<T: Config> as Test {
-		Value get(fn value): Option<u32>;
+mod test {
+	use frame_support::{decl_module, decl_storage, dispatch::DispatchResult};
+	use frame_system::{ensure_none, ensure_signed};
+	use sp_std::prelude::*;
+
+	pub trait Config: frame_system::Config {
+		type Event;
+		type BlockNumber;
 	}
-}
 
-decl_module! {
-	pub struct Module<T: Config> for enum Call where origin: T::Origin {
-		#[weight = 0]
-		fn set_value(origin, n: u32) -> DispatchResult {
-			let _sender = ensure_signed(origin)?;
-			Value::put(n);
-			Ok(())
-		}
-
-		#[weight = 0]
-		fn dummy(origin, _n: u32) -> DispatchResult {
-			let _sender = ensure_none(origin)?;
-			Ok(())
+	decl_storage! {
+		trait Store for Module<T: Config> as Test {
+			pub Value get(fn value) config(): Option<u32>;
 		}
 	}
-}
 
-impl_outer_origin! {
-	pub enum Origin for Test {}
+	decl_module! {
+		pub struct Module<T: Config> for enum Call where origin: T::Origin {
+			#[weight = 0]
+			fn set_value(origin, n: u32) -> DispatchResult {
+				let _sender = ensure_signed(origin)?;
+				Value::put(n);
+				Ok(())
+			}
+
+			#[weight = 0]
+			fn dummy(origin, _n: u32) -> DispatchResult {
+				let _sender = ensure_none(origin)?;
+				Ok(())
+			}
+		}
+	}
 }
 
 pub trait Config: frame_system::Config {
@@ -48,26 +53,23 @@ pub trait Config: frame_system::Config {
 
 type AccountId = u128;
 
-#[derive(Clone, Eq, PartialEq)]
-pub struct Test;
-
 impl frame_system::Config for Test {
 	type Origin = Origin;
 	type Index = u64;
 	type BlockNumber = u64;
 	type Hash = H256;
-	type Call = ();
+	type Call = Call;
 	type Hashing = BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
-	type Event = ();
+	type Event = Event;
 	type BlockHashCount = ();
 	type DbWeight = ();
 	type BlockWeights = ();
 	type BlockLength = ();
 	type Version = ();
-	type PalletInfo = ();
+	type PalletInfo = PalletInfo;
 	type AccountData = ();
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
@@ -76,10 +78,30 @@ impl frame_system::Config for Test {
 	type SS58Prefix = ();
 }
 
-impl Config for Test {
-	type Event = ();
+impl tests::test::Config for Test {
+	type Event = Event;
 	type BlockNumber = u32;
 }
+
+impl Config for Test {
+	type Event = Event;
+	type BlockNumber = u32;
+}
+
+pub type Block = sp_runtime::generic::Block<Header, UncheckedExtrinsic>;
+pub type UncheckedExtrinsic = sp_runtime::generic::UncheckedExtrinsic<u32, Call, u32, ()>;
+
+construct_runtime!(
+	pub enum Test where
+		Block = Block,
+		NodeBlock = Block,
+		UncheckedExtrinsic = UncheckedExtrinsic,
+	{
+		System: frame_system::{Module, Call, Storage, Config, Event<T>},
+		Pallet: test::{Module, Call, Storage, Config},
+
+	}
+);
 
 // This function basically just builds a genesis storage key/value store
 // according to our desired mockup.
@@ -91,7 +113,7 @@ fn new_test_ext() -> sp_io::TestExternalities {
 }
 
 runtime_benchmarks! {
-	{ Test, self }
+	{ Test, test }
 
 	_ {
 		// Define a common range for `b`.
@@ -103,7 +125,7 @@ runtime_benchmarks! {
 		let caller = account::<AccountId>("caller", 0, 0);
 	}: _ (RawOrigin::Signed(caller), b.into())
 	verify {
-		assert_eq!(Value::get(), Some(b));
+		assert_eq!(Pallet::value(), Some(b));
 	}
 
 	other_name {

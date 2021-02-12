@@ -8,6 +8,7 @@ authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2018"
 
 [dependencies]
+serde = { version = "1.0.111", optional = true }
 paste = "0.1.16"
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
 sp-api = { version = "2.0.1", default-features = false }
@@ -25,6 +26,7 @@ hex-literal = "0.2.1"
 [features]
 default = [ "std" ]
 std = [
+	"serde",
 	"codec/std",
 	"sp-runtime-interface/std",
 	"sp-runtime/std",
