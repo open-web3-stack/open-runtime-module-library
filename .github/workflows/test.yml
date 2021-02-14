@@ -33,7 +33,7 @@ jobs:
     - name: Update
       run: cargo update
     - name: Run clippy
-      run: cargo clippy -Zunstable-options -- -D warnings
+      run: cargo clippy -- -D warnings
     - name: Check for Wasm
       run: make dev-check
     - name: Run tests
