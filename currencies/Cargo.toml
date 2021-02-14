@@ -3,7 +3,7 @@ name = "orml-currencies"
 description = "Provide `MultiCurrency` implementation using `pallet-balances` and `orml-tokens` module."
 repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/currencies"
 license = "Apache-2.0"
-version = "0.4.0"
+version = "0.4.1-dev"
 authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2018"
 
@@ -17,15 +17,15 @@ sp-std = { version = "3.0.0", default-features = false }
 frame-support = { version = "3.0.0", default-features = false }
 frame-system = { version = "3.0.0", default-features = false }
 
-orml-traits = { path = "../traits", version = "0.4.0", default-features = false }
-orml-utilities = { path = "../utilities", version = "0.4.0", default-features = false }
+orml-traits = { path = "../traits", version = "0.4.1-dev", default-features = false }
+orml-utilities = { path = "../utilities", version = "0.4.1-dev", default-features = false }
 
 funty = { version = "=1.1.0", default-features = false } # https://github.com/bitvecto-rs/bitvec/issues/105
 
 [dev-dependencies]
 sp-core = { version = "3.0.0", default-features = false }
 pallet-balances = "3.0.0"
-orml_tokens = { package = "orml-tokens", path = "../tokens", version = "0.4.0" }
+orml_tokens = { package = "orml-tokens", path = "../tokens", version = "0.4.1-dev" }
 
 [features]
 default = ["std"]
