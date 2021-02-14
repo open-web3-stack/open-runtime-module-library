@@ -30,10 +30,10 @@ jobs:
       run: make dev-format-check
     - name: Install clippy
       run: rustup component add clippy
-    - name: Run clippy
-      run: cargo clippy -Zunstable-options -- -D warnings
     - name: Update
       run: cargo update
+    - name: Run clippy
+      run: cargo clippy -Zunstable-options -- -D warnings
     - name: Check for Wasm
       run: make dev-check
     - name: Run tests
