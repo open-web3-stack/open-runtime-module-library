@@ -31,7 +31,7 @@ jobs:
     - name: Install clippy
       run: rustup component add clippy
     - name: Run clippy
-      run: cargo clippy -- -D warnings
+      run: cargo +nightly clippy -Zunstable-options -- -D warnings
     - name: Update
       run: cargo update
     - name: Check for Wasm
