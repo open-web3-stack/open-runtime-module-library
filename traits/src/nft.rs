@@ -6,6 +6,7 @@ use sp_runtime::{
 use sp_std::fmt::Debug;
 
 /// Abstraction over a non-fungible token system.
+#[allow(clippy::upper_case_acronyms)]
 pub trait NFT<AccountId> {
 	/// The NFT class identifier.
 	type ClassId: Default + Copy;
