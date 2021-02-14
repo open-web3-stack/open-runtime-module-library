@@ -20,7 +20,7 @@ jobs:
         override: true
         default: true
     - name: Install cargo-unleash
-      run: cargo install cargo-unleash --git git@github.com:xlc/cargo-unleash.git # https://github.com/paritytech/cargo-unleash/pull/38
+      run: cargo install cargo-unleash --git https://github.com/xlc/cargo-unleash.git # https://github.com/paritytech/cargo-unleash/pull/38
     - name: Prepare
       run: make Cargo.toml
     - name: Cargo unleash check
