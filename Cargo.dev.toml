@@ -17,22 +17,22 @@ members = [
 ]
 resolver = "2"
 
-# [patch.crates-io]
-# frame-benchmarking = { git = "https://github.com/paritytech/substrate.git", rev = "5a94966e91fcd20d5a7981ae8186090221d8f096" }
-# frame-support = { git = "https://github.com/paritytech/substrate.git", rev = "5a94966e91fcd20d5a7981ae8186090221d8f096" }
-# frame-system = { git = "https://github.com/paritytech/substrate.git", rev = "5a94966e91fcd20d5a7981ae8186090221d8f096" }
-# pallet-balances = { git = "https://github.com/paritytech/substrate.git", rev = "5a94966e91fcd20d5a7981ae8186090221d8f096" }
-# pallet-elections-phragmen = { git = "https://github.com/paritytech/substrate.git", rev = "5a94966e91fcd20d5a7981ae8186090221d8f096" }
-# pallet-scheduler = { git = "https://github.com/paritytech/substrate.git", rev = "5a94966e91fcd20d5a7981ae8186090221d8f096" }
-# pallet-treasury = { git = "https://github.com/paritytech/substrate.git", rev = "5a94966e91fcd20d5a7981ae8186090221d8f096" }
-# sp-api = { git = "https://github.com/paritytech/substrate.git", rev = "5a94966e91fcd20d5a7981ae8186090221d8f096" }
-# sp-application-crypto = { git = "https://github.com/paritytech/substrate.git", rev = "5a94966e91fcd20d5a7981ae8186090221d8f096" }
-# sp-arithmetic = { git = "https://github.com/paritytech/substrate.git", rev = "5a94966e91fcd20d5a7981ae8186090221d8f096" }
-# sp-core = { git = "https://github.com/paritytech/substrate.git", rev = "5a94966e91fcd20d5a7981ae8186090221d8f096" }
-# sp-inherents = { git = "https://github.com/paritytech/substrate.git", rev = "5a94966e91fcd20d5a7981ae8186090221d8f096" }
-# sp-io = { git = "https://github.com/paritytech/substrate.git", rev = "5a94966e91fcd20d5a7981ae8186090221d8f096" }
-# sp-runtime = { git = "https://github.com/paritytech/substrate.git", rev = "5a94966e91fcd20d5a7981ae8186090221d8f096" }
-# sp-runtime-interface = { git = "https://github.com/paritytech/substrate.git", rev = "5a94966e91fcd20d5a7981ae8186090221d8f096" }
-# sp-std = { git = "https://github.com/paritytech/substrate.git", rev = "5a94966e91fcd20d5a7981ae8186090221d8f096" }
-# sp-trie = { git = "https://github.com/paritytech/substrate.git", rev = "5a94966e91fcd20d5a7981ae8186090221d8f096" }
-# sp-version = { git = "https://github.com/paritytech/substrate.git", rev = "5a94966e91fcd20d5a7981ae8186090221d8f096" }
+[patch.crates-io]
+frame-benchmarking = { git = "https://github.com/paritytech/substrate.git", rev = "e03ca38d45f438932ec92bf69a40b6b16b6ec643" }
+frame-support = { git = "https://github.com/paritytech/substrate.git", rev = "e03ca38d45f438932ec92bf69a40b6b16b6ec643" }
+frame-system = { git = "https://github.com/paritytech/substrate.git", rev = "e03ca38d45f438932ec92bf69a40b6b16b6ec643" }
+pallet-balances = { git = "https://github.com/paritytech/substrate.git", rev = "e03ca38d45f438932ec92bf69a40b6b16b6ec643" }
+pallet-elections-phragmen = { git = "https://github.com/paritytech/substrate.git", rev = "e03ca38d45f438932ec92bf69a40b6b16b6ec643" }
+pallet-scheduler = { git = "https://github.com/paritytech/substrate.git", rev = "e03ca38d45f438932ec92bf69a40b6b16b6ec643" }
+pallet-treasury = { git = "https://github.com/paritytech/substrate.git", rev = "e03ca38d45f438932ec92bf69a40b6b16b6ec643" }
+sp-api = { git = "https://github.com/paritytech/substrate.git", rev = "e03ca38d45f438932ec92bf69a40b6b16b6ec643" }
+sp-application-crypto = { git = "https://github.com/paritytech/substrate.git", rev = "e03ca38d45f438932ec92bf69a40b6b16b6ec643" }
+sp-arithmetic = { git = "https://github.com/paritytech/substrate.git", rev = "e03ca38d45f438932ec92bf69a40b6b16b6ec643" }
+sp-core = { git = "https://github.com/paritytech/substrate.git", rev = "e03ca38d45f438932ec92bf69a40b6b16b6ec643" }
+sp-inherents = { git = "https://github.com/paritytech/substrate.git", rev = "e03ca38d45f438932ec92bf69a40b6b16b6ec643" }
+sp-io = { git = "https://github.com/paritytech/substrate.git", rev = "e03ca38d45f438932ec92bf69a40b6b16b6ec643" }
+sp-runtime = { git = "https://github.com/paritytech/substrate.git", rev = "e03ca38d45f438932ec92bf69a40b6b16b6ec643" }
+sp-runtime-interface = { git = "https://github.com/paritytech/substrate.git", rev = "e03ca38d45f438932ec92bf69a40b6b16b6ec643" }
+sp-std = { git = "https://github.com/paritytech/substrate.git", rev = "e03ca38d45f438932ec92bf69a40b6b16b6ec643" }
+sp-trie = { git = "https://github.com/paritytech/substrate.git", rev = "e03ca38d45f438932ec92bf69a40b6b16b6ec643" }
+sp-version = { git = "https://github.com/paritytech/substrate.git", rev = "e03ca38d45f438932ec92bf69a40b6b16b6ec643" }
