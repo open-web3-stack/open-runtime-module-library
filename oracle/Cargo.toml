@@ -25,7 +25,7 @@ orml-utilities = { path = "../utilities", version = "0.4.1-dev", default-feature
 funty = { version = "=1.1.0", default-features = false } # https://github.com/bitvecto-rs/bitvec/issues/105
 
 [dev-dependencies]
-sp-core = { version = "3.0.0", default-features = false }
+sp-core = "3.0.0"
 
 [features]
 default = ["std"]
