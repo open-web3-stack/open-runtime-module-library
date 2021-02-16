@@ -14,7 +14,7 @@ pub mod module {
 	};
 	use sp_std::prelude::*;
 
-	use cumulus_primitives::{relay_chain::Balance as RelayChainBalance, ParaId};
+	use cumulus_primitives_core::{relay_chain::Balance as RelayChainBalance, ParaId};
 	use xcm::v0::{Error as XcmError, ExecuteXcm, Junction::*, MultiAsset, MultiLocation, NetworkId, Order, Xcm};
 	use xcm_executor::traits::LocationConversion;
 
