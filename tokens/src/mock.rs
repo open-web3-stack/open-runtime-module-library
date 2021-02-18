@@ -5,7 +5,7 @@
 use super::*;
 use frame_support::{
 	construct_runtime, parameter_types,
-	traits::{ChangeMembers, Contains, ContainsLengthBound, GenesisBuild, SaturatingCurrencyToVote},
+	traits::{ChangeMembers, Contains, ContainsLengthBound, SaturatingCurrencyToVote},
 };
 use orml_traits::parameter_type_with_key;
 use sp_core::H256;
@@ -217,8 +217,8 @@ impl Config for Runtime {
 }
 pub type TreasuryCurrencyAdapter = <Runtime as pallet_treasury::Config>::Currency;
 
-pub type Block = sp_runtime::generic::Block<Header, UncheckedExtrinsic>;
-pub type UncheckedExtrinsic = sp_runtime::generic::UncheckedExtrinsic<u32, Call, u32, ()>;
+type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
+type Block = frame_system::mocking::MockBlock<Runtime>;
 
 construct_runtime!(
 	pub enum Runtime where
