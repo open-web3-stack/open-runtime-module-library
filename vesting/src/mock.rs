@@ -3,10 +3,7 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{
-	construct_runtime, parameter_types,
-	traits::{EnsureOrigin, GenesisBuild},
-};
+use frame_support::{construct_runtime, parameter_types, traits::EnsureOrigin};
 use frame_system::RawOrigin;
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
@@ -86,8 +83,8 @@ impl Config for Runtime {
 	type WeightInfo = ();
 }
 
-pub type Block = sp_runtime::generic::Block<Header, UncheckedExtrinsic>;
-pub type UncheckedExtrinsic = sp_runtime::generic::UncheckedExtrinsic<u32, Call, u32, ()>;
+type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
+type Block = frame_system::mocking::MockBlock<Runtime>;
 
 construct_runtime!(
 	pub enum Runtime where

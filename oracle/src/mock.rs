@@ -2,7 +2,7 @@
 
 use super::*;
 
-use frame_support::{construct_runtime, parameter_types, traits::GenesisBuild};
+use frame_support::{construct_runtime, parameter_types};
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
@@ -83,8 +83,8 @@ impl Config for Test {
 	type WeightInfo = ();
 }
 
-pub type Block = sp_runtime::generic::Block<Header, UncheckedExtrinsic>;
-pub type UncheckedExtrinsic = sp_runtime::generic::UncheckedExtrinsic<u32, Call, u32, ()>;
+type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
+type Block = frame_system::mocking::MockBlock<Test>;
 
 construct_runtime!(
 	pub enum Test where
@@ -94,7 +94,6 @@ construct_runtime!(
 	{
 		System: frame_system::{Module, Call, Storage, Config, Event<T>},
 		ModuleOracle: oracle::{Module, Storage, Call, Config<T>, Event<T>},
-
 	}
 );
 
