@@ -77,6 +77,7 @@ pub mod module {
 
 	pub trait WeightInfo {
 		fn transfer_non_native_currency() -> Weight;
+		fn transfer_all_non_native_currency() -> Weight;
 		fn transfer_native_currency() -> Weight;
 		fn update_balance_non_native_currency() -> Weight;
 		fn update_balance_native_currency_creating() -> Weight;
@@ -153,6 +154,24 @@ pub mod module {
 			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
 			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, &from, &to, amount)?;
+			Ok(().into())
+		}
+
+		/// Transfer all remaining balance to the given account under `currency_id`.
+		///
+		/// The dispatch origin for this call must be `Signed` by the
+		/// transactor.
+		#[pallet::weight(T::WeightInfo::transfer_all_non_native_currency())]
+		pub fn transfer_all(
+			origin: OriginFor<T>,
+			dest: <T::Lookup as StaticLookup>::Source,
+			currency_id: CurrencyIdOf<T>,
+		) -> DispatchResultWithPostInfo {
+			let from = ensure_signed(origin)?;
+			let to = T::Lookup::lookup(dest)?;
+			let balance = <Self as MultiCurrency<T::AccountId>>::free_balance(currency_id, &from);
+			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, &from, &to, balance)?;
+
 			Ok(().into())
 		}
 
