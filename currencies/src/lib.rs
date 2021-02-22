@@ -157,7 +157,8 @@ pub mod module {
 			Ok(().into())
 		}
 
-		/// Transfer all remaining balance to the given account under `currency_id`.
+		/// Transfer all remaining balance to the given account under
+		/// `currency_id`.
 		///
 		/// The dispatch origin for this call must be `Signed` by the
 		/// transactor.

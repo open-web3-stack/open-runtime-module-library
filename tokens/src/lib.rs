@@ -336,7 +336,10 @@ pub mod module {
 		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
-			let balance = <Self as MultiCurrency<T::AccountId>>::free_balance(currency_id, &from);
+
+			let frozen = Self::accounts(&from, currency_id).frozen();
+			let balance =
+				<Self as MultiCurrency<T::AccountId>>::free_balance(currency_id, &from).saturating_sub(frozen);
 			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, &from, &to, balance)?;
 
 			Self::deposit_event(Event::Transferred(currency_id, from, to, balance));

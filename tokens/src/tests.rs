@@ -324,11 +324,12 @@ fn transfer_all_should_work() {
 		.execute_with(|| {
 			System::set_block_number(1);
 
+			assert_ok!(Tokens::set_lock(ID_1, DOT, &ALICE, 10));
 			assert_ok!(Tokens::transfer_all(Some(ALICE).into(), BOB, DOT));
-			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
-			assert_eq!(Tokens::free_balance(DOT, &BOB), 200);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 10);
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 190);
 
-			let transferred_event = Event::tokens(crate::Event::Transferred(DOT, ALICE, BOB, 100));
+			let transferred_event = Event::tokens(crate::Event::Transferred(DOT, ALICE, BOB, 90));
 			assert!(System::events().iter().any(|record| record.event == transferred_event));
 		});
 }
