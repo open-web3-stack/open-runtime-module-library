@@ -51,7 +51,7 @@ ORML use `Cargo.dev.toml` to avoid workspace conflicts with project cargo config
 ORML is part of the bigger `Open-Web3-Stack` initiative, that is currently under a General Grant from Web3 Foundation. See Application details [here](https://github.com/open-web3-stack/General-Grants-Program/blob/master/grants/speculative/open_web3_stack.md). The 1st milestone has been delivered. 
 
 # Projects using ORML
-- [If you intend or are using ORML, please_add your project here_](https://github.com/open-web3-stack/open-runtime-module-library/edit/master/README.md)
+- [If you intend or are using ORML, please add your project here](https://github.com/open-web3-stack/open-runtime-module-library/edit/master/README.md)
 
 _In alphabetical order_
 
