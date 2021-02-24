@@ -60,4 +60,5 @@ _In alphabetical order_
 - [ChainX](https://github.com/chainx-org/ChainX)
 - [HydraDX](https://github.com/galacticcouncil/hack.HydraDX-node)
 - [Laminar Chain](https://github.com/laminar-protocol/laminar-chain)
+- [Plasm Network](https://github.com/PlasmNetwork)
 - [Setheum Network](https://github.com/Setheum-Labs/Setheum)
