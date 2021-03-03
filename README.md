@@ -62,3 +62,4 @@ _In alphabetical order_
 - [Laminar Chain](https://github.com/laminar-protocol/laminar-chain)
 - [Plasm Network](https://github.com/PlasmNetwork)
 - [Setheum Network](https://github.com/Setheum-Labs/Setheum)
+- [Valiu Liquidity Network](https://github.com/valibre-org/vln-node)
