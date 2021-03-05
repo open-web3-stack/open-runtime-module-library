@@ -21,23 +21,38 @@
 #![allow(clippy::string_lit_as_bytes)]
 #![allow(clippy::unused_unit)]
 
+use frame_support::{
+	ensure,
+	pallet_prelude::*,
+	storage,
+	traits::{EnsureOrigin, Get},
+};
+use frame_system::pallet_prelude::*;
+use sp_runtime::{traits::SaturatedConversion, DispatchResult, RuntimeDebug};
+use sp_std::prelude::Vec;
+
 mod default_weight;
 mod mock;
 mod tests;
+
+/// Gradually update a value stored at `key` to `target_value`,
+/// change `per_block` * `T::UpdateFrequency` per `T::UpdateFrequency`
+/// blocks.
+#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
+pub struct GraduallyUpdate {
+	/// The storage key of the value to update
+	pub key: StorageKeyBytes,
+	/// The target value
+	pub target_value: StorageValueBytes,
+	/// The amount of the value to update per one block
+	pub per_block: StorageValueBytes,
+}
 
 pub use module::*;
 
 #[frame_support::pallet]
 pub mod module {
-	use frame_support::{
-		ensure,
-		pallet_prelude::*,
-		storage,
-		traits::{EnsureOrigin, Get},
-	};
-	use frame_system::pallet_prelude::*;
-	use sp_runtime::{traits::SaturatedConversion, DispatchResult, RuntimeDebug};
-	use sp_std::prelude::Vec;
+	use super::*;
 
 	pub trait WeightInfo {
 		fn gradually_update() -> Weight;
@@ -48,25 +63,12 @@ pub mod module {
 	pub(crate) type StorageKeyBytes = Vec<u8>;
 	pub(crate) type StorageValueBytes = Vec<u8>;
 
-	/// Gradually update a value stored at `key` to `target_value`,
-	/// change `per_block` * `T::UpdateFrequency` per `T::UpdateFrequency`
-	/// blocks.
-	#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
-	pub struct GraduallyUpdate {
-		/// The storage key of the value to update
-		pub key: StorageKeyBytes,
-		/// The target value
-		pub target_value: StorageValueBytes,
-		/// The amount of the value to update per one block
-		pub per_block: StorageValueBytes,
-	}
-
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
-		#[pallet::constant]
 		/// The frequency of updating values between blocks
+		#[pallet::constant]
 		type UpdateFrequency: Get<Self::BlockNumber>;
 
 		/// The origin that can schedule an update
@@ -89,7 +91,7 @@ pub mod module {
 	}
 
 	#[pallet::event]
-	#[pallet::generate_deposit(fn deposit_event)]
+	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Gradually update added. [key, per_block, target_value]
 		GraduallyUpdateAdded(StorageKeyBytes, StorageValueBytes, StorageValueBytes),
@@ -99,15 +101,15 @@ pub mod module {
 		Updated(T::BlockNumber, StorageKeyBytes, StorageValueBytes),
 	}
 
+	/// All the on-going updates
 	#[pallet::storage]
 	#[pallet::getter(fn gradually_updates)]
-	/// All the on-going updates
-	type GraduallyUpdates<T: Config> = StorageValue<_, Vec<GraduallyUpdate>, ValueQuery>;
+	pub(crate) type GraduallyUpdates<T: Config> = StorageValue<_, Vec<GraduallyUpdate>, ValueQuery>;
 
+	/// The last updated block number
 	#[pallet::storage]
 	#[pallet::getter(fn last_updated_at)]
-	/// The last updated block number
-	type LastUpdatedAt<T: Config> = StorageValue<_, T::BlockNumber, ValueQuery>;
+	pub(crate) type LastUpdatedAt<T: Config> = StorageValue<_, T::BlockNumber, ValueQuery>;
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(PhantomData<T>);
@@ -187,68 +189,68 @@ pub mod module {
 			Ok(().into())
 		}
 	}
+}
 
-	impl<T: Config> Pallet<T> {
-		fn _need_update(now: T::BlockNumber) -> bool {
-			now >= Self::last_updated_at() + T::UpdateFrequency::get()
+impl<T: Config> Pallet<T> {
+	fn _need_update(now: T::BlockNumber) -> bool {
+		now >= Self::last_updated_at() + T::UpdateFrequency::get()
+	}
+
+	fn _on_finalize(now: T::BlockNumber) {
+		if !Self::_need_update(now) {
+			return;
 		}
 
-		fn _on_finalize(now: T::BlockNumber) {
-			if !Self::_need_update(now) {
-				return;
+		let mut gradually_updates = GraduallyUpdates::<T>::get();
+		let initial_count = gradually_updates.len();
+
+		gradually_updates.retain(|update| {
+			let mut keep = true;
+			let current_value = storage::unhashed::get::<StorageValueBytes>(&update.key).unwrap_or_default();
+			let current_value_u128 = u128::from_le_bytes(Self::convert_vec_to_u8(&current_value));
+
+			let frequency_u128: u128 = T::UpdateFrequency::get().saturated_into();
+
+			let step = u128::from_le_bytes(Self::convert_vec_to_u8(&update.per_block));
+			let step_u128 = step.checked_mul(frequency_u128).unwrap();
+
+			let target_u128 = u128::from_le_bytes(Self::convert_vec_to_u8(&update.target_value));
+
+			let new_value_u128 = if current_value_u128 > target_u128 {
+				(current_value_u128.checked_sub(step_u128).unwrap()).max(target_u128)
+			} else {
+				(current_value_u128.checked_add(step_u128).unwrap()).min(target_u128)
+			};
+
+			// current_value equal target_value, remove gradually_update
+			if new_value_u128 == target_u128 {
+				keep = false;
 			}
 
-			let mut gradually_updates = GraduallyUpdates::<T>::get();
-			let initial_count = gradually_updates.len();
+			let mut value = new_value_u128.encode();
+			value.truncate(update.target_value.len());
 
-			gradually_updates.retain(|update| {
-				let mut keep = true;
-				let current_value = storage::unhashed::get::<StorageValueBytes>(&update.key).unwrap_or_default();
-				let current_value_u128 = u128::from_le_bytes(Self::convert_vec_to_u8(&current_value));
+			storage::unhashed::put(&update.key, &value);
 
-				let frequency_u128: u128 = T::UpdateFrequency::get().saturated_into();
+			Self::deposit_event(Event::Updated(now, update.key.clone(), value));
 
-				let step = u128::from_le_bytes(Self::convert_vec_to_u8(&update.per_block));
-				let step_u128 = step.checked_mul(frequency_u128).unwrap();
+			keep
+		});
 
-				let target_u128 = u128::from_le_bytes(Self::convert_vec_to_u8(&update.target_value));
-
-				let new_value_u128 = if current_value_u128 > target_u128 {
-					(current_value_u128.checked_sub(step_u128).unwrap()).max(target_u128)
-				} else {
-					(current_value_u128.checked_add(step_u128).unwrap()).min(target_u128)
-				};
-
-				// current_value equal target_value, remove gradually_update
-				if new_value_u128 == target_u128 {
-					keep = false;
-				}
-
-				let mut value = new_value_u128.encode();
-				value.truncate(update.target_value.len());
-
-				storage::unhashed::put(&update.key, &value);
-
-				Self::deposit_event(Event::Updated(now, update.key.clone(), value));
-
-				keep
-			});
-
-			// gradually_update has finished. Remove it from GraduallyUpdates.
-			if gradually_updates.len() < initial_count {
-				GraduallyUpdates::<T>::put(gradually_updates);
-			}
-
-			LastUpdatedAt::<T>::put(now);
+		// gradually_update has finished. Remove it from GraduallyUpdates.
+		if gradually_updates.len() < initial_count {
+			GraduallyUpdates::<T>::put(gradually_updates);
 		}
 
-		#[allow(clippy::ptr_arg)]
-		fn convert_vec_to_u8(input: &StorageValueBytes) -> [u8; 16] {
-			let mut array: [u8; 16] = [0; 16];
-			for (i, v) in input.iter().enumerate() {
-				array[i] = *v;
-			}
-			array
+		LastUpdatedAt::<T>::put(now);
+	}
+
+	#[allow(clippy::ptr_arg)]
+	fn convert_vec_to_u8(input: &StorageValueBytes) -> [u8; 16] {
+		let mut array: [u8; 16] = [0; 16];
+		for (i, v) in input.iter().enumerate() {
+			array[i] = *v;
 		}
+		array
 	}
 }

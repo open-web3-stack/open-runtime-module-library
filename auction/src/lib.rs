@@ -13,6 +13,14 @@
 #![allow(clippy::string_lit_as_bytes)]
 #![allow(clippy::unused_unit)]
 
+use frame_support::pallet_prelude::*;
+use frame_system::{ensure_signed, pallet_prelude::*};
+use orml_traits::{Auction, AuctionHandler, AuctionInfo, Change};
+use sp_runtime::{
+	traits::{AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One, Zero},
+	DispatchError, DispatchResult,
+};
+
 mod default_weight;
 mod mock;
 mod tests;
@@ -21,13 +29,7 @@ pub use module::*;
 
 #[frame_support::pallet]
 pub mod module {
-	use frame_support::pallet_prelude::*;
-	use frame_system::{ensure_signed, pallet_prelude::*};
-	use orml_traits::{Auction, AuctionHandler, AuctionInfo, Change};
-	use sp_runtime::{
-		traits::{AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One, Zero},
-		DispatchError, DispatchResult,
-	};
+	use super::*;
 
 	pub trait WeightInfo {
 		fn bid_collateral_auction() -> Weight;
@@ -77,20 +79,20 @@ pub mod module {
 		Bid(T::AuctionId, T::AccountId, T::Balance),
 	}
 
+	/// Stores on-going and future auctions. Closed auction are removed.
 	#[pallet::storage]
 	#[pallet::getter(fn auctions)]
-	/// Stores on-going and future auctions. Closed auction are removed.
 	pub type Auctions<T: Config> =
 		StorageMap<_, Twox64Concat, T::AuctionId, AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>, OptionQuery>;
 
+	/// Track the next auction ID.
 	#[pallet::storage]
 	#[pallet::getter(fn auctions_index)]
-	/// Track the next auction ID.
 	pub type AuctionsIndex<T: Config> = StorageValue<_, T::AuctionId, ValueQuery>;
 
+	/// Index auctions by end time.
 	#[pallet::storage]
 	#[pallet::getter(fn auction_end_time)]
-	/// Index auctions by end time.
 	pub type AuctionEndTime<T: Config> =
 		StorageDoubleMap<_, Twox64Concat, T::BlockNumber, Blake2_128Concat, T::AuctionId, (), OptionQuery>;
 
@@ -163,55 +165,55 @@ pub mod module {
 			Ok(().into())
 		}
 	}
+}
 
-	impl<T: Config> Auction<T::AccountId, T::BlockNumber> for Pallet<T> {
-		type AuctionId = T::AuctionId;
-		type Balance = T::Balance;
+impl<T: Config> Auction<T::AccountId, T::BlockNumber> for Pallet<T> {
+	type AuctionId = T::AuctionId;
+	type Balance = T::Balance;
 
-		fn auction_info(id: Self::AuctionId) -> Option<AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber>> {
-			Self::auctions(id)
+	fn auction_info(id: Self::AuctionId) -> Option<AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber>> {
+		Self::auctions(id)
+	}
+
+	fn update_auction(
+		id: Self::AuctionId,
+		info: AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber>,
+	) -> DispatchResult {
+		let auction = Auctions::<T>::get(id).ok_or(Error::<T>::AuctionNotExist)?;
+		if let Some(old_end) = auction.end {
+			AuctionEndTime::<T>::remove(&old_end, id);
+		}
+		if let Some(new_end) = info.end {
+			AuctionEndTime::<T>::insert(&new_end, id, ());
+		}
+		Auctions::<T>::insert(id, info);
+		Ok(())
+	}
+
+	fn new_auction(
+		start: T::BlockNumber,
+		end: Option<T::BlockNumber>,
+	) -> sp_std::result::Result<Self::AuctionId, DispatchError> {
+		let auction = AuctionInfo { bid: None, start, end };
+		let auction_id =
+			<AuctionsIndex<T>>::try_mutate(|n| -> sp_std::result::Result<Self::AuctionId, DispatchError> {
+				let id = *n;
+				ensure!(id != Self::AuctionId::max_value(), Error::<T>::NoAvailableAuctionId);
+				*n += One::one();
+				Ok(id)
+			})?;
+		Auctions::<T>::insert(auction_id, auction);
+		if let Some(end_block) = end {
+			AuctionEndTime::<T>::insert(&end_block, auction_id, ());
 		}
 
-		fn update_auction(
-			id: Self::AuctionId,
-			info: AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber>,
-		) -> DispatchResult {
-			let auction = Auctions::<T>::get(id).ok_or(Error::<T>::AuctionNotExist)?;
-			if let Some(old_end) = auction.end {
-				AuctionEndTime::<T>::remove(&old_end, id);
-			}
-			if let Some(new_end) = info.end {
-				AuctionEndTime::<T>::insert(&new_end, id, ());
-			}
-			Auctions::<T>::insert(id, info);
-			Ok(())
-		}
+		Ok(auction_id)
+	}
 
-		fn new_auction(
-			start: T::BlockNumber,
-			end: Option<T::BlockNumber>,
-		) -> sp_std::result::Result<Self::AuctionId, DispatchError> {
-			let auction = AuctionInfo { bid: None, start, end };
-			let auction_id =
-				<AuctionsIndex<T>>::try_mutate(|n| -> sp_std::result::Result<Self::AuctionId, DispatchError> {
-					let id = *n;
-					ensure!(id != Self::AuctionId::max_value(), Error::<T>::NoAvailableAuctionId);
-					*n += One::one();
-					Ok(id)
-				})?;
-			Auctions::<T>::insert(auction_id, auction);
-			if let Some(end_block) = end {
-				AuctionEndTime::<T>::insert(&end_block, auction_id, ());
-			}
-
-			Ok(auction_id)
-		}
-
-		fn remove_auction(id: Self::AuctionId) {
-			if let Some(auction) = Auctions::<T>::take(&id) {
-				if let Some(end_block) = auction.end {
-					AuctionEndTime::<T>::remove(end_block, id);
-				}
+	fn remove_auction(id: Self::AuctionId) {
+		if let Some(auction) = Auctions::<T>::take(&id) {
+			if let Some(end_block) = auction.end {
+				AuctionEndTime::<T>::remove(end_block, id);
 			}
 		}
 	}

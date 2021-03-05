@@ -5,71 +5,9 @@ on:
 name: Publish Package
 
 jobs:
-  check:
-    name: Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-      - run: make Cargo.toml
-      - run: cargo install cargo-unleash --version 1.0.0-alpha.10
-      - run: cargo unleash check
-
-  fmt:
-    name: Rustfmt
-    runs-on: ubuntu-latest
-    needs: check
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly
-          override: true
-      - run: rustup component add rustfmt
-      - run: make Cargo.toml
-      - uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all
-
-  test:
-    name: Tests
-    runs-on: ubuntu-latest
-    needs: fmt
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-      - run: make Cargo.toml
-      - uses: actions-rs/cargo@v1
-        with:
-          command: test
-
-  clippy:
-    name: Clippy
-    runs-on: ubuntu-latest
-    needs: test
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-      - run: make Cargo.toml
-      - run: rustup component add clippy
-      - uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-
   publish:
     name: Publish Package
     runs-on: ubuntu-latest
-    needs: clippy
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -77,7 +15,7 @@ jobs:
           toolchain: stable
           override: true
       - run: make Cargo.toml
-      - run: cargo install cargo-unleash --version 1.0.0-alpha.10
-      - run: cargo unleash em-dragons --no-check
+      - run: cargo install cargo-unleash --git https://github.com/xlc/cargo-unleash.git # https://github.com/paritytech/cargo-unleash/pull/38
+      - run: cargo unleash em-dragons
         env:
           CRATES_TOKEN: ${{ secrets.CRATES_TOKEN }}

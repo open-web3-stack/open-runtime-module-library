@@ -3,9 +3,8 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{assert_noop, assert_ok, traits::OnFinalize};
-use mock::*;
-use orml_traits::{Auction, AuctionInfo};
+use frame_support::{assert_noop, assert_ok};
+use mock::{Event, *};
 
 #[test]
 fn new_auction_should_work() {
@@ -69,7 +68,7 @@ fn bid_should_work() {
 			})
 		);
 		assert_ok!(AuctionModule::bid(Origin::signed(ALICE), 0, 20));
-		let bid_event = TestEvent::auction(Event::Bid(0, ALICE, 20));
+		let bid_event = Event::auction(crate::Event::Bid(0, ALICE, 20));
 		assert!(System::events().iter().any(|record| record.event == bid_event));
 		assert_eq!(
 			AuctionModule::auction_info(0),

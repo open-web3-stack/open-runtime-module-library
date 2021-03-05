@@ -1,12 +1,8 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{
-	assert_noop, assert_ok,
-	traits::{ChangeMembers, OnFinalize},
-	weights::Pays,
-};
-use mock::*;
+use frame_support::{assert_noop, assert_ok};
+use mock::{Event, *};
 
 #[test]
 fn should_feed_values_from_member() {
@@ -26,7 +22,7 @@ fn should_feed_values_from_member() {
 			Pays::No
 		);
 
-		let new_feed_data_event = TestEvent::oracle(Event::NewFeedData(1, vec![(50, 1000), (51, 900), (52, 800)]));
+		let new_feed_data_event = Event::oracle(crate::Event::NewFeedData(1, vec![(50, 1000), (51, 900), (52, 800)]));
 		assert!(System::events()
 			.iter()
 			.any(|record| record.event == new_feed_data_event));
