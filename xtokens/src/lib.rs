@@ -1,4 +1,5 @@
 #![cfg_attr(not(feature = "std"), no_std)]
+#![allow(clippy::from_over_into)]
 #![allow(clippy::unused_unit)]
 
 pub use module::*;
