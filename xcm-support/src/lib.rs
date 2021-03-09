@@ -15,7 +15,7 @@ use sp_std::{
 use xcm::v0::{Error, Junction, MultiAsset, MultiLocation, Result};
 use xcm_executor::traits::{FilterAssetLocation, LocationConversion, MatchesFungible, NativeAsset, TransactAsset};
 
-use frame_support::{debug, traits::Get};
+use frame_support::{log, traits::Get};
 
 pub trait CurrencyIdConversion<CurrencyId> {
 	fn from_asset(asset: &MultiAsset) -> Option<CurrencyId>;
@@ -43,32 +43,32 @@ impl<
 	for MultiCurrencyAdapter<MultiCurrency, Matcher, AccountIdConverter, AccountId, CurrencyIdConverter, CurrencyId>
 {
 	fn deposit_asset(asset: &MultiAsset, location: &MultiLocation) -> Result {
-		debug::info!("------------------------------------------------");
-		debug::info!(">>> trying deposit. asset: {:?}, location: {:?}", asset, location);
+		log::info!("------------------------------------------------");
+		log::info!(">>> trying deposit. asset: {:?}, location: {:?}", asset, location);
 		let who = AccountIdConverter::from_location(location).ok_or(())?;
-		debug::info!("who: {:?}", who);
+		log::info!("who: {:?}", who);
 		let currency_id = CurrencyIdConverter::from_asset(asset).ok_or(())?;
-		debug::info!("currency_id: {:?}", currency_id);
+		log::info!("currency_id: {:?}", currency_id);
 		let amount: MultiCurrency::Balance = Matcher::matches_fungible(&asset).ok_or(())?.saturated_into();
-		debug::info!("amount: {:?}", amount);
+		log::info!("amount: {:?}", amount);
 		MultiCurrency::deposit(currency_id, &who, amount).map_err(|_| ())?;
-		debug::info!(">>> success deposit.");
-		debug::info!("------------------------------------------------");
+		log::info!(">>> success deposit.");
+		log::info!("------------------------------------------------");
 		Ok(())
 	}
 
 	fn withdraw_asset(asset: &MultiAsset, location: &MultiLocation) -> result::Result<MultiAsset, Error> {
-		debug::info!("------------------------------------------------");
-		debug::info!(">>> trying withdraw. asset: {:?}, location: {:?}", asset, location);
+		log::info!("------------------------------------------------");
+		log::info!(">>> trying withdraw. asset: {:?}, location: {:?}", asset, location);
 		let who = AccountIdConverter::from_location(location).ok_or(())?;
-		debug::info!("who: {:?}", who);
+		log::info!("who: {:?}", who);
 		let currency_id = CurrencyIdConverter::from_asset(asset).ok_or(())?;
-		debug::info!("currency_id: {:?}", currency_id);
+		log::info!("currency_id: {:?}", currency_id);
 		let amount: MultiCurrency::Balance = Matcher::matches_fungible(&asset).ok_or(())?.saturated_into();
-		debug::info!("amount: {:?}", amount);
+		log::info!("amount: {:?}", amount);
 		MultiCurrency::withdraw(currency_id, &who, amount).map_err(|_| ())?;
-		debug::info!(">>> success withdraw.");
-		debug::info!("------------------------------------------------");
+		log::info!(">>> success withdraw.");
+		log::info!("------------------------------------------------");
 		Ok(asset.clone())
 	}
 }
