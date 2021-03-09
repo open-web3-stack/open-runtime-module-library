@@ -68,3 +68,7 @@ pub struct TimestampedValue<Value: Ord + PartialOrd, Moment> {
 pub trait Happened<T> {
 	fn happened(t: &T);
 }
+
+pub trait Contains<T> {
+	fn contains(t: &T) -> bool;
+}
