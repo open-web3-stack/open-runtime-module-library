@@ -56,6 +56,7 @@ ORML is part of the bigger `Open-Web3-Stack` initiative, that is currently under
 _In alphabetical order_
 
 - [Acala Network](https://github.com/AcalaNetwork/Acala)
+- [Bifrost Finance](https://github.com/bifrost-finance/bifrost)
 - [Bit.Country](https://github.com/bit-country/Bit-Country-Blockchain)
 - [ChainX](https://github.com/chainx-org/ChainX)
 - [HydraDX](https://github.com/galacticcouncil/hack.HydraDX-node)
