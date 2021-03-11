@@ -1,9 +1,7 @@
 // TODO: research if there's a better way
 #![cfg_attr(not(feature = "std"), no_std)]
 
-#[macro_use]
-extern crate lazy_static;
-
+use lazy_static::lazy_static;
 use sp_std::sync::Mutex;
 
 pub use weight_meter_procedural::*;
