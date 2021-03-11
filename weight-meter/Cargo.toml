@@ -9,7 +9,10 @@ edition = "2018"
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
+lazy_static = "1.4.0"
+sp-std = {version = "3.0.0", default-fearures = false }
 weight-meter-procedural = { path = "weight-meter-procedural" }
 
 [features]
+std = ["sp-std/std"]
 runtime-benchmarks = ["weight-meter-procedural/runtime-benchmarks"]
