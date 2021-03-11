@@ -1,0 +1,15 @@
+[package]
+name = "weight-meter"
+version = "0.1.0"
+license = "Apache-2.0"
+authors = ["Laminar Developers <hello@laminar.one>"]
+edition = "2018"
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[dependencies]
+weight-meter-procedural = { path = "weight-meter-procedural" }
+
+[features]
+runtime-benchmarks = ["weight-meter-procedural/runtime-benchmarks"]
