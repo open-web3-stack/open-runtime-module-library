@@ -62,5 +62,6 @@ _In alphabetical order_
 - [HydraDX](https://github.com/galacticcouncil/hack.HydraDX-node)
 - [Laminar Chain](https://github.com/laminar-protocol/laminar-chain)
 - [Plasm Network](https://github.com/PlasmNetwork)
+- [Polkadex](https://github.com/Polkadex-Substrate/Polkadex)
 - [Setheum Network](https://github.com/Setheum-Labs/Setheum)
 - [Valiu Liquidity Network](https://github.com/valibre-org/vln-node)
