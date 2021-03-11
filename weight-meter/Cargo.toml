@@ -14,5 +14,6 @@ sp-std = {version = "3.0.0", default-fearures = false }
 weight-meter-procedural = { path = "weight-meter-procedural" }
 
 [features]
+default = ["std"]
 std = ["sp-std/std"]
 runtime-benchmarks = ["weight-meter-procedural/runtime-benchmarks"]
