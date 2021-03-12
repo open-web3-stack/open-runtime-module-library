@@ -2,8 +2,8 @@
 
 extern crate proc_macro;
 use proc_macro::TokenStream;
-use quote::{quote, ToTokens, format_ident};
-use syn::{Attribute, FnArg, Ident, ItemImpl, ImplItem, ImplItemMethod, Item, ItemFn, ItemMod};
+use quote::{format_ident, quote, ToTokens};
+use syn::{Attribute, FnArg, Ident, ImplItem, ImplItemMethod, Item, ItemFn, ItemImpl, ItemMod};
 
 #[proc_macro_attribute]
 pub fn start_with(attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -48,17 +48,18 @@ pub fn method_benchmarks(_attr: TokenStream, input: TokenStream) -> TokenStream 
 
 		// Generate callable methods dynamically
 		content.iter().for_each(|item| {
-			if let Item::Impl(ItemImpl {items, ..}) = item {
+			if let Item::Impl(ItemImpl { items, .. }) = item {
 				items.iter().for_each(|item_impl| {
-					if let ImplItem::Method(ImplItemMethod { sig, ..} ) = item_impl {
-
+					if let ImplItem::Method(ImplItemMethod { sig, .. }) = item_impl {
 						let method_name = sig.ident.clone();
 
 						// generate call method if whitelisted
 						if whitelist.contains(&method_name) {
 							let call_method_name = format_ident!("method_{}", method_name);
 							let args = sig.inputs.clone().into_iter().collect::<Vec<_>>();
-							let inputs: Vec<proc_macro2::TokenStream> = sig.inputs.iter()
+							let inputs: Vec<proc_macro2::TokenStream> = sig
+								.inputs
+								.iter()
 								.map(|x| argument_name(&x))
 								.filter(|x| x != &"")
 								.map(|x| x.parse().unwrap())
@@ -89,9 +90,11 @@ pub fn method_benchmarks(_attr: TokenStream, input: TokenStream) -> TokenStream 
 					if has_attribute(&item_impl.attrs, "pallet::call") {
 						item_impl.items.append(&mut methods);
 
-						//// debug
-						// let method_names = whitelist.iter().map(|x| x.to_string()).collect::<Vec<_>>();
-						// println!("injected callable methods for inner methods {:?}", method_names);
+						// debug
+						// println!(
+						// 	"injected callable methods for inner methods {:?}",
+						// 	whitelist.iter().map(|x| x.to_string()).collect::<Vec<_>>()
+						// );
 					}
 					return Item::from(item_impl);
 				} else {
@@ -135,7 +138,7 @@ fn find_methods(content: &Vec<Item>) -> Vec<Ident> {
 	content.iter().for_each(|content| {
 		if let Item::Impl(item_impl) = content {
 			item_impl.items.iter().for_each(|item| {
-				if let ImplItem::Method(ImplItemMethod {attrs, sig, ..}) = item {
+				if let ImplItem::Method(ImplItemMethod { attrs, sig, .. }) = item {
 					if has_attribute(&attrs, "weight_meter::weight") {
 						methods.push(sig.ident.clone());
 					}
