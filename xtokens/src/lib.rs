@@ -1,6 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::from_over_into)]
 #![allow(clippy::unused_unit)]
+#![allow(clippy::large_enum_variant)]
 
 pub use module::*;
 
