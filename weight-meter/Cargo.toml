@@ -9,7 +9,11 @@ edition = "2018"
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
-weight-meter-procedural = { path = "weight-meter-procedural" }
+weight-meter-procedural = { path = "weight-meter-procedural", default-features = false }
 
 [features]
+default = ["std"]
+std = [
+    "weight-meter-procedural/std",
+]
 runtime-benchmarks = ["weight-meter-procedural/runtime-benchmarks"]

@@ -1,9 +1,8 @@
 #![allow(unused_imports)]
 
-extern crate proc_macro;
 use proc_macro::TokenStream;
 use quote::{format_ident, quote, ToTokens};
-use syn::{Attribute, FnArg, Ident, ImplItem, ImplItemMethod, Item, ItemFn, ItemImpl, ItemMod};
+use syn::{Attribute, FnArg, Ident, ImplItem, ImplItemMethod, Item, ItemFn, ItemImpl, ItemMod, Pat};
 
 #[proc_macro_attribute]
 pub fn start_with(attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -56,14 +55,8 @@ pub fn method_benchmarks(_attr: TokenStream, input: TokenStream) -> TokenStream 
 						// generate call method if whitelisted
 						if whitelist.contains(&method_name) {
 							let call_method_name = format_ident!("method_{}", method_name);
-							let args = sig.inputs.clone().into_iter().collect::<Vec<_>>();
-							let inputs: Vec<proc_macro2::TokenStream> = sig
-								.inputs
-								.iter()
-								.map(|x| argument_name(&x))
-								.filter(|x| x != &"")
-								.map(|x| x.parse().unwrap())
-								.collect();
+							let args = sig.inputs.iter().collect::<Vec<_>>();
+							let inputs = sig.inputs.iter().map(|x| argument_name(&x)).collect::<Vec<_>>();
 
 							// construct call method
 							let method = quote! {
@@ -89,12 +82,6 @@ pub fn method_benchmarks(_attr: TokenStream, input: TokenStream) -> TokenStream 
 				if let Item::Impl(mut item_impl) = item {
 					if has_attribute(&item_impl.attrs, "pallet::call") {
 						item_impl.items.append(&mut methods);
-
-						// debug
-						// println!(
-						// 	"injected callable methods for inner methods {:?}",
-						// 	whitelist.iter().map(|x| x.to_string()).collect::<Vec<_>>()
-						// );
 					}
 					return Item::from(item_impl);
 				} else {
@@ -151,9 +138,9 @@ fn find_methods(content: &Vec<Item>) -> Vec<Ident> {
 
 // Extract name from function argument
 #[cfg(feature = "runtime-benchmarks")]
-fn argument_name(x: &FnArg) -> String {
+fn argument_name(x: &FnArg) -> Box<Pat> {
 	match x {
-		FnArg::Receiver(_) => "".into(),
-		FnArg::Typed(a) => a.pat.to_token_stream().to_string(),
+		FnArg::Receiver(_) => panic!("unexpected argument self"),
+		FnArg::Typed(ty) => ty.pat.clone(),
 	}
 }

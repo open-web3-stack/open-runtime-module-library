@@ -14,4 +14,6 @@ quote = "1.0.3"
 syn = { version = "1.0.58", features = ["full"] }
 
 [features]
+default = ["std"]
+std = []
 runtime-benchmarks = []
