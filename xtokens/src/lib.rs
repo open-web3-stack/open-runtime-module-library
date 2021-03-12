@@ -1,6 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::from_over_into)]
 #![allow(clippy::unused_unit)]
+#![allow(clippy::large_enum_variant)]
 
 pub use module::*;
 
@@ -89,19 +90,11 @@ pub mod module {
 
 		/// Transferred to parachain. \[x_currency_id, src, para_id, dest,
 		/// dest_network, amount\]
-		TransferredToParachain(XCurrencyId, T::AccountId, ParaId, T::AccountId, NetworkId, T::Balance),
+		TransferredToParachain(XCurrencyId, T::AccountId, ParaId, MultiLocation, T::Balance),
 
 		/// Transfer to parachain failed. \[x_currency_id, src, para_id, dest,
 		/// dest_network, amount, error\]
-		TransferToParachainFailed(
-			XCurrencyId,
-			T::AccountId,
-			ParaId,
-			T::AccountId,
-			NetworkId,
-			T::Balance,
-			XcmError,
-		),
+		TransferToParachainFailed(XCurrencyId, T::AccountId, ParaId, MultiLocation, T::Balance, XcmError),
 	}
 
 	#[pallet::error]
@@ -164,8 +157,7 @@ pub mod module {
 			origin: OriginFor<T>,
 			x_currency_id: XCurrencyId,
 			para_id: ParaId,
-			dest: T::AccountId,
-			dest_network: NetworkId,
+			dest: MultiLocation,
 			amount: T::Balance,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
@@ -175,25 +167,16 @@ pub mod module {
 			}
 
 			let xcm = match x_currency_id.chain_id {
-				ChainId::RelayChain => {
-					Self::transfer_relay_chain_tokens_to_parachain(para_id, &dest, dest_network.clone(), amount)
-				}
+				ChainId::RelayChain => Self::transfer_relay_chain_tokens_to_parachain(para_id, dest.clone(), amount),
 				ChainId::ParaChain(reserve_chain) => {
 					if T::ParaId::get() == reserve_chain {
-						Self::transfer_owned_tokens_to_parachain(
-							x_currency_id.clone(),
-							para_id,
-							&dest,
-							dest_network.clone(),
-							amount,
-						)
+						Self::transfer_owned_tokens_to_parachain(x_currency_id.clone(), para_id, dest.clone(), amount)
 					} else {
 						Self::transfer_non_owned_tokens_to_parachain(
 							reserve_chain,
 							x_currency_id.clone(),
 							para_id,
-							&dest,
-							dest_network.clone(),
+							dest.clone(),
 							amount,
 						)
 					}
@@ -209,7 +192,6 @@ pub mod module {
 					who,
 					para_id,
 					dest,
-					dest_network,
 					amount,
 				)),
 				Err(err) => Self::deposit_event(Event::<T>::TransferToParachainFailed(
@@ -217,7 +199,6 @@ pub mod module {
 					who,
 					para_id,
 					dest,
-					dest_network,
 					amount,
 					err,
 				)),
@@ -228,12 +209,7 @@ pub mod module {
 	}
 
 	impl<T: Config> Pallet<T> {
-		fn transfer_relay_chain_tokens_to_parachain(
-			para_id: ParaId,
-			dest: &T::AccountId,
-			dest_network: NetworkId,
-			amount: T::Balance,
-		) -> Xcm {
+		fn transfer_relay_chain_tokens_to_parachain(para_id: ParaId, dest: MultiLocation, amount: T::Balance) -> Xcm {
 			Xcm::WithdrawAsset {
 				assets: vec![MultiAsset::ConcreteFungible {
 					id: MultiLocation::X1(Junction::Parent),
@@ -244,14 +220,11 @@ pub mod module {
 					reserve: MultiLocation::X1(Junction::Parent),
 					effects: vec![Order::DepositReserveAsset {
 						assets: vec![MultiAsset::All],
-						// `dest` is children parachain(of parent).
+						// Reserve asset deposit dest is children parachain(of parent).
 						dest: MultiLocation::X1(Junction::Parachain { id: para_id.into() }),
 						effects: vec![Order::DepositAsset {
 							assets: vec![MultiAsset::All],
-							dest: MultiLocation::X1(Junction::AccountId32 {
-								network: dest_network,
-								id: T::AccountId32Convert::convert(dest.clone()),
-							}),
+							dest,
 						}],
 					}],
 				}],
@@ -265,8 +238,7 @@ pub mod module {
 		fn transfer_owned_tokens_to_parachain(
 			x_currency_id: XCurrencyId,
 			para_id: ParaId,
-			dest: &T::AccountId,
-			dest_network: NetworkId,
+			dest: MultiLocation,
 			amount: T::Balance,
 		) -> Xcm {
 			Xcm::WithdrawAsset {
@@ -279,10 +251,7 @@ pub mod module {
 					dest: MultiLocation::X2(Junction::Parent, Junction::Parachain { id: para_id.into() }),
 					effects: vec![Order::DepositAsset {
 						assets: vec![MultiAsset::All],
-						dest: MultiLocation::X1(Junction::AccountId32 {
-							network: dest_network,
-							id: T::AccountId32Convert::convert(dest.clone()),
-						}),
+						dest,
 					}],
 				}],
 			}
@@ -294,16 +263,12 @@ pub mod module {
 			reserve_chain: ParaId,
 			x_currency_id: XCurrencyId,
 			para_id: ParaId,
-			dest: &T::AccountId,
-			dest_network: NetworkId,
+			dest: MultiLocation,
 			amount: T::Balance,
 		) -> Xcm {
 			let deposit_to_dest = Order::DepositAsset {
 				assets: vec![MultiAsset::All],
-				dest: MultiLocation::X1(Junction::AccountId32 {
-					network: dest_network,
-					id: T::AccountId32Convert::convert(dest.clone()),
-				}),
+				dest,
 			};
 			// If transfer to reserve chain, deposit to `dest` on reserve chain,
 			// else deposit reserve asset.
