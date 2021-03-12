@@ -1,39 +1,32 @@
 // TODO: research if there's a better way
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use lazy_static::lazy_static;
-use sp_std::sync::Mutex;
-
 pub use weight_meter_procedural::*;
 
-#[derive(Default)]
-struct State {
-	pub used_weight: u64,
-	pub nested: usize,
-}
-
-lazy_static! {
-	static ref STATE: Mutex<State> = Mutex::new(State::default());
-}
+static mut USED_WEIGHT: u64 = 0;
+static mut NESTED: u64 = 0;
 
 pub fn using(m: u64) {
-	let mut s = STATE.lock().unwrap();
-	s.used_weight = s.used_weight.saturating_add(m);
+	unsafe {
+		USED_WEIGHT = USED_WEIGHT.saturating_add(m);
+	}
 }
 
 pub fn used_weight() -> u64 {
-	STATE.lock().unwrap().used_weight
+	unsafe { USED_WEIGHT }
 }
 
 pub fn start_with(m: u64) {
-	let mut s = STATE.lock().unwrap();
-	if s.nested == 0 {
-		s.used_weight = m;
+	unsafe {
+		if NESTED == 0 {
+			USED_WEIGHT = m;
+		}
+		NESTED = NESTED.saturating_add(1);
 	}
-	s.nested = s.nested.saturating_add(1);
 }
 
 pub fn end() {
-	let mut s = STATE.lock().unwrap();
-	s.nested = s.nested.saturating_sub(1);
+	unsafe {
+		NESTED = NESTED.saturating_sub(1);
+	}
 }
