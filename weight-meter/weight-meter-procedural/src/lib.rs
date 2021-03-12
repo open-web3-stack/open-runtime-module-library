@@ -11,9 +11,9 @@ pub fn start_with(attr: TokenStream, item: TokenStream) -> TokenStream {
 	(quote! {
 		#(#attrs)*
 		#vis #sig {
-			weight_meter::start_with(#base_weight);
+			orml_weight_meter::start_with(#base_weight);
 			let result = #block;
-			weight_meter::end();
+			orml_weight_meter::end();
 			result
 		}
 	})
@@ -27,7 +27,7 @@ pub fn weight(attr: TokenStream, item: TokenStream) -> TokenStream {
 	(quote! {
 		#(#attrs)*
 		#vis #sig {
-			weight_meter::using(#weight);
+			orml_weight_meter::using(#weight);
 			#block
 		}
 	})
@@ -118,7 +118,7 @@ fn has_attribute(attrs: &Vec<Attribute>, attr: &str) -> bool {
 	attributes.contains(&attr.to_string())
 }
 
-// Find methods with attribute `#[weight_meter::weight]`
+// Find methods with attribute `#[orml_weight_meter::weight]`
 #[cfg(feature = "runtime-benchmarks")]
 fn find_methods(content: &Vec<Item>) -> Vec<Ident> {
 	let mut methods = vec![];
@@ -126,7 +126,7 @@ fn find_methods(content: &Vec<Item>) -> Vec<Ident> {
 		if let Item::Impl(item_impl) = content {
 			item_impl.items.iter().for_each(|item| {
 				if let ImplItem::Method(ImplItemMethod { attrs, sig, .. }) = item {
-					if has_attribute(&attrs, "weight_meter::weight") {
+					if has_attribute(&attrs, "orml_weight_meter::weight") {
 						methods.push(sig.ident.clone());
 					}
 				}
