@@ -65,16 +65,20 @@ pub mod module {
 			+ MaybeSerializeDeserialize
 			+ Into<u128>;
 
-		/// Convertor `Balance` to `RelayChainBalance`.
+		/// Convert `Balance` to `RelayChainBalance`.
 		type ToRelayChainBalance: Convert<Self::Balance, RelayChainBalance>;
 
+		/// Convert `Self::Account` to `AccountId32`
 		type AccountId32Convert: Convert<Self::AccountId, [u8; 32]>;
 
+		/// The network id of relay chain. Typically `NetworkId::Polkadot` or
+		/// `NetworkId::Kusama`.
 		type RelayChainNetworkId: Get<NetworkId>;
 
-		/// Parachain ID.
+		/// Self parachain ID.
 		type ParaId: Get<ParaId>;
 
+		/// Xcm handler to execute XCM.
 		type XcmHandler: XcmHandler<Self::AccountId>;
 	}
 
