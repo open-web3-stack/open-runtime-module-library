@@ -12,10 +12,14 @@ use sp_std::{
 	result,
 };
 
-use xcm::v0::{Error, Junction, MultiAsset, MultiLocation, Result};
+use xcm::v0::{Error, Junction, MultiAsset, MultiLocation, Result, Xcm};
 use xcm_executor::traits::{FilterAssetLocation, LocationConversion, MatchesFungible, NativeAsset, TransactAsset};
 
-use frame_support::{log, traits::Get};
+use frame_support::{dispatch::DispatchResult, log, traits::Get};
+
+pub trait XcmHandler<AccountId> {
+	fn execute_xcm(origin: AccountId, xcm: Xcm) -> DispatchResult;
+}
 
 pub trait CurrencyIdConversion<CurrencyId> {
 	fn from_asset(asset: &MultiAsset) -> Option<CurrencyId>;

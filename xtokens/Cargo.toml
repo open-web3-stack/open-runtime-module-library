@@ -20,7 +20,8 @@ frame-system = { git = "https://github.com/paritytech/substrate", branch = "roco
 cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", branch = "rococo-v1", default-features = false }
 
 xcm = { git = "https://github.com/paritytech/polkadot", branch = "rococo-v1", default-features = false }
-xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "rococo-v1", default-features = false }
+
+orml-xcm-support = { path = "../xcm-support", default-features = false }
 
 [dev-dependencies]
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
@@ -39,4 +40,5 @@ std = [
 	"frame-system/std",
 	"cumulus-primitives-core/std",
 	"xcm/std",
+	"orml-xcm-support/std",
 ]
