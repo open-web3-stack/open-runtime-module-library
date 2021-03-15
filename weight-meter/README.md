@@ -3,6 +3,7 @@
 ## How to use WeightMeter
 1. Include `WeightMeter` into your module Cargo.toml
 ```
+[dependencies]
 orml-weight-meter = { version = "0.1.0", default-features = false }
 
 std = [
