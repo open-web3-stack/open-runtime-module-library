@@ -1,21 +1,20 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::FullCodec;
-use sp_runtime::traits::{CheckedConversion, Convert, MaybeSerializeDeserialize, SaturatedConversion};
+use frame_support::{dispatch::DispatchResult, traits::Get};
+use sp_runtime::traits::{CheckedConversion, Convert};
 use sp_std::{
-	cmp::{Eq, PartialEq},
 	collections::btree_set::BTreeSet,
 	convert::{TryFrom, TryInto},
-	fmt::Debug,
 	marker::PhantomData,
 	prelude::*,
-	result,
 };
 
-use xcm::v0::{Error, Junction, MultiAsset, MultiLocation, Result, Xcm};
-use xcm_executor::traits::{FilterAssetLocation, LocationConversion, MatchesFungible, NativeAsset, TransactAsset};
+use xcm::v0::{Junction, MultiAsset, MultiLocation, Xcm};
+use xcm_executor::traits::{FilterAssetLocation, MatchesFungible, NativeAsset};
 
-use frame_support::{dispatch::DispatchResult, log, traits::Get};
+pub use currency_adapter::MultiCurrencyAdapter;
+
+mod currency_adapter;
 
 pub trait XcmHandler<AccountId> {
 	fn execute_xcm(origin: AccountId, xcm: Xcm) -> DispatchResult;
@@ -23,58 +22,6 @@ pub trait XcmHandler<AccountId> {
 
 pub trait CurrencyIdConversion<CurrencyId> {
 	fn from_asset(asset: &MultiAsset) -> Option<CurrencyId>;
-}
-
-pub struct MultiCurrencyAdapter<MultiCurrency, Matcher, AccountIdConverter, AccountId, CurrencyIdConverter, CurrencyId>(
-	PhantomData<(
-		MultiCurrency,
-		Matcher,
-		AccountIdConverter,
-		AccountId,
-		CurrencyIdConverter,
-		CurrencyId,
-	)>,
-);
-
-impl<
-		MultiCurrency: orml_traits::MultiCurrency<AccountId, CurrencyId = CurrencyId>,
-		Matcher: MatchesFungible<MultiCurrency::Balance>,
-		AccountIdConverter: LocationConversion<AccountId>,
-		AccountId: sp_std::fmt::Debug,
-		CurrencyIdConverter: CurrencyIdConversion<CurrencyId>,
-		CurrencyId: FullCodec + Eq + PartialEq + Copy + MaybeSerializeDeserialize + Debug,
-	> TransactAsset
-	for MultiCurrencyAdapter<MultiCurrency, Matcher, AccountIdConverter, AccountId, CurrencyIdConverter, CurrencyId>
-{
-	fn deposit_asset(asset: &MultiAsset, location: &MultiLocation) -> Result {
-		log::info!("------------------------------------------------");
-		log::info!(">>> trying deposit. asset: {:?}, location: {:?}", asset, location);
-		let who = AccountIdConverter::from_location(location).ok_or(())?;
-		log::info!("who: {:?}", who);
-		let currency_id = CurrencyIdConverter::from_asset(asset).ok_or(())?;
-		log::info!("currency_id: {:?}", currency_id);
-		let amount: MultiCurrency::Balance = Matcher::matches_fungible(&asset).ok_or(())?.saturated_into();
-		log::info!("amount: {:?}", amount);
-		MultiCurrency::deposit(currency_id, &who, amount).map_err(|_| ())?;
-		log::info!(">>> success deposit.");
-		log::info!("------------------------------------------------");
-		Ok(())
-	}
-
-	fn withdraw_asset(asset: &MultiAsset, location: &MultiLocation) -> result::Result<MultiAsset, Error> {
-		log::info!("------------------------------------------------");
-		log::info!(">>> trying withdraw. asset: {:?}, location: {:?}", asset, location);
-		let who = AccountIdConverter::from_location(location).ok_or(())?;
-		log::info!("who: {:?}", who);
-		let currency_id = CurrencyIdConverter::from_asset(asset).ok_or(())?;
-		log::info!("currency_id: {:?}", currency_id);
-		let amount: MultiCurrency::Balance = Matcher::matches_fungible(&asset).ok_or(())?.saturated_into();
-		log::info!("amount: {:?}", amount);
-		MultiCurrency::withdraw(currency_id, &who, amount).map_err(|_| ())?;
-		log::info!(">>> success withdraw.");
-		log::info!("------------------------------------------------");
-		Ok(asset.clone())
-	}
 }
 
 pub struct IsConcreteWithGeneralKey<CurrencyId, FromRelayChainBalance>(
