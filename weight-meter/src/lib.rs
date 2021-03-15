@@ -1,32 +1,44 @@
 // TODO: research if there's a better way
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use frame_support::weights::Weight;
+
 pub use weight_meter_procedural::*;
 
-static mut USED_WEIGHT: u64 = 0;
-static mut NESTED: u64 = 0;
-
-pub fn using(m: u64) {
-	unsafe {
-		USED_WEIGHT = USED_WEIGHT.saturating_add(m);
-	}
+struct Meter {
+	used_weight: Weight,
+	nested: usize,
 }
 
-pub fn used_weight() -> u64 {
-	unsafe { USED_WEIGHT }
+static METER: spin::Mutex<Meter> = spin::Mutex::new(Meter {
+	used_weight: 0,
+	nested: 0,
+});
+
+pub fn start_with(base: Weight) {
+	let mut meter = METER.lock();
+	if meter.nested == 0 {
+		meter.used_weight = base;
+	}
+	meter.nested = meter.nested.saturating_add(1);
+	drop(meter);
 }
 
-pub fn start_with(m: u64) {
-	unsafe {
-		if NESTED == 0 {
-			USED_WEIGHT = m;
-		}
-		NESTED = NESTED.saturating_add(1);
-	}
+pub fn using(weight: Weight) {
+	let mut meter = METER.lock();
+	meter.used_weight = meter.used_weight.saturating_add(weight);
+	drop(meter);
 }
 
-pub fn end() {
-	unsafe {
-		NESTED = NESTED.saturating_sub(1);
-	}
+pub fn finish() {
+	let mut meter = METER.lock();
+	meter.nested = meter.nested.saturating_sub(1);
+	drop(meter);
+}
+
+pub fn used_weight() -> Weight {
+	let meter = METER.lock();
+	let used_weight = meter.used_weight;
+	drop(meter);
+	used_weight
 }

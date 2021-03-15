@@ -13,7 +13,7 @@ pub fn start_with(attr: TokenStream, item: TokenStream) -> TokenStream {
 		#vis #sig {
 			orml_weight_meter::start_with(#base_weight);
 			let result = #block;
-			orml_weight_meter::end();
+			orml_weight_meter::finish();
 			result
 		}
 	})

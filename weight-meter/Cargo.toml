@@ -9,11 +9,14 @@ edition = "2018"
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
+spin = "0.7.1"
+frame-support = { version = "3.0.0", default-features = false }
 weight-meter-procedural = { path = "weight-meter-procedural", default-features = false }
 
 [features]
 default = ["std"]
 std = [
+    "frame-support/std",
     "weight-meter-procedural/std",
 ]
 runtime-benchmarks = ["weight-meter-procedural/runtime-benchmarks"]
