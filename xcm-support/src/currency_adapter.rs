@@ -55,24 +55,24 @@ impl<
 	for MultiCurrencyAdapter<MultiCurrency, Matcher, AccountIdConverter, AccountId, CurrencyIdConverter, CurrencyId>
 {
 	fn deposit_asset(asset: &MultiAsset, location: &MultiLocation) -> Result {
-		let who =
-			AccountIdConverter::from_location(location).ok_or(XcmError::from(Error::AccountIdConversionFailed))?;
+		let who = AccountIdConverter::from_location(location)
+			.ok_or_else(|| XcmError::from(Error::AccountIdConversionFailed))?;
 		let currency_id =
-			CurrencyIdConverter::from_asset(asset).ok_or(XcmError::from(Error::CurrencyIdConversionFailed))?;
+			CurrencyIdConverter::from_asset(asset).ok_or_else(|| XcmError::from(Error::CurrencyIdConversionFailed))?;
 		let amount: MultiCurrency::Balance = Matcher::matches_fungible(&asset)
-			.ok_or(XcmError::from(Error::AssetNotFound))?
+			.ok_or_else(|| XcmError::from(Error::AssetNotFound))?
 			.saturated_into();
 		MultiCurrency::deposit(currency_id, &who, amount).map_err(|e| XcmError::FailedToTransactAsset(e.into()))?;
 		Ok(())
 	}
 
 	fn withdraw_asset(asset: &MultiAsset, location: &MultiLocation) -> result::Result<MultiAsset, XcmError> {
-		let who =
-			AccountIdConverter::from_location(location).ok_or(XcmError::from(Error::AccountIdConversionFailed))?;
+		let who = AccountIdConverter::from_location(location)
+			.ok_or_else(|| XcmError::from(Error::AccountIdConversionFailed))?;
 		let currency_id =
-			CurrencyIdConverter::from_asset(asset).ok_or(XcmError::from(Error::CurrencyIdConversionFailed))?;
+			CurrencyIdConverter::from_asset(asset).ok_or_else(|| XcmError::from(Error::CurrencyIdConversionFailed))?;
 		let amount: MultiCurrency::Balance = Matcher::matches_fungible(&asset)
-			.ok_or(XcmError::from(Error::AssetNotFound))?
+			.ok_or_else(|| XcmError::from(Error::AssetNotFound))?
 			.saturated_into();
 		MultiCurrency::withdraw(currency_id, &who, amount).map_err(|e| XcmError::FailedToTransactAsset(e.into()))?;
 		Ok(asset.clone())
