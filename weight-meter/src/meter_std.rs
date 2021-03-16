@@ -8,6 +8,7 @@ static METER: spin::Mutex<Meter> = spin::Mutex::new(Meter {
 	depth: 0,
 });
 
+/// Start weight meter with base weight
 pub fn start_with(base: Weight) {
 	let mut meter = METER.lock();
 	if meter.depth == 0 {
@@ -17,18 +18,21 @@ pub fn start_with(base: Weight) {
 	drop(meter);
 }
 
+/// Increment used weight
 pub fn using(weight: Weight) {
 	let mut meter = METER.lock();
 	meter.used_weight = meter.used_weight.saturating_add(weight);
 	drop(meter);
 }
 
+/// Finish weight meter
 pub fn finish() {
 	let mut meter = METER.lock();
 	meter.depth = meter.depth.saturating_sub(1);
 	drop(meter);
 }
 
+/// Get used weight
 pub fn used_weight() -> Weight {
 	let meter = METER.lock();
 	let used_weight = meter.used_weight;
