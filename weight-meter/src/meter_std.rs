@@ -5,15 +5,15 @@ use super::{Meter, Weight};
 
 static METER: spin::Mutex<Meter> = spin::Mutex::new(Meter {
 	used_weight: 0,
-	deep: 0,
+	depth: 0,
 });
 
 pub fn start_with(base: Weight) {
 	let mut meter = METER.lock();
-	if meter.deep == 0 {
+	if meter.depth == 0 {
 		meter.used_weight = base;
 	}
-	meter.deep = meter.deep.saturating_add(1);
+	meter.depth = meter.depth.saturating_add(1);
 	drop(meter);
 }
 
@@ -25,7 +25,7 @@ pub fn using(weight: Weight) {
 
 pub fn finish() {
 	let mut meter = METER.lock();
-	meter.deep = meter.deep.saturating_sub(1);
+	meter.depth = meter.depth.saturating_sub(1);
 	drop(meter);
 }
 

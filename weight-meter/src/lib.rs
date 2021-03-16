@@ -4,9 +4,9 @@ use frame_support::weights::Weight;
 
 struct Meter {
 	used_weight: Weight,
-	// Deep gets incremented when entering call or a sub-call
+	// Depth gets incremented when entering call or a sub-call
 	// This is used to avoid miscalculation during sub-calls
-	deep: usize,
+	depth: u8,
 }
 
 mod meter_no_std;

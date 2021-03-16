@@ -5,15 +5,15 @@ use super::{Meter, Weight};
 
 static mut METER: Meter = Meter {
 	used_weight: 0,
-	deep: 0,
+	depth: 0,
 };
 
 pub fn start_with(base: Weight) {
 	unsafe {
-		if METER.deep == 0 {
+		if METER.depth == 0 {
 			METER.used_weight = base;
 		}
-		METER.deep = METER.deep.saturating_add(1);
+		METER.depth = METER.depth.saturating_add(1);
 	}
 }
 
@@ -25,7 +25,7 @@ pub fn using(weight: Weight) {
 
 pub fn finish() {
 	unsafe {
-		METER.deep = METER.deep.saturating_sub(1);
+		METER.depth = METER.depth.saturating_sub(1);
 	}
 }
 
