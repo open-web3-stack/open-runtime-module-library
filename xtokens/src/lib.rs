@@ -1,3 +1,22 @@
+//! # Xtokens Module
+//!
+//! ## Overview
+//!
+//! The xtokens module provides cross-chain token transfer functionality, by
+//! cross-consensus messages(XCM).
+//!
+//! The xtokens module provides functions for
+//! - Token transfer from parachains to relay chain.
+//! - Token transfer between parachains, including relay chain tokens like DOT,
+//!   KSM, and parachain tokens like ACA, aUSD.
+//!
+//! ## Interface
+//!
+//! ### Dispatchable functions
+//!
+//! - `transfer_to_relay_chain`: Transfer relay chain tokens to relay chain.
+//! - `transfer_to_parachain`: Transfer tokens to a sibling parachain.
+
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::from_over_into)]
 #![allow(clippy::unused_unit)]
@@ -57,6 +76,7 @@ pub mod module {
 	pub trait Config: frame_system::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
+		/// The balance type.
 		type Balance: Parameter
 			+ Member
 			+ AtLeast32BitUnsigned
@@ -137,7 +157,7 @@ pub mod module {
 			Ok(().into())
 		}
 
-		/// Transfer tokens to parachain.
+		/// Transfer tokens to a sibling parachain.
 		#[pallet::weight(10)]
 		#[transactional]
 		pub fn transfer_to_parachain(

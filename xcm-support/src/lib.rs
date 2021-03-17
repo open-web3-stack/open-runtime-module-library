@@ -1,3 +1,11 @@
+//! # XCM Support Module.
+//!
+//! ## Overview
+//!
+//! The XCM support module provides supporting traits, types and
+//! implementations, to support cross-chain message(XCM) integration with ORML
+//! modules.
+
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::{dispatch::DispatchResult, traits::Get};
@@ -19,14 +27,19 @@ mod currency_adapter;
 #[cfg(test)]
 mod tests;
 
+/// The XCM handler to execute XCM locally.
 pub trait XcmHandler<AccountId> {
 	fn execute_xcm(origin: AccountId, xcm: Xcm) -> DispatchResult;
 }
 
+/// Convert `MultiAsset` to `CurrencyId`.
 pub trait CurrencyIdConversion<CurrencyId> {
+	/// Get `CurrencyId` from `MultiAsset`. Returns `None` if conversion failed.
 	fn from_asset(asset: &MultiAsset) -> Option<CurrencyId>;
 }
 
+/// A `MatchesFungible` implementation. It matches relay chain tokens or
+/// parachain tokens that could be decoded from a general key.
 pub struct IsConcreteWithGeneralKey<CurrencyId, FromRelayChainBalance>(
 	PhantomData<(CurrencyId, FromRelayChainBalance)>,
 );
@@ -54,6 +67,8 @@ where
 	}
 }
 
+/// A `FilterAssetLocation` implementation. Filters native assets and ORML
+/// tokens via provided general key to `MultiLocation` pairs.
 pub struct NativePalletAssetOr<Pairs>(PhantomData<Pairs>);
 impl<Pairs: Get<BTreeSet<(Vec<u8>, MultiLocation)>>> FilterAssetLocation for NativePalletAssetOr<Pairs> {
 	fn filter_asset_location(asset: &MultiAsset, origin: &MultiLocation) -> bool {
@@ -72,6 +87,8 @@ impl<Pairs: Get<BTreeSet<(Vec<u8>, MultiLocation)>>> FilterAssetLocation for Nat
 	}
 }
 
+/// `CurrencyIdConversion` implementation. Converts relay chain tokens, or
+/// parachain tokens that could be decoded from a general key.
 pub struct CurrencyIdConverter<CurrencyId, RelayChainCurrencyId>(
 	PhantomData<CurrencyId>,
 	PhantomData<RelayChainCurrencyId>,
