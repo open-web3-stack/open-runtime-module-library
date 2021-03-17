@@ -24,6 +24,9 @@ pub use currency_adapter::MultiCurrencyAdapter;
 
 mod currency_adapter;
 
+#[cfg(test)]
+mod tests;
+
 /// The XCM handler to execute XCM locally.
 pub trait XcmHandler<AccountId> {
 	fn execute_xcm(origin: AccountId, xcm: Xcm) -> DispatchResult;
