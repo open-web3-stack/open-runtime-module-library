@@ -2,7 +2,7 @@
 
 ## Overview
 
-The xtokens module provides cross-chain token transfer, by cross-consensus
+The xtokens module provides cross-chain token transfer functionality, by cross-consensus
 messages(XCM).
 
 The xtokens module provides functions for
