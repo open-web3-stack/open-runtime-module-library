@@ -6,7 +6,7 @@
 //!
 //! The xtokens module provides functions for
 //! - Token transfer from parachains to relay chain.
-//! - Token transfer between parachains, including relay chain token like DOT,
+//! - Token transfer between parachains, including relay chain tokens like DOT,
 //!   KSM, and parachain tokens like ACA, aUSD.
 //!
 //! ## Interface
