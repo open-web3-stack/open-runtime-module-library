@@ -1,6 +1,7 @@
-//! Xtokens Module
+//! # Xtokens Module
 //!
 //! ## Overview
+//!
 //! The xtokens module provides cross-chain token transfer, by cross-consensus
 //! messages(XCM).
 //!
