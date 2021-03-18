@@ -111,3 +111,21 @@ where
 		None
 	}
 }
+
+/// Handlers unknown asset deposit and withdraw.
+pub trait UnknownAsset {
+	/// Deposit unknown asset.
+	fn deposit(asset: &MultiAsset, to: &MultiLocation) -> DispatchResult;
+
+	/// Withdraw unknown asset.
+	fn withdraw(asset: &MultiAsset, from: &MultiLocation) -> DispatchResult;
+}
+
+impl UnknownAsset for () {
+	fn deposit(_asset: &MultiAsset, _to: &MultiLocation) -> DispatchResult {
+		Ok(())
+	}
+	fn withdraw(_asset: &MultiAsset, _from: &MultiLocation) -> DispatchResult {
+		Ok(())
+	}
+}
