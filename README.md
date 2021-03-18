@@ -25,6 +25,7 @@ The Open Runtime Module Library (ORML) is a community maintained collection of S
     - Provides way to adjust numeric parameter gradually over a period of time.
 - [orml-xtokens](./xtokens)
     - Provides way to do cross-chain assets transfer.
+    - [Step-by-Step guide](https://github.com/open-web3-stack/open-runtime-module-library/wiki/xtokens) to make XCM cross-chain fungible asset transfer available on your parachain
 - [orml-xcm-support](./xcm-support)
     - Provides traits, types, and implementations to support XCM integration.
 
