@@ -1,6 +1,6 @@
 [package]
 name = "orml-xcm-support"
-description = "Crosschain token transfer"
+description = "Supporting module for XCM integration."
 repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/xcm-support"
 license = "Apache-2.0"
 version = "0.4.1-dev"
