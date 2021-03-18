@@ -53,12 +53,12 @@ pub struct MultiCurrencyAdapter<
 >(
 	PhantomData<(
 		MultiCurrency,
+		UnknownAsset,
 		Matcher,
 		AccountIdConverter,
 		AccountId,
 		CurrencyIdConverter,
 		CurrencyId,
-		UnknownAsset,
 	)>,
 );
 
