@@ -15,8 +15,8 @@ use crate::{CurrencyIdConversion, UnknownAsset as UnknownAssetT};
 
 /// Asset transaction errors.
 enum Error {
-	/// Match fungible failed.
-	MatchFungibleFailed,
+	/// Failed to match fungible.
+	FailedToMatchFungible,
 	/// `MultiLocation` to `AccountId` Conversion failed.
 	AccountIdConversionFailed,
 	/// `CurrencyId` conversion failed.
@@ -26,7 +26,7 @@ enum Error {
 impl From<Error> for XcmError {
 	fn from(e: Error) -> Self {
 		match e {
-			Error::MatchFungibleFailed => XcmError::FailedToTransactAsset("MatchFungibleFailed"),
+			Error::FailedToMatchFungible => XcmError::FailedToTransactAsset("FailedToMatchFungible"),
 			Error::AccountIdConversionFailed => XcmError::FailedToTransactAsset("AccountIdConversionFailed"),
 			Error::CurrencyIdConversionFailed => XcmError::FailedToTransactAsset("CurrencyIdConversionFailed"),
 		}
@@ -88,7 +88,7 @@ impl<
 			let currency_id = CurrencyIdConverter::from_asset(asset)
 				.ok_or_else(|| XcmError::from(Error::CurrencyIdConversionFailed))?;
 			let amount: MultiCurrency::Balance = Matcher::matches_fungible(&asset)
-				.ok_or_else(|| XcmError::from(Error::MatchFungibleFailed))?
+				.ok_or_else(|| XcmError::from(Error::FailedToMatchFungible))?
 				.saturated_into();
 			MultiCurrency::deposit(currency_id, &who, amount).map_err(|e| XcmError::FailedToTransactAsset(e.into()))
 		})
@@ -101,7 +101,7 @@ impl<
 			let currency_id = CurrencyIdConverter::from_asset(asset)
 				.ok_or_else(|| XcmError::from(Error::CurrencyIdConversionFailed))?;
 			let amount: MultiCurrency::Balance = Matcher::matches_fungible(&asset)
-				.ok_or_else(|| XcmError::from(Error::MatchFungibleFailed))?
+				.ok_or_else(|| XcmError::from(Error::FailedToMatchFungible))?
 				.saturated_into();
 			MultiCurrency::withdraw(currency_id, &who, amount).map_err(|e| XcmError::FailedToTransactAsset(e.into()))
 		})?;
