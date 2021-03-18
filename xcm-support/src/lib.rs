@@ -8,7 +8,10 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::{dispatch::DispatchResult, traits::Get};
+use frame_support::{
+	dispatch::{DispatchError, DispatchResult},
+	traits::Get,
+};
 use sp_runtime::traits::{CheckedConversion, Convert};
 use sp_std::{
 	collections::btree_set::BTreeSet,
@@ -121,11 +124,13 @@ pub trait UnknownAsset {
 	fn withdraw(asset: &MultiAsset, from: &MultiLocation) -> DispatchResult;
 }
 
+const NO_UNKNOWN_ASSET_IMPL: &'static str = "NoUnknownAssetImpl";
+
 impl UnknownAsset for () {
 	fn deposit(_asset: &MultiAsset, _to: &MultiLocation) -> DispatchResult {
-		Ok(())
+		Err(DispatchError::Other(NO_UNKNOWN_ASSET_IMPL))
 	}
 	fn withdraw(_asset: &MultiAsset, _from: &MultiLocation) -> DispatchResult {
-		Ok(())
+		Err(DispatchError::Other(NO_UNKNOWN_ASSET_IMPL))
 	}
 }
