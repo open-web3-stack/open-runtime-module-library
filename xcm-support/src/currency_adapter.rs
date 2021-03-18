@@ -33,20 +33,23 @@ impl From<Error> for XcmError {
 	}
 }
 
-/// The `TransactAsset` implementation, to handle deposit/withdraw for XCM.
+/// The `TransactAsset` implementation, to handle `MultiAsset` deposit/withdraw.
+///
+/// If the asset is known, deposit/withdraw will be handled by `MultiCurrency`,
+/// or by `UnknownAsset` if unknown.
 ///
 /// The implementation will try deposit or withdraw on unknown asset first, so
-/// that detailed error info of known asset failure could be returned, if any.
+/// that detailed error info of known asset failures could be returned if any.
 /// Thus known asset deposit/withdraw failures imply unknown asset failures as
 /// well.
 pub struct MultiCurrencyAdapter<
 	MultiCurrency,
+	UnknownAsset,
 	Matcher,
 	AccountIdConverter,
 	AccountId,
 	CurrencyIdConverter,
 	CurrencyId,
-	UnknownAsset,
 >(
 	PhantomData<(
 		MultiCurrency,
@@ -61,21 +64,21 @@ pub struct MultiCurrencyAdapter<
 
 impl<
 		MultiCurrency: orml_traits::MultiCurrency<AccountId, CurrencyId = CurrencyId>,
+		UnknownAsset: UnknownAssetT,
 		Matcher: MatchesFungible<MultiCurrency::Balance>,
 		AccountIdConverter: LocationConversion<AccountId>,
 		AccountId: sp_std::fmt::Debug,
 		CurrencyIdConverter: CurrencyIdConversion<CurrencyId>,
 		CurrencyId: FullCodec + Eq + PartialEq + Copy + MaybeSerializeDeserialize + Debug,
-		UnknownAsset: UnknownAssetT,
 	> TransactAsset
 	for MultiCurrencyAdapter<
 		MultiCurrency,
+		UnknownAsset,
 		Matcher,
 		AccountIdConverter,
 		AccountId,
 		CurrencyIdConverter,
 		CurrencyId,
-		UnknownAsset,
 	>
 {
 	fn deposit_asset(asset: &MultiAsset, location: &MultiLocation) -> Result {
