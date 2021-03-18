@@ -124,7 +124,7 @@ pub trait UnknownAsset {
 	fn withdraw(asset: &MultiAsset, from: &MultiLocation) -> DispatchResult;
 }
 
-const NO_UNKNOWN_ASSET_IMPL: &'static str = "NoUnknownAssetImpl";
+const NO_UNKNOWN_ASSET_IMPL: &str = "NoUnknownAssetImpl";
 
 impl UnknownAsset for () {
 	fn deposit(_asset: &MultiAsset, _to: &MultiLocation) -> DispatchResult {
