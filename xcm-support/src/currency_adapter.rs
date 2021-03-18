@@ -36,12 +36,7 @@ impl From<Error> for XcmError {
 /// The `TransactAsset` implementation, to handle `MultiAsset` deposit/withdraw.
 ///
 /// If the asset is known, deposit/withdraw will be handled by `MultiCurrency`,
-/// or by `UnknownAsset` if unknown.
-///
-/// The implementation will try deposit or withdraw on unknown asset first, so
-/// that detailed error info of known asset failures could be returned if any.
-/// Thus known asset deposit/withdraw failures imply unknown asset failures as
-/// well.
+/// else by `UnknownAsset` if unknown.
 pub struct MultiCurrencyAdapter<
 	MultiCurrency,
 	UnknownAsset,
@@ -82,16 +77,18 @@ impl<
 	>
 {
 	fn deposit_asset(asset: &MultiAsset, location: &MultiLocation) -> Result {
-		UnknownAsset::deposit(asset, location).or_else(|_| {
-			let who = AccountIdConverter::from_location(location)
-				.ok_or_else(|| XcmError::from(Error::AccountIdConversionFailed))?;
-			let currency_id = CurrencyIdConverter::from_asset(asset)
-				.ok_or_else(|| XcmError::from(Error::CurrencyIdConversionFailed))?;
-			let amount: MultiCurrency::Balance = Matcher::matches_fungible(&asset)
-				.ok_or_else(|| XcmError::from(Error::FailedToMatchFungible))?
-				.saturated_into();
-			MultiCurrency::deposit(currency_id, &who, amount).map_err(|e| XcmError::FailedToTransactAsset(e.into()))
-		})
+		match (
+			AccountIdConverter::from_location(location),
+			CurrencyIdConverter::from_asset(asset),
+			Matcher::matches_fungible(&asset),
+		) {
+			// known asset
+			(Some(who), Some(currency_id), Some(amount)) => {
+				MultiCurrency::deposit(currency_id, &who, amount).map_err(|e| XcmError::FailedToTransactAsset(e.into()))
+			}
+			// unknown asset
+			_ => UnknownAsset::deposit(asset, location).map_err(|e| XcmError::FailedToTransactAsset(e.into())),
+		}
 	}
 
 	fn withdraw_asset(asset: &MultiAsset, location: &MultiLocation) -> result::Result<MultiAsset, XcmError> {
