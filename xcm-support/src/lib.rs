@@ -8,7 +8,10 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::{dispatch::DispatchResult, traits::Get};
+use frame_support::{
+	dispatch::{DispatchError, DispatchResult},
+	traits::Get,
+};
 use sp_runtime::traits::{CheckedConversion, Convert};
 use sp_std::{
 	collections::btree_set::BTreeSet,
@@ -109,5 +112,25 @@ where
 			}
 		}
 		None
+	}
+}
+
+/// Handlers unknown asset deposit and withdraw.
+pub trait UnknownAsset {
+	/// Deposit unknown asset.
+	fn deposit(asset: &MultiAsset, to: &MultiLocation) -> DispatchResult;
+
+	/// Withdraw unknown asset.
+	fn withdraw(asset: &MultiAsset, from: &MultiLocation) -> DispatchResult;
+}
+
+const NO_UNKNOWN_ASSET_IMPL: &str = "NoUnknownAssetImpl";
+
+impl UnknownAsset for () {
+	fn deposit(_asset: &MultiAsset, _to: &MultiLocation) -> DispatchResult {
+		Err(DispatchError::Other(NO_UNKNOWN_ASSET_IMPL))
+	}
+	fn withdraw(_asset: &MultiAsset, _from: &MultiLocation) -> DispatchResult {
+		Err(DispatchError::Other(NO_UNKNOWN_ASSET_IMPL))
 	}
 }
