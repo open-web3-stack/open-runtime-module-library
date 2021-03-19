@@ -1,7 +1,7 @@
 [package]
 name = "orml-xtokens"
-description = "Crosschain token transfer"
-repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/tokens"
+description = "Cross-chain token transfer."
+repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/xtokens"
 license = "Apache-2.0"
 version = "0.4.1-dev"
 authors = ["Acala Developers"]
