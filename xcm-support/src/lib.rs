@@ -7,6 +7,7 @@
 //! modules.
 
 #![cfg_attr(not(feature = "std"), no_std)]
+#![allow(clippy::unused_unit)]
 
 use frame_support::{
 	dispatch::{DispatchError, DispatchResult},
@@ -27,7 +28,6 @@ pub use currency_adapter::MultiCurrencyAdapter;
 
 mod currency_adapter;
 
-#[cfg(test)]
 mod tests;
 
 /// The XCM handler to execute XCM locally.
