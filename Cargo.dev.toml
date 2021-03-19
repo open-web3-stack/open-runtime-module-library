@@ -16,6 +16,7 @@ members = [
 	"nft",
 	"xtokens",
 	"xcm-support",
+	"orml/unknown-tokens",
 ]
 resolver = "2"
 
