@@ -28,7 +28,6 @@ pub use currency_adapter::MultiCurrencyAdapter;
 
 mod currency_adapter;
 
-#[cfg(test)]
 mod tests;
 
 /// The XCM handler to execute XCM locally.

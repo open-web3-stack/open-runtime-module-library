@@ -1,5 +1,7 @@
 //! Unit tests for xcm-support implementations.
 
+#![cfg(test)]
+
 use super::*;
 
 use frame_support::parameter_types;

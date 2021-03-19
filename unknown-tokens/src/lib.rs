@@ -2,11 +2,15 @@
 #![allow(clippy::unused_unit)]
 
 use frame_support::pallet_prelude::*;
+use sp_std::vec::Vec;
 use xcm::v0::{MultiAsset, MultiLocation};
 
 use orml_xcm_support::UnknownAsset;
 
 pub use module::*;
+
+mod mock;
+mod tests;
 
 #[frame_support::pallet]
 pub mod module {
@@ -48,15 +52,19 @@ pub mod module {
 
 	/// Concrete fungible balances under a given location and a concrete
 	/// fungible id.
+	///
+	/// double_map: who, asset_id => u128
 	#[pallet::storage]
-	#[pallet::getter(fn concrete_fungible)]
+	#[pallet::getter(fn concrete_fungible_balances)]
 	pub(crate) type ConcreteFungibleBalances<T> =
 		StorageDoubleMap<_, Blake2_128Concat, MultiLocation, Blake2_128Concat, MultiLocation, u128, ValueQuery>;
 
 	/// Abstract fungible balances under a given location and a abstract
 	/// fungible id.
+	///
+	/// double_map: who, asset_id => u128
 	#[pallet::storage]
-	#[pallet::getter(fn abstract_fungible)]
+	#[pallet::getter(fn abstract_fungible_balances)]
 	pub(crate) type AbstractFungibleBalances<T> =
 		StorageDoubleMap<_, Blake2_128Concat, MultiLocation, Blake2_128Concat, Vec<u8>, u128, ValueQuery>;
 
@@ -69,17 +77,13 @@ impl<T: Config> UnknownAsset for Pallet<T> {
 		let result = match asset {
 			MultiAsset::ConcreteFungible { id, amount } => {
 				ConcreteFungibleBalances::<T>::try_mutate(to, id, |b| -> DispatchResult {
-					*b = b
-						.checked_add(*amount)
-						.ok_or_else::<DispatchError, _>(|| Error::<T>::BalanceOverflow.into())?;
+					*b = b.checked_add(*amount).ok_or(Error::<T>::BalanceOverflow)?;
 					Ok(())
 				})
 			}
 			MultiAsset::AbstractFungible { id, amount } => {
 				AbstractFungibleBalances::<T>::try_mutate(to, id, |b| -> DispatchResult {
-					*b = b
-						.checked_add(*amount)
-						.ok_or_else::<DispatchError, _>(|| Error::<T>::BalanceOverflow.into())?;
+					*b = b.checked_add(*amount).ok_or(Error::<T>::BalanceOverflow)?;
 					Ok(())
 				})
 			}
@@ -94,21 +98,18 @@ impl<T: Config> UnknownAsset for Pallet<T> {
 
 		result
 	}
+
 	fn withdraw(asset: &MultiAsset, from: &MultiLocation) -> DispatchResult {
 		let result = match asset {
 			MultiAsset::ConcreteFungible { id, amount } => {
 				ConcreteFungibleBalances::<T>::try_mutate(from, id, |b| -> DispatchResult {
-					*b = b
-						.checked_sub(*amount)
-						.ok_or_else::<DispatchError, _>(|| Error::<T>::BalanceTooLow.into())?;
+					*b = b.checked_sub(*amount).ok_or(Error::<T>::BalanceTooLow)?;
 					Ok(())
 				})
 			}
 			MultiAsset::AbstractFungible { id, amount } => {
 				AbstractFungibleBalances::<T>::try_mutate(from, id, |b| -> DispatchResult {
-					*b = b
-						.checked_sub(*amount)
-						.ok_or_else::<DispatchError, _>(|| Error::<T>::BalanceTooLow.into())?;
+					*b = b.checked_sub(*amount).ok_or(Error::<T>::BalanceTooLow)?;
 					Ok(())
 				})
 			}
