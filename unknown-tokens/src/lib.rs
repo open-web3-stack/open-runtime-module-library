@@ -1,4 +1,5 @@
 #![cfg_attr(not(feature = "std"), no_std)]
+#![allow(clippy::unused_unit)]
 
 use frame_support::pallet_prelude::*;
 use xcm::v0::{MultiAsset, MultiLocation};
@@ -70,7 +71,7 @@ impl<T: Config> UnknownAsset for Pallet<T> {
 				ConcreteFungibleBalances::<T>::try_mutate(to, id, |b| -> DispatchResult {
 					*b = b
 						.checked_add(*amount)
-						.ok_or::<DispatchError>(Error::<T>::BalanceOverflow.into())?;
+						.ok_or_else::<DispatchError, _>(|| Error::<T>::BalanceOverflow.into())?;
 					Ok(())
 				})
 			}
@@ -78,7 +79,7 @@ impl<T: Config> UnknownAsset for Pallet<T> {
 				AbstractFungibleBalances::<T>::try_mutate(to, id, |b| -> DispatchResult {
 					*b = b
 						.checked_add(*amount)
-						.ok_or::<DispatchError>(Error::<T>::BalanceOverflow.into())?;
+						.ok_or_else::<DispatchError, _>(|| Error::<T>::BalanceOverflow.into())?;
 					Ok(())
 				})
 			}
@@ -99,7 +100,7 @@ impl<T: Config> UnknownAsset for Pallet<T> {
 				ConcreteFungibleBalances::<T>::try_mutate(from, id, |b| -> DispatchResult {
 					*b = b
 						.checked_sub(*amount)
-						.ok_or::<DispatchError>(Error::<T>::BalanceTooLow.into())?;
+						.ok_or_else::<DispatchError, _>(|| Error::<T>::BalanceTooLow.into())?;
 					Ok(())
 				})
 			}
@@ -107,7 +108,7 @@ impl<T: Config> UnknownAsset for Pallet<T> {
 				AbstractFungibleBalances::<T>::try_mutate(from, id, |b| -> DispatchResult {
 					*b = b
 						.checked_sub(*amount)
-						.ok_or::<DispatchError>(Error::<T>::BalanceTooLow.into())?;
+						.ok_or_else::<DispatchError, _>(|| Error::<T>::BalanceTooLow.into())?;
 					Ok(())
 				})
 			}
