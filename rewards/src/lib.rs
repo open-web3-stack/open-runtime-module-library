@@ -1,7 +1,6 @@
 #![allow(clippy::unused_unit)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
-mod default_weight;
 mod mock;
 mod tests;
 
@@ -37,10 +36,6 @@ pub use module::*;
 pub mod module {
 	use super::*;
 
-	pub trait WeightInfo {
-		fn on_initialize(c: u32) -> Weight;
-	}
-
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		/// The share type of pool.
@@ -64,19 +59,10 @@ pub mod module {
 			+ FixedPointOperand;
 
 		/// The reward pool ID type.
-		type PoolId: Parameter + Member + Copy + FullCodec;
+		type PoolId: Parameter + Member + Clone + FullCodec;
 
 		/// The `RewardHandler`
-		type Handler: RewardHandler<
-			Self::AccountId,
-			Self::BlockNumber,
-			Share = Self::Share,
-			Balance = Self::Balance,
-			PoolId = Self::PoolId,
-		>;
-
-		/// Weight information for extrinsics in this module.
-		type WeightInfo: WeightInfo;
+		type Handler: RewardHandler<Self::AccountId, Balance = Self::Balance, PoolId = Self::PoolId>;
 	}
 
 	/// Stores reward pool info.
@@ -95,27 +81,22 @@ pub mod module {
 	pub struct Pallet<T>(PhantomData<T>);
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-		fn on_initialize(now: T::BlockNumber) -> Weight {
-			let mut count = 0;
-			T::Handler::accumulate_reward(now, |pool, reward_to_accumulate| {
-				if !reward_to_accumulate.is_zero() {
-					count += 1;
-					Pools::<T>::mutate(pool, |pool_info| {
-						pool_info.total_rewards = pool_info.total_rewards.saturating_add(reward_to_accumulate)
-					});
-				}
-			});
-			T::WeightInfo::on_initialize(count)
-		}
-	}
+	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {}
 }
 
 impl<T: Config> Pallet<T> {
-	pub fn add_share(who: &T::AccountId, pool: T::PoolId, add_amount: T::Share) {
+	pub fn accumulate_reward(pool: &T::PoolId, reward_increment: T::Balance) {
+		if !reward_increment.is_zero() {
+			Pools::<T>::mutate(pool, |pool_info| {
+				pool_info.total_rewards = pool_info.total_rewards.saturating_add(reward_increment)
+			});
+		}
+	}
+
+	pub fn add_share(who: &T::AccountId, pool: &T::PoolId, add_amount: T::Share) {
 		if add_amount.is_zero() {
 			return;
 		}
@@ -135,7 +116,7 @@ impl<T: Config> Pallet<T> {
 		});
 	}
 
-	pub fn remove_share(who: &T::AccountId, pool: T::PoolId, remove_amount: T::Share) {
+	pub fn remove_share(who: &T::AccountId, pool: &T::PoolId, remove_amount: T::Share) {
 		if remove_amount.is_zero() {
 			return;
 		}
@@ -167,7 +148,7 @@ impl<T: Config> Pallet<T> {
 		});
 	}
 
-	pub fn set_share(who: &T::AccountId, pool: T::PoolId, new_share: T::Share) {
+	pub fn set_share(who: &T::AccountId, pool: &T::PoolId, new_share: T::Share) {
 		let (share, _) = Self::share_and_withdrawn_reward(pool, who);
 
 		if new_share > share {
@@ -177,7 +158,7 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
-	pub fn claim_rewards(who: &T::AccountId, pool: T::PoolId) {
+	pub fn claim_rewards(who: &T::AccountId, pool: &T::PoolId) {
 		ShareAndWithdrawnReward::<T>::mutate(pool, who, |(share, withdrawn_rewards)| {
 			if share.is_zero() {
 				return;
