@@ -139,10 +139,6 @@ pub mod module {
 	#[pallet::getter(fn members)]
 	pub type Members<T: Config<I>, I: 'static = ()> = StorageValue<_, OrderedSet<T::AccountId>, ValueQuery>;
 
-	#[pallet::storage]
-	#[pallet::getter(fn nonces)]
-	pub type Nonces<T: Config<I>, I: 'static = ()> = StorageMap<_, Twox64Concat, T::AccountId, u32>;
-
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config<I>, I: 'static = ()> {
 		pub members: OrderedSet<T::AccountId>,
