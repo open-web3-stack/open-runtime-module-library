@@ -92,8 +92,8 @@ construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
-		System: frame_system::{Module, Call, Storage, Config, Event<T>},
-		ModuleOracle: oracle::{Module, Storage, Call, Config<T>, Event<T>},
+		System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
+		ModuleOracle: oracle::{Pallet, Storage, Call, Config<T>, Event<T>},
 	}
 );
 

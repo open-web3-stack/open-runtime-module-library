@@ -226,10 +226,10 @@ construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
-		System: frame_system::{Module, Call, Storage, Config, Event<T>},
-		Tokens: tokens::{Module, Storage, Event<T>, Config<T>},
-		Treasury: pallet_treasury::{Module, Call, Storage, Config, Event<T>},
-		ElectionsPhragmen: pallet_elections_phragmen::{Module, Call, Storage, Event<T>},
+		System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
+		Tokens: tokens::{Pallet, Storage, Event<T>, Config<T>},
+		Treasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>},
+		ElectionsPhragmen: pallet_elections_phragmen::{Pallet, Call, Storage, Event<T>},
 	}
 );
 

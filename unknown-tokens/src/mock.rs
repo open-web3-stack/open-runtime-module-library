@@ -53,8 +53,8 @@ construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
-		System: frame_system::{Module, Call, Storage, Config, Event<T>},
-		UnknownTokens: unknown_tokens::{Module, Storage, Event},
+		System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
+		UnknownTokens: unknown_tokens::{Pallet, Storage, Event},
 	}
 );
 

@@ -86,8 +86,8 @@ construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
-		System: frame_system::{Module, Call, Storage, Config, Event<T>},
-		AuctionModule: auction::{Module, Storage, Call, Event<T>},
+		System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
+		AuctionModule: auction::{Pallet, Storage, Call, Event<T>},
 	}
 );
 

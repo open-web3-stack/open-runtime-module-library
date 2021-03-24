@@ -58,8 +58,8 @@ construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
-		System: frame_system::{Module, Call, Storage, Config, Event<T>},
-		NonFungibleTokenModule: nft::{Module, Storage, Config<T>},
+		System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
+		NonFungibleTokenModule: nft::{Pallet, Storage, Config<T>},
 	}
 );
 

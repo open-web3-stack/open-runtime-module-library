@@ -90,8 +90,8 @@ construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
-		System: frame_system::{Module, Call, Storage, Config, Event<T>},
-		RewardsModule: rewards::{Module, Storage, Call},
+		System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
+		RewardsModule: rewards::{Pallet, Storage, Call},
 	}
 );
 
