@@ -66,8 +66,9 @@ _In alphabetical order_
 - [ChainX](https://github.com/chainx-org/ChainX)
 - [HydraDX](https://github.com/galacticcouncil/hack.HydraDX-node)
 - [Laminar Chain](https://github.com/laminar-protocol/laminar-chain)
+- [Listen](https://github.com/listenofficial)
 - [Minterest](https://github.com/minterest-finance/minterest-chain-node)
 - [Plasm Network](https://github.com/PlasmNetwork)
 - [Setheum Network](https://github.com/Setheum-Labs/Setheum)
 - [Valiu Liquidity Network](https://github.com/valibre-org/vln-node)
-- [Listen](https://github.com/listenofficial)
+
