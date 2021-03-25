@@ -36,7 +36,7 @@ fn get_version(impl_commit: String) -> String {
 fn get_commit() -> String {
 	let commit = std::env::var("GIT_COMMIT").unwrap_or_default();
 	if !commit.is_empty() {
-		return commit.into();
+		return commit;
 	}
 
 	let output = Command::new("git").args(&["rev-parse", "--short", "HEAD"]).output();
