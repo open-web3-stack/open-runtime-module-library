@@ -17,6 +17,7 @@ members = [
 	"xtokens",
 	"xcm-support",
 	"unknown-tokens",
+	"build-script-utils",
 ]
 resolver = "2"
 

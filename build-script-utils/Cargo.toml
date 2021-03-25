@@ -1,0 +1,14 @@
+[package]
+name = "orml-build-script-utils"
+description = "Crate with utility functions for `build.rs` scripts."
+repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/build-script-utils"
+license = "Apache-2.0"
+version = "0.4.1-dev"
+authors = ["Parity Technologies <admin@parity.io>", "Laminar Developers <hello@laminar.one>"]
+edition = "2018"
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[dependencies]
+platforms = "1.1"
