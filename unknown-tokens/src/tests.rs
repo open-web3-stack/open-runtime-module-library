@@ -31,12 +31,6 @@ fn abstract_fungible(amount: u128) -> MultiAsset {
 	}
 }
 
-// `message` field of `DispatchError` would be gone after inserted into system
-// pallet storage.
-fn convert_err(err: DispatchError) -> DispatchError {
-	DispatchError::decode(&mut &err.encode()[..]).expect("encode then decode cannot fail")
-}
-
 #[test]
 fn deposit_concrete_fungible_asset_works() {
 	ExtBuilder.build().execute_with(|| {
@@ -60,7 +54,7 @@ fn deposit_concrete_fungible_asset_works() {
 		let deposit_failed_event = Event::unknown_tokens(crate::Event::DepositFailed(
 			max_asset,
 			MOCK_RECIPIENT,
-			convert_err(Error::<Runtime>::BalanceOverflow.into()),
+			Error::<Runtime>::BalanceOverflow.into(),
 		));
 		assert!(System::events()
 			.iter()
@@ -95,7 +89,7 @@ fn deposit_abstract_fungible_asset() {
 		let deposit_failed_event = Event::unknown_tokens(crate::Event::DepositFailed(
 			max_asset,
 			MOCK_RECIPIENT,
-			convert_err(Error::<Runtime>::BalanceOverflow.into()),
+			Error::<Runtime>::BalanceOverflow.into(),
 		));
 		assert!(System::events()
 			.iter()
@@ -114,7 +108,7 @@ fn deposit_unhandled_asset_should_fail() {
 		let deposit_failed_event = Event::unknown_tokens(crate::Event::DepositFailed(
 			MultiAsset::All,
 			MOCK_RECIPIENT,
-			convert_err(Error::<Runtime>::UnhandledAsset.into()),
+			Error::<Runtime>::UnhandledAsset.into(),
 		));
 		assert!(System::events()
 			.iter()
@@ -146,7 +140,7 @@ fn withdraw_concrete_fungible_asset_works() {
 		let withdraw_failed_event = Event::unknown_tokens(crate::Event::WithdrawFailed(
 			asset,
 			MOCK_RECIPIENT,
-			convert_err(Error::<Runtime>::BalanceTooLow.into()),
+			Error::<Runtime>::BalanceTooLow.into(),
 		));
 		assert!(System::events()
 			.iter()
@@ -178,7 +172,7 @@ fn withdraw_abstract_fungible_asset_works() {
 		let withdraw_failed_event = Event::unknown_tokens(crate::Event::WithdrawFailed(
 			asset,
 			MOCK_RECIPIENT,
-			convert_err(Error::<Runtime>::BalanceTooLow.into()),
+			Error::<Runtime>::BalanceTooLow.into(),
 		));
 		assert!(System::events()
 			.iter()
@@ -197,7 +191,7 @@ fn withdraw_unhandled_asset_should_fail() {
 		let withdraw_failed_event = Event::unknown_tokens(crate::Event::WithdrawFailed(
 			MultiAsset::All,
 			MOCK_RECIPIENT,
-			convert_err(Error::<Runtime>::UnhandledAsset.into()),
+			Error::<Runtime>::UnhandledAsset.into(),
 		));
 		assert!(System::events()
 			.iter()
