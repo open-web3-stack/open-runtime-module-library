@@ -32,20 +32,20 @@ fn remove_dust_work() {
 
 		assert_ok!(Tokens::deposit(DOT, &ALICE, 100));
 		assert_eq!(Tokens::total_issuance(DOT), 100);
-		assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), true);
+		assert_eq!(Accounts::<Runtime, Instance1>::contains_key(ALICE, DOT), true);
 		assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
 		assert_eq!(System::providers(&ALICE), 1);
-		assert_eq!(Accounts::<Runtime>::contains_key(DustAccount::get(), DOT), false);
+		assert_eq!(Accounts::<Runtime, Instance1>::contains_key(DustAccount::get(), DOT), false);
 		assert_eq!(Tokens::free_balance(DOT, &DustAccount::get()), 0);
 		assert_eq!(System::providers(&DustAccount::get()), 0);
 
 		// total is gte ED, will not handle dust
 		assert_ok!(Tokens::withdraw(DOT, &ALICE, 98));
 		assert_eq!(Tokens::total_issuance(DOT), 2);
-		assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), true);
+		assert_eq!(Accounts::<Runtime, Instance1>::contains_key(ALICE, DOT), true);
 		assert_eq!(Tokens::free_balance(DOT, &ALICE), 2);
 		assert_eq!(System::providers(&ALICE), 1);
-		assert_eq!(Accounts::<Runtime>::contains_key(DustAccount::get(), DOT), false);
+		assert_eq!(Accounts::<Runtime, Instance1>::contains_key(DustAccount::get(), DOT), false);
 		assert_eq!(Tokens::free_balance(DOT, &DustAccount::get()), 0);
 		assert_eq!(System::providers(&DustAccount::get()), 0);
 
@@ -53,16 +53,16 @@ fn remove_dust_work() {
 
 		// total is lte ED, will handle dust
 		assert_eq!(Tokens::total_issuance(DOT), 1);
-		assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), false);
+		assert_eq!(Accounts::<Runtime, Instance1>::contains_key(ALICE, DOT), false);
 		assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
 		assert_eq!(System::providers(&ALICE), 0);
 
 		// will not handle dust for module account
-		assert_eq!(Accounts::<Runtime>::contains_key(DustAccount::get(), DOT), true);
+		assert_eq!(Accounts::<Runtime, Instance1>::contains_key(DustAccount::get(), DOT), true);
 		assert_eq!(Tokens::free_balance(DOT, &DustAccount::get()), 1);
 		assert_eq!(System::providers(&DustAccount::get()), 1);
 
-		let dust_lost_event = Event::tokens(crate::Event::DustLost(ALICE, DOT, 1));
+		let dust_lost_event = Event::tokens_Instance1(crate::Event::DustLost(ALICE, DOT, 1));
 		assert!(System::events().iter().any(|record| record.event == dust_lost_event));
 	});
 }
@@ -127,7 +127,7 @@ fn frozen_can_limit_liquidity() {
 			assert_ok!(Tokens::set_lock(ID_1, DOT, &ALICE, 90));
 			assert_noop!(
 				<Tokens as MultiCurrency<_>>::transfer(DOT, &ALICE, &BOB, 11),
-				Error::<Runtime>::LiquidityRestrictions,
+				Error::<Runtime, Instance1>::LiquidityRestrictions,
 			);
 			assert_ok!(Tokens::set_lock(ID_1, DOT, &ALICE, 10));
 			assert_ok!(<Tokens as MultiCurrency<_>>::transfer(DOT, &ALICE, &BOB, 11),);
@@ -152,7 +152,7 @@ fn reserve_should_work() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
-			assert_noop!(Tokens::reserve(DOT, &ALICE, 101), Error::<Runtime>::BalanceTooLow,);
+			assert_noop!(Tokens::reserve(DOT, &ALICE, 101), Error::<Runtime, Instance1>::BalanceTooLow,);
 			assert_ok!(Tokens::reserve(DOT, &ALICE, 0));
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
 			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 0);
@@ -306,12 +306,12 @@ fn transfer_should_work() {
 			assert_eq!(Tokens::free_balance(DOT, &BOB), 150);
 			assert_eq!(Tokens::total_issuance(DOT), 200);
 
-			let transferred_event = Event::tokens(crate::Event::Transferred(DOT, ALICE, BOB, 50));
+			let transferred_event = Event::tokens_Instance1(crate::Event::Transferred(DOT, ALICE, BOB, 50));
 			assert!(System::events().iter().any(|record| record.event == transferred_event));
 
 			assert_noop!(
 				Tokens::transfer(Some(ALICE).into(), BOB, DOT, 60),
-				Error::<Runtime>::BalanceTooLow,
+				Error::<Runtime, Instance1>::BalanceTooLow,
 			);
 		});
 }
@@ -328,7 +328,7 @@ fn transfer_all_should_work() {
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
 			assert_eq!(Tokens::free_balance(DOT, &BOB), 200);
 
-			let transferred_event = Event::tokens(crate::Event::Transferred(DOT, ALICE, BOB, 100));
+			let transferred_event = Event::tokens_Instance1(crate::Event::Transferred(DOT, ALICE, BOB, 100));
 			assert!(System::events().iter().any(|record| record.event == transferred_event));
 		});
 }
@@ -345,7 +345,7 @@ fn deposit_should_work() {
 
 			assert_noop!(
 				Tokens::deposit(DOT, &ALICE, Balance::max_value()),
-				Error::<Runtime>::TotalIssuanceOverflow,
+				Error::<Runtime, Instance1>::TotalIssuanceOverflow,
 			);
 		});
 }
@@ -360,7 +360,7 @@ fn withdraw_should_work() {
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 50);
 			assert_eq!(Tokens::total_issuance(DOT), 150);
 
-			assert_noop!(Tokens::withdraw(DOT, &ALICE, 60), Error::<Runtime>::BalanceTooLow);
+			assert_noop!(Tokens::withdraw(DOT, &ALICE, 60), Error::<Runtime, Instance1>::BalanceTooLow);
 		});
 }
 
@@ -396,7 +396,7 @@ fn update_balance_should_work() {
 			assert_eq!(Tokens::free_balance(DOT, &BOB), 50);
 			assert_eq!(Tokens::total_issuance(DOT), 200);
 
-			assert_noop!(Tokens::update_balance(DOT, &BOB, -60), Error::<Runtime>::BalanceTooLow);
+			assert_noop!(Tokens::update_balance(DOT, &BOB, -60), Error::<Runtime, Instance1>::BalanceTooLow);
 		});
 }
 
@@ -408,7 +408,7 @@ fn ensure_can_withdraw_should_work() {
 		.execute_with(|| {
 			assert_noop!(
 				Tokens::ensure_can_withdraw(DOT, &ALICE, 101),
-				Error::<Runtime>::BalanceTooLow
+				Error::<Runtime, Instance1>::BalanceTooLow
 			);
 
 			assert_ok!(Tokens::ensure_can_withdraw(DOT, &ALICE, 1));
@@ -443,7 +443,7 @@ fn merge_account_should_work() {
 			assert_ok!(Tokens::reserve(DOT, &ALICE, 1));
 			assert_noop!(
 				Tokens::merge_account(&ALICE, &BOB),
-				Error::<Runtime>::StillHasActiveReserved
+				Error::<Runtime, Instance1>::StillHasActiveReserved
 			);
 			Tokens::unreserve(DOT, &ALICE, 1);
 
@@ -624,7 +624,7 @@ fn currency_adapter_balance_transfer_when_reserved_should_not_work() {
 		assert_ok!(TreasuryCurrencyAdapter::reserve(&TREASURY_ACCOUNT, 69));
 		assert_noop!(
 			TreasuryCurrencyAdapter::transfer(&TREASURY_ACCOUNT, &ALICE, 69, ExistenceRequirement::AllowDeath),
-			Error::<Runtime>::BalanceTooLow,
+			Error::<Runtime, Instance1>::BalanceTooLow,
 		);
 	});
 }
@@ -683,7 +683,7 @@ fn currency_adapter_basic_locking_should_work() {
 			TreasuryCurrencyAdapter::set_lock(ID_1, &TREASURY_ACCOUNT, 91, WithdrawReasons::all());
 			assert_noop!(
 				TreasuryCurrencyAdapter::transfer(&TREASURY_ACCOUNT, &ALICE, 10, ExistenceRequirement::AllowDeath),
-				Error::<Runtime>::LiquidityRestrictions
+				Error::<Runtime, Instance1>::LiquidityRestrictions
 			);
 		});
 }
@@ -766,7 +766,7 @@ fn currency_adapter_combination_locking_should_work() {
 			TreasuryCurrencyAdapter::set_lock(ID_2, &TREASURY_ACCOUNT, 0, WithdrawReasons::all());
 			assert_noop!(
 				TreasuryCurrencyAdapter::transfer(&TREASURY_ACCOUNT, &ALICE, 1, ExistenceRequirement::AllowDeath),
-				Error::<Runtime>::LiquidityRestrictions
+				Error::<Runtime, Instance1>::LiquidityRestrictions
 			);
 		});
 }
@@ -780,17 +780,17 @@ fn currency_adapter_lock_value_extension_should_work() {
 			TreasuryCurrencyAdapter::set_lock(ID_1, &TREASURY_ACCOUNT, 100, WithdrawReasons::all());
 			assert_noop!(
 				TreasuryCurrencyAdapter::transfer(&TREASURY_ACCOUNT, &ALICE, 6, ExistenceRequirement::AllowDeath),
-				Error::<Runtime>::LiquidityRestrictions
+				Error::<Runtime, Instance1>::LiquidityRestrictions
 			);
 			TreasuryCurrencyAdapter::extend_lock(ID_1, &TREASURY_ACCOUNT, 2, WithdrawReasons::all());
 			assert_noop!(
 				TreasuryCurrencyAdapter::transfer(&TREASURY_ACCOUNT, &ALICE, 6, ExistenceRequirement::AllowDeath),
-				Error::<Runtime>::LiquidityRestrictions
+				Error::<Runtime, Instance1>::LiquidityRestrictions
 			);
 			TreasuryCurrencyAdapter::extend_lock(ID_1, &TREASURY_ACCOUNT, 8, WithdrawReasons::all());
 			assert_noop!(
 				TreasuryCurrencyAdapter::transfer(&TREASURY_ACCOUNT, &ALICE, 3, ExistenceRequirement::AllowDeath),
-				Error::<Runtime>::LiquidityRestrictions
+				Error::<Runtime, Instance1>::LiquidityRestrictions
 			);
 		});
 }
@@ -804,18 +804,18 @@ fn currency_adapter_lock_block_number_extension_should_work() {
 			TreasuryCurrencyAdapter::set_lock(ID_1, &TREASURY_ACCOUNT, 200, WithdrawReasons::all());
 			assert_noop!(
 				TreasuryCurrencyAdapter::transfer(&TREASURY_ACCOUNT, &ALICE, 6, ExistenceRequirement::AllowDeath),
-				Error::<Runtime>::LiquidityRestrictions
+				Error::<Runtime, Instance1>::LiquidityRestrictions
 			);
 			TreasuryCurrencyAdapter::extend_lock(ID_1, &TREASURY_ACCOUNT, 90, WithdrawReasons::all());
 			assert_noop!(
 				TreasuryCurrencyAdapter::transfer(&TREASURY_ACCOUNT, &ALICE, 6, ExistenceRequirement::AllowDeath),
-				Error::<Runtime>::LiquidityRestrictions
+				Error::<Runtime, Instance1>::LiquidityRestrictions
 			);
 			System::set_block_number(2);
 			TreasuryCurrencyAdapter::extend_lock(ID_1, &TREASURY_ACCOUNT, 90, WithdrawReasons::all());
 			assert_noop!(
 				TreasuryCurrencyAdapter::transfer(&TREASURY_ACCOUNT, &ALICE, 3, ExistenceRequirement::AllowDeath),
-				Error::<Runtime>::LiquidityRestrictions
+				Error::<Runtime, Instance1>::LiquidityRestrictions
 			);
 		});
 }
@@ -829,17 +829,17 @@ fn currency_adapter_lock_reasons_extension_should_work() {
 			TreasuryCurrencyAdapter::set_lock(ID_1, &TREASURY_ACCOUNT, 90, WithdrawReasons::TRANSFER);
 			assert_noop!(
 				TreasuryCurrencyAdapter::transfer(&TREASURY_ACCOUNT, &ALICE, 11, ExistenceRequirement::AllowDeath),
-				Error::<Runtime>::LiquidityRestrictions
+				Error::<Runtime, Instance1>::LiquidityRestrictions
 			);
 			TreasuryCurrencyAdapter::extend_lock(ID_1, &TREASURY_ACCOUNT, 90, WithdrawReasons::empty());
 			assert_noop!(
 				TreasuryCurrencyAdapter::transfer(&TREASURY_ACCOUNT, &ALICE, 11, ExistenceRequirement::AllowDeath),
-				Error::<Runtime>::LiquidityRestrictions
+				Error::<Runtime, Instance1>::LiquidityRestrictions
 			);
 			TreasuryCurrencyAdapter::extend_lock(ID_1, &TREASURY_ACCOUNT, 90, WithdrawReasons::RESERVE);
 			assert_noop!(
 				TreasuryCurrencyAdapter::transfer(&TREASURY_ACCOUNT, &ALICE, 11, ExistenceRequirement::AllowDeath),
-				Error::<Runtime>::LiquidityRestrictions
+				Error::<Runtime, Instance1>::LiquidityRestrictions
 			);
 		});
 }
@@ -961,7 +961,7 @@ fn currency_adapter_transferring_too_high_value_should_not_panic() {
 				u64::max_value(),
 				ExistenceRequirement::AllowDeath
 			),
-			Error::<Runtime>::BalanceOverflow,
+			Error::<Runtime, Instance1>::BalanceOverflow,
 		);
 
 		assert_eq!(

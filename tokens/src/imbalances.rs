@@ -1,23 +1,22 @@
 // wrapping these imbalances in a private module is necessary to ensure absolute
 // privacy of the inner member.
-use crate::{Config, TotalIssuance};
-use frame_support::traits::{Get, Imbalance, TryDrop};
+use crate::{Config, TotalIssuance, Imbalance, TryDrop};
 use sp_runtime::traits::{Saturating, Zero};
-use sp_std::{marker, mem, result};
+use sp_std::{mem, result};
 
 /// Opaque, move-only struct with private fields that serves as a token
 /// denoting that funds have been created without any equal and opposite
 /// accounting.
 #[must_use]
-pub struct PositiveImbalance<T: Config, GetCurrencyId: Get<T::CurrencyId>>(
+pub struct PositiveImbalance<T: Config<I>, I : 'static = ()>(
 	T::Balance,
-	marker::PhantomData<GetCurrencyId>,
+	//marker::PhantomData<GetCurrencyId>,
 );
 
-impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> PositiveImbalance<T, GetCurrencyId> {
+impl<T: Config<I>, I : 'static> PositiveImbalance<T, I> {
 	/// Create a new positive imbalance from a balance.
 	pub fn new(amount: T::Balance) -> Self {
-		PositiveImbalance(amount, marker::PhantomData::<GetCurrencyId>)
+		PositiveImbalance(amount)
 	}
 }
 
@@ -25,26 +24,26 @@ impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> PositiveImbalance<T, GetCurre
 /// denoting that funds have been destroyed without any equal and opposite
 /// accounting.
 #[must_use]
-pub struct NegativeImbalance<T: Config, GetCurrencyId: Get<T::CurrencyId>>(
+pub struct NegativeImbalance<T: Config<I>, I : 'static = ()>(
 	T::Balance,
-	marker::PhantomData<GetCurrencyId>,
+	//marker::PhantomData<GetCurrencyId>,
 );
 
-impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> NegativeImbalance<T, GetCurrencyId> {
+impl<T: Config<I>, I : 'static> NegativeImbalance<T, I> {
 	/// Create a new negative imbalance from a balance.
 	pub fn new(amount: T::Balance) -> Self {
-		NegativeImbalance(amount, marker::PhantomData::<GetCurrencyId>)
+		NegativeImbalance(amount)
 	}
 }
 
-impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> TryDrop for PositiveImbalance<T, GetCurrencyId> {
+impl<T: Config<I>, I : 'static> TryDrop for PositiveImbalance<T, I> {
 	fn try_drop(self) -> result::Result<(), Self> {
 		self.drop_zero()
 	}
 }
 
-impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> Imbalance<T::Balance> for PositiveImbalance<T, GetCurrencyId> {
-	type Opposite = NegativeImbalance<T, GetCurrencyId>;
+impl<T: Config<I>, I : 'static> Imbalance<T::Balance> for PositiveImbalance<T, I> {
+	type Opposite = NegativeImbalance<T, I>;
 
 	fn zero() -> Self {
 		Self::new(Zero::zero())
@@ -88,14 +87,14 @@ impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> Imbalance<T::Balance> for Pos
 	}
 }
 
-impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> TryDrop for NegativeImbalance<T, GetCurrencyId> {
+impl<T: Config<I>, I : 'static> TryDrop for NegativeImbalance<T, I> {
 	fn try_drop(self) -> result::Result<(), Self> {
 		self.drop_zero()
 	}
 }
 
-impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> Imbalance<T::Balance> for NegativeImbalance<T, GetCurrencyId> {
-	type Opposite = PositiveImbalance<T, GetCurrencyId>;
+impl<T: Config<I>, I : 'static> Imbalance<T::Balance> for NegativeImbalance<T, I> {
+	type Opposite = PositiveImbalance<T, I>;
 
 	fn zero() -> Self {
 		Self::new(Zero::zero())
@@ -139,16 +138,16 @@ impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> Imbalance<T::Balance> for Neg
 	}
 }
 
-impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> Drop for PositiveImbalance<T, GetCurrencyId> {
+impl<T: Config<I>, I: 'static> Drop for PositiveImbalance<T, I> {
 	/// Basic drop handler will just square up the total issuance.
 	fn drop(&mut self) {
-		TotalIssuance::<T>::mutate(GetCurrencyId::get(), |v| *v = v.saturating_add(self.0));
+		TotalIssuance::<T, I>::mutate(T::CurrencyId::default(), |v| *v = v.saturating_add(self.0));
 	}
 }
 
-impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> Drop for NegativeImbalance<T, GetCurrencyId> {
+impl<T: Config<I>, I: 'static> Drop for NegativeImbalance<T, I> {
 	/// Basic drop handler will just square up the total issuance.
 	fn drop(&mut self) {
-		TotalIssuance::<T>::mutate(GetCurrencyId::get(), |v| *v = v.saturating_sub(self.0));
+		TotalIssuance::<T, I>::mutate(T::CurrencyId::default(), |v| *v = v.saturating_sub(self.0));
 	}
 }
