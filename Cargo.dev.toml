@@ -8,6 +8,8 @@ members = [
 	"currencies",
 	"gradually-update",
 	"oracle",
+	"oracle/rpc",
+	"oracle/rpc/runtime-api",
 	"tokens",
 	"traits",
 	"utilities",
