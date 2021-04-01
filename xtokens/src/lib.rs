@@ -60,7 +60,7 @@ pub mod module {
 			+ MaybeSerializeDeserialize
 			+ Into<u128>;
 
-		/// Currency.
+		/// Currency Id.
 		type CurrencyId: Parameter + Member + Clone + Into<MultiLocation>;
 
 		/// Convert `Self::Account` to `AccountId32`
