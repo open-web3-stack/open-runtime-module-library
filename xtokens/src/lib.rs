@@ -22,14 +22,14 @@
 #![allow(clippy::unused_unit)]
 #![allow(clippy::large_enum_variant)]
 
-mod reserve_location;
+pub mod location;
 
 pub use module::*;
-pub use reserve_location::*;
 
 #[frame_support::pallet]
 pub mod module {
 	use super::*;
+	use location::Reserve;
 
 	use frame_support::{pallet_prelude::*, traits::Get, transactional, Parameter};
 	use frame_system::{ensure_signed, pallet_prelude::*};
