@@ -1,11 +1,11 @@
 use xcm::v0::{Junction, MultiAsset, MultiLocation};
 
-pub trait ReserveChain {
-	fn reserve_chain(&self) -> Option<MultiLocation>;
+pub trait ReserveLocation {
+	fn reserve(&self) -> Option<MultiLocation>;
 }
 
-impl ReserveChain for MultiAsset {
-	fn reserve_chain(&self) -> Option<MultiLocation> {
+impl ReserveLocation for MultiAsset {
+	fn reserve(&self) -> Option<MultiLocation> {
 		if let MultiAsset::ConcreteFungible { id, .. } = self {
 			match (id.first(), id.at(1)) {
 				(Some(Junction::Parent), Some(Junction::Parachain { id: para_id })) => {
@@ -31,7 +31,7 @@ mod tests {
 	#[test]
 	fn parent_as_reserve_chain() {
 		assert_eq!(
-			concrete_fungible(MultiLocation::X2(Junction::Parent, Junction::GeneralIndex { id: 1 })).reserve_chain(),
+			concrete_fungible(MultiLocation::X2(Junction::Parent, Junction::GeneralIndex { id: 1 })).reserve(),
 			Some(Junction::Parent.into())
 		);
 	}
@@ -44,7 +44,7 @@ mod tests {
 				Junction::Parachain { id: 1 },
 				Junction::GeneralIndex { id: 1 }
 			))
-			.reserve_chain(),
+			.reserve(),
 			Some((Junction::Parent, Junction::Parachain { id: 1 }).into())
 		);
 	}
@@ -52,7 +52,7 @@ mod tests {
 	#[test]
 	fn no_reserve_chain() {
 		assert_eq!(
-			concrete_fungible(MultiLocation::X1(Junction::GeneralKey("DOT".into()))).reserve_chain(),
+			concrete_fungible(MultiLocation::X1(Junction::GeneralKey("DOT".into()))).reserve(),
 			None
 		);
 	}
