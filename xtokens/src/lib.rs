@@ -36,7 +36,6 @@ pub mod module {
 	use sp_runtime::traits::{AtLeast32BitUnsigned, Convert, MaybeSerializeDeserialize, Member};
 	use sp_std::prelude::*;
 
-	use cumulus_primitives_core::relay_chain::Balance as RelayChainBalance;
 	use xcm::v0::{
 		MultiAsset, MultiLocation, Order,
 		Order::*,
@@ -57,9 +56,6 @@ pub mod module {
 			+ Copy
 			+ MaybeSerializeDeserialize
 			+ Into<u128>;
-
-		/// Convert `Balance` to `RelayChainBalance`.
-		type ToRelayChainBalance: Convert<Self::Balance, RelayChainBalance>;
 
 		/// Convert `Self::Account` to `AccountId32`
 		type AccountId32Convert: Convert<Self::AccountId, [u8; 32]>;
