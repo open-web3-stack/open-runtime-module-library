@@ -29,11 +29,14 @@ pub use module::*;
 #[frame_support::pallet]
 pub mod module {
 	use super::*;
-	use location::Reserve;
+	use location::*;
 
 	use frame_support::{pallet_prelude::*, traits::Get, transactional, Parameter};
 	use frame_system::{ensure_signed, pallet_prelude::*};
-	use sp_runtime::traits::{AtLeast32BitUnsigned, Convert, MaybeSerializeDeserialize, Member};
+	use sp_runtime::{
+		traits::{AtLeast32BitUnsigned, Convert, MaybeSerializeDeserialize, Member},
+		DispatchError,
+	};
 	use sp_std::prelude::*;
 
 	use xcm::v0::{
@@ -71,8 +74,8 @@ pub mod module {
 	#[pallet::event]
 	#[pallet::generate_deposit(fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// Transferred `MultiAsset`. \[sender, asset, dest, recipient\]
-		TransferredMultiAsset(T::AccountId, MultiAsset, MultiLocation, MultiLocation),
+		/// Transferred `MultiAsset`. \[sender, asset, dest\]
+		TransferredMultiAsset(T::AccountId, MultiAsset, MultiLocation),
 	}
 
 	#[pallet::error]
@@ -81,6 +84,8 @@ pub mod module {
 		AssetHasNoReserve,
 		/// Not cross-chain transfer.
 		NotCrossChainTransfer,
+		/// Invalid transfer destination.
+		InvalidDest,
 	}
 
 	#[pallet::hooks]
@@ -98,11 +103,10 @@ pub mod module {
 			origin: OriginFor<T>,
 			asset: MultiAsset,
 			dest: MultiLocation,
-			recipient: MultiLocation,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
-			Self::do_transfer_multiasset(who.clone(), asset.clone(), dest.clone(), recipient.clone())?;
-			Self::deposit_event(Event::<T>::TransferredMultiAsset(who, asset, dest, recipient));
+			Self::do_transfer_multiasset(who.clone(), asset.clone(), dest.clone())?;
+			Self::deposit_event(Event::<T>::TransferredMultiAsset(who, asset, dest));
 			Ok(().into())
 		}
 	}
@@ -113,8 +117,9 @@ pub mod module {
 			who: T::AccountId,
 			asset: MultiAsset,
 			dest: MultiLocation,
-			recipient: MultiLocation,
 		) -> DispatchResultWithPostInfo {
+			let (dest, recipient) = Self::ensure_valid_dest(dest)?;
+
 			let self_location = T::SelfLocation::get();
 			ensure!(dest != self_location, Error::<T>::NotCrossChainTransfer);
 
@@ -127,7 +132,7 @@ pub mod module {
 				Self::transfer_to_non_reserve(asset, reserve, dest, recipient)
 			};
 
-			T::XcmHandler::execute_xcm(who.clone(), xcm)?;
+			T::XcmHandler::execute_xcm(who, xcm)?;
 
 			Ok(().into())
 		}
@@ -179,6 +184,17 @@ pub mod module {
 				assets: vec![MultiAsset::All],
 				dest: recipient,
 			}]
+		}
+
+		/// Ensure has the `dest` has chain part and recipient part.
+		fn ensure_valid_dest(
+			dest: MultiLocation,
+		) -> sp_std::result::Result<(MultiLocation, MultiLocation), DispatchError> {
+			if let (Some(dest), Some(recipient)) = (dest.chain_part(), dest.non_chain_part()) {
+				Ok((dest, recipient))
+			} else {
+				Err(Error::<T>::InvalidDest.into())
+			}
 		}
 	}
 }

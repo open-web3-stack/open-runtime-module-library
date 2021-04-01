@@ -12,11 +12,7 @@ pub trait Parse {
 }
 
 fn is_chain_junction(junction: Option<&Junction>) -> bool {
-	match junction {
-		Some(Parent) => true,
-		Some(Parachain { id: _ }) => true,
-		_ => false,
-	}
+	matches!(junction, Some(Parent) | Some(Parachain { id: _ }))
 }
 
 impl Parse for MultiLocation {
