@@ -15,19 +15,12 @@ version = '2.0.0'
 
 [dependencies]
 linregress = "0.4.0"
-serde = { features = ['derive'], optional = true, version = '1.0.119' }
-frame-support = { version = "3.0.0", default-features = false }
-frame-system = { version = "3.0.0", default-features = false }
 sp-core = { version = "3.0.0", default-features = false }
 sp-std = { version = "3.0.0", default-features = false }
 sp-io = { version = "3.0.0", default-features = false }
-sp-runtime = { version = "3.0.0", default-features = false }
 sp-runtime-interface = { version = "3.0.0", default-features = false }
-
-[dev-dependencies]
-sc-executor = {version = "0.9.0", features = ["wasmtime"]}
 
 [features]
 default = ["std"]
-std = [ "codec/std", "serde/std", "frame-support/std", "frame-system/std", "sp-std/std", "sp-core/std", "sp-io/std", "sp-runtime/std", "sp-runtime-interface/std"]
+std = [ "codec/std", "sp-core/std", "sp-std/std", "sp-io/std", "sp-runtime-interface/std"]
 benches = []
