@@ -22,6 +22,9 @@
 #![allow(clippy::unused_unit)]
 #![allow(clippy::large_enum_variant)]
 
+mod reserve_chain;
+pub use reserve_chain::*;
+
 pub use module::*;
 
 #[frame_support::pallet]
