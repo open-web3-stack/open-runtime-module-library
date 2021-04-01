@@ -60,6 +60,9 @@ pub mod module {
 			+ MaybeSerializeDeserialize
 			+ Into<u128>;
 
+		/// Currency.
+		type CurrencyId: Parameter + Member + Clone + Into<MultiLocation>;
+
 		/// Convert `Self::Account` to `AccountId32`
 		type AccountId32Convert: Convert<Self::AccountId, [u8; 32]>;
 
@@ -73,7 +76,10 @@ pub mod module {
 
 	#[pallet::event]
 	#[pallet::generate_deposit(fn deposit_event)]
+	#[pallet::metadata(T::AccountId = "AccountId", T::CurrencyId = "CurrencyId", T::Balance = "Balance")]
 	pub enum Event<T: Config> {
+		/// Transferred. \[sender, currency_id, amount, dest\]
+		Transferred(T::AccountId, T::CurrencyId, T::Balance, MultiLocation),
 		/// Transferred `MultiAsset`. \[sender, asset, dest\]
 		TransferredMultiAsset(T::AccountId, MultiAsset, MultiLocation),
 	}
@@ -96,7 +102,26 @@ pub mod module {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		/// Transfer `asset` to `recipient` in `dest` chain.
+		/// Transfer native currencies.
+		#[transactional]
+		#[pallet::weight(1000)]
+		pub fn transfer(
+			origin: OriginFor<T>,
+			currency_id: T::CurrencyId,
+			amount: T::Balance,
+			dest: MultiLocation,
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+			let asset = MultiAsset::ConcreteFungible {
+				id: currency_id.clone().into(),
+				amount: amount.into(),
+			};
+			Self::do_transfer_multiasset(who.clone(), asset, dest.clone())?;
+			Self::deposit_event(Event::<T>::Transferred(who, currency_id, amount, dest));
+			Ok(().into())
+		}
+
+		/// Transfer `MultiAsset`.
 		#[transactional]
 		#[pallet::weight(1000)]
 		pub fn transfer_multiasset(
