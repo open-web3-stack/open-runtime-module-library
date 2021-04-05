@@ -37,10 +37,8 @@ use xcm::v0::{
 	Xcm::{self, *},
 };
 
+use orml_traits::location::{Parse, Reserve};
 use orml_xcm_support::XcmHandler;
-
-pub mod location;
-use location::*;
 
 mod mock;
 mod tests;
