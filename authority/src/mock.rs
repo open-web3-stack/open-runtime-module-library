@@ -51,6 +51,7 @@ impl frame_system::Config for Runtime {
 	type BaseCallFilter = ();
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
+	type OnSetCode = ();
 }
 
 parameter_types! {
