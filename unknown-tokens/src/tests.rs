@@ -5,8 +5,6 @@
 use super::*;
 use mock::{Event, *};
 
-use codec::{Decode, Encode};
-
 use frame_support::{assert_err, assert_ok};
 use xcm::v0::Junction;
 
