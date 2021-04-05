@@ -25,7 +25,7 @@
 use frame_support::{pallet_prelude::*, traits::Get, transactional, Parameter};
 use frame_system::{ensure_signed, pallet_prelude::*};
 use sp_runtime::{
-	traits::{AtLeast32BitUnsigned, Convert, MaybeSerializeDeserialize, Member},
+	traits::{AtLeast32BitUnsigned, Convert, MaybeSerializeDeserialize, Member, Zero},
 	DispatchError,
 };
 use sp_std::prelude::*;
@@ -114,6 +114,11 @@ pub mod module {
 			dest: MultiLocation,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
+
+			if amount == Zero::zero() {
+				return Ok(().into());
+			}
+
 			let asset = MultiAsset::ConcreteFungible {
 				id: currency_id.clone().into(),
 				amount: amount.into(),
@@ -132,6 +137,11 @@ pub mod module {
 			dest: MultiLocation,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
+
+			if Self::is_zero_amount(&asset) {
+				return Ok(().into());
+			}
+
 			Self::do_transfer_multiasset(who.clone(), asset.clone(), dest.clone())?;
 			Self::deposit_event(Event::<T>::TransferredMultiAsset(who, asset, dest));
 			Ok(().into())
@@ -218,6 +228,22 @@ pub mod module {
 				assets: vec![MultiAsset::All],
 				dest: recipient,
 			}]
+		}
+
+		fn is_zero_amount(asset: &MultiAsset) -> bool {
+			if let MultiAsset::ConcreteFungible { id: _, amount } = asset {
+				if *amount == Zero::zero() {
+					return true;
+				}
+			}
+
+			if let MultiAsset::AbstractFungible { id: _, amount } = asset {
+				if *amount == Zero::zero() {
+					return true;
+				}
+			}
+
+			false
 		}
 
 		/// Ensure has the `dest` has chain part and recipient part.
