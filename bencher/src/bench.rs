@@ -34,20 +34,17 @@ macro_rules! bench {
         $($method:path),+
     ) => {
         use $crate::codec::{Encode, Decode};
-        use $crate::sp_std::prelude::*;
-        #[$crate::sp_runtime_interface::runtime_interface]
-        pub trait BenchApi {
-            fn current_time() -> u128 {
-                ::std::time::SystemTime::now().duration_since(::std::time::UNIX_EPOCH)
-                    .expect("Unix time doesn't go backwards; qed")
-                    .as_nanos()
-            }
-        }
+        use $crate::sp_std::{cmp::max, prelude::Vec};
+        use $crate::frame_benchmarking::{benchmarking, BenchmarkResults};
 
         #[derive(Encode, Decode, Default, Clone, PartialEq, Debug)]
         pub struct BenchResult {
             pub method: Vec<u8>,
             pub elapses: Vec<u128>,
+            pub reads: u32,
+            pub repeat_reads: u32,
+            pub writes: u32,
+            pub repeat_writes: u32,
         }
 
         #[derive(Encode, Decode, Default, Clone, PartialEq, Debug)]
@@ -57,27 +54,45 @@ macro_rules! bench {
 
         impl Bencher {
             pub fn bench(&mut self, name: &str, block: fn() -> ()) {
-                let mut elapses: Vec<u128> = Vec::new();
+                // Warm up the DB
+                benchmarking::commit_db();
+                benchmarking::wipe_db();
+
+                let mut result = BenchResult {
+                    method: name.as_bytes().to_vec(),
+                    ..Default::default()
+                };
 
                 for _ in 0..50 {
-                    let start_time = bench_api::current_time();
-                    block();
-                    let end_time = bench_api::current_time();
-                    let elasped = end_time - start_time;
-                    elapses.push(elasped);
-                }
+                    benchmarking::commit_db();
+                    benchmarking::reset_read_write_count();
 
-                self.results.push(BenchResult {
-                    method: name.as_bytes().to_vec(),
-                    elapses,
-                });
+                    let start_time = benchmarking::current_time();
+                    block();
+                    let end_time = benchmarking::current_time();
+                    let elasped = end_time - start_time;
+                    result.elapses.push(elasped);
+
+                    benchmarking::commit_db();
+                    let (reads, repeat_reads, writes, repeat_writes) = benchmarking::read_write_count();
+
+                    result.reads = max(result.reads, reads);
+                    result.repeat_reads = max(result.repeat_reads, repeat_reads);
+                    result.writes = max(result.writes, writes);
+                    result.repeat_writes = max(result.repeat_writes, repeat_writes);
+
+                    benchmarking::wipe_db();
+                }
+                self.results.push(result);
             }
         }
 
         $crate::sp_core::wasm_export_functions! {
             fn run_benches() -> Bencher {
                 let mut bencher = Bencher::default();
-                $($method(&mut bencher);)+
+                $(
+                    $method(&mut bencher);
+                )+
                 bencher
             }
         }
