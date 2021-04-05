@@ -10,25 +10,25 @@ use sp_runtime::AccountId32;
 use xcm::v0::{Junction, NetworkId};
 use xcm_simulator::TestExt;
 
-fn relay_chain_para_a_account() -> AccountId32 {
+fn para_a_account() -> AccountId32 {
 	ParaId::from(1).into_account()
 }
 
-fn relay_chain_para_b_account() -> AccountId32 {
+fn para_b_account() -> AccountId32 {
 	ParaId::from(2).into_account()
 }
 
-fn para_a_account() -> AccountId32 {
+fn sibling_a_account() -> AccountId32 {
 	use sp_runtime::traits::AccountIdConversion;
 	Sibling::from(1).into_account()
 }
 
-fn para_b_account() -> AccountId32 {
+fn sibling_b_account() -> AccountId32 {
 	use sp_runtime::traits::AccountIdConversion;
 	Sibling::from(2).into_account()
 }
 
-fn para_c_account() -> AccountId32 {
+fn sibling_c_account() -> AccountId32 {
 	use sp_runtime::traits::AccountIdConversion;
 	Sibling::from(3).into_account()
 }
@@ -38,7 +38,7 @@ fn send_relay_chain_asset_to_relay_chain() {
 	TestNetwork::reset();
 
 	MockRelay::execute_with(|| {
-		let _ = RelayBalances::deposit_creating(&relay_chain_para_a_account(), 100);
+		let _ = RelayBalances::deposit_creating(&para_a_account(), 100);
 	});
 
 	ParaA::execute_with(|| {
@@ -59,7 +59,7 @@ fn send_relay_chain_asset_to_relay_chain() {
 	});
 
 	MockRelay::execute_with(|| {
-		assert_eq!(RelayBalances::free_balance(&relay_chain_para_a_account()), 70);
+		assert_eq!(RelayBalances::free_balance(&para_a_account()), 70);
 		assert_eq!(RelayBalances::free_balance(&BOB), 30);
 	});
 }
@@ -69,7 +69,7 @@ fn send_relay_chain_asset_to_sibling() {
 	TestNetwork::reset();
 
 	MockRelay::execute_with(|| {
-		let _ = RelayBalances::deposit_creating(&relay_chain_para_a_account(), 100);
+		let _ = RelayBalances::deposit_creating(&para_a_account(), 100);
 	});
 
 	ParaA::execute_with(|| {
@@ -91,8 +91,8 @@ fn send_relay_chain_asset_to_sibling() {
 	});
 
 	MockRelay::execute_with(|| {
-		assert_eq!(RelayBalances::free_balance(&relay_chain_para_a_account()), 70);
-		assert_eq!(RelayBalances::free_balance(&relay_chain_para_b_account()), 30);
+		assert_eq!(RelayBalances::free_balance(&para_a_account()), 70);
+		assert_eq!(RelayBalances::free_balance(&para_b_account()), 30);
 	});
 
 	ParaB::execute_with(|| {
@@ -109,7 +109,7 @@ fn send_sibling_asset_to_reserve_sibling() {
 	});
 
 	ParaB::execute_with(|| {
-		assert_ok!(ParaBTokens::deposit(CurrencyId::B, &para_a_account(), 100));
+		assert_ok!(ParaBTokens::deposit(CurrencyId::B, &sibling_a_account(), 100));
 	});
 
 	ParaA::execute_with(|| {
@@ -132,7 +132,7 @@ fn send_sibling_asset_to_reserve_sibling() {
 	});
 
 	ParaB::execute_with(|| {
-		assert_eq!(ParaBTokens::free_balance(CurrencyId::B, &para_a_account()), 70);
+		assert_eq!(ParaBTokens::free_balance(CurrencyId::B, &sibling_a_account()), 70);
 		assert_eq!(ParaBTokens::free_balance(CurrencyId::B, &BOB), 30);
 	});
 }
@@ -146,7 +146,7 @@ fn send_sibling_asset_to_non_reserve_sibling() {
 	});
 
 	ParaB::execute_with(|| {
-		assert_ok!(ParaBTokens::deposit(CurrencyId::B, &para_a_account(), 100));
+		assert_ok!(ParaBTokens::deposit(CurrencyId::B, &sibling_a_account(), 100));
 	});
 
 	ParaA::execute_with(|| {
@@ -169,8 +169,8 @@ fn send_sibling_asset_to_non_reserve_sibling() {
 
 	// check reserve accounts
 	ParaB::execute_with(|| {
-		assert_eq!(ParaBTokens::free_balance(CurrencyId::B, &para_a_account()), 70);
-		assert_eq!(ParaBTokens::free_balance(CurrencyId::B, &para_c_account()), 30);
+		assert_eq!(ParaBTokens::free_balance(CurrencyId::B, &sibling_a_account()), 70);
+		assert_eq!(ParaBTokens::free_balance(CurrencyId::B, &sibling_c_account()), 30);
 	});
 
 	ParaC::execute_with(|| {
@@ -201,7 +201,7 @@ fn send_self_parachain_asset_to_sibling() {
 		));
 
 		assert_eq!(ParaATokens::free_balance(CurrencyId::A, &ALICE), 70);
-		assert_eq!(ParaATokens::free_balance(CurrencyId::A, &para_b_account()), 30);
+		assert_eq!(ParaATokens::free_balance(CurrencyId::A, &sibling_b_account()), 30);
 	});
 
 	ParaB::execute_with(|| {
