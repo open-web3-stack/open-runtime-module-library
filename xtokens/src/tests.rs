@@ -2,7 +2,7 @@
 
 use super::*;
 use cumulus_primitives_core::ParaId;
-use frame_support::{assert_ok, traits::Currency};
+use frame_support::{assert_noop, assert_ok, traits::Currency};
 use mock::*;
 use orml_traits::MultiCurrency;
 use polkadot_parachain::primitives::{AccountIdConversion, Sibling};
@@ -47,7 +47,7 @@ fn send_relay_chain_asset_to_relay_chain() {
 			CurrencyId::R,
 			30,
 			(
-				Junction::Parent,
+				Parent,
 				Junction::AccountId32 {
 					network: NetworkId::Polkadot,
 					id: BOB.into(),
@@ -78,8 +78,8 @@ fn send_relay_chain_asset_to_sibling() {
 			CurrencyId::R,
 			30,
 			(
-				Junction::Parent,
-				Junction::Parachain { id: 2 },
+				Parent,
+				Parachain { id: 2 },
 				Junction::AccountId32 {
 					network: NetworkId::Any,
 					id: BOB.into(),
@@ -118,8 +118,8 @@ fn send_sibling_asset_to_reserve_sibling() {
 			CurrencyId::B,
 			30,
 			(
-				Junction::Parent,
-				Junction::Parachain { id: 2 },
+				Parent,
+				Parachain { id: 2 },
 				Junction::AccountId32 {
 					network: NetworkId::Any,
 					id: BOB.into(),
@@ -155,8 +155,8 @@ fn send_sibling_asset_to_non_reserve_sibling() {
 			CurrencyId::B,
 			30,
 			(
-				Junction::Parent,
-				Junction::Parachain { id: 3 },
+				Parent,
+				Parachain { id: 3 },
 				Junction::AccountId32 {
 					network: NetworkId::Any,
 					id: BOB.into(),
@@ -190,8 +190,8 @@ fn send_self_parachain_asset_to_sibling() {
 			CurrencyId::A,
 			30,
 			(
-				Junction::Parent,
-				Junction::Parachain { id: 2 },
+				Parent,
+				Parachain { id: 2 },
 				Junction::AccountId32 {
 					network: NetworkId::Any,
 					id: BOB.into(),
@@ -209,5 +209,82 @@ fn send_self_parachain_asset_to_sibling() {
 			println!(">>> {:?}", r.event);
 		});
 		assert_eq!(ParaBTokens::free_balance(CurrencyId::A, &BOB), 30);
+	});
+}
+
+#[test]
+fn transfer_no_reserve_assets_fails() {
+	TestNetwork::reset();
+
+	ParaA::execute_with(|| {
+		assert_noop!(
+			ParaAXtokens::transfer_multiasset(
+				Some(ALICE).into(),
+				MultiAsset::ConcreteFungible {
+					id: GeneralKey("B".into()).into(),
+					amount: 1
+				},
+				(
+					Parent,
+					Parachain { id: 2 },
+					Junction::AccountId32 {
+						network: NetworkId::Any,
+						id: BOB.into()
+					}
+				)
+					.into()
+			),
+			Error::<para_a::Runtime>::AssetHasNoReserve
+		);
+	});
+}
+
+#[test]
+fn transfer_to_self_chain_fails() {
+	TestNetwork::reset();
+
+	ParaA::execute_with(|| {
+		assert_noop!(
+			ParaAXtokens::transfer_multiasset(
+				Some(ALICE).into(),
+				MultiAsset::ConcreteFungible {
+					id: (Parent, Parachain { id: 1 }, GeneralKey("A".into())).into(),
+					amount: 1
+				},
+				(
+					Parent,
+					Parachain { id: 1 },
+					Junction::AccountId32 {
+						network: NetworkId::Any,
+						id: BOB.into()
+					}
+				)
+					.into()
+			),
+			Error::<para_a::Runtime>::NotCrossChainTransfer
+		);
+	});
+}
+
+#[test]
+fn transfer_to_invalid_dest_fails() {
+	TestNetwork::reset();
+
+	ParaA::execute_with(|| {
+		assert_noop!(
+			ParaAXtokens::transfer_multiasset(
+				Some(ALICE).into(),
+				MultiAsset::ConcreteFungible {
+					id: (Parent, Parachain { id: 1 }, GeneralKey("A".into())).into(),
+					amount: 1
+				},
+				(Junction::AccountId32 {
+					network: NetworkId::Any,
+					id: BOB.into()
+				})
+				.into()
+			),
+			Error::<para_a::Runtime>::InvalidDest
+		);
 	});
 }
