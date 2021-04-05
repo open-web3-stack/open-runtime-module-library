@@ -31,6 +31,7 @@ use sp_runtime::{
 use sp_std::prelude::*;
 
 use xcm::v0::{
+	Junction::*,
 	MultiAsset, MultiLocation, Order,
 	Order::*,
 	Xcm::{self, *},
@@ -193,6 +194,13 @@ pub mod module {
 			dest: MultiLocation,
 			recipient: MultiLocation,
 		) -> Xcm {
+			let mut reanchored_dest = dest.clone();
+			if reserve == Parent.into() {
+				if let MultiLocation::X2(Parent, Parachain { id }) = dest {
+					reanchored_dest = Parachain { id }.into();
+				}
+			}
+
 			WithdrawAsset {
 				assets: vec![asset],
 				effects: vec![InitiateReserveWithdraw {
@@ -200,7 +208,7 @@ pub mod module {
 					reserve,
 					effects: vec![DepositReserveAsset {
 						assets: vec![MultiAsset::All],
-						dest,
+						dest: reanchored_dest,
 						effects: Self::deposit_asset(recipient),
 					}],
 				}],

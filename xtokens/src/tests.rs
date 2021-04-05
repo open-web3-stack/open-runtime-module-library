@@ -14,6 +14,10 @@ fn para_a_account() -> AccountId32 {
 	ParaId::from(1).into_account()
 }
 
+fn para_b_account() -> AccountId32 {
+	ParaId::from(2).into_account()
+}
+
 #[test]
 fn send_relay_chain_asset_to_relay_chain() {
 	TestNetwork::reset();
@@ -42,5 +46,43 @@ fn send_relay_chain_asset_to_relay_chain() {
 	MockRelay::execute_with(|| {
 		assert_eq!(RelayBalances::free_balance(&para_a_account()), 70);
 		assert_eq!(RelayBalances::free_balance(&BOB), 30);
+	});
+}
+
+#[test]
+fn send_relay_chain_asset_to_sibling() {
+	TestNetwork::reset();
+
+	MockRelay::execute_with(|| {
+		let _ = RelayBalances::deposit_creating(&para_a_account(), 100);
+	});
+
+	ParaA::execute_with(|| {
+		assert_ok!(ParaAXtokens::transfer(
+			Some(ALICE).into(),
+			CurrencyId::R,
+			30,
+			(
+				Junction::Parent,
+				Junction::Parachain { id: 2 },
+				Junction::AccountId32 {
+					network: NetworkId::Any,
+					id: BOB.into(),
+				},
+			)
+				.into(),
+		));
+		assert_eq!(ParaATokens::free_balance(CurrencyId::R, &ALICE), 70);
+	});
+
+	use xcm_simulator::relay_chain;
+
+	MockRelay::execute_with(|| {
+		assert_eq!(RelayBalances::free_balance(&para_a_account()), 70);
+		assert_eq!(RelayBalances::free_balance(&para_b_account()), 30);
+	});
+
+	ParaB::execute_with(|| {
+		assert_eq!(ParaBTokens::free_balance(CurrencyId::R, &BOB), 30);
 	});
 }

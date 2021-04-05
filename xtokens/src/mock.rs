@@ -294,7 +294,7 @@ pub type ParaAXtokens = orml_xtokens::Pallet<para_a::Runtime>;
 pub type ParaBTokens = orml_tokens::Pallet<para_b::Runtime>;
 pub type ParaBXtokens = orml_xtokens::Pallet<para_b::Runtime>;
 
-pub type RelayBalances = pallet_balances::Pallet<relay_chain::default::Runtime>;
+pub type RelayBalances = pallet_balances::Pallet<relay::Runtime>;
 
 pub struct ParaExtBuilder;
 
