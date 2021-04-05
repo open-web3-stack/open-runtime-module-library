@@ -179,6 +179,110 @@ decl_test_parachain! {
 		new_ext = parachain_ext::<para_b::Runtime>(2),
 		para_id = 2,
 	}
+	pub mod para_c {
+		test_network = super::TestNetwork,
+		xcm_config = {
+			use super::*;
+
+			parameter_types! {
+				pub ParaANetwork: NetworkId = NetworkId::Any;
+				pub RelayChainOrigin: Origin = cumulus_pallet_xcm_handler::Origin::Relay.into();
+				pub Ancestry: MultiLocation = MultiLocation::X1(Junction::Parachain {
+					id: ParachainInfo::get().into(),
+				});
+				pub const RelayChainCurrencyId: CurrencyId = CurrencyId::R;
+			}
+
+			pub type LocationConverter = (
+				ParentIsDefault<AccountId>,
+				SiblingParachainConvertsVia<Sibling, AccountId>,
+				AccountId32Aliases<ParaANetwork, AccountId>,
+			);
+
+			pub type LocalAssetTransactor = MultiCurrencyAdapter<
+				Tokens,
+				(),
+				IsConcreteWithGeneralKey<CurrencyId, Identity>,
+				LocationConverter,
+				AccountId,
+				CurrencyIdConverter<CurrencyId, RelayChainCurrencyId>,
+				CurrencyId,
+			>;
+
+			pub type LocalOriginConverter = (
+				SovereignSignedViaLocation<LocationConverter, Origin>,
+				RelayChainAsNative<RelayChainOrigin, Origin>,
+				SiblingParachainAsNative<cumulus_pallet_xcm_handler::Origin, Origin>,
+				SignedAccountId32AsNative<ParaANetwork, Origin>,
+			);
+
+			pub struct XcmConfig;
+			impl XcmConfigT for XcmConfig {
+				type Call = Call;
+				type XcmSender = XcmHandler;
+				type AssetTransactor = LocalAssetTransactor;
+				type OriginConverter = LocalOriginConverter;
+				type IsReserve = MultiNativeAsset;
+				type IsTeleporter = ();
+				type LocationInverter = LocationInverter<Ancestry>;
+			}
+		},
+		extra_config = {
+			parameter_type_with_key! {
+				pub ExistentialDeposits: |_currency_id: super::CurrencyId| -> Balance {
+					Default::default()
+				};
+			}
+
+			impl orml_tokens::Config for Runtime {
+				type Event = Event;
+				type Balance = Balance;
+				type Amount = Amount;
+				type CurrencyId = super::CurrencyId;
+				type WeightInfo = ();
+				type ExistentialDeposits = ExistentialDeposits;
+				type OnDust = ();
+			}
+
+			pub struct HandleXcm;
+			impl XcmHandlerT<AccountId> for HandleXcm {
+				fn execute_xcm(origin: AccountId, xcm: Xcm) -> DispatchResult {
+					XcmHandler::execute_xcm(origin, xcm)
+				}
+			}
+
+			pub struct AccountId32Convert;
+			impl Convert<AccountId, [u8; 32]> for AccountId32Convert {
+				fn convert(account_id: AccountId) -> [u8; 32] {
+					account_id.into()
+				}
+			}
+
+			parameter_types! {
+				pub SelfLocation: MultiLocation = (Junction::Parent, Junction::Parachain { id: ParachainInfo::get().into() }).into();
+			}
+
+			impl orml_xtokens::Config for Runtime {
+				type Event = Event;
+				type Balance = Balance;
+				type CurrencyId = CurrencyId;
+				type AccountId32Convert = AccountId32Convert;
+				type SelfLocation = SelfLocation;
+				type XcmHandler = HandleXcm;
+			}
+		},
+		extra_modules = {
+			Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
+			XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>},
+		},
+	}
+}
+
+decl_test_parachain! {
+	pub struct ParaC {
+		new_ext = parachain_ext::<para_b::Runtime>(3),
+		para_id = 3,
+	}
 	pub mod para_b {
 		test_network = super::TestNetwork,
 		xcm_config = {
@@ -284,15 +388,15 @@ decl_test_network! {
 		parachains = vec![
 			(1, ParaA),
 			(2, ParaB),
+			(3, ParaC),
 		],
 	}
 }
 
-pub type ParaATokens = orml_tokens::Pallet<para_a::Runtime>;
 pub type ParaAXtokens = orml_xtokens::Pallet<para_a::Runtime>;
-
+pub type ParaATokens = orml_tokens::Pallet<para_a::Runtime>;
 pub type ParaBTokens = orml_tokens::Pallet<para_b::Runtime>;
-pub type ParaBXtokens = orml_xtokens::Pallet<para_b::Runtime>;
+pub type ParaCTokens = orml_tokens::Pallet<para_c::Runtime>;
 
 pub type RelayBalances = pallet_balances::Pallet<relay::Runtime>;
 
