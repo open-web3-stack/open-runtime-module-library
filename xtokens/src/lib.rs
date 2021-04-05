@@ -22,30 +22,33 @@
 #![allow(clippy::unused_unit)]
 #![allow(clippy::large_enum_variant)]
 
+use frame_support::{pallet_prelude::*, traits::Get, transactional, Parameter};
+use frame_system::{ensure_signed, pallet_prelude::*};
+use sp_runtime::{
+	traits::{AtLeast32BitUnsigned, Convert, MaybeSerializeDeserialize, Member},
+	DispatchError,
+};
+use sp_std::prelude::*;
+
+use xcm::v0::{
+	MultiAsset, MultiLocation, Order,
+	Order::*,
+	Xcm::{self, *},
+};
+
+use orml_xcm_support::XcmHandler;
+
 pub mod location;
+use location::*;
+
+mod mock;
+mod tests;
 
 pub use module::*;
 
 #[frame_support::pallet]
 pub mod module {
 	use super::*;
-	use location::*;
-
-	use frame_support::{pallet_prelude::*, traits::Get, transactional, Parameter};
-	use frame_system::{ensure_signed, pallet_prelude::*};
-	use sp_runtime::{
-		traits::{AtLeast32BitUnsigned, Convert, MaybeSerializeDeserialize, Member},
-		DispatchError,
-	};
-	use sp_std::prelude::*;
-
-	use xcm::v0::{
-		MultiAsset, MultiLocation, Order,
-		Order::*,
-		Xcm::{self, *},
-	};
-
-	use orml_xcm_support::XcmHandler;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
