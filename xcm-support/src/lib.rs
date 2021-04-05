@@ -24,6 +24,8 @@ use sp_std::{
 use xcm::v0::{Junction, MultiAsset, MultiLocation, Xcm};
 use xcm_executor::traits::{FilterAssetLocation, MatchesFungible, NativeAsset};
 
+use orml_traits::location::Reserve;
+
 pub use currency_adapter::MultiCurrencyAdapter;
 
 mod currency_adapter;
@@ -86,6 +88,20 @@ impl<Pairs: Get<BTreeSet<(Vec<u8>, MultiLocation)>>> FilterAssetLocation for Nat
 			}
 		}
 
+		false
+	}
+}
+
+/// A `FilterAssetLocation` implementation. Filters multi native assets whose
+/// reserve is same with `origin`.
+pub struct MultiNativeAsset;
+impl FilterAssetLocation for MultiNativeAsset {
+	fn filter_asset_location(asset: &MultiAsset, origin: &MultiLocation) -> bool {
+		if let Some(ref reserve) = asset.reserve() {
+			if reserve == origin {
+				return true;
+			}
+		}
 		false
 	}
 }

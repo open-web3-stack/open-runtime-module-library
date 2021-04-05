@@ -6,7 +6,7 @@ use crate as orml_xtokens;
 use frame_support::parameter_types;
 use orml_traits::parameter_type_with_key;
 use orml_xcm_support::{
-	CurrencyIdConverter, IsConcreteWithGeneralKey, MultiCurrencyAdapter, XcmHandler as XcmHandlerT,
+	CurrencyIdConverter, IsConcreteWithGeneralKey, MultiCurrencyAdapter, MultiNativeAsset, XcmHandler as XcmHandlerT,
 };
 use polkadot_parachain::primitives::Sibling;
 use serde::{Deserialize, Serialize};
@@ -18,7 +18,7 @@ use xcm_builder::{
 	AccountId32Aliases, LocationInverter, ParentIsDefault, RelayChainAsNative, SiblingParachainAsNative,
 	SiblingParachainConvertsVia, SignedAccountId32AsNative, SovereignSignedViaLocation,
 };
-use xcm_executor::{traits::NativeAsset, Config as XcmConfigT};
+use xcm_executor::Config as XcmConfigT;
 use xcm_simulator::{decl_test_network, decl_test_parachain, prelude::*};
 
 pub const ALICE: AccountId32 = AccountId32::new([0u8; 32]);
@@ -118,7 +118,7 @@ decl_test_parachain! {
 				type XcmSender = XcmHandler;
 				type AssetTransactor = LocalAssetTransactor;
 				type OriginConverter = LocalOriginConverter;
-				type IsReserve = NativeAsset;
+				type IsReserve = MultiNativeAsset;
 				type IsTeleporter = ();
 				type LocationInverter = LocationInverter<Ancestry>;
 			}
@@ -222,7 +222,7 @@ decl_test_parachain! {
 				type XcmSender = XcmHandler;
 				type AssetTransactor = LocalAssetTransactor;
 				type OriginConverter = LocalOriginConverter;
-				type IsReserve = NativeAsset;
+				type IsReserve = MultiNativeAsset;
 				type IsTeleporter = ();
 				type LocationInverter = LocationInverter<Ancestry>;
 			}

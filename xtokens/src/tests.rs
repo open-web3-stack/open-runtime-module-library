@@ -85,8 +85,6 @@ fn send_relay_chain_asset_to_sibling() {
 		assert_eq!(ParaATokens::free_balance(CurrencyId::R, &ALICE), 70);
 	});
 
-	use xcm_simulator::relay_chain;
-
 	MockRelay::execute_with(|| {
 		assert_eq!(RelayBalances::free_balance(&relay_chain_para_a_account()), 70);
 		assert_eq!(RelayBalances::free_balance(&relay_chain_para_b_account()), 30);
