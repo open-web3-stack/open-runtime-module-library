@@ -5,6 +5,14 @@
 /// #![cfg_attr(not(feature = "std"), no_std)]
 /// #![allow(dead_code)]
 ///
+/// #[cfg(feature = "std")]
+/// orml_bencher::bencher_use!(
+///     crate::mock::wasm_binary_unwrap,
+///     crate::mock::Block,
+///     crate::mock::Hasher,
+///     crate::mock::BlockNumber
+/// );
+///
 /// use crate::mock::YourModule;
 ///
 /// fn foo(b: &mut Bencher) {

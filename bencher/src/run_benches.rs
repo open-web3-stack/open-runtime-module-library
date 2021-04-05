@@ -27,20 +27,15 @@
 ///
 /// Create a file `bench_runner.rs` with following code:
 ///  ```.ignore
-/// orml_bencher::run_benches!(
-///    pallet_template::mock::wasm_binary_unwrap, /* mock runtime wasm */
-///    pallet_template::mock::Block,
-///    pallet_template::mock::Hasher,
-///    pallet_template::mock::BlockNumber,
-///    pallet_template::benches /* path to benches */
-/// );
+/// orml_bencher::run_benches!(my_module::benches);
 /// ```
 /// 
 /// Update Cargo.toml by adding:
 /// ```toml
 /// ..
-/// edition = '2018'
-/// version = '3.0.0'
+/// [package]
+/// name = "my-module"
+/// ..
 /// build = 'build.rs'
 ///
 /// [build-dependencies]
@@ -60,9 +55,9 @@
 /// Run bench with features bench: `cargo bench --features=bench`
 #[macro_export]
 macro_rules! run_benches {
-	($wasm:path, $block:path, $hasher:path, $block_number:path, $benches:path) => {
+	($benches:path) => {
 		mod bench_runner {
-			use $benches::Bencher;
+			use $benches::{wasm_binary_unwrap, Bencher, Block, BlockNumber, Hasher};
 			use $crate::codec::Decode;
 			use $crate::frame_benchmarking::benchmarking;
 			use $crate::linregress::{FormulaRegressionBuilder, RegressionDataBuilder};
@@ -72,8 +67,8 @@ macro_rules! run_benches {
 			use $crate::sp_io::SubstrateHostFunctions;
 			use $crate::sp_state_machine::{Backend, Ext, OverlayedChanges, StorageTransactionCache};
 
-			type State = BenchmarkingState<$block>;
-			type TestExt<'a> = Ext<'a, $hasher, $block_number, State>;
+			type State = BenchmarkingState<Block>;
+			type TestExt<'a> = Ext<'a, Hasher, BlockNumber, State>;
 
 			pub fn run() {
 				let mut overlay = OverlayedChanges::default();
@@ -92,11 +87,9 @@ macro_rules! run_benches {
 					None,
 				);
 
-				let wasm_code = $wasm();
-
 				let output = executor
 					.call_in_wasm(
-						&wasm_code[..],
+						&wasm_binary_unwrap()[..],
 						None,
 						"run_benches",
 						&[],
@@ -134,5 +127,17 @@ macro_rules! run_benches {
 		pub fn main() {
 			bench_runner::run();
 		}
+	};
+}
+
+/// Re-export wasm_binary_unwrap, Block, Hasher, BlockNumber from mock runtime
+/// to be used by bench_runner
+#[macro_export]
+macro_rules! bencher_use {
+	($wasm:path, $block:path, $hasher:path, $block_number:path) => {
+		pub use $block as Block;
+		pub use $block_number as BlockNumber;
+		pub use $hasher as Hasher;
+		pub use $wasm as wasm_binary_unwrap;
 	};
 }
