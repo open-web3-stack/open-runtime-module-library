@@ -10,7 +10,6 @@ use polkadot_parachain::primitives::Sibling;
 use serde::{Deserialize, Serialize};
 use sp_io::TestExternalities;
 use sp_runtime::AccountId32;
-use sp_std::convert::TryFrom;
 use xcm::v0::{Junction, MultiLocation::*, NetworkId};
 use xcm_builder::{
 	AccountId32Aliases, LocationInverter, ParentIsDefault, RelayChainAsNative, SiblingParachainAsNative,
@@ -33,48 +32,52 @@ pub enum CurrencyId {
 	B,
 }
 
-impl From<CurrencyId> for MultiLocation {
-	fn from(id: CurrencyId) -> Self {
+pub struct CurrencyIdConvert;
+impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
+	fn convert(id: CurrencyId) -> Option<MultiLocation> {
 		match id {
-			CurrencyId::R => Junction::Parent.into(),
-			CurrencyId::A => (
-				Junction::Parent,
-				Junction::Parachain { id: 1 },
-				Junction::GeneralKey("A".into()),
-			)
-				.into(),
-			CurrencyId::B => (
-				Junction::Parent,
-				Junction::Parachain { id: 2 },
-				Junction::GeneralKey("B".into()),
-			)
-				.into(),
+			CurrencyId::R => Some(Junction::Parent.into()),
+			CurrencyId::A => Some(
+				(
+					Junction::Parent,
+					Junction::Parachain { id: 1 },
+					Junction::GeneralKey("A".into()),
+				)
+					.into(),
+			),
+			CurrencyId::B => Some(
+				(
+					Junction::Parent,
+					Junction::Parachain { id: 2 },
+					Junction::GeneralKey("B".into()),
+				)
+					.into(),
+			),
 		}
 	}
 }
-
-impl TryFrom<MultiLocation> for CurrencyId {
-	type Error = ();
-	fn try_from(l: MultiLocation) -> Result<Self, Self::Error> {
+impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
+	fn convert(l: MultiLocation) -> Option<CurrencyId> {
 		let a: Vec<u8> = "A".into();
 		let b: Vec<u8> = "B".into();
 		match l {
-			X1(Parent) => Ok(CurrencyId::R),
-			X3(Junction::Parent, Junction::Parachain { id: 1 }, Junction::GeneralKey(k)) if k == a => Ok(CurrencyId::A),
-			X3(Junction::Parent, Junction::Parachain { id: 2 }, Junction::GeneralKey(k)) if k == b => Ok(CurrencyId::B),
-
-			_ => Err(()),
+			X1(Parent) => Some(CurrencyId::R),
+			X3(Junction::Parent, Junction::Parachain { id: 1 }, Junction::GeneralKey(k)) if k == a => {
+				Some(CurrencyId::A)
+			}
+			X3(Junction::Parent, Junction::Parachain { id: 2 }, Junction::GeneralKey(k)) if k == b => {
+				Some(CurrencyId::B)
+			}
+			_ => None,
 		}
 	}
 }
-
-impl TryFrom<MultiAsset> for CurrencyId {
-	type Error = ();
-	fn try_from(a: MultiAsset) -> Result<Self, Self::Error> {
+impl Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert {
+	fn convert(a: MultiAsset) -> Option<CurrencyId> {
 		if let MultiAsset::ConcreteFungible { id, amount: _ } = a {
-			Self::try_from(id)
+			Self::convert(id)
 		} else {
-			Err(())
+			None
 		}
 	}
 }
@@ -110,10 +113,11 @@ decl_test_parachain! {
 			pub type LocalAssetTransactor = MultiCurrencyAdapter<
 				Tokens,
 				(),
-				IsNativeConcrete<CurrencyId>,
-				LocationConverter,
+				IsNativeConcrete<CurrencyId, CurrencyIdConvert>,
 				AccountId,
+				LocationConverter,
 				CurrencyId,
+				CurrencyIdConvert,
 			>;
 
 			pub type LocalOriginConverter = (
@@ -173,6 +177,7 @@ decl_test_parachain! {
 				type Event = Event;
 				type Balance = Balance;
 				type CurrencyId = CurrencyId;
+				type CurrencyIdConvert = CurrencyIdConvert;
 				type AccountId32Convert = AccountId32Convert;
 				type SelfLocation = SelfLocation;
 				type XcmHandler = HandleXcm;
@@ -213,10 +218,11 @@ decl_test_parachain! {
 			pub type LocalAssetTransactor = MultiCurrencyAdapter<
 				Tokens,
 				(),
-				IsNativeConcrete<CurrencyId>,
-				LocationConverter,
+				IsNativeConcrete<CurrencyId, CurrencyIdConvert>,
 				AccountId,
+				LocationConverter,
 				CurrencyId,
+				CurrencyIdConvert,
 			>;
 
 			pub type LocalOriginConverter = (
@@ -276,6 +282,7 @@ decl_test_parachain! {
 				type Event = Event;
 				type Balance = Balance;
 				type CurrencyId = CurrencyId;
+				type CurrencyIdConvert = CurrencyIdConvert;
 				type AccountId32Convert = AccountId32Convert;
 				type SelfLocation = SelfLocation;
 				type XcmHandler = HandleXcm;
@@ -316,10 +323,11 @@ decl_test_parachain! {
 			pub type LocalAssetTransactor = MultiCurrencyAdapter<
 				Tokens,
 				(),
-				IsNativeConcrete<CurrencyId>,
-				LocationConverter,
+				IsNativeConcrete<CurrencyId, CurrencyIdConvert>,
 				AccountId,
+				LocationConverter,
 				CurrencyId,
+				CurrencyIdConvert,
 			>;
 
 			pub type LocalOriginConverter = (
@@ -379,6 +387,7 @@ decl_test_parachain! {
 				type Event = Event;
 				type Balance = Balance;
 				type CurrencyId = CurrencyId;
+				type CurrencyIdConvert = CurrencyIdConvert;
 				type AccountId32Convert = AccountId32Convert;
 				type SelfLocation = SelfLocation;
 				type XcmHandler = HandleXcm;

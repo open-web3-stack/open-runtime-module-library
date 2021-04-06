@@ -10,7 +10,7 @@
 #![allow(clippy::unused_unit)]
 
 use frame_support::dispatch::{DispatchError, DispatchResult};
-use sp_runtime::traits::CheckedConversion;
+use sp_runtime::traits::{CheckedConversion, Convert};
 use sp_std::{convert::TryFrom, marker::PhantomData, prelude::*};
 
 use xcm::v0::{MultiAsset, MultiLocation, Xcm};
@@ -31,15 +31,15 @@ pub trait XcmHandler<AccountId> {
 
 /// A `MatchesFungible` implementation. It matches concrete fungible assets
 /// whose `id` could be converted into `CurrencyId`.
-pub struct IsNativeConcrete<CurrencyId>(PhantomData<CurrencyId>);
-impl<CurrencyId, Amount> MatchesFungible<Amount> for IsNativeConcrete<CurrencyId>
+pub struct IsNativeConcrete<CurrencyId, CurrencyIdConvert>(PhantomData<(CurrencyId, CurrencyIdConvert)>);
+impl<CurrencyId, CurrencyIdConvert, Amount> MatchesFungible<Amount> for IsNativeConcrete<CurrencyId, CurrencyIdConvert>
 where
-	CurrencyId: TryFrom<MultiLocation>,
+	CurrencyIdConvert: Convert<MultiLocation, Option<CurrencyId>>,
 	Amount: TryFrom<u128>,
 {
 	fn matches_fungible(a: &MultiAsset) -> Option<Amount> {
 		if let MultiAsset::ConcreteFungible { id, amount } = a {
-			if CurrencyId::try_from(id.clone()).is_ok() {
+			if CurrencyIdConvert::convert(id.clone()).is_some() {
 				return CheckedConversion::checked_from(*amount);
 			}
 		}

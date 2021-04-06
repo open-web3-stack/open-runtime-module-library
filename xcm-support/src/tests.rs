@@ -4,7 +4,7 @@
 
 use super::*;
 
-use xcm::v0::{Junction::*, MultiAsset::*, MultiLocation::*};
+use xcm::v0::{Junction::*, MultiAsset::ConcreteFungible, MultiLocation::*};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum TestCurrencyId {
@@ -13,22 +13,22 @@ pub enum TestCurrencyId {
 	RelayChainToken,
 }
 
-impl TryFrom<MultiLocation> for TestCurrencyId {
-	type Error = ();
-	fn try_from(l: MultiLocation) -> Result<TestCurrencyId, ()> {
+pub struct CurrencyIdConvert;
+impl Convert<MultiLocation, Option<TestCurrencyId>> for CurrencyIdConvert {
+	fn convert(l: MultiLocation) -> Option<TestCurrencyId> {
 		use TestCurrencyId::*;
 		let token_a: Vec<u8> = "TokenA".into();
 		let token_b: Vec<u8> = "TokenB".into();
 		match l {
-			X1(Parent) => Ok(RelayChainToken),
-			X3(Parent, Parachain { id: 1 }, GeneralKey(k)) if k == token_a => Ok(TokenA),
-			X3(Parent, Parachain { id: 2 }, GeneralKey(k)) if k == token_b => Ok(TokenB),
-			_ => Err(()),
+			X1(Parent) => Some(RelayChainToken),
+			X3(Parent, Parachain { id: 1 }, GeneralKey(k)) if k == token_a => Some(TokenA),
+			X3(Parent, Parachain { id: 2 }, GeneralKey(k)) if k == token_b => Some(TokenB),
+			_ => None,
 		}
 	}
 }
 
-type MatchesCurrencyId = IsNativeConcrete<TestCurrencyId>;
+type MatchesCurrencyId = IsNativeConcrete<TestCurrencyId, CurrencyIdConvert>;
 
 #[test]
 fn is_native_concrete_matches_native_currencies() {
