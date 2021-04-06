@@ -14,7 +14,7 @@
 //!
 //! ### Dispatchable functions
 //!
-//! - `transfer`: Transfer local assets with given `CurrencyId` and `Amount``.
+//! - `transfer`: Transfer local assets with given `CurrencyId` and `Amount`.
 //! - `transfer_multiasset`: Transfer `MultiAsset` assets.
 
 #![cfg_attr(not(feature = "std"), no_std)]
