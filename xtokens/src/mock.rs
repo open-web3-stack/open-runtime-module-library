@@ -5,15 +5,13 @@ use crate as orml_xtokens;
 
 use frame_support::parameter_types;
 use orml_traits::parameter_type_with_key;
-use orml_xcm_support::{
-	CurrencyIdConverter, IsConcreteWithGeneralKey, MultiCurrencyAdapter, MultiNativeAsset, XcmHandler as XcmHandlerT,
-};
+use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset, XcmHandler as XcmHandlerT};
 use polkadot_parachain::primitives::Sibling;
 use serde::{Deserialize, Serialize};
 use sp_io::TestExternalities;
-use sp_runtime::{traits::Identity, AccountId32};
+use sp_runtime::AccountId32;
 use sp_std::convert::TryFrom;
-use xcm::v0::{Junction, NetworkId};
+use xcm::v0::{Junction, MultiLocation::*, NetworkId};
 use xcm_builder::{
 	AccountId32Aliases, LocationInverter, ParentIsDefault, RelayChainAsNative, SiblingParachainAsNative,
 	SiblingParachainConvertsVia, SignedAccountId32AsNative, SovereignSignedViaLocation,
@@ -35,18 +33,6 @@ pub enum CurrencyId {
 	B,
 }
 
-impl TryFrom<Vec<u8>> for CurrencyId {
-	type Error = ();
-	fn try_from(v: Vec<u8>) -> Result<CurrencyId, ()> {
-		match v.as_slice() {
-			b"R" => Ok(CurrencyId::R),
-			b"A" => Ok(CurrencyId::A),
-			b"B" => Ok(CurrencyId::B),
-			_ => Err(()),
-		}
-	}
-}
-
 impl From<CurrencyId> for MultiLocation {
 	fn from(id: CurrencyId) -> Self {
 		match id {
@@ -63,6 +49,32 @@ impl From<CurrencyId> for MultiLocation {
 				Junction::GeneralKey("B".into()),
 			)
 				.into(),
+		}
+	}
+}
+
+impl TryFrom<MultiLocation> for CurrencyId {
+	type Error = ();
+	fn try_from(l: MultiLocation) -> Result<Self, Self::Error> {
+		let a: Vec<u8> = "A".into();
+		let b: Vec<u8> = "B".into();
+		match l {
+			X1(Parent) => Ok(CurrencyId::R),
+			X3(Junction::Parent, Junction::Parachain { id: 1 }, Junction::GeneralKey(k)) if k == a => Ok(CurrencyId::A),
+			X3(Junction::Parent, Junction::Parachain { id: 2 }, Junction::GeneralKey(k)) if k == b => Ok(CurrencyId::B),
+
+			_ => Err(()),
+		}
+	}
+}
+
+impl TryFrom<MultiAsset> for CurrencyId {
+	type Error = ();
+	fn try_from(a: MultiAsset) -> Result<Self, Self::Error> {
+		if let MultiAsset::ConcreteFungible { id, amount: _ } = a {
+			Self::try_from(id)
+		} else {
+			Err(())
 		}
 	}
 }
@@ -98,10 +110,9 @@ decl_test_parachain! {
 			pub type LocalAssetTransactor = MultiCurrencyAdapter<
 				Tokens,
 				(),
-				IsConcreteWithGeneralKey<CurrencyId, Identity>,
+				IsNativeConcrete<CurrencyId>,
 				LocationConverter,
 				AccountId,
-				CurrencyIdConverter<CurrencyId, RelayChainCurrencyId>,
 				CurrencyId,
 			>;
 
@@ -202,10 +213,9 @@ decl_test_parachain! {
 			pub type LocalAssetTransactor = MultiCurrencyAdapter<
 				Tokens,
 				(),
-				IsConcreteWithGeneralKey<CurrencyId, Identity>,
+				IsNativeConcrete<CurrencyId>,
 				LocationConverter,
 				AccountId,
-				CurrencyIdConverter<CurrencyId, RelayChainCurrencyId>,
 				CurrencyId,
 			>;
 
@@ -306,10 +316,9 @@ decl_test_parachain! {
 			pub type LocalAssetTransactor = MultiCurrencyAdapter<
 				Tokens,
 				(),
-				IsConcreteWithGeneralKey<CurrencyId, Identity>,
+				IsNativeConcrete<CurrencyId>,
 				LocationConverter,
 				AccountId,
-				CurrencyIdConverter<CurrencyId, RelayChainCurrencyId>,
 				CurrencyId,
 			>;
 
