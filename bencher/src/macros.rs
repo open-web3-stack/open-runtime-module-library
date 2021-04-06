@@ -1,3 +1,82 @@
+/// Run benches in WASM environment.
+///
+/// Configure your module to build the mock runtime into wasm code.
+/// Create a `build.rs` like you do with your runtime.
+/// ```.ignore
+/// use substrate_wasm_builder::WasmBuilder;
+/// fn main() {
+///     WasmBuilder::new()
+///         .with_current_project()
+///         .export_heap_base()
+///         .import_memory()
+///         .build()
+/// }
+/// ```
+///
+/// Update mock runtime to be build into wasm code.
+/// ```.ignore
+/// #![cfg_attr(not(feature = "std"), no_std)]
+///
+/// #[cfg(feature = "std")]
+/// include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
+///
+/// #[cfg(feature = "std")]
+/// pub fn wasm_binary_unwrap() -> &'static [u8] { WASM_BINARY.unwrap() }
+/// ..
+/// ```
+///
+/// Create a file `bench_runner.rs` with following code:
+///  ```.ignore
+/// orml_bencher::run_benches!(my_module::benches);
+/// ```
+/// 
+/// Update Cargo.toml by adding:
+/// ```toml
+/// ..
+/// [package]
+/// name = "my-module"
+/// ..
+/// build = 'build.rs'
+///
+/// [build-dependencies]
+/// substrate-wasm-builder = '4.0.0'
+///
+/// [[bench]]
+/// name = 'benches'
+/// harness = false
+/// path = 'bench_runner.rs'
+/// required-features = ['bench']
+///
+/// [features]
+/// bench = []
+/// ..
+/// ```
+/// 
+/// Run bench with features bench: `cargo bench --features=bench`
+#[cfg(feature = "std")]
+#[macro_export]
+macro_rules! run_benches {
+	($benches:path) => {
+		use $benches::{wasm_binary_unwrap, Block, BlockNumber};
+		pub fn main() {
+			let output = $crate::bench_runner::run::<Block, BlockNumber>(wasm_binary_unwrap().to_vec());
+			$crate::handler::handle(output);
+		}
+	};
+}
+
+/// Re-export wasm_binary_unwrap, Block, BlockNumber from mock runtime to be
+/// used by bench_runner
+#[cfg(feature = "std")]
+#[macro_export]
+macro_rules! bencher_use {
+	($wasm:path, $block:path, $block_number:path) => {
+		pub use $block as Block;
+		pub use $block_number as BlockNumber;
+		pub use $wasm as wasm_binary_unwrap;
+	};
+}
+
 /// Define benches
 ///
 /// Create a file `src/benches.rs`:
@@ -9,8 +88,7 @@
 /// orml_bencher::bencher_use!(
 ///     crate::mock::wasm_binary_unwrap,
 ///     crate::mock::Block,
-///     crate::mock::Hasher,
-///     crate::mock::BlockNumber
+///     crate::mock::BlockNumber,
 /// );
 ///
 /// use crate::mock::YourModule;
@@ -41,22 +119,12 @@ macro_rules! bench {
     (
         $($method:path),+
     ) => {
-        use $crate::codec::{Encode, Decode};
+        use $crate::BenchResult;
         use $crate::sp_std::{cmp::max, prelude::Vec};
         use $crate::frame_benchmarking::{benchmarking, BenchmarkResults};
 
-        #[derive(Encode, Decode, Default, Clone, PartialEq, Debug)]
-        pub struct BenchResult {
-            pub method: Vec<u8>,
-            pub elapses: Vec<u128>,
-            pub reads: u32,
-            pub repeat_reads: u32,
-            pub writes: u32,
-            pub repeat_writes: u32,
-        }
-
-        #[derive(Encode, Decode, Default, Clone, PartialEq, Debug)]
-        pub struct Bencher {
+        #[derive(Default, Clone, PartialEq, Debug)]
+        struct Bencher {
             pub results: Vec<BenchResult>,
         }
 
@@ -96,12 +164,12 @@ macro_rules! bench {
         }
 
         $crate::sp_core::wasm_export_functions! {
-            fn run_benches() -> Bencher {
+            fn run_benches() -> Vec<BenchResult> {
                 let mut bencher = Bencher::default();
                 $(
                     $method(&mut bencher);
                 )+
-                bencher
+                bencher.results
             }
         }
     }
