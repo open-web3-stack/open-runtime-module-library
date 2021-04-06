@@ -2,6 +2,7 @@ use codec::FullCodec;
 use sp_runtime::traits::{MaybeSerializeDeserialize, SaturatedConversion};
 use sp_std::{
 	cmp::{Eq, PartialEq},
+	convert::{TryFrom, TryInto},
 	fmt::Debug,
 	marker::PhantomData,
 	prelude::*,
@@ -11,7 +12,7 @@ use sp_std::{
 use xcm::v0::{Error as XcmError, MultiAsset, MultiLocation, Result};
 use xcm_executor::traits::{LocationConversion, MatchesFungible, TransactAsset};
 
-use crate::{CurrencyIdConversion, UnknownAsset as UnknownAssetT};
+use crate::UnknownAsset as UnknownAssetT;
 
 /// Asset transaction errors.
 enum Error {
@@ -37,22 +38,13 @@ impl From<Error> for XcmError {
 ///
 /// If the asset is known, deposit/withdraw will be handled by `MultiCurrency`,
 /// else by `UnknownAsset` if unknown.
-pub struct MultiCurrencyAdapter<
-	MultiCurrency,
-	UnknownAsset,
-	Matcher,
-	AccountIdConverter,
-	AccountId,
-	CurrencyIdConverter,
-	CurrencyId,
->(
+pub struct MultiCurrencyAdapter<MultiCurrency, UnknownAsset, Matcher, AccountIdConverter, AccountId, CurrencyId>(
 	PhantomData<(
 		MultiCurrency,
 		UnknownAsset,
 		Matcher,
 		AccountIdConverter,
 		AccountId,
-		CurrencyIdConverter,
 		CurrencyId,
 	)>,
 );
@@ -63,27 +55,18 @@ impl<
 		Matcher: MatchesFungible<MultiCurrency::Balance>,
 		AccountIdConverter: LocationConversion<AccountId>,
 		AccountId: sp_std::fmt::Debug,
-		CurrencyIdConverter: CurrencyIdConversion<CurrencyId>,
-		CurrencyId: FullCodec + Eq + PartialEq + Copy + MaybeSerializeDeserialize + Debug,
+		CurrencyId: FullCodec + Eq + PartialEq + Copy + MaybeSerializeDeserialize + Debug + TryFrom<MultiAsset>,
 	> TransactAsset
-	for MultiCurrencyAdapter<
-		MultiCurrency,
-		UnknownAsset,
-		Matcher,
-		AccountIdConverter,
-		AccountId,
-		CurrencyIdConverter,
-		CurrencyId,
-	>
+	for MultiCurrencyAdapter<MultiCurrency, UnknownAsset, Matcher, AccountIdConverter, AccountId, CurrencyId>
 {
 	fn deposit_asset(asset: &MultiAsset, location: &MultiLocation) -> Result {
 		match (
 			AccountIdConverter::from_location(location),
-			CurrencyIdConverter::from_asset(asset),
+			asset.clone().try_into(),
 			Matcher::matches_fungible(&asset),
 		) {
 			// known asset
-			(Some(who), Some(currency_id), Some(amount)) => {
+			(Some(who), Ok(currency_id), Some(amount)) => {
 				MultiCurrency::deposit(currency_id, &who, amount).map_err(|e| XcmError::FailedToTransactAsset(e.into()))
 			}
 			// unknown asset
@@ -95,8 +78,10 @@ impl<
 		UnknownAsset::withdraw(asset, location).or_else(|_| {
 			let who = AccountIdConverter::from_location(location)
 				.ok_or_else(|| XcmError::from(Error::AccountIdConversionFailed))?;
-			let currency_id = CurrencyIdConverter::from_asset(asset)
-				.ok_or_else(|| XcmError::from(Error::CurrencyIdConversionFailed))?;
+			let currency_id = asset
+				.clone()
+				.try_into()
+				.map_err(|_| XcmError::from(Error::CurrencyIdConversionFailed))?;
 			let amount: MultiCurrency::Balance = Matcher::matches_fungible(&asset)
 				.ok_or_else(|| XcmError::from(Error::FailedToMatchFungible))?
 				.saturated_into();
