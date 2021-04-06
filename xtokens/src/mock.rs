@@ -114,8 +114,8 @@ decl_test_parachain! {
 				Tokens,
 				(),
 				IsNativeConcrete<CurrencyId, CurrencyIdConvert>,
-				LocationConverter,
 				AccountId,
+				LocationConverter,
 				CurrencyId,
 				CurrencyIdConvert,
 			>;
@@ -219,8 +219,8 @@ decl_test_parachain! {
 				Tokens,
 				(),
 				IsNativeConcrete<CurrencyId, CurrencyIdConvert>,
-				LocationConverter,
 				AccountId,
+				LocationConverter,
 				CurrencyId,
 				CurrencyIdConvert,
 			>;
@@ -324,8 +324,8 @@ decl_test_parachain! {
 				Tokens,
 				(),
 				IsNativeConcrete<CurrencyId, CurrencyIdConvert>,
-				LocationConverter,
 				AccountId,
+				LocationConverter,
 				CurrencyId,
 				CurrencyIdConvert,
 			>;
