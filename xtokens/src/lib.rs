@@ -63,7 +63,10 @@ pub mod module {
 			+ Into<u128>;
 
 		/// Currency Id.
-		type CurrencyId: Parameter + Member + Clone + Into<MultiLocation>;
+		type CurrencyId: Parameter + Member + Clone;
+
+		/// Convert `T::CurrencyIn` to `MultiLocation`.
+		type CurrencyIdConvert: Convert<Self::CurrencyId, Option<MultiLocation>>;
 
 		/// Convert `Self::Account` to `AccountId32`
 		type AccountId32Convert: Convert<Self::AccountId, [u8; 32]>;
@@ -94,6 +97,8 @@ pub mod module {
 		NotCrossChainTransfer,
 		/// Invalid transfer destination.
 		InvalidDest,
+		/// Currency is not cross-chain transferable.
+		NotCrossChainTransferableCurrency,
 	}
 
 	#[pallet::hooks]
@@ -119,8 +124,10 @@ pub mod module {
 				return Ok(().into());
 			}
 
+			let id: MultiLocation = T::CurrencyIdConvert::convert(currency_id.clone())
+				.ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
 			let asset = MultiAsset::ConcreteFungible {
-				id: currency_id.clone().into(),
+				id,
 				amount: amount.into(),
 			};
 			Self::do_transfer_multiasset(who.clone(), asset, dest.clone())?;
