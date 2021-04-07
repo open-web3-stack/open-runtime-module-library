@@ -57,23 +57,11 @@
 #[macro_export]
 macro_rules! run_benches {
 	($benches:path) => {
-		use $benches::{wasm_binary_unwrap, Block, BlockNumber};
+		use $benches::{wasm_binary_unwrap, Block};
 		pub fn main() {
-			let output = $crate::bench_runner::run::<Block, BlockNumber>(wasm_binary_unwrap().to_vec());
+			let output = $crate::bench_runner::run::<Block>(wasm_binary_unwrap().to_vec());
 			$crate::handler::handle(output);
 		}
-	};
-}
-
-/// Re-export wasm_binary_unwrap, Block, BlockNumber from mock runtime to be
-/// used by bench_runner
-#[cfg(feature = "std")]
-#[macro_export]
-macro_rules! bencher_use {
-	($wasm:path, $block:path, $block_number:path) => {
-		pub use $block as Block;
-		pub use $block_number as BlockNumber;
-		pub use $wasm as wasm_binary_unwrap;
 	};
 }
 
@@ -84,12 +72,8 @@ macro_rules! bencher_use {
 /// #![cfg_attr(not(feature = "std"), no_std)]
 /// #![allow(dead_code)]
 ///
-/// #[cfg(feature = "std")]
-/// orml_bencher::bencher_use!(
-///     crate::mock::wasm_binary_unwrap,
-///     crate::mock::Block,
-///     crate::mock::BlockNumber,
-/// );
+/// #[cfg(feature = "std")] // Re-export for bench_runner
+/// pub use crate::mock::{Block, wasm_binary_unwrap};
 ///
 /// use crate::mock::YourModule;
 ///
