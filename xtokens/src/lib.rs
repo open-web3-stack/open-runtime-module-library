@@ -14,8 +14,8 @@
 //!
 //! ### Dispatchable functions
 //!
-//! - `transfer_to_relay_chain`: Transfer relay chain tokens to relay chain.
-//! - `transfer_to_parachain`: Transfer tokens to a sibling parachain.
+//! - `transfer`: Transfer local assets with given `CurrencyId` and `Amount`.
+//! - `transfer_multiasset`: Transfer `MultiAsset` assets.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::from_over_into)]
