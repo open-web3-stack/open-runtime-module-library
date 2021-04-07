@@ -67,6 +67,7 @@ _In alphabetical order_
 - [HydraDX](https://github.com/galacticcouncil/hack.HydraDX-node)
 - [Laminar Chain](https://github.com/laminar-protocol/laminar-chain)
 - [Listen](https://github.com/listenofficial)
+- [Manta Network](https://github.com/Manta-Network)
 - [Minterest](https://github.com/minterest-finance/minterest-chain-node)
 - [Plasm Network](https://github.com/PlasmNetwork)
 - [Setheum Network](https://github.com/Setheum-Labs/Setheum)
