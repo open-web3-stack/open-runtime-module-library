@@ -60,6 +60,7 @@ sp-npos-elections = { git = "https://github.com/paritytech//substrate", rev = "3
 sp-npos-elections-compact = { git = "https://github.com/paritytech//substrate", rev = "3ec97a31b285181fb1beab426ee2a8e2cb1188ab" }
 sp-debug-derive = { git = "https://github.com/paritytech//substrate", rev = "3ec97a31b285181fb1beab426ee2a8e2cb1188ab" }
 sp-allocator = { git = "https://github.com/paritytech//substrate", rev = "3ec97a31b285181fb1beab426ee2a8e2cb1188ab" }
+sp-authority-discovery = { git = "https://github.com/paritytech//substrate", rev = "3ec97a31b285181fb1beab426ee2a8e2cb1188ab" }
 sc-executor-common = { git = "https://github.com/paritytech//substrate", rev = "3ec97a31b285181fb1beab426ee2a8e2cb1188ab" }
 sc-executor-wasmi = { git = "https://github.com/paritytech//substrate", rev = "3ec97a31b285181fb1beab426ee2a8e2cb1188ab" }
 sc-executor = { git = "https://github.com/paritytech//substrate", rev = "3ec97a31b285181fb1beab426ee2a8e2cb1188ab" }
@@ -72,7 +73,6 @@ sp-session = { git = "https://github.com/paritytech//substrate", rev = "3ec97a31
 sp-blockchain = { git = "https://github.com/paritytech//substrate", rev = "3ec97a31b285181fb1beab426ee2a8e2cb1188ab" }
 sp-transaction-pool = { git = "https://github.com/paritytech//substrate", rev = "3ec97a31b285181fb1beab426ee2a8e2cb1188ab" }
 
-
 [patch.'https://github.com/paritytech/cumulus']
 cumulus-primitives-core = { git = "https://github.com/paritytech//cumulus", rev = "c5be7306f425be9fcf3c6e0bc598c0f481588cd9" }
 cumulus-pallet-parachain-system = { git = "https://github.com/paritytech//cumulus", rev = "c5be7306f425be9fcf3c6e0bc598c0f481588cd9" }
@@ -80,10 +80,10 @@ parachain-info = { git = "https://github.com/paritytech//cumulus", rev = "c5be73
 cumulus-pallet-xcm-handler = { git = "https://github.com/paritytech//cumulus", rev = "c5be7306f425be9fcf3c6e0bc598c0f481588cd9" }
 
 [patch.'https://github.com/paritytech/polkadot']
-polkadot-core-primitives = { git = "https://github.com/paritytech//polkadot", rev = "6b5b4a58a3f6a3fb647fec926609e04b7d5a336a" }
-polkadot-runtime-parachains = { git = "https://github.com/paritytech//polkadot", rev = "6b5b4a58a3f6a3fb647fec926609e04b7d5a336a" }
-polkadot-parachain = { git = "https://github.com/paritytech//polkadot", rev = "6b5b4a58a3f6a3fb647fec926609e04b7d5a336a" }
 xcm = { git = "https://github.com/paritytech//polkadot", rev = "6b5b4a58a3f6a3fb647fec926609e04b7d5a336a" }
 xcm-executor = { git = "https://github.com/paritytech//polkadot", rev = "6b5b4a58a3f6a3fb647fec926609e04b7d5a336a" }
 xcm-builder = { git = "https://github.com/paritytech//polkadot", rev = "6b5b4a58a3f6a3fb647fec926609e04b7d5a336a" }
-polkadot-primitives
+polkadot-core-primitives = { git = "https://github.com/paritytech//polkadot", rev = "6b5b4a58a3f6a3fb647fec926609e04b7d5a336a" }
+polkadot-runtime-parachains = { git = "https://github.com/paritytech//polkadot", rev = "6b5b4a58a3f6a3fb647fec926609e04b7d5a336a" }
+polkadot-parachain = { git = "https://github.com/paritytech//polkadot", rev = "6b5b4a58a3f6a3fb647fec926609e04b7d5a336a" }
+polkadot-primitives = { git = "https://github.com/paritytech//polkadot", rev = "6b5b4a58a3f6a3fb647fec926609e04b7d5a336a" }
