@@ -36,6 +36,18 @@ impl<T: Config<I>, I : 'static> NegativeImbalance<T, I> {
 	}
 }
 
+impl<T: Config<I>, I : 'static> Default for PositiveImbalance<T, I> {
+	fn default() -> Self {
+		Self::zero()
+	}
+}
+
+impl<T: Config<I>, I : 'static> Default for NegativeImbalance<T, I> {
+	fn default() -> Self {
+		Self::zero()
+	}
+}
+
 impl<T: Config<I>, I : 'static> TryDrop for PositiveImbalance<T, I> {
 	fn try_drop(self) -> result::Result<(), Self> {
 		self.drop_zero()
