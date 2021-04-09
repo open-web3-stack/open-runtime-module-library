@@ -16,9 +16,9 @@ pub type AccountId = AccountId32;
 pub type CurrencyId = u32;
 pub type Balance = u64;
 
-pub const DOT: CurrencyId = 1;
-pub const BTC: CurrencyId = 2;
-pub const ETH: CurrencyId = 3;
+pub const DOT: CurrencyId = 0;
+pub const BTC: CurrencyId = 1;
+pub const ETH: CurrencyId = 2;
 pub const ALICE: AccountId = AccountId32::new([0u8; 32]);
 pub const BOB: AccountId = AccountId32::new([1u8; 32]);
 pub const TREASURY_ACCOUNT: AccountId = AccountId32::new([2u8; 32]);
@@ -102,7 +102,7 @@ parameter_types! {
 
 impl pallet_treasury::Config for Runtime {
 	type ModuleId = TreasuryModuleId;
-	type Currency = CurrencyAdapter<Runtime, GetTokenId>;
+	type Currency = CurrencyAdapter<Runtime, tokens::Instance1, GetTokenId>;
 	type ApproveOrigin = frame_system::EnsureRoot<AccountId>;
 	type RejectOrigin = frame_system::EnsureRoot<AccountId>;
 	type Event = Event;
@@ -178,7 +178,7 @@ parameter_types! {
 impl pallet_elections_phragmen::Config for Runtime {
 	type ModuleId = ElectionsPhragmenModuleId;
 	type Event = Event;
-	type Currency = CurrencyAdapter<Runtime, GetTokenId>;
+	type Currency = CurrencyAdapter<Runtime, tokens::Instance1, GetTokenId>;
 	type CurrencyToVote = SaturatingCurrencyToVote;
 	type ChangeMembers = TestChangeMembers;
 	type InitializeMembers = ();
@@ -207,14 +207,15 @@ parameter_types! {
 	pub DustAccount: AccountId = ModuleId(*b"orml/dst").into_account();
 }
 
-impl Config for Runtime {
+type GeneralInstance = tokens::Instance1;
+impl Config<GeneralInstance> for Runtime {
 	type Event = Event;
 	type Balance = Balance;
 	type Amount = i64;
 	type CurrencyId = CurrencyId;
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
-	type OnDust = TransferDust<Runtime, DustAccount>;
+	type OnDust = TransferDust<Runtime, DustAccount, tokens::Instance1>;
 }
 pub type TreasuryCurrencyAdapter = <Runtime as pallet_treasury::Config>::Currency;
 
@@ -228,7 +229,7 @@ construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
-		Tokens: tokens::{Pallet, Storage, Event<T>, Config<T>},
+		Tokens: tokens::<Instance1>::{Pallet, Storage, Event<T>, Config<T>},
 		Treasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>},
 		ElectionsPhragmen: pallet_elections_phragmen::{Pallet, Call, Storage, Event<T>},
 	}
@@ -268,7 +269,7 @@ impl ExtBuilder {
 			.build_storage::<Runtime>()
 			.unwrap();
 
-		tokens::GenesisConfig::<Runtime> {
+		tokens::GenesisConfig::<Runtime, Instance1> {
 			endowed_accounts: self.endowed_accounts,
 		}
 		.assimilate_storage(&mut t)
