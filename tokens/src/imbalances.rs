@@ -1,7 +1,6 @@
 // wrapping these imbalances in a private module is necessary to ensure absolute
 // privacy of the inner member.
-use crate::{Config, TotalIssuance};
-use frame_support::traits::{Get, Imbalance, SameOrOther, TryDrop};
+use crate::{Config, TotalIssuance, Imbalance, TryDrop};
 use sp_runtime::traits::{Saturating, Zero};
 use sp_std::{mem, result};
 
@@ -21,12 +20,6 @@ impl<T: Config<I>, I : 'static> PositiveImbalance<T, I> {
 	}
 }
 
-impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> Default for PositiveImbalance<T, GetCurrencyId> {
-	fn default() -> Self {
-		Self::zero()
-	}
-}
-
 /// Opaque, move-only struct with private fields that serves as a token
 /// denoting that funds have been destroyed without any equal and opposite
 /// accounting.
@@ -43,13 +36,7 @@ impl<T: Config<I>, I : 'static> NegativeImbalance<T, I> {
 	}
 }
 
-impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> Default for NegativeImbalance<T, GetCurrencyId> {
-	fn default() -> Self {
-		Self::zero()
-	}
-}
-
-impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> TryDrop for PositiveImbalance<T, GetCurrencyId> {
+impl<T: Config<I>, I : 'static> TryDrop for PositiveImbalance<T, I> {
 	fn try_drop(self) -> result::Result<(), Self> {
 		self.drop_zero()
 	}
@@ -85,18 +72,14 @@ impl<T: Config<I>, I : 'static> Imbalance<T::Balance> for PositiveImbalance<T, I
 		self.0 = self.0.saturating_add(other.0);
 		mem::forget(other);
 	}
-	// allow to make the impl same with `pallet-balances`
-	#[allow(clippy::comparison_chain)]
-	fn offset(self, other: Self::Opposite) -> SameOrOther<Self, Self::Opposite> {
+	fn offset(self, other: Self::Opposite) -> result::Result<Self, Self::Opposite> {
 		let (a, b) = (self.0, other.0);
 		mem::forget((self, other));
 
-		if a > b {
-			SameOrOther::Same(Self::new(a - b))
-		} else if b > a {
-			SameOrOther::Other(NegativeImbalance::new(b - a))
+		if a >= b {
+			Ok(Self::new(a - b))
 		} else {
-			SameOrOther::None
+			Err(NegativeImbalance::new(b - a))
 		}
 	}
 	fn peek(&self) -> T::Balance {
@@ -140,18 +123,14 @@ impl<T: Config<I>, I : 'static> Imbalance<T::Balance> for NegativeImbalance<T, I
 		self.0 = self.0.saturating_add(other.0);
 		mem::forget(other);
 	}
-	// allow to make the impl same with `pallet-balances`
-	#[allow(clippy::comparison_chain)]
-	fn offset(self, other: Self::Opposite) -> SameOrOther<Self, Self::Opposite> {
+	fn offset(self, other: Self::Opposite) -> result::Result<Self, Self::Opposite> {
 		let (a, b) = (self.0, other.0);
 		mem::forget((self, other));
 
-		if a > b {
-			SameOrOther::Same(Self::new(a - b))
-		} else if b > a {
-			SameOrOther::Other(PositiveImbalance::new(b - a))
+		if a >= b {
+			Ok(Self::new(a - b))
 		} else {
-			SameOrOther::None
+			Err(PositiveImbalance::new(b - a))
 		}
 	}
 	fn peek(&self) -> T::Balance {
