@@ -1,6 +1,7 @@
 // wrapping these imbalances in a private module is necessary to ensure absolute
 // privacy of the inner member.
 use crate::{Config, TotalIssuance, Imbalance, TryDrop};
+use frame_support::traits::SameOrOther;
 use sp_runtime::traits::{Saturating, Zero};
 use sp_std::{mem, result};
 
@@ -84,14 +85,16 @@ impl<T: Config<I>, I : 'static> Imbalance<T::Balance> for PositiveImbalance<T, I
 		self.0 = self.0.saturating_add(other.0);
 		mem::forget(other);
 	}
-	fn offset(self, other: Self::Opposite) -> result::Result<Self, Self::Opposite> {
+	fn offset(self, other: Self::Opposite) -> SameOrOther<Self, Self::Opposite> {
 		let (a, b) = (self.0, other.0);
 		mem::forget((self, other));
 
-		if a >= b {
-			Ok(Self::new(a - b))
+		if a > b {
+			SameOrOther::Same(Self::new(a - b))
+		} else if b > a {
+			SameOrOther::Other(NegativeImbalance::new(b - a))
 		} else {
-			Err(NegativeImbalance::new(b - a))
+			SameOrOther::None
 		}
 	}
 	fn peek(&self) -> T::Balance {
@@ -135,14 +138,16 @@ impl<T: Config<I>, I : 'static> Imbalance<T::Balance> for NegativeImbalance<T, I
 		self.0 = self.0.saturating_add(other.0);
 		mem::forget(other);
 	}
-	fn offset(self, other: Self::Opposite) -> result::Result<Self, Self::Opposite> {
+	fn offset(self, other: Self::Opposite) -> SameOrOther<Self, Self::Opposite> {
 		let (a, b) = (self.0, other.0);
 		mem::forget((self, other));
 
-		if a >= b {
-			Ok(Self::new(a - b))
+		if a > b {
+			SameOrOther::Same(Self::new(a - b))
+		} else if b > a {
+			SameOrOther::Other(PositiveImbalance::new(b - a))
 		} else {
-			Err(PositiveImbalance::new(b - a))
+			SameOrOther::None
 		}
 	}
 	fn peek(&self) -> T::Balance {
