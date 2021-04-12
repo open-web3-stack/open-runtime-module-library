@@ -100,7 +100,7 @@ fn write(benchmarks: Vec<BenchData>) {
 
 	// Iterate over args excluding the binary path and features arg
 	// Parse the args into (command, argument) pairs
-	for arg in &args[1..(args.len() - 1)] {
+	for arg in &args[2..(args.len() - 1)] {
 		if let Some(p) = prev {
 			options.push((p, arg));
 			prev = None;
@@ -115,9 +115,9 @@ fn write(benchmarks: Vec<BenchData>) {
 
 	for pair in options {
 		match pair {
-			("out", path) => output_path = Some(path),
-			("template", path) => template_path = Some(path),
-			("header", path) => header_path = Some(path),
+			("--out", path) => output_path = Some(path),
+			("--template", path) => template_path = Some(path),
+			("--header", path) => header_path = Some(path),
 			(opt, _) => panic!("Option not supported: {}", opt),
 		}
 	}
