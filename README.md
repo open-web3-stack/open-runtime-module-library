@@ -71,4 +71,5 @@ _In alphabetical order_
 - [Plasm Network](https://github.com/PlasmNetwork)
 - [Setheum Network](https://github.com/Setheum-Labs/Setheum)
 - [Valiu Liquidity Network](https://github.com/valibre-org/vln-node)
+- [Zeitgeist](https://github.com/zeitgeistpm/zeitgeist)
 

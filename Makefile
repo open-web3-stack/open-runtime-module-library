@@ -46,4 +46,4 @@ dev-check-tests: Cargo.toml
 	cargo check --tests --all
 
 dev-test: Cargo.toml
-	cargo test --all
+	cargo test --all --features runtime-benchmarks
