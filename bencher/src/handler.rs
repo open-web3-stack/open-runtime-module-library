@@ -88,6 +88,40 @@ impl handlebars::HelperDef for JoinHelper {
 }
 
 fn write(benchmarks: Vec<BenchData>) {
+	let mut template_path: Option<&str> = None;
+	let mut output_path: Option<&str> = None;
+	let mut header_path: Option<&str> = None;
+
+	let args: Vec<String> = ::std::env::args().collect();
+
+	let mut options: Vec<(&str, &str)> = Vec::new();
+
+	let mut prev: Option<&str> = None;
+
+	// Iterate over args excluding the binary path and features arg
+	// Parse the args into (command, argument) pairs
+	for arg in &args[1..(args.len() - 1)] {
+		if let Some(p) = prev {
+			options.push((p, arg));
+			prev = None;
+		} else {
+			prev = Some(arg);
+		}
+	}
+
+	if let Some(opt) = prev {
+		panic!("No argument passed to option: {}", opt);
+	}
+
+	for pair in options {
+		match pair {
+			("out", path) => output_path = Some(path),
+			("template", path) => template_path = Some(path),
+			("header", path) => header_path = Some(path),
+			(opt, _) => panic!("Option not supported: {}", opt),
+		}
+	}
+
 	// New Handlebars instance with helpers.
 	let mut handlebars = handlebars::Handlebars::new();
 	handlebars.register_helper("underscore", Box::new(UnderscoreHelper));
@@ -95,23 +129,52 @@ fn write(benchmarks: Vec<BenchData>) {
 	// Don't HTML escape any characters.
 	handlebars.register_escape_fn(|s| -> String { s.to_string() });
 
+	// Use empty header if a header path is not given.
+	let header = {
+		if let Some(path) = header_path {
+			let header_string = ::std::fs::read_to_string(path)
+				.expect(&format!("Header file not found at: {}", path));
+
+			header_string
+		} else {
+			String::from("")
+		}
+	};
+
 	let hbs_data = TemplateData {
-		header: "".to_string(), // TODO: header from provided file path
+		header,
 		benchmarks,
 	};
 
-	const TEMPLATE: &str = include_str!("./template.hbs");
-	// TODO: add option to provide custom template
+	const DEFAULT_TEMPLATE: &str = include_str!("./template.hbs");
 
-	// TODO: add option to change output file path
-	let mut output_path = ::std::env::current_dir().unwrap();
-	output_path.push("src/module_weights.rs");
+	// Use the default template if a template is not given.
+	let template = {
+		if let Some(path) = template_path {
+			let template_string = ::std::fs::read_to_string(path)
+				.expect(&format!("Template file not found at: {}", path));
 
-	let mut output_file = ::std::fs::File::create(output_path).unwrap();
+			template_string
+		} else {
+			String::from(DEFAULT_TEMPLATE)
+		}
+	};
 
-	handlebars
-		.render_template_to_write(&TEMPLATE, &hbs_data, &mut output_file)
-		.unwrap();
+	// Write weight file to given output path or print to the screen if none is given.
+	if let Some(path) = output_path {
+		let mut output_file = ::std::fs::File::create(path)
+			.expect(&format!("Could not create output file: {}", path));
+
+		handlebars
+			.render_template_to_write(&template, &hbs_data, &mut output_file)
+			.unwrap();
+	} else {
+		let template_string = handlebars
+			.render_template(&template, &hbs_data)
+			.unwrap();
+
+		println!("{}", template_string);
+	}
 }
 
 /// Handle bench results
@@ -145,6 +208,5 @@ pub fn handle(output: Vec<u8>) {
 		})
 		.collect();
 
-	// TODO: check if should write weights file
 	write(data);
 }
