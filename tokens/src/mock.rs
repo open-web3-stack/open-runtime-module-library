@@ -76,7 +76,7 @@ impl Contains<AccountId> for TenToFourteen {
 	fn add(new: &AccountId) {
 		TEN_TO_FOURTEEN.with(|v| {
 			let mut members = v.borrow_mut();
-			members.push(*new);
+			members.push(new.clone());
 			members.sort();
 		})
 	}
