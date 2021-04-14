@@ -3,13 +3,13 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{construct_runtime, parameter_types};
+use frame_support::{construct_runtime, parameter_types, PalletId};
 use orml_traits::parameter_type_with_key;
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
 	traits::{AccountIdConversion, IdentityLookup},
-	AccountId32, ModuleId,
+	AccountId32,
 };
 
 use crate as currencies;
@@ -69,7 +69,7 @@ parameter_type_with_key! {
 }
 
 parameter_types! {
-	pub DustAccount: AccountId = ModuleId(*b"orml/dst").into_account();
+	pub DustAccount: AccountId = PalletId(*b"orml/dst").into_account();
 }
 
 impl orml_tokens::Config for Runtime {
