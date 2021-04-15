@@ -47,7 +47,7 @@ use frame_support::{
 		LockableCurrency as PalletLockableCurrency, ReservableCurrency as PalletReservableCurrency, SignedImbalance,
 		WithdrawReasons,
 	},
-	transactional,
+	transactional, PalletId,
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
 use orml_traits::{
@@ -61,7 +61,7 @@ use sp_runtime::{
 		AccountIdConversion, AtLeast32BitUnsigned, Bounded, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member,
 		Saturating, StaticLookup, Zero,
 	},
-	DispatchError, DispatchResult, ModuleId, RuntimeDebug,
+	DispatchError, DispatchResult, RuntimeDebug,
 };
 use sp_std::{
 	convert::{Infallible, TryFrom, TryInto},
@@ -348,7 +348,7 @@ pub mod module {
 impl<T: Config> Pallet<T> {
 	/// Check whether account_id is a module account
 	pub(crate) fn is_module_account_id(account_id: &T::AccountId) -> bool {
-		ModuleId::try_from_account(account_id).is_some()
+		PalletId::try_from_account(account_id).is_some()
 	}
 
 	pub(crate) fn try_mutate_account<R, E>(

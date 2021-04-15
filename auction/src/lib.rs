@@ -33,8 +33,6 @@ pub mod module {
 
 	pub trait WeightInfo {
 		fn bid_collateral_auction() -> Weight;
-		fn bid_surplus_auction() -> Weight;
-		fn bid_debit_auction() -> Weight;
 		fn on_finalize(c: u32) -> Weight;
 	}
 

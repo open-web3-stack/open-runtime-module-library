@@ -45,6 +45,7 @@ impl frame_system::Config for Test {
 	type BaseCallFilter = ();
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
+	type OnSetCode = ();
 }
 
 thread_local! {

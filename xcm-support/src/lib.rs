@@ -9,20 +9,14 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 
-use frame_support::{
-	dispatch::{DispatchError, DispatchResult},
-	traits::Get,
-};
+use frame_support::dispatch::{DispatchError, DispatchResult};
 use sp_runtime::traits::{CheckedConversion, Convert};
-use sp_std::{
-	collections::btree_set::BTreeSet,
-	convert::{TryFrom, TryInto},
-	marker::PhantomData,
-	prelude::*,
-};
+use sp_std::{convert::TryFrom, marker::PhantomData, prelude::*};
 
-use xcm::v0::{Junction, MultiAsset, MultiLocation, Xcm};
-use xcm_executor::traits::{FilterAssetLocation, MatchesFungible, NativeAsset};
+use xcm::v0::{MultiAsset, MultiLocation, Xcm};
+use xcm_executor::traits::{FilterAssetLocation, MatchesFungible};
+
+use orml_traits::location::Reserve;
 
 pub use currency_adapter::MultiCurrencyAdapter;
 
@@ -35,83 +29,35 @@ pub trait XcmHandler<AccountId> {
 	fn execute_xcm(origin: AccountId, xcm: Xcm) -> DispatchResult;
 }
 
-/// Convert `MultiAsset` to `CurrencyId`.
-pub trait CurrencyIdConversion<CurrencyId> {
-	/// Get `CurrencyId` from `MultiAsset`. Returns `None` if conversion failed.
-	fn from_asset(asset: &MultiAsset) -> Option<CurrencyId>;
-}
-
-/// A `MatchesFungible` implementation. It matches relay chain tokens or
-/// parachain tokens that could be decoded from a general key.
-pub struct IsConcreteWithGeneralKey<CurrencyId, FromRelayChainBalance>(
-	PhantomData<(CurrencyId, FromRelayChainBalance)>,
-);
-impl<CurrencyId, B, FromRelayChainBalance> MatchesFungible<B>
-	for IsConcreteWithGeneralKey<CurrencyId, FromRelayChainBalance>
+/// A `MatchesFungible` implementation. It matches concrete fungible assets
+/// whose `id` could be converted into `CurrencyId`.
+pub struct IsNativeConcrete<CurrencyId, CurrencyIdConvert>(PhantomData<(CurrencyId, CurrencyIdConvert)>);
+impl<CurrencyId, CurrencyIdConvert, Amount> MatchesFungible<Amount> for IsNativeConcrete<CurrencyId, CurrencyIdConvert>
 where
-	CurrencyId: TryFrom<Vec<u8>>,
-	B: TryFrom<u128>,
-	FromRelayChainBalance: Convert<u128, u128>,
+	CurrencyIdConvert: Convert<MultiLocation, Option<CurrencyId>>,
+	Amount: TryFrom<u128>,
 {
-	fn matches_fungible(a: &MultiAsset) -> Option<B> {
+	fn matches_fungible(a: &MultiAsset) -> Option<Amount> {
 		if let MultiAsset::ConcreteFungible { id, amount } = a {
-			if id == &MultiLocation::X1(Junction::Parent) {
-				// Convert relay chain decimals to local chain
-				let local_amount = FromRelayChainBalance::convert(*amount);
-				return CheckedConversion::checked_from(local_amount);
-			}
-			if let Some(Junction::GeneralKey(key)) = id.last() {
-				if TryInto::<CurrencyId>::try_into(key.clone()).is_ok() {
-					return CheckedConversion::checked_from(*amount);
-				}
+			if CurrencyIdConvert::convert(id.clone()).is_some() {
+				return CheckedConversion::checked_from(*amount);
 			}
 		}
 		None
 	}
 }
 
-/// A `FilterAssetLocation` implementation. Filters native assets and ORML
-/// tokens via provided general key to `MultiLocation` pairs.
-pub struct NativePalletAssetOr<Pairs>(PhantomData<Pairs>);
-impl<Pairs: Get<BTreeSet<(Vec<u8>, MultiLocation)>>> FilterAssetLocation for NativePalletAssetOr<Pairs> {
+/// A `FilterAssetLocation` implementation. Filters multi native assets whose
+/// reserve is same with `origin`.
+pub struct MultiNativeAsset;
+impl FilterAssetLocation for MultiNativeAsset {
 	fn filter_asset_location(asset: &MultiAsset, origin: &MultiLocation) -> bool {
-		if NativeAsset::filter_asset_location(asset, origin) {
-			return true;
-		}
-
-		// native orml-tokens with a general key
-		if let MultiAsset::ConcreteFungible { ref id, .. } = asset {
-			if let Some(Junction::GeneralKey(key)) = id.last() {
-				return Pairs::get().contains(&(key.clone(), origin.clone()));
+		if let Some(ref reserve) = asset.reserve() {
+			if reserve == origin {
+				return true;
 			}
 		}
-
 		false
-	}
-}
-
-/// `CurrencyIdConversion` implementation. Converts relay chain tokens, or
-/// parachain tokens that could be decoded from a general key.
-pub struct CurrencyIdConverter<CurrencyId, RelayChainCurrencyId>(
-	PhantomData<CurrencyId>,
-	PhantomData<RelayChainCurrencyId>,
-);
-impl<CurrencyId, RelayChainCurrencyId> CurrencyIdConversion<CurrencyId>
-	for CurrencyIdConverter<CurrencyId, RelayChainCurrencyId>
-where
-	CurrencyId: TryFrom<Vec<u8>>,
-	RelayChainCurrencyId: Get<CurrencyId>,
-{
-	fn from_asset(asset: &MultiAsset) -> Option<CurrencyId> {
-		if let MultiAsset::ConcreteFungible { id: location, .. } = asset {
-			if location == &MultiLocation::X1(Junction::Parent) {
-				return Some(RelayChainCurrencyId::get());
-			}
-			if let Some(Junction::GeneralKey(key)) = location.last() {
-				return CurrencyId::try_from(key.clone()).ok();
-			}
-		}
-		None
 	}
 }
 
