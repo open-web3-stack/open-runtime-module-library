@@ -1,7 +1,7 @@
 [package]
-name = "orml-nft"
-description = "Non-fungible token pallet provides basic functions to create and manager NFT"
-repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/nft"
+name = "orml-unknown-tokens"
+description = "Unknown tokens module that implements `UnknownAsset` trait."
+repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/unknown-tokens"
 license = "Apache-2.0"
 version = "0.4.1-dev"
 authors = ["Acala Developers"]
@@ -11,16 +11,17 @@ edition = "2018"
 serde = { version = "1.0.124", optional = true }
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
-
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
+
+xcm = { git = "https://github.com/paritytech/polkadot", branch = "rococo-v1", default-features = false }
+
+orml-xcm-support = { path = "../xcm-support", default-features = false }
 
 [dev-dependencies]
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
-
-funty = { version = "=1.1.0", default-features = false } # https://github.com/bitvecto-rs/bitvec/issues/105
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
 
 [features]
 default = ["std"]
@@ -28,7 +29,8 @@ std = [
 	"serde",
 	"codec/std",
 	"sp-std/std",
-	"sp-runtime/std",
 	"frame-support/std",
 	"frame-system/std",
+	"xcm/std",
+	"orml-xcm-support/std",
 ]

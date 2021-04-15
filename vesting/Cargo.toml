@@ -8,7 +8,7 @@ authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2018"
 
 [dependencies]
-serde = { version = "1.0.111", optional = true }
+serde = { version = "1.0.124", optional = true }
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
@@ -33,4 +33,8 @@ std = [
 	"sp-io/std",
 	"frame-support/std",
 	"frame-system/std",
+]
+runtime-benchmarks = [
+	"frame-support/runtime-benchmarks",
+	"frame-system/runtime-benchmarks",
 ]
