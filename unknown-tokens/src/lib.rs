@@ -26,12 +26,8 @@ pub mod module {
 	pub enum Event {
 		/// Deposit success. [asset, to]
 		Deposited(MultiAsset, MultiLocation),
-		/// Deposit failed. [asset, to, error]
-		DepositFailed(MultiAsset, MultiLocation, DispatchError),
 		/// Withdraw success. [asset, from]
 		Withdrawn(MultiAsset, MultiLocation),
-		/// Withdraw failed. [asset, from, error]
-		WithdrawFailed(MultiAsset, MultiLocation, DispatchError),
 	}
 
 	#[pallet::error]
@@ -74,7 +70,7 @@ pub mod module {
 
 impl<T: Config> UnknownAsset for Pallet<T> {
 	fn deposit(asset: &MultiAsset, to: &MultiLocation) -> DispatchResult {
-		let result = match asset {
+		match asset {
 			MultiAsset::ConcreteFungible { id, amount } => {
 				ConcreteFungibleBalances::<T>::try_mutate(to, id, |b| -> DispatchResult {
 					*b = b.checked_add(*amount).ok_or(Error::<T>::BalanceOverflow)?;
@@ -88,19 +84,15 @@ impl<T: Config> UnknownAsset for Pallet<T> {
 				})
 			}
 			_ => Err(Error::<T>::UnhandledAsset.into()),
-		};
+		}?;
 
-		if let Err(err) = result {
-			Self::deposit_event(Event::DepositFailed(asset.clone(), to.clone(), err));
-		} else {
-			Self::deposit_event(Event::Deposited(asset.clone(), to.clone()));
-		}
+		Self::deposit_event(Event::Deposited(asset.clone(), to.clone()));
 
-		result
+		Ok(())
 	}
 
 	fn withdraw(asset: &MultiAsset, from: &MultiLocation) -> DispatchResult {
-		let result = match asset {
+		match asset {
 			MultiAsset::ConcreteFungible { id, amount } => {
 				ConcreteFungibleBalances::<T>::try_mutate(from, id, |b| -> DispatchResult {
 					*b = b.checked_sub(*amount).ok_or(Error::<T>::BalanceTooLow)?;
@@ -114,14 +106,10 @@ impl<T: Config> UnknownAsset for Pallet<T> {
 				})
 			}
 			_ => Err(Error::<T>::UnhandledAsset.into()),
-		};
+		}?;
 
-		if let Err(err) = result {
-			Self::deposit_event(Event::WithdrawFailed(asset.clone(), from.clone(), err));
-		} else {
-			Self::deposit_event(Event::Withdrawn(asset.clone(), from.clone()));
-		}
+		Self::deposit_event(Event::Withdrawn(asset.clone(), from.clone()));
 
-		result
+		Ok(())
 	}
 }

@@ -6,7 +6,6 @@ check-tests: githooks
 
 test: githooks
 	./scripts/run.sh test
-	cargo test --manifest-path nft/Cargo.toml -p orml-nft --features disable-tokens-by-owner
 
 GITHOOKS_SRC = $(wildcard githooks/*)
 GITHOOKS_DEST = $(patsubst githooks/%, $(GITHOOK)/%, $(GITHOOKS_SRC))
@@ -47,5 +46,4 @@ dev-check-tests: Cargo.toml
 	cargo check --tests --all
 
 dev-test: Cargo.toml
-	cargo test --all
-	cargo test --manifest-path nft/Cargo.toml -p orml-nft --features disable-tokens-by-owner
+	cargo test --all --features runtime-benchmarks
