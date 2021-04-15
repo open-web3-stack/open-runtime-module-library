@@ -1,7 +1,16 @@
-use crate::{BenchResult, BenchData};
+use crate::BenchResult;
+use serde::{Serialize, Deserialize};
 use codec::Decode;
 use linregress::{FormulaRegressionBuilder, RegressionDataBuilder};
 use std::io::Write;
+
+#[derive(Serialize, Deserialize, Default, Debug, Clone)]
+struct BenchData {
+	pub name: String,
+	pub base_weight: u64,
+	pub base_reads: u32,
+	pub base_writes: u32,
+}
 
 /// Handle bench results
 pub fn handle(output: Vec<u8>) {
