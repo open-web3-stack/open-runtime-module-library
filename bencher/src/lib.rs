@@ -9,6 +9,8 @@ pub extern crate sp_std;
 
 use codec::{Decode, Encode};
 use sp_std::prelude::Vec;
+#[cfg(feature = "std")]
+use serde::{Serialize, Deserialize};
 
 #[derive(Encode, Decode, Default, Clone, PartialEq, Debug)]
 pub struct BenchResult {
@@ -18,6 +20,15 @@ pub struct BenchResult {
 	pub repeat_reads: u32,
 	pub writes: u32,
 	pub repeat_writes: u32,
+}
+
+#[cfg(feature = "std")]
+#[derive(Serialize, Deserialize, Default, Debug, Clone)]
+pub struct BenchData {
+	pub name: String,
+	pub base_weight: u64,
+	pub base_reads: u32,
+	pub base_writes: u32,
 }
 
 mod macros;
