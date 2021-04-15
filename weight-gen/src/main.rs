@@ -44,7 +44,7 @@ impl handlebars::HelperDef for UnderscoreHelper {
 		out: &mut dyn handlebars::Output,
 	) -> handlebars::HelperResult {
 		use handlebars::JsonRender;
-		let param = h.param(0).unwrap();
+		let param = h.param(0).expect("Unable to retrieve param from handlebars helper");
 		let underscore_param = underscore(param.value().render());
 		out.write(&underscore_param)?;
 		Ok(())
@@ -82,7 +82,7 @@ impl handlebars::HelperDef for JoinHelper {
 		out: &mut dyn handlebars::Output,
 	) -> handlebars::HelperResult {
 		use handlebars::JsonRender;
-		let param = h.param(0).unwrap();
+		let param = h.param(0).expect("Unable to retrieve param from handlebars helper");
 		let value = param.value();
 		let joined = if value.is_array() {
 			value
@@ -105,7 +105,7 @@ fn parse_stdio() -> Option<Vec<BenchData>> {
   let stdin = std::io::stdin();
   let mut handle = stdin.lock();
 
-  handle.read_to_string(&mut buffer).unwrap();
+  handle.read_to_string(&mut buffer).expect("Unable to read from stdin");
 
   let lines: Vec<&str> = buffer.split("\n").collect();
   for line in lines {
@@ -174,11 +174,11 @@ fn main() {
 
 		handlebars
 			.render_template_to_write(&template, &hbs_data, &mut output_file)
-			.unwrap();
+			.expect("Unable to render template");
 	} else {
 		let template_string = handlebars
 			.render_template(&template, &hbs_data)
-			.unwrap();
+			.expect("Unable to render template");
 
 		println!("{}", template_string);
   }
