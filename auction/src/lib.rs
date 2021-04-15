@@ -33,8 +33,6 @@ pub mod module {
 
 	pub trait WeightInfo {
 		fn bid_collateral_auction() -> Weight;
-		fn bid_surplus_auction() -> Weight;
-		fn bid_debit_auction() -> Weight;
 		fn on_finalize(c: u32) -> Weight;
 	}
 
@@ -131,7 +129,7 @@ pub mod module {
 			Auctions::<T>::try_mutate_exists(id, |auction| -> DispatchResult {
 				let mut auction = auction.as_mut().ok_or(Error::<T>::AuctionNotExist)?;
 
-				let block_number = <frame_system::Module<T>>::block_number();
+				let block_number = <frame_system::Pallet<T>>::block_number();
 
 				// make sure auction is started
 				ensure!(block_number >= auction.start, Error::<T>::AuctionNotStarted);

@@ -244,7 +244,7 @@ pub mod module {
 				*id = id.checked_add(1).ok_or(Error::<T>::Overflow)?;
 				Ok(current_id)
 			})?;
-			let now = frame_system::Module::<T>::block_number();
+			let now = frame_system::Pallet::<T>::block_number();
 			let delay = match when {
 				DispatchTime::At(x) => x.checked_sub(&now).ok_or(Error::<T>::Overflow)?,
 				DispatchTime::After(x) => x,
@@ -283,7 +283,7 @@ pub mod module {
 			task_id: ScheduleTaskIndex,
 			when: DispatchTime<T::BlockNumber>,
 		) -> DispatchResultWithPostInfo {
-			let now = frame_system::Module::<T>::block_number();
+			let now = frame_system::Pallet::<T>::block_number();
 			let new_delay = match when {
 				DispatchTime::At(x) => x.checked_sub(&now).ok_or(Error::<T>::Overflow)?,
 				DispatchTime::After(x) => x,
@@ -317,7 +317,7 @@ pub mod module {
 			)
 			.map_err(|_| Error::<T>::FailedToDelay)?;
 
-			let now = frame_system::Module::<T>::block_number();
+			let now = frame_system::Pallet::<T>::block_number();
 			let dispatch_at = now.saturating_add(additional_delay);
 
 			Self::deposit_event(Event::Delayed(initial_origin, task_id, dispatch_at));

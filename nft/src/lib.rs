@@ -136,9 +136,6 @@ pub mod module {
 		StorageDoubleMap<_, Twox64Concat, T::ClassId, Twox64Concat, T::TokenId, TokenInfoOf<T>>;
 
 	/// Token existence check by owner and class ID.
-	// TODO: pallet macro doesn't support conditional compiling. Always having `TokensByOwner` storage doesn't hurt but
-	// it could be removed once conditional compiling supported.
-	// #[cfg(not(feature = "disable-tokens-by-owner"))]
 	#[pallet::storage]
 	#[pallet::getter(fn tokens_by_owner)]
 	pub type TokensByOwner<T: Config> =
@@ -216,11 +213,8 @@ impl<T: Config> Pallet<T> {
 
 			info.owner = to.clone();
 
-			#[cfg(not(feature = "disable-tokens-by-owner"))]
-			{
-				TokensByOwner::<T>::remove(from, token);
-				TokensByOwner::<T>::insert(to, token, ());
-			}
+			TokensByOwner::<T>::remove(from, token);
+			TokensByOwner::<T>::insert(to, token, ());
 
 			Ok(())
 		})
@@ -252,7 +246,6 @@ impl<T: Config> Pallet<T> {
 				data,
 			};
 			Tokens::<T>::insert(class_id, token_id, token_info);
-			#[cfg(not(feature = "disable-tokens-by-owner"))]
 			TokensByOwner::<T>::insert(owner, (class_id, token_id), ());
 
 			Ok(token_id)
@@ -274,7 +267,6 @@ impl<T: Config> Pallet<T> {
 				Ok(())
 			})?;
 
-			#[cfg(not(feature = "disable-tokens-by-owner"))]
 			TokensByOwner::<T>::remove(owner, token);
 
 			Ok(())
@@ -295,10 +287,6 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn is_owner(account: &T::AccountId, token: (T::ClassId, T::TokenId)) -> bool {
-		#[cfg(feature = "disable-tokens-by-owner")]
-		return Tokens::<T>::get(token.0, token.1).map_or(false, |token| token.owner == *account);
-
-		#[cfg(not(feature = "disable-tokens-by-owner"))]
 		TokensByOwner::<T>::contains_key(account, token)
 	}
 }

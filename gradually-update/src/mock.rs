@@ -39,6 +39,7 @@ impl frame_system::Config for Runtime {
 	type BaseCallFilter = ();
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
+	type OnSetCode = ();
 }
 
 parameter_types! {
@@ -61,9 +62,8 @@ construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
-		System: frame_system::{Module, Call, Storage, Config, Event<T>},
-		GraduallyUpdateModule: gradually_update::{Module, Storage, Call, Event<T>},
-
+		System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
+		GraduallyUpdateModule: gradually_update::{Pallet, Storage, Call, Event<T>},
 	}
 );
 

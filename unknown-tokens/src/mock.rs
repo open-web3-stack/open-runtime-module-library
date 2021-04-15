@@ -1,26 +1,15 @@
-//! Mocks for the rewards module.
+//! Mocks for the unknown pallet.
 
 #![cfg(test)]
 
 use super::*;
+use crate as unknown_tokens;
+
 use frame_support::{construct_runtime, parameter_types};
 use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup};
-use sp_std::cell::RefCell;
-use std::collections::HashMap;
+use sp_runtime::{testing::Header, traits::IdentityLookup, AccountId32};
 
-use crate as rewards;
-
-pub type AccountId = u128;
-pub type Balance = u64;
-pub type Share = u64;
-pub type PoolId = u32;
-pub type BlockNumber = u64;
-
-pub const ALICE: AccountId = 1;
-pub const BOB: AccountId = 2;
-pub const CAROL: AccountId = 3;
-pub const DOT_POOL: PoolId = 1;
+pub type AccountId = AccountId32;
 
 parameter_types! {
 	pub const BlockHashCount: u64 = 250;
@@ -28,9 +17,9 @@ parameter_types! {
 
 impl frame_system::Config for Runtime {
 	type Origin = Origin;
-	type Index = u64;
-	type BlockNumber = BlockNumber;
 	type Call = Call;
+	type Index = u64;
+	type BlockNumber = u64;
 	type Hash = H256;
 	type Hashing = ::sp_runtime::traits::BlakeTwo256;
 	type AccountId = AccountId;
@@ -52,34 +41,8 @@ impl frame_system::Config for Runtime {
 	type OnSetCode = ();
 }
 
-thread_local! {
-	pub static RECEIVED_PAYOUT: RefCell<HashMap<(PoolId, AccountId), Balance>> = RefCell::new(HashMap::new());
-}
-
-pub struct Handler;
-impl RewardHandler<AccountId> for Handler {
-	type Balance = Balance;
-	type PoolId = PoolId;
-
-	fn payout(who: &AccountId, pool: &Self::PoolId, amount: Self::Balance) {
-		RECEIVED_PAYOUT.with(|v| {
-			let mut old_map = v.borrow().clone();
-			if let Some(before) = old_map.get_mut(&(*pool, *who)) {
-				*before += amount;
-			} else {
-				old_map.insert((*pool, *who), amount);
-			};
-
-			*v.borrow_mut() = old_map;
-		});
-	}
-}
-
 impl Config for Runtime {
-	type Share = Share;
-	type Balance = Balance;
-	type PoolId = PoolId;
-	type Handler = Handler;
+	type Event = Event;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
@@ -92,17 +55,11 @@ construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
-		RewardsModule: rewards::{Pallet, Storage, Call},
+		UnknownTokens: unknown_tokens::{Pallet, Storage, Event},
 	}
 );
 
 pub struct ExtBuilder;
-
-impl Default for ExtBuilder {
-	fn default() -> Self {
-		ExtBuilder
-	}
-}
 
 impl ExtBuilder {
 	pub fn build(self) -> sp_io::TestExternalities {
@@ -110,6 +67,8 @@ impl ExtBuilder {
 			.build_storage::<Runtime>()
 			.unwrap();
 
-		t.into()
+		let mut ext = sp_io::TestExternalities::new(t);
+		ext.execute_with(|| System::set_block_number(1));
+		ext
 	}
 }

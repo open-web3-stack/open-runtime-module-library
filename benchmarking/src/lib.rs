@@ -844,8 +844,8 @@ macro_rules! impl_benchmark {
 						>::instance(&selected_benchmark, c, verify)?;
 
 						// Set the block number to at least 1 so events are deposited.
-						if $crate::Zero::is_zero(&frame_system::Module::<$runtime>::block_number()) {
-							frame_system::Module::<$runtime>::set_block_number(1u32.into());
+						if $crate::Zero::is_zero(&frame_system::Pallet::<$runtime>::block_number()) {
+							frame_system::Pallet::<$runtime>::set_block_number(1u32.into());
 						}
 
 						// Commit the externalities to the database, flushing the DB cache.
@@ -864,12 +864,21 @@ macro_rules! impl_benchmark {
 								"Start Benchmark: {:?}", c
 							);
 
+							let start_pov = $crate::benchmarking::proof_size();
 							let start_extrinsic = $crate::benchmarking::current_time();
 
 							closure_to_benchmark()?;
 
 							let finish_extrinsic = $crate::benchmarking::current_time();
-							let elapsed_extrinsic = finish_extrinsic - start_extrinsic;
+							let end_pov = $crate::benchmarking::proof_size();
+
+							// Calculate the diff caused by the benchmark.
+							let elapsed_extrinsic = finish_extrinsic.saturating_sub(start_extrinsic);
+							let diff_pov = match (start_pov, end_pov) {
+								(Some(start), Some(end)) => end.saturating_sub(start),
+								_ => Default::default(),
+							};
+
 							// Commit the changes to get proper write count
 							$crate::benchmarking::commit_db();
 							frame_support::log::trace!(
@@ -896,6 +905,7 @@ macro_rules! impl_benchmark {
 								repeat_reads: read_write_count.1,
 								writes: read_write_count.2,
 								repeat_writes: read_write_count.3,
+								proof_size: diff_pov,
 							});
 						}
 
@@ -990,8 +1000,8 @@ macro_rules! impl_benchmark_test {
 					>::instance(&selected_benchmark, &c, true)?;
 
 					// Set the block number to at least 1 so events are deposited.
-					if $crate::Zero::is_zero(&frame_system::Module::<$runtime>::block_number()) {
-						frame_system::Module::<$runtime>::set_block_number(1u32.into());
+					if $crate::Zero::is_zero(&frame_system::Pallet::<$runtime>::block_number()) {
+						frame_system::Pallet::<$runtime>::set_block_number(1u32.into());
 					}
 
 					// Run execution + verification
