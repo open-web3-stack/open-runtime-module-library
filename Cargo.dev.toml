@@ -16,7 +16,9 @@ members = [
 	"nft",
 	"xtokens",
 	"xcm-support",
-	"weight-meter",
+	"unknown-tokens",
+	"build-script-utils",
+  	"weight-meter",
 ]
 resolver = "2"
 
