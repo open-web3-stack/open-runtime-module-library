@@ -20,7 +20,7 @@ members = [
 	"xcm-support",
 	"unknown-tokens",
 	"build-script-utils",
-	"weight-meter",
+  "weight-meter",
 ]
 resolver = "2"
 
