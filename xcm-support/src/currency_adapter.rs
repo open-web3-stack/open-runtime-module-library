@@ -9,7 +9,8 @@ use sp_std::{
 };
 
 use xcm::v0::{Error as XcmError, MultiAsset, MultiLocation, Result};
-use xcm_executor::traits::{LocationConversion, MatchesFungible, TransactAsset};
+use xcm_executor::traits::{Convert as XcmConvert, MatchesFungible, TransactAsset};
+use xcm_executor::Assets;
 
 use crate::UnknownAsset as UnknownAssetT;
 
@@ -61,8 +62,8 @@ impl<
 		MultiCurrency: orml_traits::MultiCurrency<AccountId, CurrencyId = CurrencyId>,
 		UnknownAsset: UnknownAssetT,
 		Matcher: MatchesFungible<MultiCurrency::Balance>,
-		AccountId: sp_std::fmt::Debug,
-		AccountIdConvert: LocationConversion<AccountId>,
+		AccountId: Clone,
+		AccountIdConvert: XcmConvert<MultiLocation, AccountId>,
 		CurrencyId: FullCodec + Eq + PartialEq + Copy + MaybeSerializeDeserialize + Debug,
 		CurrencyIdConvert: Convert<MultiAsset, Option<CurrencyId>>,
 	> TransactAsset
@@ -78,12 +79,12 @@ impl<
 {
 	fn deposit_asset(asset: &MultiAsset, location: &MultiLocation) -> Result {
 		match (
-			AccountIdConvert::from_location(location),
+			AccountIdConvert::convert_ref(location),
 			CurrencyIdConvert::convert(asset.clone()),
 			Matcher::matches_fungible(&asset),
 		) {
 			// known asset
-			(Some(who), Some(currency_id), Some(amount)) => {
+			(Ok(who), Some(currency_id), Some(amount)) => {
 				MultiCurrency::deposit(currency_id, &who, amount).map_err(|e| XcmError::FailedToTransactAsset(e.into()))
 			}
 			// unknown asset
@@ -91,10 +92,10 @@ impl<
 		}
 	}
 
-	fn withdraw_asset(asset: &MultiAsset, location: &MultiLocation) -> result::Result<MultiAsset, XcmError> {
+	fn withdraw_asset(asset: &MultiAsset, location: &MultiLocation) -> result::Result<Assets, XcmError> {
 		UnknownAsset::withdraw(asset, location).or_else(|_| {
-			let who = AccountIdConvert::from_location(location)
-				.ok_or_else(|| XcmError::from(Error::AccountIdConversionFailed))?;
+			let who = AccountIdConvert::convert_ref(location)
+				.map_err(|()| XcmError::from(Error::AccountIdConversionFailed))?;
 			let currency_id = CurrencyIdConvert::convert(asset.clone())
 				.ok_or_else(|| XcmError::from(Error::CurrencyIdConversionFailed))?;
 			let amount: MultiCurrency::Balance = Matcher::matches_fungible(&asset)
@@ -103,6 +104,6 @@ impl<
 			MultiCurrency::withdraw(currency_id, &who, amount).map_err(|e| XcmError::FailedToTransactAsset(e.into()))
 		})?;
 
-		Ok(asset.clone())
+		Ok(asset.clone().into())
 	}
 }

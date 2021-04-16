@@ -32,9 +32,10 @@ use sp_std::prelude::*;
 
 use xcm::v0::{
 	Junction::*,
-	MultiAsset, MultiLocation, Order,
+	MultiAsset, MultiLocation, opaque::Order,
 	Order::*,
-	Xcm::{self, *},
+	opaque::Xcm,
+	Xcm::WithdrawAsset
 };
 
 use orml_traits::location::{Parse, Reserve};
