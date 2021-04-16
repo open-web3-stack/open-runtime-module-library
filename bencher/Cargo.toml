@@ -13,14 +13,14 @@ handlebars = {version = "3.5.2", optional = true }
 serde = { features = ['derive'], optional = true, version = "1.0.119" }
 serde_json = "1.0"
 codec = { package = "parity-scale-codec", version = "2.0.0", features = ["derive"], default-features = false }
-sp-core = { version = "3.0.0", default-features = false }
-sp-std = { version = "3.0.0", default-features = false }
-sp-io = { version = "3.0.0", default-features = false }
-sp-runtime-interface = { version = "3.0.0", default-features = false }
-sp-state-machine = { version = "0.9.0", default-features = false, optional = true }
-sc-executor = { version = "0.9.0", default-features = false, optional = true }
-sc-client-db = { version = "0.9.0", default-features = false, features = ["with-kvdb-rocksdb"], optional = true }
-frame-benchmarking = { version = "3.1.0", default-features = false }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
+sp-std = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
+sp-runtime-interface = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
+sp-state-machine = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false, optional = true }
+sc-executor = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false, features = ["wasmtime"], optional = true }
+sc-client-db = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false, features = ["with-kvdb-rocksdb"], optional = true }
+frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
 
 [features]
 default = ["std"]
