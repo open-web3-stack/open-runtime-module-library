@@ -97,7 +97,7 @@ decl_test_parachain! {
 
 			parameter_types! {
 				pub ParaANetwork: NetworkId = NetworkId::Any;
-				pub RelayChainOrigin: Origin = cumulus_pallet_xcm_handler::Origin::Relay.into();
+				pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
 				pub Ancestry: MultiLocation = MultiLocation::X1(Junction::Parachain {
 					id: ParachainInfo::get().into(),
 				});
@@ -123,7 +123,7 @@ decl_test_parachain! {
 			pub type LocalOriginConverter = (
 				SovereignSignedViaLocation<LocationConverter, Origin>,
 				RelayChainAsNative<RelayChainOrigin, Origin>,
-				SiblingParachainAsNative<cumulus_pallet_xcm_handler::Origin, Origin>,
+				SiblingParachainAsNative<cumulus_pallet_xcm::Origin, Origin>,
 				SignedAccountId32AsNative<ParaANetwork, Origin>,
 			);
 
@@ -202,7 +202,7 @@ decl_test_parachain! {
 
 			parameter_types! {
 				pub ParaANetwork: NetworkId = NetworkId::Any;
-				pub RelayChainOrigin: Origin = cumulus_pallet_xcm_handler::Origin::Relay.into();
+				pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
 				pub Ancestry: MultiLocation = MultiLocation::X1(Junction::Parachain {
 					id: ParachainInfo::get().into(),
 				});
@@ -228,7 +228,7 @@ decl_test_parachain! {
 			pub type LocalOriginConverter = (
 				SovereignSignedViaLocation<LocationConverter, Origin>,
 				RelayChainAsNative<RelayChainOrigin, Origin>,
-				SiblingParachainAsNative<cumulus_pallet_xcm_handler::Origin, Origin>,
+				SiblingParachainAsNative<cumulus_pallet_xcm::Origin, Origin>,
 				SignedAccountId32AsNative<ParaANetwork, Origin>,
 			);
 
@@ -307,7 +307,7 @@ decl_test_parachain! {
 
 			parameter_types! {
 				pub ParaANetwork: NetworkId = NetworkId::Any;
-				pub RelayChainOrigin: Origin = cumulus_pallet_xcm_handler::Origin::Relay.into();
+				pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
 				pub Ancestry: MultiLocation = MultiLocation::X1(Junction::Parachain {
 					id: ParachainInfo::get().into(),
 				});
@@ -333,7 +333,7 @@ decl_test_parachain! {
 			pub type LocalOriginConverter = (
 				SovereignSignedViaLocation<LocationConverter, Origin>,
 				RelayChainAsNative<RelayChainOrigin, Origin>,
-				SiblingParachainAsNative<cumulus_pallet_xcm_handler::Origin, Origin>,
+				SiblingParachainAsNative<cumulus_pallet_xcm::Origin, Origin>,
 				SignedAccountId32AsNative<ParaANetwork, Origin>,
 			);
 

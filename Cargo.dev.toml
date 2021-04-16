@@ -77,7 +77,7 @@ sp-transaction-pool = { git = "https://github.com/paritytech//substrate", rev = 
 cumulus-primitives-core = { git = "https://github.com/paritytech//cumulus", rev = "6ed96321a6b004eb860454087b3a7e278f326eb1" }
 cumulus-pallet-parachain-system = { git = "https://github.com/paritytech//cumulus", rev = "6ed96321a6b004eb860454087b3a7e278f326eb1" }
 parachain-info = { git = "https://github.com/paritytech//cumulus", rev = "6ed96321a6b004eb860454087b3a7e278f326eb1" }
-cumulus-pallet-xcm-handler = { git = "https://github.com/paritytech//cumulus", rev = "6ed96321a6b004eb860454087b3a7e278f326eb1" }
+cumulus-pallet-xcm = { git = "https://github.com/paritytech//cumulus", rev = "6ed96321a6b004eb860454087b3a7e278f326eb1" }
 
 [patch.'https://github.com/paritytech/polkadot']
 xcm = { git = "https://github.com/paritytech//polkadot", rev = "943038a888bfaf736142642e2610b248f7af486c" }
