@@ -87,3 +87,4 @@ polkadot-core-primitives = { git = "https://github.com/paritytech//polkadot", re
 polkadot-runtime-parachains = { git = "https://github.com/paritytech//polkadot", rev = "943038a888bfaf736142642e2610b248f7af486c" }
 polkadot-parachain = { git = "https://github.com/paritytech//polkadot", rev = "943038a888bfaf736142642e2610b248f7af486c" }
 polkadot-primitives = { git = "https://github.com/paritytech//polkadot", rev = "943038a888bfaf736142642e2610b248f7af486c" }
+pallet-xcm = { git = "https://github.com/paritytech//polkadot", rev = "943038a888bfaf736142642e2610b248f7af486c" }
