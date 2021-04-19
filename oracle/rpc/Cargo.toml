@@ -5,14 +5,15 @@ authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2018"
 license = "Apache-2.0"
 description = "RPC module for orml-oracle."
+repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/oracle/rpc"
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "2.0.0" }
 jsonrpc-core = "15.0.0"
 jsonrpc-core-client = "15.0.0"
 jsonrpc-derive = "15.0.0"
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
-sp-api = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
-sp-blockchain = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", version = "3.0.0" }
+sp-api = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", version = "3.0.0" }
+sp-blockchain = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", version = "3.0.0" }
 
 orml-oracle-rpc-runtime-api = { path = "runtime-api", version = "0.4.1-dev" }
