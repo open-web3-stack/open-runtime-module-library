@@ -21,8 +21,8 @@ cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", branc
 
 xcm = { git = "https://github.com/paritytech/polkadot", branch = "rococo-v1", version = "3.0.0", default-features = false }
 
-orml-xcm-support = { path = "../xcm-support", default-features = false }
-orml-traits = { path = "../traits", default-features = false}
+orml-xcm-support = { path = "../xcm-support", version = "0.4.1-dev", default-features = false }
+orml-traits = { path = "../traits", version = "0.4.1-dev", default-features = false}
 
 [dev-dependencies]
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }

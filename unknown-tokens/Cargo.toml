@@ -16,7 +16,7 @@ frame-system = { git = "https://github.com/paritytech/substrate", branch = "roco
 
 xcm = { git = "https://github.com/paritytech/polkadot", branch = "rococo-v1", version = "3.0.0", default-features = false }
 
-orml-xcm-support = { path = "../xcm-support", default-features = false }
+orml-xcm-support = { path = "../xcm-support", version = "0.4.1-dev", default-features = false }
 
 [dev-dependencies]
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
