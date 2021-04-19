@@ -7,27 +7,29 @@ The Open Runtime Module Library (ORML) is a community maintained collection of S
 
 ## Runtime Modules Overview
 
-- [orml-traits](./traits)
-    - Shared traits including `BasicCurrency`, `MultiCurrency`, `Auction` and more.
-- [orml-utilities](./utilities)
-	- Various utilities including `OrderSet`.
-- [orml-tokens](./tokens)
-    - Fungible tokens module that implements `MultiCurrency` trait.
-- [orml-currencies](./currencies)
-	- Provide `MultiCurrency` implementation using `pallet-balances` and `orml-tokens` module.
-- [orml-oracle](./oracle)
-    - Oracle module that makes off-chain data available on-chain.
 - [orml-auction](./auction)
 	- Auction module that implements `Auction` trait.
-- [orml-vesting](./vesting)
-    - Provides scheduled balance locking mechanism, in a *graded vesting* way.
+- [orml-currencies](./currencies)
+	- Provide `MultiCurrency` implementation using `pallet-balances` and `orml-tokens` module.
 - [orml-gradually-update](./gradually-update)
-    - Provides way to adjust numeric parameter gradually over a period of time.
-- [orml-xtokens](./xtokens)
-    - Provides way to do cross-chain assets transfer.
-    - [Step-by-Step guide](https://github.com/open-web3-stack/open-runtime-module-library/wiki/xtokens) to make XCM cross-chain fungible asset transfer available on your parachain
+	- Provides way to adjust numeric parameter gradually over a period of time.
+- [orml-nft](./nft)
+ 	- Non-fungible-token module provides basic functions to create and manager NFT(non fungible token) such as `create_class`, `transfer`, `mint`, `burn`, `destroy_class`.
+- [orml-oracle](./oracle)
+	- Oracle module that makes off-chain data available on-chain.
+- [orml-tokens](./tokens)
+	- Fungible tokens module that implements `MultiCurrency` trait.
+- [orml-traits](./traits)
+	- Shared traits including `BasicCurrency`, `MultiCurrency`, `Auction` and more.
+- [orml-utilities](./utilities)
+	- Various utilities including `OrderSet`.
+- [orml-vesting](./vesting)
+	- Provides scheduled balance locking mechanism, in a *graded vesting* way.
 - [orml-xcm-support](./xcm-support)
-    - Provides traits, types, and implementations to support XCM integration.
+	- Provides traits, types, and implementations to support XCM integration.
+- [orml-xtokens](./xtokens)
+	- Provides way to do cross-chain assets transfer.
+	- [Step-by-Step guide](https://github.com/open-web3-stack/open-runtime-module-library/wiki/xtokens) to make XCM cross-chain fungible asset transfer available on your parachain
 
 ## Example
 
