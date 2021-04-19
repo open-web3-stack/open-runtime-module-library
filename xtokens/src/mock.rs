@@ -10,12 +10,17 @@ use polkadot_parachain::primitives::Sibling;
 use serde::{Deserialize, Serialize};
 use sp_io::TestExternalities;
 use sp_runtime::AccountId32;
-use xcm::v0::{Junction, MultiLocation::*, NetworkId, opaque::Xcm };
-use xcm_builder::{
-	AccountId32Aliases, LocationInverter, ParentIsDefault, RelayChainAsNative, SiblingParachainAsNative,
-	SiblingParachainConvertsVia, SignedAccountId32AsNative, SovereignSignedViaLocation, FixedWeightBounds, FixedRateOfConcreteFungible
+pub use sp_std::cell::RefCell;
+use xcm::v0::{
+	opaque, Error as XcmError, ExecuteXcm, Junction, MultiLocation::*, NetworkId, Result as XcmResult, SendXcm, Xcm,
 };
-use xcm_executor::Config as XcmConfigT;
+use xcm_builder::{
+	AccountId32Aliases, FixedRateOfConcreteFungible, FixedWeightBounds, LocationInverter, ParentIsDefault,
+	RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
+	SovereignSignedViaLocation,
+};
+use xcm_executor::traits::Convert as XcmConvert;
+use xcm_executor::{Config as XcmConfigT, XcmExecutor};
 use xcm_simulator::{decl_test_network, decl_test_parachain, prelude::*};
 
 pub const ALICE: AccountId32 = AccountId32::new([0u8; 32]);
@@ -136,10 +141,10 @@ decl_test_parachain! {
 			pub struct XcmConfig;
 			impl XcmConfigT for XcmConfig {
 				type Call = Call;
-				type XcmSender = ();
+				type XcmSender = TestSendXcm;
 				type AssetTransactor = LocalAssetTransactor;
 				type OriginConverter = LocalOriginConverter;
-				type IsReserve = ();
+				type IsReserve = MultiNativeAsset;
 				type IsTeleporter = ();
 				type LocationInverter = LocationInverter<Ancestry>;
 				type Barrier = ();
@@ -166,9 +171,27 @@ decl_test_parachain! {
 			}
 
 			pub struct HandleXcm;
-			impl XcmHandlerT<AccountId> for HandleXcm {
-				fn execute_xcm(origin: AccountId, xcm: Xcm) -> DispatchResult {
-					XcmHandler::execute_xcm(origin, xcm)
+			impl XcmHandlerT<AccountId, Call> for HandleXcm {
+				fn execute_xcm(origin: AccountId, xcm: Xcm<Call>) -> DispatchResult {
+					let xcm_origin = ParentIsDefault::<AccountId>::reverse_ref(origin).map_err(|_| XcmError::BadOrigin);
+					XcmExecutor::<XcmConfig>::execute_xcm(xcm_origin, xcm, 1000);
+					Ok(())
+				}
+			}
+
+			thread_local! {
+				pub static SENT_XCM: RefCell<Vec<(MultiLocation, opaque::Xcm)>> = RefCell::new(Vec::new());
+			}
+
+			pub fn sent_xcm() -> Vec<(MultiLocation, opaque::Xcm)> {
+				SENT_XCM.with(|q| (*q.borrow()).clone())
+			}
+
+			pub struct TestSendXcm;
+			impl SendXcm for TestSendXcm {
+				fn send_xcm(dest: MultiLocation, msg: opaque::Xcm) -> XcmResult {
+					SENT_XCM.with(|q| q.borrow_mut().push((dest, msg)));
+					Ok(())
 				}
 			}
 
@@ -251,7 +274,7 @@ decl_test_parachain! {
 			pub struct XcmConfig;
 			impl XcmConfigT for XcmConfig {
 				type Call = Call;
-				type XcmSender = ();
+				type XcmSender = TestSendXcm;
 				type AssetTransactor = LocalAssetTransactor;
 				type OriginConverter = LocalOriginConverter;
 				type IsReserve = ();
@@ -281,9 +304,27 @@ decl_test_parachain! {
 			}
 
 			pub struct HandleXcm;
-			impl XcmHandlerT<AccountId> for HandleXcm {
-				fn execute_xcm(origin: AccountId, xcm: Xcm) -> DispatchResult {
-					XcmHandler::execute_xcm(origin, xcm)
+			impl XcmHandlerT<AccountId, Call> for HandleXcm {
+				fn execute_xcm(origin: AccountId, xcm: Xcm<Call>) -> DispatchResult {
+					let xcm_origin = ParentIsDefault::<AccountId>::reverse_ref(origin).map_err(|_| XcmError::BadOrigin);
+					XcmExecutor::<XcmConfig>::execute_xcm(xcm_origin, xcm, 1000);
+					Ok(())
+				}
+			}
+
+			thread_local! {
+				pub static SENT_XCM: RefCell<Vec<(MultiLocation, opaque::Xcm)>> = RefCell::new(Vec::new());
+			}
+
+			pub fn sent_xcm() -> Vec<(MultiLocation, opaque::Xcm)> {
+				SENT_XCM.with(|q| (*q.borrow()).clone())
+			}
+
+			pub struct TestSendXcm;
+			impl SendXcm for TestSendXcm {
+				fn send_xcm(dest: MultiLocation, msg: opaque::Xcm) -> XcmResult {
+					SENT_XCM.with(|q| q.borrow_mut().push((dest, msg)));
+					Ok(())
 				}
 			}
 
@@ -366,7 +407,7 @@ decl_test_parachain! {
 			pub struct XcmConfig;
 			impl XcmConfigT for XcmConfig {
 				type Call = Call;
-				type XcmSender = ();
+				type XcmSender = TestSendXcm;
 				type AssetTransactor = LocalAssetTransactor;
 				type OriginConverter = LocalOriginConverter;
 				type IsReserve = ();
@@ -396,9 +437,27 @@ decl_test_parachain! {
 			}
 
 			pub struct HandleXcm;
-			impl XcmHandlerT<AccountId> for HandleXcm {
-				fn execute_xcm(origin: AccountId, xcm: Xcm) -> DispatchResult {
-					XcmHandler::execute_xcm(origin, xcm)
+			impl XcmHandlerT<AccountId, Call> for HandleXcm {
+				fn execute_xcm(origin: AccountId, xcm: Xcm<Call>) -> DispatchResult {
+					let xcm_origin = ParentIsDefault::<AccountId>::reverse_ref(origin).map_err(|_| XcmError::BadOrigin);
+					XcmExecutor::<XcmConfig>::execute_xcm(xcm_origin, xcm, 1000);
+					Ok(())
+				}
+			}
+
+			thread_local! {
+				pub static SENT_XCM: RefCell<Vec<(MultiLocation, opaque::Xcm)>> = RefCell::new(Vec::new());
+			}
+
+			pub fn sent_xcm() -> Vec<(MultiLocation, opaque::Xcm)> {
+				SENT_XCM.with(|q| (*q.borrow()).clone())
+			}
+
+			pub struct TestSendXcm;
+			impl SendXcm for TestSendXcm {
+				fn send_xcm(dest: MultiLocation, msg: opaque::Xcm) -> XcmResult {
+					SENT_XCM.with(|q| q.borrow_mut().push((dest, msg)));
+					Ok(())
 				}
 			}
 
