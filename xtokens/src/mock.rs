@@ -183,9 +183,7 @@ decl_test_parachain! {
 				pub static SENT_XCM: RefCell<Vec<(MultiLocation, opaque::Xcm)>> = RefCell::new(Vec::new());
 			}
 
-			pub fn sent_xcm() -> Vec<(MultiLocation, opaque::Xcm)> {
-				SENT_XCM.with(|q| (*q.borrow()).clone())
-			}
+			
 
 			pub struct TestSendXcm;
 			impl SendXcm for TestSendXcm {
@@ -277,7 +275,7 @@ decl_test_parachain! {
 				type XcmSender = TestSendXcm;
 				type AssetTransactor = LocalAssetTransactor;
 				type OriginConverter = LocalOriginConverter;
-				type IsReserve = ();
+				type IsReserve = MultiNativeAsset;
 				type IsTeleporter = ();
 				type LocationInverter = LocationInverter<Ancestry>;
 				type Barrier = ();
@@ -316,9 +314,7 @@ decl_test_parachain! {
 				pub static SENT_XCM: RefCell<Vec<(MultiLocation, opaque::Xcm)>> = RefCell::new(Vec::new());
 			}
 
-			pub fn sent_xcm() -> Vec<(MultiLocation, opaque::Xcm)> {
-				SENT_XCM.with(|q| (*q.borrow()).clone())
-			}
+			
 
 			pub struct TestSendXcm;
 			impl SendXcm for TestSendXcm {
@@ -410,7 +406,7 @@ decl_test_parachain! {
 				type XcmSender = TestSendXcm;
 				type AssetTransactor = LocalAssetTransactor;
 				type OriginConverter = LocalOriginConverter;
-				type IsReserve = ();
+				type IsReserve = MultiNativeAsset;
 				type IsTeleporter = ();
 				type LocationInverter = LocationInverter<Ancestry>;
 				type Barrier = ();
@@ -447,10 +443,6 @@ decl_test_parachain! {
 
 			thread_local! {
 				pub static SENT_XCM: RefCell<Vec<(MultiLocation, opaque::Xcm)>> = RefCell::new(Vec::new());
-			}
-
-			pub fn sent_xcm() -> Vec<(MultiLocation, opaque::Xcm)> {
-				SENT_XCM.with(|q| (*q.borrow()).clone())
 			}
 
 			pub struct TestSendXcm;
