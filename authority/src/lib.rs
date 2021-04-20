@@ -202,7 +202,7 @@ pub mod module {
 	pub type NextTaskIndex<T: Config> = StorageValue<_, ScheduleTaskIndex, ValueQuery>;
 
 	#[pallet::pallet]
-	pub struct Pallet<T>(PhantomData<T>);
+	pub struct Pallet<T>(_);
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
