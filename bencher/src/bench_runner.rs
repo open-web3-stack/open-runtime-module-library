@@ -12,7 +12,7 @@ use sp_state_machine::{Ext, OverlayedChanges, StorageTransactionCache};
 pub fn run<B: Block>(wasm_code: Vec<u8>) -> Vec<u8> {
 	let mut overlay = OverlayedChanges::default();
 	let mut cache = StorageTransactionCache::default();
-	let state = BenchmarkingState::<B>::new(Default::default(), Default::default()).unwrap();
+	let state = BenchmarkingState::<B>::new(Default::default(), Default::default(), false).unwrap();
 	let mut ext = Ext::<_, NumberFor<B>, _>::new(&mut overlay, &mut cache, &state, None, None);
 
 	let mut host_functions = benchmarking::HostFunctions::host_functions();

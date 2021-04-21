@@ -4,6 +4,7 @@ cargo-features = ["resolver"]
 members = [
 	"auction",
 	"authority",
+	"bencher",
 	"benchmarking",
 	"currencies",
 	"gradually-update",
@@ -18,6 +19,7 @@ members = [
 	"xcm-support",
 	"unknown-tokens",
 	"build-script-utils",
+	"weight-gen",
   	"weight-meter",
 ]
 resolver = "2"
