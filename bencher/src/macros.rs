@@ -113,7 +113,7 @@ macro_rules! bench {
         }
 
         impl Bencher {
-            pub fn bench(&mut self, name: &str, block: fn() -> ()) {
+            pub fn bench<F: Fn() -> ()>(&mut self, name: &str, block: F) {
                 // Warm up the DB
                 benchmarking::commit_db();
                 benchmarking::wipe_db();

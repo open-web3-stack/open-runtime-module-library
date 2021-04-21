@@ -1,7 +1,7 @@
 use crate::BenchResult;
-use serde::{Serialize, Deserialize};
 use codec::Decode;
 use linregress::{FormulaRegressionBuilder, RegressionDataBuilder};
+use serde::{Deserialize, Serialize};
 use std::io::Write;
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
