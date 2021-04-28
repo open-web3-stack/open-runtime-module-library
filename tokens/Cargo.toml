@@ -20,7 +20,9 @@ orml-traits = { path = "../traits", version = "0.4.1-dev", default-features = fa
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
 pallet-treasury = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
-pallet-elections-phragmen = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
+# Patch doesn't work as `pallet-elections-phragmen` is now 4.0.0 version. Revert `rev` to `rococo-v1` branch after
+# other `rococo-v1` dependencies upgraded.
+pallet-elections-phragmen = { git = "https://github.com/paritytech/substrate", rev = "816ed3d4e77a2463c86e69ec5a26fc307ef452b9" }
 
 [features]
 default = ["std"]
