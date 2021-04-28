@@ -163,6 +163,15 @@ fn should_combined_data() {
 }
 
 #[test]
+fn default_combine_works_with_no_feeded_value() {
+	new_test_ext().execute_with(|| {
+		let key: u32 = 50;
+
+		assert_eq!(ModuleOracle::get(&key), None);
+	});
+}
+
+#[test]
 fn should_return_none_for_non_exist_key() {
 	new_test_ext().execute_with(|| {
 		assert_eq!(ModuleOracle::get(&50), None);
