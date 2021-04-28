@@ -30,7 +30,7 @@ pub fn median<T: Ord + Clone>(mut items: Vec<T>) -> Option<T> {
 
 	let mid_index = items.len() / 2;
 
-	// Won't panic as guarded items empty case.
+	// Won't panic as `items` ensured not empty.
 	let (_, item, _) = items.select_nth_unstable(mid_index);
 	Some(item.clone())
 }

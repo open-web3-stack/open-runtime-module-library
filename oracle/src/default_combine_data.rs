@@ -32,7 +32,7 @@ where
 		}
 
 		let mid_index = count / 2;
-		// Won't panic as guarded values empty case.
+		// Won't panic as `values` ensured not empty.
 		let (_, value, _) = values.select_nth_unstable_by(mid_index as usize, |a, b| a.value.cmp(&b.value));
 		Some(value.clone())
 	}
