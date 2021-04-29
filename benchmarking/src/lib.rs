@@ -54,11 +54,6 @@ pub use sp_runtime::traits::Zero;
 /// for arbitrary expresions to be evaluated in a benchmark (including for
 /// example, `on_initialize`).
 ///
-/// The macro allows for common parameters whose ranges and instancing
-/// expressions may be drawn upon (or not) by each arm. Syntax is available to
-/// allow for only the range to be drawn upon if desired, allowing an
-/// alternative instancing expression to be given.
-///
 /// Note that the ranges are *inclusive* on both sides. This is in contrast to
 /// ranges in Rust which are left-inclusive right-exclusive.
 ///
@@ -67,9 +62,6 @@ pub use sp_runtime::traits::Zero;
 /// the specific value of each parameter at any time. Local variables are shared
 /// between the two pre- and post- code blocks, but do not leak from the
 /// interior of any instancing expressions.
-///
-/// Any common parameters that are unused in an arm do not have their instancing
-/// expressions evaluated.
 ///
 /// Example:
 /// ```ignore
@@ -87,21 +79,20 @@ pub use sp_runtime::traits::Zero;
 ///   // size `l`, which we allow to be initialized as usual.
 ///   foo {
 ///     let caller = account::<AccountId>(b"caller", 0, benchmarks_seed);
-///     let l = ...;
+///     let l in 1 .. MAX_LENGTH => initialize_l(l);
 ///   }: _(Origin::Signed(caller), vec![0u8; l])
 ///
 ///   // second dispatchable: bar; this is a root dispatchable and accepts a `u8` vector of size
-///   // `l`. We don't want it pre-initialized like before so we override using the `=> ()` notation.
+///   // `l`.
 ///   // In this case, we explicitly name the call using `bar` instead of `_`.
 ///   bar {
-///     let l = _ .. _ => ();
+///     let l in 1 .. MAX_LENGTH => initialize_l(l);
 ///   }: bar(Origin::Root, vec![0u8; l])
 ///
 ///   // third dispatchable: baz; this is a user dispatchable. It isn't dependent on length like the
 ///   // other two but has its own complexity `c` that needs setting up. It uses `caller` (in the
 ///   // pre-instancing block) within the code block. This is only allowed in the param instancers
-///   // of arms. Instancers of common params cannot optimistically draw upon hypothetical variables
-///   // that the arm's pre-instancing code block might have declared.
+///   // of arms.
 ///   baz1 {
 ///     let caller = account::<AccountId>(b"caller", 0, benchmarks_seed);
 ///     let c = 0 .. 10 => setup_c(&caller, c);
@@ -168,18 +159,12 @@ pub use sp_runtime::traits::Zero;
 macro_rules! runtime_benchmarks {
 	(
 		{ $runtime:ident, $pallet:ident }
-		_ {
-			$(
-				let $common:ident in $common_from:tt .. $common_to:expr => $common_instancer:expr;
-			)*
-		}
 		$( $rest:tt )*
 	) => {
 		$crate::benchmarks_iter!(
 			{ }
 			$runtime
 			$pallet
-			{ $( { $common , $common_from , $common_to , $common_instancer } )* }
 			( )
 			( )
 			$( $rest )*
@@ -192,18 +177,12 @@ macro_rules! runtime_benchmarks {
 macro_rules! runtime_benchmarks_instance {
 	(
 		{ $runtime:ident, $pallet:ident, $instance:ident }
-		_ {
-			$(
-				let $common:ident in $common_from:tt .. $common_to:expr => $common_instancer:expr;
-			)*
-		}
 		$( $rest:tt )*
 	) => {
 		$crate::benchmarks_iter!(
 			{ $instance }
 			$runtime
 			$pallet
-			{ $( { $common , $common_from , $common_to , $common_instancer } )* }
 			( )
 			( )
 			$( $rest )*
@@ -219,7 +198,6 @@ macro_rules! benchmarks_iter {
 		{ $( $instance:ident )? }
 		$runtime:ident
 		$pallet:ident
-		{ $( $common:tt )* }
 		( $( $names:tt )* )
 		( $( $names_extra:tt )* )
 		#[extra]
@@ -230,7 +208,6 @@ macro_rules! benchmarks_iter {
 			{ $( $instance)? }
 			$runtime
 			$pallet
-			{ $( $common )* }
 			( $( $names )* )
 			( $( $names_extra )* $name )
 			$name
@@ -242,7 +219,6 @@ macro_rules! benchmarks_iter {
 		{ $( $instance:ident )? }
 		$runtime:ident
 		$pallet:ident
-		{ $( $common:tt )* }
 		( $( $names:tt )* ) // This contains $( $( { $instance } )? $name:ident )*
 		( $( $names_extra:tt )* )
 		$name:ident { $( $code:tt )* }: _ ( $origin:expr $( , $arg:expr )* )
@@ -253,7 +229,6 @@ macro_rules! benchmarks_iter {
 			{ $( $instance)? }
 			$runtime
 			$pallet
-			{ $( $common )* }
 			( $( $names )* )
 			( $( $names_extra )* )
 			$name { $( $code )* }: $name ( $origin $( , $arg )* )
@@ -266,7 +241,6 @@ macro_rules! benchmarks_iter {
 		{ $( $instance:ident )? }
 		$runtime:ident
 		$pallet:ident
-		{ $( $common:tt )* }
 		( $( $names:tt )* )
 		( $( $names_extra:tt )* )
 		$name:ident { $( $code:tt )* }: $dispatch:ident ( $origin:expr $( , $arg:expr )* )
@@ -277,7 +251,6 @@ macro_rules! benchmarks_iter {
 			{ $( $instance)? }
 			$runtime
 			$pallet
-			{ $( $common )* }
 			( $( $names )* )
 			( $( $names_extra )* )
 			$name { $( $code )* }: {
@@ -297,7 +270,6 @@ macro_rules! benchmarks_iter {
 		{ $( $instance:ident )? }
 		$runtime:ident
 		$pallet:ident
-		{ $( $common:tt )* }
 		( $( $names:tt )* )
 		( $( $names_extra:tt )* )
 		$name:ident { $( $code:tt )* }: $eval:block
@@ -309,7 +281,6 @@ macro_rules! benchmarks_iter {
 			$name
 			$runtime
 			$pallet
-			{ $( $common )* }
 			{ }
 			{ $eval }
 			{ $( $code )* }
@@ -328,7 +299,6 @@ macro_rules! benchmarks_iter {
 			{ $( $instance)? }
 			$runtime
 			$pallet
-			{ $( $common )* }
 			( $( $names )* { $( $instance )? } $name )
 			( $( $names_extra )* )
 			$( $rest )*
@@ -339,7 +309,6 @@ macro_rules! benchmarks_iter {
 		{ $( $instance:ident )? }
 		$runtime:ident
 		$pallet:ident
-		{ $( $common:tt )* }
 		( $( $names:tt )* )
 		( $( $names_extra:tt )* )
 	) => {
@@ -362,7 +331,6 @@ macro_rules! benchmarks_iter {
 		{ $( $instance:ident )? }
 		$runtime:ident
 		$pallet:ident
-		{ $( $common:tt )* }
 		( $( $names:tt )* )
 		( $( $names_extra:tt )* )
 		$name:ident { $( $code:tt )* }: _ ( $origin:expr $( , $arg:expr )* )
@@ -372,7 +340,6 @@ macro_rules! benchmarks_iter {
 			{ $( $instance)? }
 			$runtime
 			$pallet
-			{ $( $common )* }
 			( $( $names )* )
 			( $( $names_extra )* )
 			$name { $( $code )* }: _ ( $origin $( , $arg )* )
@@ -385,7 +352,6 @@ macro_rules! benchmarks_iter {
 		{ $( $instance:ident )? }
 		$runtime:ident
 		$pallet:ident
-		{ $( $common:tt )* }
 		( $( $names:tt )* )
 		( $( $names_extra:tt )* )
 		$name:ident { $( $code:tt )* }: $dispatch:ident ( $origin:expr $( , $arg:expr )* )
@@ -395,7 +361,6 @@ macro_rules! benchmarks_iter {
 			{ $( $instance)? }
 			$runtime
 			$pallet
-			{ $( $common )* }
 			( $( $names )* )
 			( $( $names_extra )* )
 			$name { $( $code )* }: $dispatch ( $origin $( , $arg )* )
@@ -408,7 +373,6 @@ macro_rules! benchmarks_iter {
 		{ $( $instance:ident )? }
 		$runtime:ident
 		$pallet:ident
-		{ $( $common:tt )* }
 		( $( $names:tt )* )
 		( $( $names_extra:tt )* )
 		$name:ident { $( $code:tt )* }: $eval:block
@@ -418,7 +382,6 @@ macro_rules! benchmarks_iter {
 			{ $( $instance)? }
 			$runtime
 			$pallet
-			{ $( $common )* }
 			( $( $names )* )
 			( $( $names_extra )* )
 			$name { $( $code )* }: $eval
@@ -437,7 +400,6 @@ macro_rules! benchmark_backend {
 		$name:ident
 		$runtime:ident
 		$pallet:ident
-		{ $( $common:tt )* }
 		{ $( PRE { $( $pre_parsed:tt )* } )* }
 		{ $eval:block }
 		{
@@ -451,7 +413,6 @@ macro_rules! benchmark_backend {
 			$name
 			$runtime
 			$pallet
-			{ $( $common )* }
 			{
 				$( PRE { $( $pre_parsed )* } )*
 				PRE { $pre_id , $pre_ty , $pre_ex }
@@ -466,7 +427,6 @@ macro_rules! benchmark_backend {
 		$name:ident
 		$runtime:ident
 		$pallet:ident
-		{ $( $common:tt )* }
 		{ $( $parsed:tt )* }
 		{ $eval:block }
 		{
@@ -480,7 +440,6 @@ macro_rules! benchmark_backend {
 			$name
 			$runtime
 			$pallet
-			{ $( $common )* }
 			{
 				$( $parsed )*
 				PARAM { $param , $param_from , $param_to , $param_instancer }
@@ -490,79 +449,12 @@ macro_rules! benchmark_backend {
 			$postcode
 		}
 	};
-	// mutation arm to look after defaulting to a common param
-	(
-		{ $( $instance:ident )? }
-		$name:ident
-		$runtime:ident
-		$pallet:ident
-		{ $( { $common:ident , $common_from:tt , $common_to:expr , $common_instancer:expr } )* }
-		{ $( $parsed:tt )* }
-		{ $eval:block }
-		{
-			let $param:ident in ...;
-			$( $rest:tt )*
-		}
-		$postcode:block
-	) => {
-		$crate::benchmark_backend! {
-			{ $( $instance)? }
-			$name
-			$runtime
-			$pallet
-			{ $( { $common , $common_from , $common_to , $common_instancer } )* }
-			{ $( $parsed )* }
-			{ $eval }
-			{
-				let $param
-					in ({ $( let $common = $common_from; )* $param })
-					.. ({ $( let $common = $common_to; )* $param })
-					=> ({ $( let $common = || -> Result<(), &'static str> { $common_instancer ; Ok(()) }; )* $param()? });
-				$( $rest )*
-			}
-			$postcode
-		}
-	};
-	// mutation arm to look after defaulting only the range to common param
-	(
-		{ $( $instance:ident )? }
-		$name:ident
-		$runtime:ident
-		$pallet:ident
-		{ $( { $common:ident , $common_from:tt , $common_to:expr , $common_instancer:expr } )* }
-		{ $( $parsed:tt )* }
-		{ $eval:block }
-		{
-			let $param:ident in _ .. _ => $param_instancer:expr ;
-			$( $rest:tt )*
-		}
-		$postcode:block
-	) => {
-		$crate::benchmark_backend! {
-			{ $( $instance)? }
-			$name
-			$runtime
-			$pallet
-			{ $( { $common , $common_from , $common_to , $common_instancer } )* }
-			{ $( $parsed )* }
-			{ $eval }
-			{
-				let $param
-					in ({ $( let $common = $common_from; )* $param })
-					.. ({ $( let $common = $common_to; )* $param })
-					=> $param_instancer ;
-				$( $rest )*
-			}
-			$postcode
-		}
-	};
 	// mutation arm to look after a single tt for param_from.
 	(
 		{ $( $instance:ident )? }
 		$name:ident
 		$runtime:ident
 		$pallet:ident
-		{ $( $common:tt )* }
 		{ $( $parsed:tt )* }
 		{ $eval:block }
 		{
@@ -576,7 +468,6 @@ macro_rules! benchmark_backend {
 			$name
 			$runtime
 			$pallet
-			{ $( $common )* }
 			{ $( $parsed )* }
 			{ $eval }
 			{
@@ -592,7 +483,6 @@ macro_rules! benchmark_backend {
 		$name:ident
 		$runtime:ident
 		$pallet:ident
-		{ $( $common:tt )* }
 		{ $( $parsed:tt )* }
 		{ $eval:block }
 		{
@@ -606,7 +496,6 @@ macro_rules! benchmark_backend {
 			$name
 			$runtime
 			$pallet
-			{ $( $common )* }
 			{ $( $parsed )* }
 			{ $eval }
 			{
@@ -622,7 +511,6 @@ macro_rules! benchmark_backend {
 		$name:ident
 		$runtime:ident
 		$pallet:ident
-		{ $( $common:tt )* }
 		{ $( $parsed:tt )* }
 		{ $eval:block }
 		{
@@ -636,7 +524,6 @@ macro_rules! benchmark_backend {
 			$name
 			$runtime
 			$pallet
-			{ $( $common )* }
 			{ $( $parsed )* }
 			{ $eval }
 			{
@@ -652,7 +539,6 @@ macro_rules! benchmark_backend {
 		$name:ident
 		$runtime:ident
 		$pallet:ident
-		{ $( { $common:ident , $common_from:tt , $common_to:expr , $common_instancer:expr } )* }
 		{
 			$( PRE { $pre_id:tt , $pre_ty:ty , $pre_ex:expr } )*
 			$( PARAM { $param:ident , $param_from:expr , $param_to:expr , $param_instancer:expr } )*
@@ -678,9 +564,6 @@ macro_rules! benchmark_backend {
 				components: &[($crate::BenchmarkParameter, u32)],
 				verify: bool
 			) -> Result<Box<dyn FnOnce() -> Result<(), &'static str>>, &'static str> {
-				$(
-					let $common = $common_from;
-				)*
 				$(
 					// Prepare instance
 					let $param = components.iter()
@@ -1050,15 +933,15 @@ macro_rules! impl_benchmark_test {
 /// ```
 ///
 /// The `whitelist` is a parameter you pass to control the DB read/write
-/// tracking. We use a vector of [TrackedStorageKey], which is a simple struct
-/// used to set if a key has been read or written to.
+/// tracking. We use a vector of
+/// [TrackedStorageKey](./struct.TrackedStorageKey.html), which is a simple
+/// struct used to set if a key has been read or written to.
 ///
 /// For values that should be skipped entirely, we can just pass `key.into()`.
 /// For example:
 ///
 /// ```
 /// use frame_benchmarking::TrackedStorageKey;
-/// use hex_literal;
 /// let whitelist: Vec<TrackedStorageKey> = vec![
 ///     // Block Number
 ///     hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef702a5c1b19ab7a04f536c519aca4983ac").to_vec().into(),
