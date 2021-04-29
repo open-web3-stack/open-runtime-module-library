@@ -1139,3 +1139,12 @@ macro_rules! add_benchmark {
 		}
 	)
 }
+
+#[macro_export]
+macro_rules! whitelist_account {
+	($acc:ident) => {
+		frame_benchmarking::benchmarking::add_to_whitelist(
+			frame_system::Account::<Runtime>::hashed_key_for(&$acc).into(),
+		);
+	};
+}
