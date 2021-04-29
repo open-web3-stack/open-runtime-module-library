@@ -7,7 +7,8 @@ shift
 
 set -x
 
-for file in **/Cargo.toml; do
+FILES=$(find . -type d \( -name xtokens -o -name xcm-support -o -name unknown-tokens \) -prune -false -o -name Cargo.toml);
+
+for file in $FILES; do
 	cargo $COMMAND --manifest-path "$file" $@;
 done
-
