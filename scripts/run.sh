@@ -7,9 +7,11 @@ shift
 
 set -x
 
-FILES=$(find . -type d \( -name xtokens -o -name xcm-support -o -name unknown-tokens \) -prune -false -o -name Cargo.toml);
-
-for file in $FILES; do
+for file in **/Cargo.toml; do
+	if [ "$file" == "xtokens/Cargo.toml" ] || [ "$file" == "xcm-support/Cargo.toml" ] || [ "$file" == "unknown-tokens/Cargo.toml" ]
+		then
+			continue
+	fi
 	cargo $COMMAND --manifest-path "$file" $@;
 done
 
