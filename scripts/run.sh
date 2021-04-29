@@ -12,3 +12,4 @@ FILES=$(find . -type d \( -name xtokens -o -name xcm-support -o -name unknown-to
 for file in $FILES; do
 	cargo $COMMAND --manifest-path "$file" $@;
 done
+
