@@ -7,16 +7,22 @@ mod tests;
 
 pub use frame_benchmarking::{
 	benchmarking, whitelisted_caller, BenchmarkBatch, BenchmarkConfig, BenchmarkParameter, BenchmarkResults,
-	Benchmarking, BenchmarkingSetup, TrackedStorageKey,
+	Benchmarking, BenchmarkingSetup,
 };
 #[cfg(feature = "std")]
 pub use frame_benchmarking::{Analysis, BenchmarkSelector};
+#[doc(hidden)]
 pub use frame_support;
+#[doc(hidden)]
 pub use paste;
 #[doc(hidden)]
 pub use sp_io::storage::root as storage_root;
+#[doc(hidden)]
 pub use sp_runtime::traits::Zero;
-
+#[doc(hidden)]
+pub use sp_std::{self, boxed::Box, prelude::Vec, vec};
+#[doc(hidden)]
+pub use sp_storage::TrackedStorageKey;
 /// Construct pallet benchmarks for weighing dispatchables.
 ///
 /// Works around the idea of complexity parameters, named by a single letter
@@ -551,8 +557,8 @@ macro_rules! benchmark_backend {
 		struct $name;
 		#[allow(unused_variables)]
 		impl $crate::BenchmarkingSetup<$runtime $(, $instance)?> for $name {
-			fn components(&self) -> Vec<($crate::BenchmarkParameter, u32, u32)> {
-				vec! [
+			fn components(&self) -> $crate::Vec<($crate::BenchmarkParameter, u32, u32)> {
+				$crate::vec! [
 					$(
 						($crate::BenchmarkParameter::$param, $param_from, $param_to)
 					),*
@@ -563,7 +569,7 @@ macro_rules! benchmark_backend {
 				&self,
 				components: &[($crate::BenchmarkParameter, u32)],
 				verify: bool
-			) -> Result<Box<dyn FnOnce() -> Result<(), &'static str>>, &'static str> {
+			) -> Result<$crate::Box<dyn FnOnce() -> Result<(), &'static str>>, &'static str> {
 				$(
 					// Prepare instance
 					let $param = components.iter()
@@ -577,7 +583,7 @@ macro_rules! benchmark_backend {
 				$( $param_instancer ; )*
 				$( $post )*
 
-				Ok(Box::new(move || -> Result<(), &'static str> {
+				Ok($crate::Box::new(move || -> Result<(), &'static str> {
 					$eval;
 					if verify {
 						$postcode;
@@ -620,7 +626,7 @@ macro_rules! selected_benchmark {
 
 		// Allow us to select a benchmark from the list of available benchmarks.
 		impl $crate::BenchmarkingSetup<$runtime $(, $instance)?> for SelectedBenchmark {
-			fn components(&self) -> Vec<($crate::BenchmarkParameter, u32, u32)> {
+			fn components(&self) -> $crate::Vec<($crate::BenchmarkParameter, u32, u32)> {
 				match self {
 					$(
 						Self::$bench => <
@@ -634,9 +640,7 @@ macro_rules! selected_benchmark {
 				&self,
 				components: &[($crate::BenchmarkParameter, u32)],
 				verify: bool
-			)
-				-> Result<Box<dyn FnOnce() -> Result<(), &'static str>>, &'static str>
-			{
+			) -> Result<$crate::Box<dyn FnOnce() -> Result<(), &'static str>>, &'static str> {
 				match self {
 					$(
 						Self::$bench => <
@@ -662,8 +666,8 @@ macro_rules! impl_benchmark {
 		pub struct Benchmark;
 
 		impl $crate::Benchmarking<$crate::BenchmarkResults> for Benchmark {
-			fn benchmarks(extra: bool) -> Vec<&'static [u8]> {
-				let mut all = vec![ $( stringify!($name).as_ref() ),* ];
+			fn benchmarks(extra: bool) -> $crate::Vec<&'static [u8]> {
+				let mut all = $crate::vec![ $( stringify!($name).as_ref() ),* ];
 				if !extra {
 					let extra = [ $( stringify!($name_extra).as_ref() ),* ];
 					all.retain(|x| !extra.contains(x));
@@ -679,15 +683,15 @@ macro_rules! impl_benchmark {
 				repeat: u32,
 				whitelist: &[$crate::TrackedStorageKey],
 				verify: bool,
-			) -> Result<Vec<$crate::BenchmarkResults>, &'static str> {
+			) -> Result<$crate::Vec<$crate::BenchmarkResults>, &'static str> {
 				// Map the input to the selected benchmark.
-				let extrinsic = sp_std::str::from_utf8(extrinsic)
+				let extrinsic = $crate::sp_std::str::from_utf8(extrinsic)
 					.map_err(|_| "`extrinsic` is not a valid utf8 string!")?;
 				let selected_benchmark = match extrinsic {
 					$( stringify!($name) => SelectedBenchmark::$name, )*
 					_ => return Err("Could not find extrinsic."),
 				};
-				let mut results: Vec<$crate::BenchmarkResults> = Vec::new();
+				let mut results: $crate::Vec<$crate::BenchmarkResults> = $crate::Vec::new();
 				if repeat == 0 {
 					return Ok(results);
 				}
@@ -695,7 +699,7 @@ macro_rules! impl_benchmark {
 				// Add whitelist to DB including whitelisted caller
 				let mut whitelist = whitelist.to_vec();
 				let whitelisted_caller_key =
-					<frame_system::Account::<$runtime> as frame_support::storage::StorageMap<_,_>>::hashed_key_for(
+					<frame_system::Account::<$runtime> as $crate::frame_support::storage::StorageMap<_,_>>::hashed_key_for(
 						$crate::whitelisted_caller::<<$runtime as frame_system::Config>::AccountId>()
 					);
 				whitelist.push(whitelisted_caller_key.into());
@@ -715,7 +719,7 @@ macro_rules! impl_benchmark {
 				let repeat_benchmark = |
 					repeat: u32,
 					c: &[($crate::BenchmarkParameter, u32)],
-					results: &mut Vec<$crate::BenchmarkResults>,
+					results: &mut $crate::Vec<$crate::BenchmarkResults>,
 					verify: bool,
 				| -> Result<(), &'static str> {
 					// Run the benchmark `repeat` times.
@@ -742,7 +746,7 @@ macro_rules! impl_benchmark {
 							closure_to_benchmark()?;
 						} else {
 							// Time the extrinsic logic.
-							frame_support::log::trace!(
+							$crate::frame_support::log::trace!(
 								target: "benchmark",
 								"Start Benchmark: {:?}", c
 							);
@@ -764,12 +768,12 @@ macro_rules! impl_benchmark {
 
 							// Commit the changes to get proper write count
 							$crate::benchmarking::commit_db();
-							frame_support::log::trace!(
+							$crate::frame_support::log::trace!(
 								target: "benchmark",
 								"End Benchmark: {} ns", elapsed_extrinsic
 							);
 							let read_write_count = $crate::benchmarking::read_write_count();
-							frame_support::log::trace!(
+							$crate::frame_support::log::trace!(
 								target: "benchmark",
 								"Read/Write Count {:?}", read_write_count
 							);
@@ -802,7 +806,7 @@ macro_rules! impl_benchmark {
 				if components.is_empty() {
 					if verify {
 						// If `--verify` is used, run the benchmark once to verify it would complete.
-						repeat_benchmark(1, Default::default(), &mut Vec::new(), true)?;
+						repeat_benchmark(1, Default::default(), &mut $crate::Vec::new(), true)?;
 					}
 					repeat_benchmark(repeat, Default::default(), &mut results, false)?;
 				} else {
@@ -829,7 +833,7 @@ macro_rules! impl_benchmark {
 							let component_value = lowest + step_size * s;
 
 							// Select the max value for all the other components.
-							let c: Vec<($crate::BenchmarkParameter, u32)> = components.iter()
+							let c: $crate::Vec<($crate::BenchmarkParameter, u32)> = components.iter()
 								.enumerate()
 								.map(|(idx, (n, _, h))|
 									if n == name {
@@ -842,7 +846,7 @@ macro_rules! impl_benchmark {
 
 							if verify {
 								// If `--verify` is used, run the benchmark once to verify it would complete.
-								repeat_benchmark(1, &c, &mut Vec::new(), true)?;
+								repeat_benchmark(1, &c, &mut $crate::Vec::new(), true)?;
 							}
 							repeat_benchmark(repeat, &c, &mut results, false)?;
 						}
@@ -875,7 +879,7 @@ macro_rules! impl_benchmark_test {
 				>::components(&selected_benchmark);
 
 				let execute_benchmark = |
-					c: Vec<($crate::BenchmarkParameter, u32)>
+					c: $crate::Vec<($crate::BenchmarkParameter, u32)>
 				| -> Result<(), &'static str> {
 					// Set up the benchmark, return execution + verification function.
 					let closure_to_verify = <
@@ -901,9 +905,9 @@ macro_rules! impl_benchmark_test {
 				} else {
 					for (_, (name, low, high)) in components.iter().enumerate() {
 						// Test only the low and high value, assuming values in the middle won't break
-						for component_value in vec![low, high] {
+						for component_value in $crate::vec![low, high] {
 							// Select the max value for all the other components.
-							let c: Vec<($crate::BenchmarkParameter, u32)> = components.iter()
+							let c: $crate::Vec<($crate::BenchmarkParameter, u32)> = components.iter()
 								.enumerate()
 								.map(|(_, (n, _, h))|
 									if n == name {
@@ -922,6 +926,39 @@ macro_rules! impl_benchmark_test {
 			}
 		}
 	};
+}
+
+/// show error message and debugging info for the case of an error happening
+/// during a benchmark
+#[allow(clippy::too_many_arguments)]
+pub fn show_benchmark_debug_info(
+	instance_string: &[u8],
+	benchmark: &[u8],
+	lowest_range_values: &[u32],
+	highest_range_values: &[u32],
+	steps: &[u32],
+	repeat: &u32,
+	verify: &bool,
+	error_message: &str,
+) -> sp_runtime::RuntimeString {
+	sp_runtime::format_runtime_string!(
+		"\n* Pallet: {}\n\
+		* Benchmark: {}\n\
+		* Lowest_range_values: {:?}\n\
+		* Highest_range_values: {:?}\n\
+		* Steps: {:?}\n\
+		* Repeat: {:?}\n\
+		* Verify: {:?}\n\
+		* Error message: {}",
+		sp_std::str::from_utf8(instance_string).expect("it's all just strings ran through the wasm interface. qed"),
+		sp_std::str::from_utf8(benchmark).expect("it's all just strings ran through the wasm interface. qed"),
+		lowest_range_values,
+		highest_range_values,
+		steps,
+		repeat,
+		verify,
+		error_message,
+	)
 }
 
 /// This macro adds pallet benchmarks to a `Vec<BenchmarkBatch>` object.
@@ -989,7 +1026,9 @@ macro_rules! add_benchmark {
 			if &pallet[..] == &b"*"[..] || &benchmark[..] == &b"*"[..] {
 				for benchmark in $( $location )*::Benchmark::benchmarks(*extra).into_iter() {
 					$batches.push($crate::BenchmarkBatch {
+						pallet: name_string.to_vec(),
 						instance: instance_string.to_vec(),
+						benchmark: benchmark.to_vec(),
 						results: $( $location )*::Benchmark::run_benchmark(
 							benchmark,
 							&lowest_range_values[..],
@@ -998,14 +1037,25 @@ macro_rules! add_benchmark {
 							*repeat,
 							whitelist,
 							*verify,
-						)?,
-						pallet: name_string.to_vec(),
-						benchmark: benchmark.to_vec(),
-					});
+						).map_err(|e| {
+							$crate::show_benchmark_debug_info(
+								instance_string,
+								benchmark,
+								lowest_range_values,
+								highest_range_values,
+								steps,
+								repeat,
+								verify,
+								e,
+							)
+						})?,
+				});
 				}
 			} else {
 				$batches.push($crate::BenchmarkBatch {
+					pallet: name_string.to_vec(),
 					instance: instance_string.to_vec(),
+					benchmark: benchmark.clone(),
 					results: $( $location )*::Benchmark::run_benchmark(
 						&benchmark[..],
 						&lowest_range_values[..],
@@ -1014,9 +1064,18 @@ macro_rules! add_benchmark {
 						*repeat,
 						whitelist,
 						*verify,
-					)?,
-					pallet: name_string.to_vec(),
-					benchmark: benchmark.clone(),
+					).map_err(|e| {
+						$crate::show_benchmark_debug_info(
+							instance_string,
+							benchmark,
+							lowest_range_values,
+							highest_range_values,
+							steps,
+							repeat,
+							verify,
+							e,
+						)
+					})?,
 				});
 			}
 		}
