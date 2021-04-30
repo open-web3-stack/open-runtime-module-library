@@ -16,6 +16,7 @@ sp-runtime-interface = { git = "https://github.com/paritytech/substrate", branch
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
+sp-storage = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
