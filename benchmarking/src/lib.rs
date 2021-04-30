@@ -930,12 +930,13 @@ macro_rules! impl_benchmark_test {
 
 /// show error message and debugging info for the case of an error happening
 /// during a benchmark
+#[allow(clippy::too_many_arguments)]
 pub fn show_benchmark_debug_info(
 	instance_string: &[u8],
 	benchmark: &[u8],
-	lowest_range_values: &sp_std::prelude::Vec<u32>,
-	highest_range_values: &sp_std::prelude::Vec<u32>,
-	steps: &sp_std::prelude::Vec<u32>,
+	lowest_range_values: &[u32],
+	highest_range_values: &[u32],
+	steps: &[u32],
 	repeat: &u32,
 	verify: &bool,
 	error_message: &str,
