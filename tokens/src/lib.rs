@@ -51,8 +51,8 @@ use frame_support::{
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
 use orml_traits::{
-	account::MergeAccount,
 	arithmetic::{self, Signed},
+	currency::TransferAll,
 	BalanceStatus, GetByKey, LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency,
 	MultiReservableCurrency, OnDust,
 };
@@ -198,8 +198,6 @@ pub mod module {
 		AmountIntoBalanceFailed,
 		/// Failed because liquidity restrictions due to locking
 		LiquidityRestrictions,
-		/// Account still has active reserved
-		StillHasActiveReserved,
 	}
 
 	#[pallet::event]
@@ -1042,16 +1040,11 @@ where
 	}
 }
 
-impl<T: Config> MergeAccount<T::AccountId> for Pallet<T> {
+impl<T: Config> TransferAll<T::AccountId> for Pallet<T> {
 	#[transactional]
-	fn merge_account(source: &T::AccountId, dest: &T::AccountId) -> DispatchResult {
+	fn transfer_all(source: &T::AccountId, dest: &T::AccountId) -> DispatchResult {
 		Accounts::<T>::iter_prefix(source).try_for_each(|(currency_id, account_data)| -> DispatchResult {
-			// ensure the account has no active reserved of non-native token
-			ensure!(account_data.reserved.is_zero(), Error::<T>::StillHasActiveReserved);
-
-			// transfer all free to recipient
-			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, source, dest, account_data.free)?;
-			Ok(())
+			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, source, dest, account_data.free)
 		})
 	}
 }
