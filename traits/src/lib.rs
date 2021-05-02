@@ -22,7 +22,6 @@ pub use nft::NFT;
 pub use price::{DefaultPriceProvider, PriceProvider};
 pub use rewards::RewardHandler;
 
-pub mod account;
 pub mod arithmetic;
 pub mod auction;
 pub mod currency;
