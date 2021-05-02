@@ -198,8 +198,6 @@ pub mod module {
 		AmountIntoBalanceFailed,
 		/// Failed because liquidity restrictions due to locking
 		LiquidityRestrictions,
-		/// Account still has active reserved
-		StillHasActiveReserved,
 	}
 
 	#[pallet::event]
