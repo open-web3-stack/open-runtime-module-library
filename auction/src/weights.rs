@@ -30,21 +30,21 @@ use sp_std::marker::PhantomData;
 
 /// Weight functions needed for orml_auction.
 pub trait WeightInfo {
-	fn bid_collateral_auction(d: u32, ) -> Weight;
-	fn on_finalize(c: u32, d: u32, ) -> Weight;
+	fn bid_collateral_auction() -> Weight;
+	fn on_finalize(c: u32, ) -> Weight;
 }
 
 /// Default weights.
 impl WeightInfo for () {
-	fn bid_collateral_auction(_d: u32, ) -> Weight {
-		(127_663_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(10 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(12 as Weight))
+	fn bid_collateral_auction() -> Weight {
+		(107_000_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(8 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(9 as Weight))
 	}
-	fn on_finalize(c: u32, _d: u32, ) -> Weight {
-		(17_808_000 as Weight)
-			// Standard Error: 11_000
-			.saturating_add((57_660_000 as Weight).saturating_mul(c as Weight))
+	fn on_finalize(c: u32, ) -> Weight {
+		(7_540_000 as Weight)
+			// Standard Error: 13_000
+			.saturating_add((57_808_000 as Weight).saturating_mul(c as Weight))
 			.saturating_add(RocksDbWeight::get().reads(10 as Weight))
 			.saturating_add(RocksDbWeight::get().reads((3 as Weight).saturating_mul(c as Weight)))
 			.saturating_add(RocksDbWeight::get().writes(7 as Weight))
