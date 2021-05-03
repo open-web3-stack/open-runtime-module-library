@@ -99,6 +99,18 @@ fn multi_currency_should_work() {
 }
 
 #[test]
+fn transfer_all_should_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_ok!(Currencies::transfer_all(Some(ALICE).into(), BOB, X_TOKEN_ID));
+			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &ALICE), 0);
+			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &BOB), 200);
+		});
+}
+
+#[test]
 fn multi_currency_extended_should_work() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()

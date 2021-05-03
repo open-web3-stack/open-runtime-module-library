@@ -12,6 +12,11 @@ impl crate::WeightInfo for () {
 			.saturating_add(DbWeight::get().reads(5 as Weight))
 			.saturating_add(DbWeight::get().writes(2 as Weight))
 	}
+	fn transfer_all_non_native_currency() -> Weight {
+		(172_011_000 as Weight)
+			.saturating_add(DbWeight::get().reads(5 as Weight))
+			.saturating_add(DbWeight::get().writes(2 as Weight))
+	}
 	fn transfer_native_currency() -> Weight {
 		(43_023_000 as Weight)
 	}
