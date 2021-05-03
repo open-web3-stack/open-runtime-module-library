@@ -35,9 +35,11 @@ use sp_runtime::{
 };
 use sp_std::prelude::*;
 
-mod default_weight;
 mod mock;
 mod tests;
+mod weights;
+
+pub use weights::WeightInfo;
 
 /// A delayed origin. Can only be dispatched via `dispatch_as` with a delay.
 #[derive(PartialEq, Eq, Clone, RuntimeDebug, Encode, Decode)]
@@ -119,15 +121,6 @@ pub use module::*;
 #[frame_support::pallet]
 pub mod module {
 	use super::*;
-
-	pub trait WeightInfo {
-		fn dispatch_as() -> Weight;
-		fn schedule_dispatch_without_delay() -> Weight;
-		fn schedule_dispatch_with_delay() -> Weight;
-		fn fast_track_scheduled_dispatch() -> Weight;
-		fn delay_scheduled_dispatch() -> Weight;
-		fn cancel_scheduled_dispatch() -> Weight;
-	}
 
 	/// Origin for the authority module.
 	pub type Origin<T> = DelayedOrigin<<T as frame_system::Config>::BlockNumber, <T as Config>::PalletsOrigin>;
