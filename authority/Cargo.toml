@@ -17,8 +17,6 @@ sp-std = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1"
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
 
-orml-traits = { path = "../traits", version = "0.4.1-dev", default-features = false }
-
 [dev-dependencies]
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
@@ -33,7 +31,6 @@ std = [
 	"sp-std/std",
 	"frame-support/std",
 	"frame-system/std",
-	"orml-traits/std",
 ]
 runtime-benchmarks = [
 	"frame-support/runtime-benchmarks",
