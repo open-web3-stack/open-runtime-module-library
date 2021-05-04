@@ -100,7 +100,6 @@ construct_runtime!(
 	{
 		System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
 		Pallet: test::{Pallet, Call, Storage, Config},
-
 	}
 );
 
