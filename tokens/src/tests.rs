@@ -431,7 +431,7 @@ fn no_op_if_amount_is_zero() {
 }
 
 #[test]
-fn merge_account_should_work() {
+fn transfer_all_trait_should_work() {
 	ExtBuilder::default()
 		.balances(vec![(ALICE, DOT, 100), (ALICE, BTC, 200)])
 		.build()
@@ -440,18 +440,18 @@ fn merge_account_should_work() {
 			assert_eq!(Tokens::free_balance(BTC, &ALICE), 200);
 			assert_eq!(Tokens::free_balance(DOT, &BOB), 0);
 
-			assert_ok!(Tokens::reserve(DOT, &ALICE, 1));
-			assert_noop!(
-				Tokens::merge_account(&ALICE, &BOB),
-				Error::<Runtime>::StillHasActiveReserved
-			);
-			Tokens::unreserve(DOT, &ALICE, 1);
-
-			assert_ok!(Tokens::merge_account(&ALICE, &BOB));
+			assert_ok!(<Tokens as TransferAll<AccountId>>::transfer_all(&ALICE, &BOB));
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
 			assert_eq!(Tokens::free_balance(BTC, &ALICE), 0);
 			assert_eq!(Tokens::free_balance(DOT, &BOB), 100);
 			assert_eq!(Tokens::free_balance(BTC, &BOB), 200);
+
+			assert_ok!(Tokens::reserve(DOT, &BOB, 1));
+			assert_ok!(<Tokens as TransferAll<AccountId>>::transfer_all(&BOB, &ALICE));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 99);
+			assert_eq!(Tokens::free_balance(BTC, &ALICE), 200);
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 0);
+			assert_eq!(Tokens::free_balance(BTC, &BOB), 0);
 		});
 }
 
