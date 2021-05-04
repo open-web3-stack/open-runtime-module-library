@@ -65,23 +65,16 @@ use sp_std::{
 	marker, result,
 };
 
-mod default_weight;
 mod mock;
 mod tests;
+mod weights;
 
 pub use module::*;
+pub use weights::WeightInfo;
 
 #[frame_support::pallet]
 pub mod module {
 	use super::*;
-
-	pub trait WeightInfo {
-		fn transfer_non_native_currency() -> Weight;
-		fn transfer_native_currency() -> Weight;
-		fn update_balance_non_native_currency() -> Weight;
-		fn update_balance_native_currency_creating() -> Weight;
-		fn update_balance_native_currency_killing() -> Weight;
-	}
 
 	pub(crate) type BalanceOf<T> =
 		<<T as Config>::MultiCurrency as MultiCurrency<<T as frame_system::Config>::AccountId>>::Balance;

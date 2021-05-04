@@ -21,20 +21,16 @@ use sp_runtime::{
 	DispatchError, DispatchResult,
 };
 
-mod default_weight;
 mod mock;
 mod tests;
+mod weights;
 
 pub use module::*;
+pub use weights::WeightInfo;
 
 #[frame_support::pallet]
 pub mod module {
 	use super::*;
-
-	pub trait WeightInfo {
-		fn bid_collateral_auction() -> Weight;
-		fn on_finalize(c: u32) -> Weight;
-	}
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {

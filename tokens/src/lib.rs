@@ -70,10 +70,12 @@ use sp_std::{
 	vec::Vec,
 };
 
-mod default_weight;
 mod imbalances;
 mod mock;
 mod tests;
+mod weights;
+
+pub use weights::WeightInfo;
 
 pub struct TransferDust<T, GetAccountId>(marker::PhantomData<(T, GetAccountId)>);
 impl<T, GetAccountId> OnDust<T::AccountId, T::CurrencyId, T::Balance> for TransferDust<T, GetAccountId>
@@ -149,11 +151,6 @@ pub use module::*;
 #[frame_support::pallet]
 pub mod module {
 	use super::*;
-
-	pub trait WeightInfo {
-		fn transfer() -> Weight;
-		fn transfer_all() -> Weight;
-	}
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
