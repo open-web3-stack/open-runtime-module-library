@@ -44,11 +44,12 @@ use sp_std::{
 	vec::Vec,
 };
 
-mod default_weight;
 mod mock;
 mod tests;
+mod weights;
 
 pub use module::*;
+pub use weights::WeightInfo;
 
 /// The maximum number of vesting schedules an account can have.
 pub const MAX_VESTINGS: usize = 20;
@@ -108,12 +109,6 @@ impl<BlockNumber: AtLeast32Bit + Copy, Balance: AtLeast32Bit + Copy> VestingSche
 #[frame_support::pallet]
 pub mod module {
 	use super::*;
-
-	pub trait WeightInfo {
-		fn vested_transfer() -> Weight;
-		fn claim(i: u32) -> Weight;
-		fn update_vesting_schedules(i: u32) -> Weight;
-	}
 
 	pub(crate) type BalanceOf<T> =
 		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
