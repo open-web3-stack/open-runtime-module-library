@@ -3,10 +3,12 @@
 
 use super::{Meter, Weight};
 
-static METER: spin::Mutex<Meter> = spin::Mutex::new(Meter {
-	used_weight: 0,
-	depth: 0,
-});
+thread_local! {
+	static METER: spin::Mutex<Meter> = spin::Mutex::new(Meter {
+		used_weight: 0,
+		depth: 0,
+	});
+}
 
 /// Start weight meter with base weight
 pub fn start_with(base: Weight) {
