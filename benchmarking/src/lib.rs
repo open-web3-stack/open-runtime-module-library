@@ -855,6 +855,28 @@ macro_rules! impl_benchmark {
 				return Ok(results);
 			}
 		}
+
+		/// Test a particular benchmark by name.
+		///
+		/// This isn't called `test_benchmark_by_name` just in case some end-user eventually
+		/// writes a benchmark, itself called `by_name`; the function would be shadowed in
+		/// that case.
+		///
+		/// This is generally intended to be used by child test modules such as those created
+		/// by the `impl_benchmark_test_suite` macro. However, it is not an error if a pallet
+		/// author chooses not to implement benchmarks.
+		#[cfg(test)]
+		#[allow(unused)]
+		fn test_bench_by_name(name: &[u8]) -> Result<(), &'static str> {
+			let name = $crate::sp_std::str::from_utf8(name)
+				.map_err(|_| "`name` is not a valid utf8 string!")?;
+			match name {
+				$( stringify!($name) => {
+					$crate::paste::paste! { [< test_benchmark_ $name >]() }
+				} )*
+				_ => Err("Could not find test for requested benchmark."),
+			}
+		}
 	};
 }
 
@@ -923,6 +945,206 @@ macro_rules! impl_benchmark_test {
 					}
 				}
 				Ok(())
+			}
+		}
+	};
+}
+
+/// This creates a test suite which runs the module's benchmarks.
+///
+/// When called in `pallet_example` as
+///
+/// ```rust,ignore
+/// impl_benchmark_test_suite!(crate::tests::new_test_ext());
+/// ```
+///
+/// It expands to the equivalent of:
+///
+/// ```rust,ignore
+/// #[cfg(test)]
+/// mod tests {
+///     use super::*;
+///     use crate::tests::new_test_ext;
+///     use frame_support::assert_ok;
+///
+///     #[test]
+///     fn test_benchmarks() {
+///         new_test_ext().execute_with(|| {
+///             assert_ok!(test_benchmark_accumulate_dummy());
+///             assert_ok!(test_benchmark_set_dummy());
+///             assert_ok!(test_benchmark_another_set_dummy());
+///             assert_ok!(test_benchmark_sort_vector());
+///         });
+///     }
+/// }
+/// ```
+///
+/// ## Arguments
+///
+/// The first argument, `new_test_ext`, must be a function call which returns
+/// either a `sp_io::TestExternalities`, or some other type with a similar
+/// interface.
+///
+/// Note that this function call is _not_ evaluated at compile time, but is
+/// instead copied textually into each appropriate invocation site.
+///
+/// There is an optional second argument, with keyword syntax: `benchmarks_path
+/// = path_to_benchmarks_invocation`. In the typical case in which this macro is
+/// in the same module as the `benchmarks!` invocation, you don't need to supply
+/// this. However, if the `impl_benchmark_test_suite!` invocation is in a
+/// different module than the `runtime_benchmarks!` invocation, then you should
+/// provide the path to the module containing the `benchmarks!` invocation:
+///
+/// ```rust,ignore
+/// mod benches {
+///     runtime_benchmarks!{
+///         ...
+///     }
+/// }
+///
+/// mod tests {
+///     // because of macro syntax limitations, benches can't be paths, but has
+///     // to be idents in the scope of `impl_benchmark_test_suite`.
+///     use crate::benches;
+///
+///     impl_benchmark_test_suite!(new_test_ext(), benchmarks_path = benches);
+///
+///     // new_test_ext are defined later in this module
+/// }
+/// ```
+///
+/// There is an optional 3rd argument, with keyword syntax: `extra = true` or
+/// `extra = false`. By default, this generates a test suite which iterates over
+/// all benchmarks, including those marked with the `#[extra]` annotation.
+/// Setting `extra = false` excludes those.
+///
+/// There is an optional 4th argument, with keyword syntax: `exec_name =
+/// custom_exec_name`. By default, this macro uses `execute_with` for this
+/// parameter. This argument, if set, is subject to these restrictions:
+///
+/// - It must be the name of a method applied to the output of the
+///   `new_test_ext` argument.
+/// - That method must have a signature capable of receiving a single argument
+///   of the form `impl FnOnce()`.
+#[macro_export]
+macro_rules! impl_benchmark_test_suite {
+	// user might or might not have set some keyword arguments; set the defaults
+	//
+	// The weird syntax indicates that `rest` comes only after a comma, which is otherwise optional
+	(
+		$new_test_ext:expr,
+		$(, $( $rest:tt )* )?
+	) => {
+		impl_benchmark_test_suite!(
+			@selected:
+				$new_test_ext,
+				benchmarks_path = super,
+				extra = true,
+				exec_name = execute_with,
+			@user:
+				$( $( $rest )* )?
+		);
+	};
+	// pick off the benchmarks_path keyword argument
+	(
+		@selected:
+			$new_test_ext:expr,
+			benchmarks_path = $old:ident,
+			extra = $extra:expr,
+			exec_name = $exec_name:ident,
+		@user:
+			benchmarks_path = $benchmarks_path:ident
+			$(, $( $rest:tt )* )?
+	) => {
+		impl_benchmark_test_suite!(
+			@selected:
+				$new_test_ext,
+				benchmarks_path = $benchmarks_path,
+				extra = $extra,
+				exec_name = $exec_name,
+			@user:
+				$( $( $rest )* )?
+		);
+	};
+	// pick off the extra keyword argument
+	(
+		@selected:
+			$new_test_ext:expr,
+			benchmarks_path = $benchmarks_path:ident,
+			extra = $old:expr,
+			exec_name = $exec_name:ident,
+		@user:
+			extra = $extra:expr
+			$(, $( $rest:tt )* )?
+	) => {
+		impl_benchmark_test_suite!(
+			@selected:
+				$new_test_ext,
+				benchmarks_path = $benchmarks_path,
+				extra = $extra,
+				exec_name = $exec_name,
+			@user:
+				$( $( $rest )* )?
+		);
+	};
+	// pick off the exec_name keyword argument
+	(
+		@selected:
+			$new_test_ext:expr,
+			benchmarks_path = $benchmarks_path:ident,
+			extra = $extra:expr,
+			exec_name = $old:ident,
+		@user:
+			exec_name = $exec_name:ident
+			$(, $( $rest:tt )* )?
+	) => {
+		impl_benchmark_test_suite!(
+			@selected:
+				$new_test_ext,
+				benchmarks_path = $benchmarks_path,
+				extra = $extra,
+				exec_name = $exec_name,
+			@user:
+				$( $( $rest )* )?
+		);
+	};
+	// all options set; nothing else in user-provided keyword arguments
+	(
+		@selected:
+			$new_test_ext:expr,
+			benchmarks_path = $path_to_benchmarks_invocation:ident,
+			extra = $extra:expr,
+			exec_name = $exec_name:ident,
+		@user:
+			$(,)?
+	) => {
+		#[cfg(test)]
+		mod benchmark_tests {
+			use $path_to_benchmarks_invocation::test_bench_by_name;
+			use super::*;
+
+			#[test]
+			fn test_benchmarks() {
+				$new_test_ext.$exec_name(|| {
+					use $crate::Benchmarking;
+
+					let mut anything_failed = false;
+					println!("failing benchmark tests:");
+					for benchmark_name in $path_to_benchmarks_invocation::Benchmark::benchmarks($extra) {
+						match std::panic::catch_unwind(|| test_bench_by_name(benchmark_name)) {
+							Err(err) => {
+								println!("{}: {:?}", String::from_utf8_lossy(benchmark_name), err);
+								anything_failed = true;
+							},
+							Ok(Err(err)) => {
+								println!("{}: {}", String::from_utf8_lossy(benchmark_name), err);
+								anything_failed = true;
+							},
+							Ok(Ok(_)) => (),
+						}
+					}
+					assert!(!anything_failed);
+				});
 			}
 		}
 	};
