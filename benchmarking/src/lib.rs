@@ -963,19 +963,19 @@ macro_rules! impl_benchmark_test {
 /// ```rust,ignore
 /// #[cfg(test)]
 /// mod tests {
-/// 	use super::*;
-/// 	use crate::tests::new_test_ext;
-/// 	use frame_support::assert_ok;
+///     use super::*;
+///     use crate::tests::new_test_ext;
+///     use frame_support::assert_ok;
 ///
-/// 	#[test]
-/// 	fn test_benchmarks() {
-/// 		new_test_ext().execute_with(|| {
-/// 			assert_ok!(test_benchmark_accumulate_dummy());
-/// 			assert_ok!(test_benchmark_set_dummy());
-/// 			assert_ok!(test_benchmark_another_set_dummy());
-/// 			assert_ok!(test_benchmark_sort_vector());
-/// 		});
-/// 	}
+///     #[test]
+///     fn test_benchmarks() {
+///         new_test_ext().execute_with(|| {
+///             assert_ok!(test_benchmark_accumulate_dummy());
+///             assert_ok!(test_benchmark_set_dummy());
+///             assert_ok!(test_benchmark_another_set_dummy());
+///             assert_ok!(test_benchmark_sort_vector());
+///         });
+///     }
 /// }
 /// ```
 ///
@@ -997,19 +997,19 @@ macro_rules! impl_benchmark_test {
 ///
 /// ```rust,ignore
 /// mod benches {
-/// 	runtime_benchmarks!{
-/// 		...
-/// 	}
+///     runtime_benchmarks!{
+///         ...
+///     }
 /// }
 ///
 /// mod tests {
-/// 	// because of macro syntax limitations, benches can't be paths, but has
-/// 	// to be idents in the scope of `impl_benchmark_test_suite`.
-/// 	use crate::benches;
+///     // because of macro syntax limitations, benches can't be paths, but has
+///     // to be idents in the scope of `impl_benchmark_test_suite`.
+///     use crate::benches;
 ///
-/// 	impl_benchmark_test_suite!(new_test_ext(), benchmarks_path = benches);
+///     impl_benchmark_test_suite!(new_test_ext(), benchmarks_path = benches);
 ///
-/// 	// new_test_ext are defined later in this module
+///     // new_test_ext are defined later in this module
 /// }
 /// ```
 ///
