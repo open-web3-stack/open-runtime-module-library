@@ -16,14 +16,11 @@ pub type Balance = u64;
 pub type Share = u64;
 pub type PoolId = u32;
 pub type BlockNumber = u64;
-pub type CurrencyId = u32;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const CAROL: AccountId = 3;
 pub const DOT_POOL: PoolId = 1;
-pub const BTC_POOL: PoolId = 2;
-pub const XBTC_POOL: PoolId = 3;
 
 parameter_types! {
 	pub const BlockHashCount: u64 = 250;
@@ -52,6 +49,7 @@ impl frame_system::Config for Runtime {
 	type BaseCallFilter = ();
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
+	type OnSetCode = ();
 }
 
 thread_local! {
@@ -59,41 +57,17 @@ thread_local! {
 }
 
 pub struct Handler;
-impl RewardHandler<AccountId, BlockNumber> for Handler {
-	type Share = Share;
+impl RewardHandler<AccountId> for Handler {
 	type Balance = Balance;
 	type PoolId = PoolId;
-	type CurrencyId = CurrencyId;
 
-	fn accumulate_reward(
-		now: BlockNumber,
-		mut callback: impl FnMut(Self::PoolId, Self::Balance),
-	) -> Vec<(Self::CurrencyId, Self::Balance)> {
-		if now % 2 == 0 {
-			let mut total_accumulated_rewards = 0;
-			let valid_pool_ids = vec![DOT_POOL, BTC_POOL];
-
-			for (pool, _) in Pools::<Runtime>::iter() {
-				if valid_pool_ids.contains(&pool) {
-					let rewards: Balance = 100;
-					callback(pool, rewards);
-					total_accumulated_rewards += rewards;
-				}
-			}
-
-			vec![(1, total_accumulated_rewards)]
-		} else {
-			vec![]
-		}
-	}
-
-	fn payout(who: &AccountId, pool: Self::PoolId, amount: Self::Balance) {
+	fn payout(who: &AccountId, pool: &Self::PoolId, amount: Self::Balance) {
 		RECEIVED_PAYOUT.with(|v| {
 			let mut old_map = v.borrow().clone();
-			if let Some(before) = old_map.get_mut(&(pool, *who)) {
+			if let Some(before) = old_map.get_mut(&(*pool, *who)) {
 				*before += amount;
 			} else {
-				old_map.insert((pool, *who), amount);
+				old_map.insert((*pool, *who), amount);
 			};
 
 			*v.borrow_mut() = old_map;
@@ -106,7 +80,6 @@ impl Config for Runtime {
 	type Balance = Balance;
 	type PoolId = PoolId;
 	type Handler = Handler;
-	type WeightInfo = ();
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
@@ -118,8 +91,8 @@ construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
-		System: frame_system::{Module, Call, Storage, Config, Event<T>},
-		RewardsModule: rewards::{Module, Storage, Call},
+		System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
+		RewardsModule: rewards::{Pallet, Storage, Call},
 	}
 );
 

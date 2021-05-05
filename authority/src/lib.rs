@@ -35,9 +35,11 @@ use sp_runtime::{
 };
 use sp_std::prelude::*;
 
-mod default_weight;
 mod mock;
 mod tests;
+mod weights;
+
+pub use weights::WeightInfo;
 
 /// A delayed origin. Can only be dispatched via `dispatch_as` with a delay.
 #[derive(PartialEq, Eq, Clone, RuntimeDebug, Encode, Decode)]
@@ -120,15 +122,6 @@ pub use module::*;
 pub mod module {
 	use super::*;
 
-	pub trait WeightInfo {
-		fn dispatch_as() -> Weight;
-		fn schedule_dispatch_without_delay() -> Weight;
-		fn schedule_dispatch_with_delay() -> Weight;
-		fn fast_track_scheduled_dispatch() -> Weight;
-		fn delay_scheduled_dispatch() -> Weight;
-		fn cancel_scheduled_dispatch() -> Weight;
-	}
-
 	/// Origin for the authority module.
 	pub type Origin<T> = DelayedOrigin<<T as frame_system::Config>::BlockNumber, <T as Config>::PalletsOrigin>;
 	pub(crate) type CallOf<T> = <T as Config>::Call;
@@ -202,7 +195,7 @@ pub mod module {
 	pub type NextTaskIndex<T: Config> = StorageValue<_, ScheduleTaskIndex, ValueQuery>;
 
 	#[pallet::pallet]
-	pub struct Pallet<T>(PhantomData<T>);
+	pub struct Pallet<T>(_);
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
@@ -244,7 +237,7 @@ pub mod module {
 				*id = id.checked_add(1).ok_or(Error::<T>::Overflow)?;
 				Ok(current_id)
 			})?;
-			let now = frame_system::Module::<T>::block_number();
+			let now = frame_system::Pallet::<T>::block_number();
 			let delay = match when {
 				DispatchTime::At(x) => x.checked_sub(&now).ok_or(Error::<T>::Overflow)?,
 				DispatchTime::After(x) => x,
@@ -283,7 +276,7 @@ pub mod module {
 			task_id: ScheduleTaskIndex,
 			when: DispatchTime<T::BlockNumber>,
 		) -> DispatchResultWithPostInfo {
-			let now = frame_system::Module::<T>::block_number();
+			let now = frame_system::Pallet::<T>::block_number();
 			let new_delay = match when {
 				DispatchTime::At(x) => x.checked_sub(&now).ok_or(Error::<T>::Overflow)?,
 				DispatchTime::After(x) => x,
@@ -317,7 +310,7 @@ pub mod module {
 			)
 			.map_err(|_| Error::<T>::FailedToDelay)?;
 
-			let now = frame_system::Module::<T>::block_number();
+			let now = frame_system::Pallet::<T>::block_number();
 			let dispatch_at = now.saturating_add(additional_delay);
 
 			Self::deposit_event(Event::Delayed(initial_origin, task_id, dispatch_at));

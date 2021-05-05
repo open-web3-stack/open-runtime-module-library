@@ -51,6 +51,7 @@ impl frame_system::Config for Runtime {
 	type BaseCallFilter = ();
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
+	type OnSetCode = ();
 }
 
 parameter_types! {
@@ -162,9 +163,9 @@ frame_support::construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
-		System: frame_system::{Module, Call, Config, Event<T>},
-		Authority: authority::{Module, Call, Origin<T>, Event<T>},
-		Scheduler: pallet_scheduler::{Module, Call, Storage, Event<T>},
+		System: frame_system::{Pallet, Call, Config, Event<T>},
+		Authority: authority::{Pallet, Call, Origin<T>, Event<T>},
+		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
 	}
 );
 

@@ -44,11 +44,12 @@ use sp_std::{
 	vec::Vec,
 };
 
-mod default_weight;
 mod mock;
 mod tests;
+mod weights;
 
 pub use module::*;
+pub use weights::WeightInfo;
 
 /// The maximum number of vesting schedules an account can have.
 pub const MAX_VESTINGS: usize = 20;
@@ -108,12 +109,6 @@ impl<BlockNumber: AtLeast32Bit + Copy, Balance: AtLeast32Bit + Copy> VestingSche
 #[frame_support::pallet]
 pub mod module {
 	use super::*;
-
-	pub trait WeightInfo {
-		fn vested_transfer() -> Weight;
-		fn claim(i: u32) -> Weight;
-		fn update_vesting_schedules(i: u32) -> Weight;
-	}
 
 	pub(crate) type BalanceOf<T> =
 		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -216,7 +211,7 @@ pub mod module {
 	}
 
 	#[pallet::pallet]
-	pub struct Pallet<T>(PhantomData<T>);
+	pub struct Pallet<T>(_);
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
@@ -277,7 +272,7 @@ impl<T: Config> Pallet<T> {
 
 	/// Returns locked balance based on current block number.
 	fn locked_balance(who: &T::AccountId) -> BalanceOf<T> {
-		let now = <frame_system::Module<T>>::block_number();
+		let now = <frame_system::Pallet<T>>::block_number();
 		<VestingSchedules<T>>::mutate_exists(who, |maybe_schedules| {
 			let total = if let Some(schedules) = maybe_schedules.as_mut() {
 				let mut total: BalanceOf<T> = Zero::zero();

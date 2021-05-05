@@ -1,6 +1,9 @@
 use crate::arithmetic;
 use codec::{Codec, FullCodec};
-pub use frame_support::traits::{BalanceStatus, LockIdentifier};
+pub use frame_support::{
+	traits::{BalanceStatus, LockIdentifier},
+	transactional,
+};
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize},
 	DispatchError, DispatchResult,
@@ -340,4 +343,19 @@ pub trait OnDust<AccountId, CurrencyId, Balance> {
 
 impl<AccountId, CurrencyId, Balance> OnDust<AccountId, CurrencyId, Balance> for () {
 	fn on_dust(_: &AccountId, _: CurrencyId, _: Balance) {}
+}
+
+pub trait TransferAll<AccountId> {
+	fn transfer_all(source: &AccountId, dest: &AccountId) -> DispatchResult;
+}
+
+#[impl_trait_for_tuples::impl_for_tuples(5)]
+impl<AccountId> TransferAll<AccountId> for Tuple {
+	#[transactional]
+	fn transfer_all(source: &AccountId, dest: &AccountId) -> DispatchResult {
+		for_tuples!( #( {
+			Tuple::transfer_all(source, dest)?;
+		} )* );
+		Ok(())
+	}
 }

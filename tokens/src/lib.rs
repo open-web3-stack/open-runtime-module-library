@@ -47,12 +47,12 @@ use frame_support::{
 		LockableCurrency as PalletLockableCurrency, ReservableCurrency as PalletReservableCurrency, SignedImbalance,
 		WithdrawReasons,
 	},
-	transactional,
+	transactional, PalletId,
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
 use orml_traits::{
-	account::MergeAccount,
 	arithmetic::{self, Signed},
+	currency::TransferAll,
 	BalanceStatus, GetByKey, LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency,
 	MultiReservableCurrency, OnDust,
 };
@@ -61,7 +61,7 @@ use sp_runtime::{
 		AccountIdConversion, AtLeast32BitUnsigned, Bounded, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member,
 		Saturating, StaticLookup, Zero,
 	},
-	DispatchError, DispatchResult, ModuleId, RuntimeDebug,
+	DispatchError, DispatchResult, RuntimeDebug,
 };
 use sp_std::{
 	convert::{Infallible, TryFrom, TryInto},
@@ -70,10 +70,12 @@ use sp_std::{
 	vec::Vec,
 };
 
-mod default_weight;
 mod imbalances;
 mod mock;
 mod tests;
+mod weights;
+
+pub use weights::WeightInfo;
 
 pub struct TransferDust<T, GetAccountId>(marker::PhantomData<(T, GetAccountId)>);
 impl<T, GetAccountId> OnDust<T::AccountId, T::CurrencyId, T::Balance> for TransferDust<T, GetAccountId>
@@ -150,11 +152,6 @@ pub use module::*;
 pub mod module {
 	use super::*;
 
-	pub trait WeightInfo {
-		fn transfer() -> Weight;
-		fn transfer_all() -> Weight;
-	}
-
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
@@ -198,8 +195,6 @@ pub mod module {
 		AmountIntoBalanceFailed,
 		/// Failed because liquidity restrictions due to locking
 		LiquidityRestrictions,
-		/// Account still has active reserved
-		StillHasActiveReserved,
 	}
 
 	#[pallet::event]
@@ -298,7 +293,7 @@ pub mod module {
 	}
 
 	#[pallet::pallet]
-	pub struct Pallet<T>(PhantomData<T>);
+	pub struct Pallet<T>(_);
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
@@ -348,7 +343,7 @@ pub mod module {
 impl<T: Config> Pallet<T> {
 	/// Check whether account_id is a module account
 	pub(crate) fn is_module_account_id(account_id: &T::AccountId) -> bool {
-		ModuleId::try_from_account(account_id).is_some()
+		PalletId::try_from_account(account_id).is_some()
 	}
 
 	pub(crate) fn try_mutate_account<R, E>(
@@ -381,10 +376,10 @@ impl<T: Config> Pallet<T> {
 				// If existed before, decrease account provider.
 				// Ignore the result, because if it failed means that these’s remain consumers,
 				// and the account storage in frame_system shouldn't be repeaded.
-				let _ = frame_system::Module::<T>::dec_providers(who);
+				let _ = frame_system::Pallet::<T>::dec_providers(who);
 			} else if !existed && exists {
 				// if new, increase account provider
-				frame_system::Module::<T>::inc_providers(who);
+				frame_system::Pallet::<T>::inc_providers(who);
 			}
 
 			if let Some(dust_amount) = handle_dust {
@@ -446,13 +441,13 @@ impl<T: Config> Pallet<T> {
 			<Locks<T>>::remove(who, currency_id);
 			if existed {
 				// decrease account ref count when destruct lock
-				frame_system::Module::<T>::dec_consumers(who);
+				frame_system::Pallet::<T>::dec_consumers(who);
 			}
 		} else {
 			<Locks<T>>::insert(who, currency_id, locks);
 			if !existed {
 				// increase account ref count when initialize lock
-				if frame_system::Module::<T>::inc_consumers(who).is_err() {
+				if frame_system::Pallet::<T>::inc_consumers(who).is_err() {
 					// No providers for the locks. This is impossible under normal circumstances
 					// since the funds that are under the lock will themselves be stored in the
 					// account and therefore will need a reference.
@@ -1042,16 +1037,11 @@ where
 	}
 }
 
-impl<T: Config> MergeAccount<T::AccountId> for Pallet<T> {
+impl<T: Config> TransferAll<T::AccountId> for Pallet<T> {
 	#[transactional]
-	fn merge_account(source: &T::AccountId, dest: &T::AccountId) -> DispatchResult {
+	fn transfer_all(source: &T::AccountId, dest: &T::AccountId) -> DispatchResult {
 		Accounts::<T>::iter_prefix(source).try_for_each(|(currency_id, account_data)| -> DispatchResult {
-			// ensure the account has no active reserved of non-native token
-			ensure!(account_data.reserved.is_zero(), Error::<T>::StillHasActiveReserved);
-
-			// transfer all free to recipient
-			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, source, dest, account_data.free)?;
-			Ok(())
+			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, source, dest, account_data.free)
 		})
 	}
 }

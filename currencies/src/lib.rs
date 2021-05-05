@@ -49,8 +49,8 @@ use frame_support::{
 };
 use frame_system::{ensure_root, ensure_signed, pallet_prelude::*};
 use orml_traits::{
-	account::MergeAccount,
 	arithmetic::{Signed, SimpleArithmetic},
+	currency::TransferAll,
 	BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency, BasicReservableCurrency,
 	LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
 };
@@ -65,23 +65,16 @@ use sp_std::{
 	marker, result,
 };
 
-mod default_weight;
 mod mock;
 mod tests;
+mod weights;
 
 pub use module::*;
+pub use weights::WeightInfo;
 
 #[frame_support::pallet]
 pub mod module {
 	use super::*;
-
-	pub trait WeightInfo {
-		fn transfer_non_native_currency() -> Weight;
-		fn transfer_native_currency() -> Weight;
-		fn update_balance_non_native_currency() -> Weight;
-		fn update_balance_native_currency_creating() -> Weight;
-		fn update_balance_native_currency_killing() -> Weight;
-	}
 
 	pub(crate) type BalanceOf<T> =
 		<<T as Config>::MultiCurrency as MultiCurrency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -94,7 +87,7 @@ pub mod module {
 	pub trait Config: frame_system::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
-		type MultiCurrency: MergeAccount<Self::AccountId>
+		type MultiCurrency: TransferAll<Self::AccountId>
 			+ MultiCurrencyExtended<Self::AccountId>
 			+ MultiLockableCurrency<Self::AccountId>
 			+ MultiReservableCurrency<Self::AccountId>;
@@ -132,7 +125,7 @@ pub mod module {
 	}
 
 	#[pallet::pallet]
-	pub struct Pallet<T>(PhantomData<T>);
+	pub struct Pallet<T>(_);
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
@@ -685,14 +678,11 @@ where
 	}
 }
 
-impl<T: Config> MergeAccount<T::AccountId> for Pallet<T> {
-	fn merge_account(source: &T::AccountId, dest: &T::AccountId) -> DispatchResult {
+impl<T: Config> TransferAll<T::AccountId> for Pallet<T> {
+	fn transfer_all(source: &T::AccountId, dest: &T::AccountId) -> DispatchResult {
 		with_transaction_result(|| {
 			// transfer non-native free to dest
-			T::MultiCurrency::merge_account(source, dest)?;
-
-			// unreserve all reserved currency
-			T::NativeCurrency::unreserve(source, T::NativeCurrency::reserved_balance(source));
+			T::MultiCurrency::transfer_all(source, dest)?;
 
 			// transfer all free to dest
 			T::NativeCurrency::transfer(source, dest, T::NativeCurrency::free_balance(source))

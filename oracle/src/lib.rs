@@ -42,20 +42,16 @@ use sp_std::{prelude::*, vec};
 pub use crate::default_combine_data::DefaultCombineData;
 
 mod default_combine_data;
-mod default_weight;
 mod mock;
 mod tests;
+mod weights;
 
 pub use module::*;
+pub use weights::WeightInfo;
 
 #[frame_support::pallet]
 pub mod module {
 	use super::*;
-
-	pub trait WeightInfo {
-		fn feed_values(c: u32) -> Weight;
-		fn on_finalize() -> Weight;
-	}
 
 	pub(crate) type MomentOf<T, I = ()> = <<T as Config<I>>::Time as Time>::Moment;
 	pub(crate) type TimestampedValueOf<T, I = ()> = TimestampedValue<<T as Config<I>>::OracleValue, MomentOf<T, I>>;
@@ -138,10 +134,6 @@ pub mod module {
 	#[pallet::storage]
 	#[pallet::getter(fn members)]
 	pub type Members<T: Config<I>, I: 'static = ()> = StorageValue<_, OrderedSet<T::AccountId>, ValueQuery>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn nonces)]
-	pub type Nonces<T: Config<I>, I: 'static = ()> = StorageMap<_, Twox64Concat, T::AccountId, u32>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config<I>, I: 'static = ()> {

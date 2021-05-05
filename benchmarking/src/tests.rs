@@ -76,6 +76,7 @@ impl frame_system::Config for Test {
 	type BaseCallFilter = ();
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
+	type OnSetCode = ();
 }
 
 impl tests::test::Config for Test {
@@ -97,9 +98,8 @@ construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
-		System: frame_system::{Module, Call, Storage, Config, Event<T>},
-		Pallet: test::{Module, Call, Storage, Config},
-
+		System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
+		Pallet: test::{Pallet, Call, Storage, Config},
 	}
 );
 
@@ -115,13 +115,8 @@ fn new_test_ext() -> sp_io::TestExternalities {
 runtime_benchmarks! {
 	{ Test, test }
 
-	_ {
-		// Define a common range for `b`.
-		let b in 1 .. 1000 => ();
-	}
-
 	set_value {
-		let b in ...;
+		let b in 1 .. 1000;
 		let caller = account::<AccountId>("caller", 0, 0);
 	}: _ (RawOrigin::Signed(caller), b.into())
 	verify {
@@ -129,7 +124,7 @@ runtime_benchmarks! {
 	}
 
 	other_name {
-		let b in ...;
+		let b in 1 .. 1000;
 	}: dummy (RawOrigin::None, b.into())
 
 	sort_vector {
@@ -145,7 +140,7 @@ runtime_benchmarks! {
 	}
 
 	bad_origin {
-		let b in ...;
+		let b in 1 .. 1000;
 		let caller = account::<AccountId>("caller", 0, 0);
 	}: dummy (RawOrigin::Signed(caller), b.into())
 

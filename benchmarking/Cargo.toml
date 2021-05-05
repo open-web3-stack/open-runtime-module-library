@@ -8,21 +8,20 @@ authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2018"
 
 [dependencies]
-serde = { version = "1.0.111", optional = true }
-paste = "0.1.16"
+serde = { version = "1.0.124", optional = true }
+paste = "1.0"
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
 sp-api = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
 sp-runtime-interface = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
+sp-storage = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
-frame-system = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
 
-funty = { version = "=1.1.0", default-features = false } # https://github.com/bitvecto-rs/bitvec/issues/105
-
 [dev-dependencies]
+frame-system = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
 hex-literal = "0.2.1"
 
 [features]
@@ -35,7 +34,6 @@ std = [
 	"sp-api/std",
 	"sp-std/std",
 	"frame-support/std",
-	"frame-system/std",
 	"frame-benchmarking/std",
 ]
 
