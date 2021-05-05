@@ -160,8 +160,7 @@ fn main() {
 
 	// Write benchmark to file or print to terminal if output path is not given.
 	if let Some(path) = opts.out {
-		let mut output_file =
-			::std::fs::File::create(&path).expect("Could not create output file at {}");
+		let mut output_file = ::std::fs::File::create(&path).expect("Could not create output file");
 
 		handlebars
 			.render_template_to_write(&template, &hbs_data, &mut output_file)
