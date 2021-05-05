@@ -15,7 +15,6 @@ struct Opts {
 	out: Option<String>,
 }
 
-#[cfg(feature = "std")]
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct BenchData {
 	pub name: String,

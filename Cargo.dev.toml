@@ -22,7 +22,7 @@ members = [
 	# "unknown-tokens",
 	"build-script-utils",
 	"weight-gen",
-  	"weight-meter",
+	"weight-meter",
 ]
 resolver = "2"
 
@@ -78,6 +78,7 @@ sp-timestamp = { git = "https://github.com/paritytech//substrate", rev = "2be8fc
 sp-session = { git = "https://github.com/paritytech//substrate", rev = "2be8fcc4236d32786c62f6f27a98e7fe7e550807" }
 sp-blockchain = { git = "https://github.com/paritytech//substrate", rev = "2be8fcc4236d32786c62f6f27a98e7fe7e550807" }
 sp-transaction-pool = { git = "https://github.com/paritytech//substrate", rev = "2be8fcc4236d32786c62f6f27a98e7fe7e550807" }
+sc-client-db = { git = "https://github.com/paritytech//substrate", rev = "2be8fcc4236d32786c62f6f27a98e7fe7e550807" }
 
 # [patch.'https://github.com/paritytech/cumulus']
 # cumulus-primitives-core = { git = "https://github.com/paritytech//cumulus", rev = "da4c3bac6e9584e65740ef5db4dbd2c31c1a91db" }
