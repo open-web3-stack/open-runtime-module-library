@@ -73,7 +73,7 @@ pub use weight_meter_procedural::weight;
 ///     #[pallet::weight(T::WeightInfo::do_something())]
 ///     #[orml_weight_meter::start_with(1_000_000)]
 ///     pub fn do_something(origin: OriginFor<T>, something: u32) ->
-///	    DispatchResultWithPostInfo {
+///     DispatchResultWithPostInfo {
 ///         let who = ensure_signed(origin)?;
 ///         Self::inner_do_something(something);
 ///         // Emit an event.
