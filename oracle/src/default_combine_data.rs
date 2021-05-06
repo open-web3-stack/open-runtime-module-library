@@ -27,13 +27,13 @@ where
 
 		let count = values.len() as u32;
 		let minimum_count = MinimumCount::get();
-		if count < minimum_count {
+		if count < minimum_count || count == 0 {
 			return prev_value;
 		}
 
-		values.sort_by(|a, b| a.value.cmp(&b.value));
-
-		let median_index = count / 2;
-		Some(values[median_index as usize].clone())
+		let mid_index = count / 2;
+		// Won't panic as `values` ensured not empty.
+		let (_, value, _) = values.select_nth_unstable_by(mid_index as usize, |a, b| a.value.cmp(&b.value));
+		Some(value.clone())
 	}
 }

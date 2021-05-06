@@ -51,8 +51,8 @@ use frame_support::{
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
 use orml_traits::{
-	account::MergeAccount,
 	arithmetic::{self, Signed},
+	currency::TransferAll,
 	BalanceStatus, GetByKey, LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency,
 	MultiReservableCurrency, OnDust,
 };
@@ -70,10 +70,12 @@ use sp_std::{
 	vec::Vec,
 };
 
-mod default_weight;
 mod imbalances;
 mod mock;
 mod tests;
+mod weights;
+
+pub use weights::WeightInfo;
 
 pub struct TransferDust<T, GetAccountId, I : 'static = ()>(marker::PhantomData<(T, I, GetAccountId)>);
 impl<T, I, GetAccountId> OnDust<T::AccountId, T::CurrencyId, T::Balance> for TransferDust<T, GetAccountId, I>
@@ -151,11 +153,6 @@ pub use module::*;
 pub mod module {
 	use super::*;
 
-	pub trait WeightInfo {
-		fn transfer() -> Weight;
-		fn transfer_all() -> Weight;
-	}
-
 	#[pallet::config]
 	pub trait Config<I: 'static = ()>: frame_system::Config {
 		type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
@@ -199,8 +196,6 @@ pub mod module {
 		AmountIntoBalanceFailed,
 		/// Failed because liquidity restrictions due to locking
 		LiquidityRestrictions,
-		/// Account still has active reserved
-		StillHasActiveReserved,
 	}
 
 	#[pallet::event]

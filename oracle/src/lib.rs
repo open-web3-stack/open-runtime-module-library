@@ -42,20 +42,16 @@ use sp_std::{prelude::*, vec};
 pub use crate::default_combine_data::DefaultCombineData;
 
 mod default_combine_data;
-mod default_weight;
 mod mock;
 mod tests;
+mod weights;
 
 pub use module::*;
+pub use weights::WeightInfo;
 
 #[frame_support::pallet]
 pub mod module {
 	use super::*;
-
-	pub trait WeightInfo {
-		fn feed_values(c: u32) -> Weight;
-		fn on_finalize() -> Weight;
-	}
 
 	pub(crate) type MomentOf<T, I = ()> = <<T as Config<I>>::Time as Time>::Moment;
 	pub(crate) type TimestampedValueOf<T, I = ()> = TimestampedValue<<T as Config<I>>::OracleValue, MomentOf<T, I>>;

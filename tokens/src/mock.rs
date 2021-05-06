@@ -5,7 +5,7 @@
 use super::*;
 use frame_support::{
 	construct_runtime, parameter_types,
-	traits::{ChangeMembers, Contains, ContainsLengthBound, SaturatingCurrencyToVote},
+	traits::{ChangeMembers, ContainsLengthBound, SaturatingCurrencyToVote, SortedMembers},
 };
 use orml_traits::parameter_type_with_key;
 use sp_core::H256;
@@ -68,7 +68,7 @@ thread_local! {
 }
 
 pub struct TenToFourteen;
-impl Contains<AccountId> for TenToFourteen {
+impl SortedMembers<AccountId> for TenToFourteen {
 	fn sorted_members() -> Vec<AccountId> {
 		TEN_TO_FOURTEEN.with(|v| v.borrow().clone())
 	}
