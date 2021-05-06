@@ -1040,17 +1040,3 @@ where
 		let _ = Pallet::<T, I>::remove_lock(id, GetCurrencyId::get(), who);
 	}
 }
-
-impl<T: Config<I>, I: 'static> MergeAccount<T::AccountId> for Pallet<T, I> {
-	#[transactional]
-	fn merge_account(source: &T::AccountId, dest: &T::AccountId) -> DispatchResult {
-		Accounts::<T, I>::iter_prefix(source).try_for_each(|(currency_id, account_data)| -> DispatchResult {
-			// ensure the account has no active reserved of non-native token
-			ensure!(account_data.reserved.is_zero(), Error::<T, I>::StillHasActiveReserved);
-
-			// transfer all free to recipient
-			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, source, dest, account_data.free)?;
-			Ok(())
-		})
-	}
-}
