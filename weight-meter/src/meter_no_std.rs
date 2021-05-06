@@ -25,7 +25,13 @@ pub fn using(weight: Weight) {
 
 pub fn finish() {
 	unsafe {
-		METER.depth = METER.depth.saturating_sub(1);
+		METER.depth.checked_sub(1).map_or_else(
+			|| {
+				debug_assert!(false);
+				0
+			},
+			|v| v,
+		);
 	}
 }
 
