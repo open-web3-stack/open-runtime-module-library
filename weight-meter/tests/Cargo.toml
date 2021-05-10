@@ -9,7 +9,7 @@ edition = "2018"
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
-orml-weight-meter = { path = "../..", default-features = false }
+orml-weight-meter = { path = "..", default-features = false }
 
 [features]
 default = ["std"]
