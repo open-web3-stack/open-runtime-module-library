@@ -2,6 +2,9 @@
 
 use frame_support::weights::Weight;
 
+// For use in mock file
+extern crate self as orml_weight_meter;
+
 struct Meter {
 	used_weight: Weight,
 	// Depth gets incremented when entering call or a sub-call
@@ -11,6 +14,12 @@ struct Meter {
 
 mod meter_no_std;
 mod meter_std;
+
+#[cfg(test)]
+mod mock;
+
+#[cfg(test)]
+mod tests;
 
 #[cfg(feature = "std")]
 pub use meter_std::*;
