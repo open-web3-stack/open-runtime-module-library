@@ -1,3 +1,5 @@
+use pretty_assertions::assert_eq;
+
 #[orml_weight_meter::weight(100)]
 fn foo() {
     // do something
@@ -9,9 +11,9 @@ fn bar() {
 }
 
 pub fn main() {
-    assert!(orml_weight_meter::used_weight() == 0);
+    assert_eq!(orml_weight_meter::used_weight(), 0);
     foo();
-    assert!(orml_weight_meter::used_weight() == 100);
+    assert_eq!(orml_weight_meter::used_weight(), 100);
     bar();
-    assert!(orml_weight_meter::used_weight() == 350);
+    assert_eq!(orml_weight_meter::used_weight(), 350);
 }
