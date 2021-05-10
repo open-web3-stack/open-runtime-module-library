@@ -1,0 +1,18 @@
+[package]
+name = "orml-weight-meter-test"
+version = "0.1.0"
+license = "Apache-2.0"
+authors = ["Laminar Developers <hello@laminar.one>"]
+edition = "2018"
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[dependencies]
+orml-weight-meter = { path = "../..", default-features = false }
+
+[features]
+default = ["std"]
+std = [
+    "orml-weight-meter/std",
+]
