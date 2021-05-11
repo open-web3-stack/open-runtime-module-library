@@ -32,11 +32,3 @@ pub fn weight(attr: TokenStream, item: TokenStream) -> TokenStream {
 	})
 	.into()
 }
-
-#[proc_macro_attribute]
-pub fn method_benchmarks(_attr: TokenStream, input: TokenStream) -> TokenStream {
-	#[cfg(feature = "runtime-benchmarks")]
-	return method_injector::inject_methods(input);
-	#[cfg(not(feature = "runtime-benchmarks"))]
-	return input;
-}
