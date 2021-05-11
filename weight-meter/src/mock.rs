@@ -22,7 +22,7 @@ pub mod test_module {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight(50_000)]
-		#[orml_weight_meter::start_with(0)]
+		#[orml_weight_meter::start]
 		pub fn expect_100(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
 			ensure_signed(origin)?;
 
@@ -35,7 +35,7 @@ pub mod test_module {
 		}
 
 		#[pallet::weight(50_000)]
-		#[orml_weight_meter::start_with(0)]
+		#[orml_weight_meter::start]
 		pub fn expect_500(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
 			ensure_signed(origin)?;
 
@@ -52,7 +52,7 @@ pub mod test_module {
 		}
 
 		#[pallet::weight(50_000)]
-		#[orml_weight_meter::start_with(0)]
+		#[orml_weight_meter::start]
 		pub fn expect_max_weight(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
 			ensure_signed(origin)?;
 
@@ -66,7 +66,7 @@ pub mod test_module {
 		}
 
 		#[pallet::weight(50_000)]
-		#[orml_weight_meter::start_with(0)]
+		#[orml_weight_meter::start]
 		pub fn expect_100_or_200(origin: OriginFor<T>, branch: bool) -> DispatchResultWithPostInfo {
 			ensure_signed(origin)?;
 
@@ -83,7 +83,7 @@ pub mod test_module {
 		}
 
 		#[pallet::weight(50_000)]
-		#[orml_weight_meter::start_with(0)]
+		#[orml_weight_meter::start]
 		pub fn nested_inner_methods(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
 			ensure_signed(origin)?;
 
@@ -96,7 +96,7 @@ pub mod test_module {
 		}
 
 		#[pallet::weight(50_000)]
-		#[orml_weight_meter::start_with(200)]
+		#[orml_weight_meter::start]
 		pub fn start_with_200(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
 			ensure_signed(origin)?;
 
@@ -107,7 +107,7 @@ pub mod test_module {
 		}
 
 		#[pallet::weight(50_000)]
-		#[orml_weight_meter::start_with(200)]
+		#[orml_weight_meter::start]
 		pub fn start_with_200_add_100(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
 			ensure_signed(origin)?;
 
@@ -120,7 +120,7 @@ pub mod test_module {
 		}
 
 		#[pallet::weight(50_000)]
-		#[orml_weight_meter::start_with(200)]
+		#[orml_weight_meter::start]
 		pub fn start_with_200_branch(origin: OriginFor<T>, branch: bool) -> DispatchResultWithPostInfo {
 			ensure_signed(origin)?;
 
@@ -137,7 +137,7 @@ pub mod test_module {
 		}
 
 		#[pallet::weight(50_000)]
-		#[orml_weight_meter::start_with(u64::MAX)]
+		#[orml_weight_meter::start]
 		pub fn start_with_max_weight(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
 			ensure_signed(origin)?;
 

@@ -8,10 +8,10 @@ static mut METER: Meter = Meter {
 	depth: 0,
 };
 
-pub fn start_with(base: Weight) {
+pub fn start() {
 	unsafe {
 		if METER.depth == 0 {
-			METER.used_weight = base;
+			METER.used_weight = 0;
 		}
 		METER.depth = METER.depth.saturating_add(1);
 	}

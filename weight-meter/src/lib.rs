@@ -28,7 +28,7 @@ pub use meter_std::*;
 pub use meter_no_std::*;
 
 /// Start weight meter with base weight
-pub use weight_meter_procedural::start_with;
+pub use weight_meter_procedural::start;
 
 /// Measure each methods weight
 pub use weight_meter_procedural::weight;

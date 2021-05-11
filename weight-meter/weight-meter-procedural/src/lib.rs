@@ -5,13 +5,12 @@ use syn::ItemFn;
 mod method_injector;
 
 #[proc_macro_attribute]
-pub fn start_with(attr: TokenStream, item: TokenStream) -> TokenStream {
-	let base_weight: syn::Expr = syn::parse(attr).unwrap();
+pub fn start(_attr: TokenStream, item: TokenStream) -> TokenStream {
 	let ItemFn { attrs, vis, sig, block } = syn::parse(item).unwrap();
 	(quote! {
 		#(#attrs)*
 		#vis #sig {
-			::orml_weight_meter::start_with(#base_weight);
+			::orml_weight_meter::start_with();
 			let result = #block;
 			::orml_weight_meter::finish();
 			result
