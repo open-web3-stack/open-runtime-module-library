@@ -10,19 +10,19 @@ edition = "2018"
 [dependencies]
 serde = { version = "1.0.124", optional = true }
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
-sp-std = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
-frame-support = {  git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
-frame-system = {  git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "statemint", default-features = false }
+sp-std = { git = "https://github.com/paritytech/substrate", branch = "statemint", default-features = false }
+frame-support = {  git = "https://github.com/paritytech/substrate", branch = "statemint", default-features = false }
+frame-system = {  git = "https://github.com/paritytech/substrate", branch = "statemint", default-features = false }
 orml-traits = { path = "../traits", version = "0.4.1-dev", default-features = false }
 
 [dev-dependencies]
-sp-io = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
-sp-core = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
-pallet-treasury = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
-# Patch doesn't work as `pallet-elections-phragmen` is now 4.0.0 version. Revert `rev` to `rococo-v1` branch after
-# other `rococo-v1` dependencies upgraded.
-pallet-elections-phragmen = { git = "https://github.com/paritytech/substrate", rev = "ec180313e410915ed5e319358628260f9d1f3b53" }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "statemint" }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "statemint" }
+pallet-treasury = { git = "https://github.com/paritytech/substrate", branch = "statemint" }
+# Patch doesn't work as `pallet-elections-phragmen` is now 4.0.0 version. Revert `rev` to `statemint` branch after
+# other `statemint` dependencies upgraded.
+pallet-elections-phragmen = { git = "https://github.com/paritytech/substrate", rev = "34315dddbaf13c6282199c32e3b1a9b1b26cf4b1" }
 
 [features]
 default = ["std"]
