@@ -197,6 +197,8 @@ pub mod module {
 		AmountIntoBalanceFailed,
 		/// Failed because liquidity restrictions due to locking
 		LiquidityRestrictions,
+		/// Failed because the maximum locks was exceeded
+		MaximumLocksExceeded,
 	}
 
 	#[pallet::event]
@@ -428,7 +430,11 @@ impl<T: Config> Pallet<T> {
 
 	/// Update the account entry for `who` under `currency_id`, given the
 	/// locks.
-	pub(crate) fn update_locks(currency_id: T::CurrencyId, who: &T::AccountId, locks: &[BalanceLock<T::Balance>]) {
+	pub(crate) fn update_locks(
+		currency_id: T::CurrencyId,
+		who: &T::AccountId,
+		locks: &[BalanceLock<T::Balance>],
+	) -> DispatchResult {
 		// update account data
 		Self::mutate_account(who, currency_id, |account, _| {
 			account.frozen = Zero::zero();
@@ -446,8 +452,10 @@ impl<T: Config> Pallet<T> {
 				frame_system::Pallet::<T>::dec_consumers(who);
 			}
 		} else {
-			let bounded_locks: BoundedVec<BalanceLock<T::Balance>, T::MaxLocks> =
-				locks.to_vec().try_into().expect("Too many locked balances");
+			let bounded_locks: BoundedVec<BalanceLock<T::Balance>, T::MaxLocks> = locks
+				.to_vec()
+				.try_into()
+				.map_err(|_| Error::<T>::MaximumLocksExceeded)?;
 			<Locks<T>>::insert(who, currency_id, bounded_locks);
 			if !existed {
 				// increase account ref count when initialize lock
@@ -462,6 +470,8 @@ impl<T: Config> Pallet<T> {
 				}
 			}
 		}
+
+		Ok(())
 	}
 }
 
@@ -661,7 +671,7 @@ impl<T: Config> MultiLockableCurrency<T::AccountId> for Pallet<T> {
 		if let Some(lock) = new_lock {
 			locks.push(lock)
 		}
-		Self::update_locks(currency_id, who, &locks[..]);
+		Self::update_locks(currency_id, who, &locks[..])?;
 		Ok(())
 	}
 
@@ -693,7 +703,7 @@ impl<T: Config> MultiLockableCurrency<T::AccountId> for Pallet<T> {
 		if let Some(lock) = new_lock {
 			locks.push(lock)
 		}
-		Self::update_locks(currency_id, who, &locks[..]);
+		Self::update_locks(currency_id, who, &locks[..])?;
 		Ok(())
 	}
 
@@ -701,7 +711,7 @@ impl<T: Config> MultiLockableCurrency<T::AccountId> for Pallet<T> {
 		let mut locks = Self::locks(who, currency_id);
 		locks.retain(|lock| lock.id != lock_id);
 		let locks_vec = locks.to_vec();
-		Self::update_locks(currency_id, who, &locks_vec[..]);
+		Self::update_locks(currency_id, who, &locks_vec[..])?;
 		Ok(())
 	}
 }
