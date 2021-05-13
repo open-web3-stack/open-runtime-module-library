@@ -24,6 +24,7 @@ pub const BOB: AccountId = AccountId32::new([1u8; 32]);
 pub const TREASURY_ACCOUNT: AccountId = AccountId32::new([2u8; 32]);
 pub const ID_1: LockIdentifier = *b"1       ";
 pub const ID_2: LockIdentifier = *b"2       ";
+pub const ID_3: LockIdentifier = *b"3       ";
 
 use crate as tokens;
 
@@ -207,7 +208,7 @@ parameter_type_with_key! {
 
 parameter_types! {
 	pub DustAccount: AccountId = PalletId(*b"orml/dst").into_account();
-	pub MaxLocks: u32 = 100_000;
+	pub MaxLocks: u32 = 2;
 }
 
 impl Config for Runtime {

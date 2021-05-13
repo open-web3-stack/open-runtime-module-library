@@ -971,3 +971,21 @@ fn currency_adapter_transferring_too_high_value_should_not_panic() {
 		assert_eq!(TreasuryCurrencyAdapter::free_balance(&ALICE), 2);
 	});
 }
+
+#[test]
+fn exceeding_max_locks_should_fail() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_ok!(Tokens::set_lock(ID_1, DOT, &ALICE, 10));
+			assert_eq!(Tokens::locks(ALICE, DOT).len(), 1);
+			assert_ok!(Tokens::set_lock(ID_2, DOT, &ALICE, 10));
+			assert_eq!(Tokens::locks(ALICE, DOT).len(), 2);
+			assert_noop!(
+				Tokens::set_lock(ID_3, DOT, &ALICE, 10),
+				Error::<Runtime>::MaxLocksExceeded
+			);
+			assert_eq!(Tokens::locks(ALICE, DOT).len(), 2);
+		});
+}
