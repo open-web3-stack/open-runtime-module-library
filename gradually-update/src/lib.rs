@@ -26,6 +26,7 @@ use frame_support::{
 	pallet_prelude::*,
 	storage,
 	traits::{EnsureOrigin, Get},
+	BoundedVec,
 };
 use frame_system::pallet_prelude::*;
 use sp_runtime::{traits::SaturatedConversion, DispatchResult, RuntimeDebug};
@@ -76,6 +77,8 @@ pub mod module {
 
 		/// Weight information for extrinsics in this module.
 		type WeightInfo: WeightInfo;
+
+		type MaxGraduallyUpdate: Get<u32>;
 	}
 
 	#[pallet::error]
@@ -88,6 +91,8 @@ pub mod module {
 		GraduallyUpdateHasExisted,
 		/// No update exists to cancel.
 		GraduallyUpdateNotFound,
+		/// Update size exceeded the maximum size.
+		MaxGraduallyUpdateExceeded,
 	}
 
 	#[pallet::event]
@@ -104,7 +109,8 @@ pub mod module {
 	/// All the on-going updates
 	#[pallet::storage]
 	#[pallet::getter(fn gradually_updates)]
-	pub(crate) type GraduallyUpdates<T: Config> = StorageValue<_, Vec<GraduallyUpdate>, ValueQuery>;
+	pub(crate) type GraduallyUpdates<T: Config> =
+		StorageValue<_, BoundedVec<GraduallyUpdate, T::MaxGraduallyUpdate>, ValueQuery>;
 
 	/// The last updated block number
 	#[pallet::storage]
@@ -158,7 +164,9 @@ pub mod module {
 					Error::<T>::GraduallyUpdateHasExisted
 				);
 
-				gradually_updates.push(update.clone());
+				gradually_updates
+					.try_push(update.clone())
+					.map_err(|_| Error::<T>::MaxGraduallyUpdateExceeded)?;
 
 				Ok(())
 			})?;
