@@ -198,7 +198,7 @@ pub mod module {
 		/// Failed because liquidity restrictions due to locking
 		LiquidityRestrictions,
 		/// Failed because the maximum locks was exceeded
-		MaximumLocksExceeded,
+		MaxLocksExceeded,
 	}
 
 	#[pallet::event]
@@ -452,10 +452,8 @@ impl<T: Config> Pallet<T> {
 				frame_system::Pallet::<T>::dec_consumers(who);
 			}
 		} else {
-			let bounded_locks: BoundedVec<BalanceLock<T::Balance>, T::MaxLocks> = locks
-				.to_vec()
-				.try_into()
-				.map_err(|_| Error::<T>::MaximumLocksExceeded)?;
+			let bounded_locks: BoundedVec<BalanceLock<T::Balance>, T::MaxLocks> =
+				locks.to_vec().try_into().map_err(|_| Error::<T>::MaxLocksExceeded)?;
 			<Locks<T>>::insert(who, currency_id, bounded_locks);
 			if !existed {
 				// increase account ref count when initialize lock
