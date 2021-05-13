@@ -47,7 +47,7 @@ use frame_support::{
 		LockableCurrency as PalletLockableCurrency, ReservableCurrency as PalletReservableCurrency, SignedImbalance,
 		WithdrawReasons,
 	},
-	transactional, PalletId,
+	transactional, BoundedVec, PalletId,
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
 use orml_traits::{
@@ -181,6 +181,8 @@ pub mod module {
 
 		/// Handler to burn or transfer account's dust
 		type OnDust: OnDust<Self::AccountId, Self::CurrencyId, Self::Balance>;
+
+		type MaxLocks: Get<u32>;
 	}
 
 	#[pallet::error]
@@ -223,7 +225,7 @@ pub mod module {
 		T::AccountId,
 		Twox64Concat,
 		T::CurrencyId,
-		Vec<BalanceLock<T::Balance>>,
+		BoundedVec<BalanceLock<T::Balance>, T::MaxLocks>,
 		ValueQuery,
 	>;
 
@@ -444,7 +446,9 @@ impl<T: Config> Pallet<T> {
 				frame_system::Pallet::<T>::dec_consumers(who);
 			}
 		} else {
-			<Locks<T>>::insert(who, currency_id, locks);
+			let bounded_locks: BoundedVec<BalanceLock<T::Balance>, T::MaxLocks> =
+				locks.to_vec().try_into().expect("Too many locked balances");
+			<Locks<T>>::insert(who, currency_id, bounded_locks);
 			if !existed {
 				// increase account ref count when initialize lock
 				if frame_system::Pallet::<T>::inc_consumers(who).is_err() {
@@ -696,7 +700,8 @@ impl<T: Config> MultiLockableCurrency<T::AccountId> for Pallet<T> {
 	fn remove_lock(lock_id: LockIdentifier, currency_id: Self::CurrencyId, who: &T::AccountId) -> DispatchResult {
 		let mut locks = Self::locks(who, currency_id);
 		locks.retain(|lock| lock.id != lock_id);
-		Self::update_locks(currency_id, who, &locks[..]);
+		let locks_vec = locks.to_vec();
+		Self::update_locks(currency_id, who, &locks_vec[..]);
 		Ok(())
 	}
 }

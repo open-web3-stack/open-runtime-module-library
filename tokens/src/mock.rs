@@ -207,6 +207,7 @@ parameter_type_with_key! {
 
 parameter_types! {
 	pub DustAccount: AccountId = PalletId(*b"orml/dst").into_account();
+	pub MaxLocks: u32 = 100_000;
 }
 
 impl Config for Runtime {
@@ -217,6 +218,7 @@ impl Config for Runtime {
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = TransferDust<Runtime, DustAccount>;
+	type MaxLocks = MaxLocks;
 }
 pub type TreasuryCurrencyAdapter = <Runtime as pallet_treasury::Config>::Currency;
 
