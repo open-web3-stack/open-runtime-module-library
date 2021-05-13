@@ -381,3 +381,50 @@ fn finish_multiple_on_finalize_should_work() {
 		assert_eq!(storage_get(&update3.key), vec![100]);
 	});
 }
+
+#[test]
+fn exceeding_max_gradually_updates_should_fail() {
+	ExtBuilder::default().build().execute_with(|| {
+		System::set_block_number(1);
+
+		let update = GraduallyUpdate {
+			key: vec![10],
+			target_value: vec![30],
+			per_block: vec![1],
+		};
+		let update2 = GraduallyUpdate {
+			key: vec![20],
+			target_value: vec![60],
+			per_block: vec![2],
+		};
+		let update3 = GraduallyUpdate {
+			key: vec![30],
+			target_value: vec![100],
+			per_block: vec![3],
+		};
+		let update4 = GraduallyUpdate {
+			key: vec![40],
+			target_value: vec![120],
+			per_block: vec![4],
+		};
+		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()));
+		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update2.clone()));
+		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update3.clone()));
+		assert_noop!(
+			GraduallyUpdateModule::gradually_update(Origin::root(), update4.clone()),
+			Error::<Runtime>::MaxGraduallyUpdateExceeded
+		);
+
+		GraduallyUpdateModule::on_finalize(10);
+		GraduallyUpdateModule::on_finalize(20);
+		GraduallyUpdateModule::on_finalize(30);
+		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update4.clone()));
+		GraduallyUpdateModule::on_finalize(40);
+		GraduallyUpdateModule::on_finalize(50);
+		GraduallyUpdateModule::on_finalize(60);
+		assert_eq!(storage_get(&update.key), vec![30]);
+		assert_eq!(storage_get(&update2.key), vec![60]);
+		assert_eq!(storage_get(&update3.key), vec![100]);
+		assert_eq!(storage_get(&update4.key), vec![120]);
+	});
+}
