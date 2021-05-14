@@ -15,8 +15,8 @@ sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkad
 
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.1", default-features = false }
 
-xcm = { git = "https://github.com/paritytech/polkadot", branch = "polkadot-v0.9.1", default-features = false }
-xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "polkadot-v0.9.1", default-features = false }
+xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.1", default-features = false }
+xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.1", default-features = false }
 
 orml-traits = { path = "../traits", version = "0.4.1-dev", default-features = false }
 
