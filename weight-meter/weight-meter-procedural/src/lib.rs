@@ -10,7 +10,7 @@ pub fn start(_attr: TokenStream, item: TokenStream) -> TokenStream {
 	(quote! {
 		#(#attrs)*
 		#vis #sig {
-			::orml_weight_meter::start_with();
+			::orml_weight_meter::start();
 			let result = #block;
 			::orml_weight_meter::finish();
 			result
