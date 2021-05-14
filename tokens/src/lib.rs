@@ -669,8 +669,7 @@ impl<T: Config> MultiLockableCurrency<T::AccountId> for Pallet<T> {
 		if let Some(lock) = new_lock {
 			locks.push(lock)
 		}
-		Self::update_locks(currency_id, who, &locks[..])?;
-		Ok(())
+		Self::update_locks(currency_id, who, &locks[..])
 	}
 
 	// Extend a lock on the balance of `who` under `currency_id`.
@@ -701,16 +700,14 @@ impl<T: Config> MultiLockableCurrency<T::AccountId> for Pallet<T> {
 		if let Some(lock) = new_lock {
 			locks.push(lock)
 		}
-		Self::update_locks(currency_id, who, &locks[..])?;
-		Ok(())
+		Self::update_locks(currency_id, who, &locks[..])
 	}
 
 	fn remove_lock(lock_id: LockIdentifier, currency_id: Self::CurrencyId, who: &T::AccountId) -> DispatchResult {
 		let mut locks = Self::locks(who, currency_id);
 		locks.retain(|lock| lock.id != lock_id);
 		let locks_vec = locks.to_vec();
-		Self::update_locks(currency_id, who, &locks_vec[..])?;
-		Ok(())
+		Self::update_locks(currency_id, who, &locks_vec[..])
 	}
 }
 
