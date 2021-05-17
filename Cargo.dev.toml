@@ -70,6 +70,7 @@ sp-authority-discovery = { git = "https://github.com/paritytech//substrate", rev
 sc-executor-common = { git = "https://github.com/paritytech//substrate", rev = "3f110196163b5ec03bac5ee188d60bedf3ebd91d" }
 sc-executor-wasmi = { git = "https://github.com/paritytech//substrate", rev = "3f110196163b5ec03bac5ee188d60bedf3ebd91d" }
 sc-executor = { git = "https://github.com/paritytech//substrate", rev = "3f110196163b5ec03bac5ee188d60bedf3ebd91d" }
+sc-client-db = { git = "https://github.com/paritytech//substrate", rev = "3f110196163b5ec03bac5ee188d60bedf3ebd91d" }
 sc-client-api = { git = "https://github.com/paritytech//substrate", rev = "3f110196163b5ec03bac5ee188d60bedf3ebd91d" }
 sp-tasks = { git = "https://github.com/paritytech//substrate", rev = "3f110196163b5ec03bac5ee188d60bedf3ebd91d" }
 sp-authorship = { git = "https://github.com/paritytech//substrate", rev = "3f110196163b5ec03bac5ee188d60bedf3ebd91d" }
