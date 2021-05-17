@@ -1,9 +1,7 @@
 #[frame_support::pallet]
 pub mod test_module {
-	use frame_support::weights::PostDispatchInfo;
-	use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
+	use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*, weights::Weight};
 	use frame_system::pallet_prelude::*;
-	use orml_weight_meter;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {}
@@ -28,10 +26,7 @@ pub mod test_module {
 
 			Self::put_100();
 
-			Ok(PostDispatchInfo {
-				actual_weight: Some(orml_weight_meter::used_weight()),
-				pays_fee: Pays::Yes,
-			})
+			Ok(Some(orml_weight_meter::used_weight()).into())
 		}
 
 		#[pallet::weight(50_000)]
@@ -45,10 +40,7 @@ pub mod test_module {
 			Self::put_100();
 			Self::put_100();
 
-			Ok(PostDispatchInfo {
-				actual_weight: Some(orml_weight_meter::used_weight()),
-				pays_fee: Pays::Yes,
-			})
+			Ok(Some(orml_weight_meter::used_weight()).into())
 		}
 
 		#[pallet::weight(50_000)]
@@ -59,10 +51,7 @@ pub mod test_module {
 			Self::max_weight();
 			Self::put_100();
 
-			Ok(PostDispatchInfo {
-				actual_weight: Some(orml_weight_meter::used_weight()),
-				pays_fee: Pays::Yes,
-			})
+			Ok(Some(orml_weight_meter::used_weight()).into())
 		}
 
 		#[pallet::weight(50_000)]
@@ -76,10 +65,7 @@ pub mod test_module {
 				Self::put_100();
 			}
 
-			Ok(PostDispatchInfo {
-				actual_weight: Some(orml_weight_meter::used_weight()),
-				pays_fee: Pays::Yes,
-			})
+			Ok(Some(orml_weight_meter::used_weight()).into())
 		}
 
 		#[pallet::weight(50_000)]
@@ -89,10 +75,24 @@ pub mod test_module {
 
 			Self::put_300_nested();
 
-			Ok(PostDispatchInfo {
-				actual_weight: Some(orml_weight_meter::used_weight()),
-				pays_fee: Pays::Yes,
-			})
+			Ok(Some(orml_weight_meter::used_weight()).into())
+		}
+
+		#[pallet::weight(50_000)]
+		#[orml_weight_meter::start]
+		pub fn nested_extrinsic(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+			ensure_signed(origin.clone())?;
+
+			// some module call
+			Self::put_300_nested();
+
+			// call extrinsic method
+			Self::expect_100(origin)?;
+
+			// some module call
+			Self::put_300_nested();
+
+			Ok(Some(orml_weight_meter::used_weight()).into())
 		}
 	}
 
@@ -124,7 +124,7 @@ pub mod test_module {
 			Self::put_100();
 		}
 
-		#[orml_weight_meter::weight(u64::MAX)]
+		#[orml_weight_meter::weight(Weight::MAX)]
 		fn max_weight() {
 			return;
 		}
@@ -137,7 +137,7 @@ use sp_runtime::testing::{Header, H256};
 pub type BlockNumber = u64;
 
 frame_support::parameter_types! {
-		pub const BlockHashCount: u64 = 250;
+	pub const BlockHashCount: u64 = 250;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
@@ -222,4 +222,8 @@ impl ExtBuilder {
 		ext.execute_with(|| System::set_block_number(1));
 		ext
 	}
+}
+
+pub fn new_test_ext() -> sp_io::TestExternalities {
+	ExtBuilder::default().build()
 }
