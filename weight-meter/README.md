@@ -9,9 +9,5 @@ std = [
     ..
     'orml-weight-meter/std',
 ]
-runtime-benchmarks = [
-    ..
-    'orml-weight-meter/runtime-benchmarks',
-]
 
 ```

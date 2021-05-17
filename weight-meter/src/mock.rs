@@ -94,60 +94,6 @@ pub mod test_module {
 				pays_fee: Pays::Yes,
 			})
 		}
-
-		#[pallet::weight(50_000)]
-		#[orml_weight_meter::start]
-		pub fn start_with_200(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
-			ensure_signed(origin)?;
-
-			Ok(PostDispatchInfo {
-				actual_weight: Some(orml_weight_meter::used_weight()),
-				pays_fee: Pays::Yes,
-			})
-		}
-
-		#[pallet::weight(50_000)]
-		#[orml_weight_meter::start]
-		pub fn start_with_200_add_100(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
-			ensure_signed(origin)?;
-
-			Self::put_100();
-
-			Ok(PostDispatchInfo {
-				actual_weight: Some(orml_weight_meter::used_weight()),
-				pays_fee: Pays::Yes,
-			})
-		}
-
-		#[pallet::weight(50_000)]
-		#[orml_weight_meter::start]
-		pub fn start_with_200_branch(origin: OriginFor<T>, branch: bool) -> DispatchResultWithPostInfo {
-			ensure_signed(origin)?;
-
-			if branch {
-				Self::put_200();
-			} else {
-				Self::put_100();
-			}
-
-			Ok(PostDispatchInfo {
-				actual_weight: Some(orml_weight_meter::used_weight()),
-				pays_fee: Pays::Yes,
-			})
-		}
-
-		#[pallet::weight(50_000)]
-		#[orml_weight_meter::start]
-		pub fn start_with_max_weight(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
-			ensure_signed(origin)?;
-
-			Self::put_100();
-
-			Ok(PostDispatchInfo {
-				actual_weight: Some(orml_weight_meter::used_weight()),
-				pays_fee: Pays::Yes,
-			})
-		}
 	}
 
 	impl<T: Config> Pallet<T> {

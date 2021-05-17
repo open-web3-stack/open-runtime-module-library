@@ -72,7 +72,7 @@ pub use meter_std::*;
 #[cfg(not(feature = "std"))]
 pub use meter_no_std::*;
 
-/// Start weight meter with base weight
+/// Start weight meter
 pub use weight_meter_procedural::start;
 
 /// Measure each methods weight

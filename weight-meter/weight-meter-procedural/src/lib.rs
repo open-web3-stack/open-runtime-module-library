@@ -2,8 +2,6 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::ItemFn;
 
-mod method_injector;
-
 #[proc_macro_attribute]
 pub fn start(_attr: TokenStream, item: TokenStream) -> TokenStream {
 	let ItemFn { attrs, vis, sig, block } = syn::parse(item).unwrap();

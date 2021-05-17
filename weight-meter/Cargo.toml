@@ -30,4 +30,3 @@ std = [
     "frame-support/std",
     "weight-meter-procedural/std",
 ]
-runtime-benchmarks = ["weight-meter-procedural/runtime-benchmarks"]
