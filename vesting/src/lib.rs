@@ -37,7 +37,7 @@ use frame_support::{
 use frame_system::{ensure_root, ensure_signed, pallet_prelude::*};
 use sp_runtime::{
 	traits::{AtLeast32Bit, CheckedAdd, Saturating, StaticLookup, Zero},
-	DispatchResult, RuntimeDebug,
+	ArithmeticError, DispatchResult, RuntimeDebug,
 };
 use sp_std::{
 	cmp::{Eq, PartialEq},
@@ -144,8 +144,6 @@ pub mod module {
 		ZeroVestingPeriod,
 		/// Number of vests is zero
 		ZeroVestingPeriodCount,
-		/// Arithmetic calculation overflow
-		NumOverflow,
 		/// Insufficient amount of balance to lock
 		InsufficientBalanceToLock,
 		/// This account have too many vesting schedules
@@ -303,7 +301,7 @@ impl<T: Config> Pallet<T> {
 
 		let total_amount = Self::locked_balance(to)
 			.checked_add(&schedule_amount)
-			.ok_or(Error::<T>::NumOverflow)?;
+			.ok_or(ArithmeticError::Overflow)?;
 
 		T::Currency::transfer(from, to, schedule_amount, ExistenceRequirement::AllowDeath)?;
 		T::Currency::set_lock(VESTING_LOCK_ID, to, total_amount, WithdrawReasons::all());
@@ -312,7 +310,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	fn do_update_vesting_schedules(who: &T::AccountId, schedules: Vec<VestingScheduleOf<T>>) -> DispatchResult {
-		let total_amount = schedules.iter().try_fold::<_, _, Result<BalanceOf<T>, Error<T>>>(
+		let total_amount = schedules.iter().try_fold::<_, _, Result<BalanceOf<T>, DispatchError>>(
 			Zero::zero(),
 			|acc_amount, schedule| {
 				let amount = Self::ensure_valid_vesting_schedule(schedule)?;
@@ -331,12 +329,12 @@ impl<T: Config> Pallet<T> {
 	}
 
 	/// Returns `Ok(amount)` if valid schedule, or error.
-	fn ensure_valid_vesting_schedule(schedule: &VestingScheduleOf<T>) -> Result<BalanceOf<T>, Error<T>> {
+	fn ensure_valid_vesting_schedule(schedule: &VestingScheduleOf<T>) -> Result<BalanceOf<T>, DispatchError> {
 		ensure!(!schedule.period.is_zero(), Error::<T>::ZeroVestingPeriod);
 		ensure!(!schedule.period_count.is_zero(), Error::<T>::ZeroVestingPeriodCount);
-		ensure!(schedule.end().is_some(), Error::<T>::NumOverflow);
+		ensure!(schedule.end().is_some(), ArithmeticError::Overflow);
 
-		let total = schedule.total_amount().ok_or(Error::<T>::NumOverflow)?;
+		let total = schedule.total_amount().ok_or(ArithmeticError::Overflow)?;
 
 		ensure!(total >= T::MinVestedTransfer::get(), Error::<T>::AmountLow);
 

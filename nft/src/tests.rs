@@ -55,7 +55,7 @@ fn mint_should_fail() {
 		});
 		assert_noop!(
 			NonFungibleTokenModule::mint(&BOB, CLASS_ID, vec![1], ()),
-			Error::<Runtime>::NumOverflow
+			ArithmeticError::Overflow,
 		);
 
 		NextTokenId::<Runtime>::mutate(CLASS_ID, |id| *id = <Runtime as Config>::TokenId::max_value());
@@ -136,7 +136,7 @@ fn burn_should_fail() {
 		});
 		assert_noop!(
 			NonFungibleTokenModule::burn(&BOB, (CLASS_ID, TOKEN_ID)),
-			Error::<Runtime>::NumOverflow
+			ArithmeticError::Overflow,
 		);
 	});
 }

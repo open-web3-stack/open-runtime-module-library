@@ -61,7 +61,7 @@ use sp_runtime::{
 		AccountIdConversion, AtLeast32BitUnsigned, Bounded, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member,
 		Saturating, StaticLookup, Zero,
 	},
-	DispatchError, DispatchResult, RuntimeDebug,
+	ArithmeticError, DispatchError, DispatchResult, RuntimeDebug,
 };
 use sp_std::{
 	convert::{Infallible, TryFrom, TryInto},
@@ -189,10 +189,6 @@ pub mod module {
 	pub enum Error<T> {
 		/// The balance is too low
 		BalanceTooLow,
-		/// This operation will cause balance to overflow
-		BalanceOverflow,
-		/// This operation will cause total issuance to overflow
-		TotalIssuanceOverflow,
 		/// Cannot convert Amount into Balance type
 		AmountIntoBalanceFailed,
 		/// Failed because liquidity restrictions due to locking
@@ -528,7 +524,7 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
 		let from_balance = Self::free_balance(currency_id, from);
 		let to_balance = Self::free_balance(currency_id, to)
 			.checked_add(&amount)
-			.ok_or(Error::<T>::BalanceOverflow)?;
+			.ok_or(ArithmeticError::Overflow)?;
 		// Cannot underflow because ensure_can_withdraw check
 		Self::set_free_balance(currency_id, from, from_balance - amount);
 		Self::set_free_balance(currency_id, to, to_balance);
@@ -545,9 +541,7 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
 		}
 
 		TotalIssuance::<T>::try_mutate(currency_id, |total_issuance| -> DispatchResult {
-			*total_issuance = total_issuance
-				.checked_add(&amount)
-				.ok_or(Error::<T>::TotalIssuanceOverflow)?;
+			*total_issuance = total_issuance.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
 
 			Self::set_free_balance(currency_id, who, Self::free_balance(currency_id, who) + amount);
 
@@ -932,7 +926,7 @@ where
 		let currency_id = GetCurrencyId::get();
 		let new_total = Pallet::<T>::free_balance(currency_id, who)
 			.checked_add(&value)
-			.ok_or(Error::<T>::TotalIssuanceOverflow)?;
+			.ok_or(ArithmeticError::Overflow)?;
 		Pallet::<T>::set_free_balance(currency_id, who, new_total);
 
 		Ok(Self::PositiveImbalance::new(value))
