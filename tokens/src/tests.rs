@@ -345,7 +345,7 @@ fn deposit_should_work() {
 
 			assert_noop!(
 				Tokens::deposit(DOT, &ALICE, Balance::max_value()),
-				Error::<Runtime>::TotalIssuanceOverflow,
+				ArithmeticError::Overflow,
 			);
 		});
 }
@@ -961,7 +961,7 @@ fn currency_adapter_transferring_too_high_value_should_not_panic() {
 				u64::max_value(),
 				ExistenceRequirement::AllowDeath
 			),
-			Error::<Runtime>::BalanceOverflow,
+			ArithmeticError::Overflow,
 		);
 
 		assert_eq!(

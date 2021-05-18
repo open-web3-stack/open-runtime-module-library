@@ -172,7 +172,7 @@ fn vested_transfer_fails_if_overflow() {
 		};
 		assert_noop!(
 			Vesting::vested_transfer(Origin::signed(ALICE), BOB, schedule),
-			Error::<Runtime>::NumOverflow
+			ArithmeticError::Overflow,
 		);
 
 		let another_schedule = VestingSchedule {
@@ -183,7 +183,7 @@ fn vested_transfer_fails_if_overflow() {
 		};
 		assert_noop!(
 			Vesting::vested_transfer(Origin::signed(ALICE), BOB, another_schedule),
-			Error::<Runtime>::NumOverflow
+			ArithmeticError::Overflow,
 		);
 	});
 }

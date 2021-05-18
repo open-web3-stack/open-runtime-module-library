@@ -31,7 +31,7 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use sp_runtime::{
 	traits::{CheckedSub, Dispatchable, Saturating},
-	DispatchError, DispatchResult, RuntimeDebug,
+	ArithmeticError, DispatchError, DispatchResult, RuntimeDebug,
 };
 use sp_std::prelude::*;
 
@@ -163,8 +163,6 @@ pub mod module {
 
 	#[pallet::error]
 	pub enum Error<T> {
-		/// Calculation overflow.
-		Overflow,
 		/// Failed to schedule a task.
 		FailedToSchedule,
 		/// Failed to cancel a task.
@@ -234,12 +232,12 @@ pub mod module {
 
 			let id = NextTaskIndex::<T>::mutate(|id| -> sp_std::result::Result<ScheduleTaskIndex, DispatchError> {
 				let current_id = *id;
-				*id = id.checked_add(1).ok_or(Error::<T>::Overflow)?;
+				*id = id.checked_add(1).ok_or(ArithmeticError::Overflow)?;
 				Ok(current_id)
 			})?;
 			let now = frame_system::Pallet::<T>::block_number();
 			let delay = match when {
-				DispatchTime::At(x) => x.checked_sub(&now).ok_or(Error::<T>::Overflow)?,
+				DispatchTime::At(x) => x.checked_sub(&now).ok_or(ArithmeticError::Overflow)?,
 				DispatchTime::After(x) => x,
 			};
 			let schedule_origin = if with_delayed_origin {
@@ -278,7 +276,7 @@ pub mod module {
 		) -> DispatchResultWithPostInfo {
 			let now = frame_system::Pallet::<T>::block_number();
 			let new_delay = match when {
-				DispatchTime::At(x) => x.checked_sub(&now).ok_or(Error::<T>::Overflow)?,
+				DispatchTime::At(x) => x.checked_sub(&now).ok_or(ArithmeticError::Overflow)?,
 				DispatchTime::After(x) => x,
 			};
 			let dispatch_at = match when {

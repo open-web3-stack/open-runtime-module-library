@@ -25,7 +25,7 @@ use codec::{Decode, Encode};
 use frame_support::{ensure, pallet_prelude::*, Parameter};
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, One, Zero},
-	DispatchError, DispatchResult, RuntimeDebug,
+	ArithmeticError, DispatchError, DispatchResult, RuntimeDebug,
 };
 use sp_std::vec::Vec;
 
@@ -103,8 +103,6 @@ pub mod module {
 		ClassNotFound,
 		/// The operator is not the owner of the token and has no permission
 		NoPermission,
-		/// Arithmetic calculation overflow
-		NumOverflow,
 		/// Can not destroy class
 		/// Total issuance is not 0
 		CannotDestroyClass,
@@ -236,7 +234,7 @@ impl<T: Config> Pallet<T> {
 				info.total_issuance = info
 					.total_issuance
 					.checked_add(&One::one())
-					.ok_or(Error::<T>::NumOverflow)?;
+					.ok_or(ArithmeticError::Overflow)?;
 				Ok(())
 			})?;
 
@@ -263,7 +261,7 @@ impl<T: Config> Pallet<T> {
 				info.total_issuance = info
 					.total_issuance
 					.checked_sub(&One::one())
-					.ok_or(Error::<T>::NumOverflow)?;
+					.ok_or(ArithmeticError::Overflow)?;
 				Ok(())
 			})?;
 
