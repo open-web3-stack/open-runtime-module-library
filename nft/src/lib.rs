@@ -22,21 +22,26 @@
 #![allow(clippy::unused_unit)]
 
 use codec::{Decode, Encode};
-use frame_support::{ensure, pallet_prelude::*, Parameter};
+use frame_support::{
+	ensure,
+	pallet_prelude::*,
+	traits::{Get, MaxEncodedLen},
+	BoundedVec, Parameter,
+};
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, One, Zero},
 	DispatchError, DispatchResult, RuntimeDebug,
 };
-use sp_std::vec::Vec;
+use sp_std::{convert::TryInto, vec::Vec};
 
 mod mock;
 mod tests;
 
 /// Class info
-#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
-pub struct ClassInfo<TokenId, AccountId, Data> {
+#[derive(Encode, Decode, Clone, Eq, PartialEq, MaxEncodedLen, RuntimeDebug)]
+pub struct ClassInfo<TokenId, AccountId, Data, MetadataOf> {
 	/// Class metadata
-	pub metadata: Vec<u8>,
+	pub metadata: MetadataOf,
 	/// Total issuance for the class
 	pub total_issuance: TokenId,
 	/// Class owner
@@ -46,10 +51,10 @@ pub struct ClassInfo<TokenId, AccountId, Data> {
 }
 
 /// Token info
-#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
-pub struct TokenInfo<AccountId, Data> {
+#[derive(Encode, Decode, Clone, Eq, PartialEq, MaxEncodedLen, RuntimeDebug)]
+pub struct TokenInfo<AccountId, Data, MetadataOf> {
 	/// Token metadata
-	pub metadata: Vec<u8>,
+	pub metadata: MetadataOf,
 	/// Token owner
 	pub owner: AccountId,
 	/// Token Properties
@@ -72,11 +77,19 @@ pub mod module {
 		type ClassData: Parameter + Member + MaybeSerializeDeserialize;
 		/// The token properties type
 		type TokenData: Parameter + Member + MaybeSerializeDeserialize;
+
+		type MaxMetadata: Get<u32>;
 	}
 
-	pub type ClassInfoOf<T> =
-		ClassInfo<<T as Config>::TokenId, <T as frame_system::Config>::AccountId, <T as Config>::ClassData>;
-	pub type TokenInfoOf<T> = TokenInfo<<T as frame_system::Config>::AccountId, <T as Config>::TokenData>;
+	pub type MetadataOf<T> = BoundedVec<u8, <T as Config>::MaxMetadata>;
+	pub type ClassInfoOf<T> = ClassInfo<
+		<T as Config>::TokenId,
+		<T as frame_system::Config>::AccountId,
+		<T as Config>::ClassData,
+		MetadataOf<T>,
+	>;
+	pub type TokenInfoOf<T> =
+		TokenInfo<<T as frame_system::Config>::AccountId, <T as Config>::TokenData, MetadataOf<T>>;
 
 	pub type GenesisTokenData<T> = (
 		<T as frame_system::Config>::AccountId, // Token owner
@@ -108,6 +121,8 @@ pub mod module {
 		/// Can not destroy class
 		/// Total issuance is not 0
 		CannotDestroyClass,
+		/// Failed because the Maximum amount of metadata was exceeded
+		MaxMetadataExceeded,
 	}
 
 	/// Next available class ID.
@@ -190,8 +205,11 @@ impl<T: Config> Pallet<T> {
 			Ok(current_id)
 		})?;
 
+		let bounded_metadata: BoundedVec<u8, T::MaxMetadata> =
+			metadata.try_into().map_err(|_| Error::<T>::MaxMetadataExceeded)?;
+
 		let info = ClassInfo {
-			metadata,
+			metadata: bounded_metadata,
 			total_issuance: Default::default(),
 			owner: owner.clone(),
 			data,
@@ -240,8 +258,10 @@ impl<T: Config> Pallet<T> {
 				Ok(())
 			})?;
 
+			let bounded_metadata: BoundedVec<u8, T::MaxMetadata> =
+				metadata.try_into().map_err(|_| Error::<T>::MaxMetadataExceeded)?;
 			let token_info = TokenInfo {
-				metadata,
+				metadata: bounded_metadata,
 				owner: owner.clone(),
 				data,
 			};
