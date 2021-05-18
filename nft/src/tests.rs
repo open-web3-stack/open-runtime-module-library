@@ -178,3 +178,18 @@ fn destroy_class_should_fail() {
 		assert_eq!(Classes::<Runtime>::contains_key(CLASS_ID), false);
 	});
 }
+
+#[test]
+fn exceeding_max_metadata_should_fail() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_noop!(
+			NonFungibleTokenModule::create_class(&ALICE, vec![1, 2], ()),
+			Error::<Runtime>::MaxMetadataExceeded
+		);
+		assert_ok!(NonFungibleTokenModule::create_class(&ALICE, vec![1], ()));
+		assert_noop!(
+			NonFungibleTokenModule::mint(&BOB, CLASS_ID, vec![1, 2], ()),
+			Error::<Runtime>::MaxMetadataExceeded
+		);
+	});
+}

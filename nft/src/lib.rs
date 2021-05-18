@@ -199,14 +199,14 @@ impl<T: Config> Pallet<T> {
 		metadata: Vec<u8>,
 		data: T::ClassData,
 	) -> Result<T::ClassId, DispatchError> {
+		let bounded_metadata: BoundedVec<u8, T::MaxMetadata> =
+			metadata.try_into().map_err(|_| Error::<T>::MaxMetadataExceeded)?;
+
 		let class_id = NextClassId::<T>::try_mutate(|id| -> Result<T::ClassId, DispatchError> {
 			let current_id = *id;
 			*id = id.checked_add(&One::one()).ok_or(Error::<T>::NoAvailableClassId)?;
 			Ok(current_id)
 		})?;
-
-		let bounded_metadata: BoundedVec<u8, T::MaxMetadata> =
-			metadata.try_into().map_err(|_| Error::<T>::MaxMetadataExceeded)?;
 
 		let info = ClassInfo {
 			metadata: bounded_metadata,
@@ -246,6 +246,9 @@ impl<T: Config> Pallet<T> {
 		data: T::TokenData,
 	) -> Result<T::TokenId, DispatchError> {
 		NextTokenId::<T>::try_mutate(class_id, |id| -> Result<T::TokenId, DispatchError> {
+			let bounded_metadata: BoundedVec<u8, T::MaxMetadata> =
+				metadata.try_into().map_err(|_| Error::<T>::MaxMetadataExceeded)?;
+
 			let token_id = *id;
 			*id = id.checked_add(&One::one()).ok_or(Error::<T>::NoAvailableTokenId)?;
 
@@ -258,8 +261,6 @@ impl<T: Config> Pallet<T> {
 				Ok(())
 			})?;
 
-			let bounded_metadata: BoundedVec<u8, T::MaxMetadata> =
-				metadata.try_into().map_err(|_| Error::<T>::MaxMetadataExceeded)?;
 			let token_info = TokenInfo {
 				metadata: bounded_metadata,
 				owner: owner.clone(),
