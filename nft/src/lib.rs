@@ -39,9 +39,9 @@ mod tests;
 
 /// Class info
 #[derive(Encode, Decode, Clone, Eq, PartialEq, MaxEncodedLen, RuntimeDebug)]
-pub struct ClassInfo<TokenId, AccountId, Data, MetadataOf> {
+pub struct ClassInfo<TokenId, AccountId, Data, ClassMetadataOf> {
 	/// Class metadata
-	pub metadata: MetadataOf,
+	pub metadata: ClassMetadataOf,
 	/// Total issuance for the class
 	pub total_issuance: TokenId,
 	/// Class owner
@@ -52,9 +52,9 @@ pub struct ClassInfo<TokenId, AccountId, Data, MetadataOf> {
 
 /// Token info
 #[derive(Encode, Decode, Clone, Eq, PartialEq, MaxEncodedLen, RuntimeDebug)]
-pub struct TokenInfo<AccountId, Data, MetadataOf> {
+pub struct TokenInfo<AccountId, Data, TokenMetadataOf> {
 	/// Token metadata
-	pub metadata: MetadataOf,
+	pub metadata: TokenMetadataOf,
 	/// Token owner
 	pub owner: AccountId,
 	/// Token Properties
@@ -78,18 +78,20 @@ pub mod module {
 		/// The token properties type
 		type TokenData: Parameter + Member + MaybeSerializeDeserialize;
 
-		type MaxMetadata: Get<u32>;
+		type MaxClassMetadata: Get<u32>;
+		type MaxTokenMetadata: Get<u32>;
 	}
 
-	pub type MetadataOf<T> = BoundedVec<u8, <T as Config>::MaxMetadata>;
+	pub type ClassMetadataOf<T> = BoundedVec<u8, <T as Config>::MaxClassMetadata>;
+	pub type TokenMetadataOf<T> = BoundedVec<u8, <T as Config>::MaxTokenMetadata>;
 	pub type ClassInfoOf<T> = ClassInfo<
 		<T as Config>::TokenId,
 		<T as frame_system::Config>::AccountId,
 		<T as Config>::ClassData,
-		MetadataOf<T>,
+		ClassMetadataOf<T>,
 	>;
 	pub type TokenInfoOf<T> =
-		TokenInfo<<T as frame_system::Config>::AccountId, <T as Config>::TokenData, MetadataOf<T>>;
+		TokenInfo<<T as frame_system::Config>::AccountId, <T as Config>::TokenData, TokenMetadataOf<T>>;
 
 	pub type GenesisTokenData<T> = (
 		<T as frame_system::Config>::AccountId, // Token owner
@@ -199,7 +201,7 @@ impl<T: Config> Pallet<T> {
 		metadata: Vec<u8>,
 		data: T::ClassData,
 	) -> Result<T::ClassId, DispatchError> {
-		let bounded_metadata: BoundedVec<u8, T::MaxMetadata> =
+		let bounded_metadata: BoundedVec<u8, T::MaxClassMetadata> =
 			metadata.try_into().map_err(|_| Error::<T>::MaxMetadataExceeded)?;
 
 		let class_id = NextClassId::<T>::try_mutate(|id| -> Result<T::ClassId, DispatchError> {
@@ -246,7 +248,7 @@ impl<T: Config> Pallet<T> {
 		data: T::TokenData,
 	) -> Result<T::TokenId, DispatchError> {
 		NextTokenId::<T>::try_mutate(class_id, |id| -> Result<T::TokenId, DispatchError> {
-			let bounded_metadata: BoundedVec<u8, T::MaxMetadata> =
+			let bounded_metadata: BoundedVec<u8, T::MaxTokenMetadata> =
 				metadata.try_into().map_err(|_| Error::<T>::MaxMetadataExceeded)?;
 
 			let token_id = *id;
