@@ -77,8 +77,9 @@ pub mod module {
 		type ClassData: Parameter + Member + MaybeSerializeDeserialize;
 		/// The token properties type
 		type TokenData: Parameter + Member + MaybeSerializeDeserialize;
-
+		/// The maximum size of a class's metadata
 		type MaxClassMetadata: Get<u32>;
+		/// The maximum size of a token's metadata
 		type MaxTokenMetadata: Get<u32>;
 	}
 
