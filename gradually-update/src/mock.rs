@@ -45,6 +45,8 @@ impl frame_system::Config for Runtime {
 parameter_types! {
 	pub const UpdateFrequency: BlockNumber = 10;
 	pub MaxGraduallyUpdate: u32 = 3;
+	pub MaxStorageKeyBytes: u32 = 100_000;
+	pub MaxStorageValueBytes: u32 = 100_000;
 }
 
 impl Config for Runtime {
@@ -53,6 +55,8 @@ impl Config for Runtime {
 	type DispatchOrigin = frame_system::EnsureRoot<AccountId>;
 	type WeightInfo = ();
 	type MaxGraduallyUpdate = MaxGraduallyUpdate;
+	type MaxStorageKeyBytes = MaxStorageKeyBytes;
+	type MaxStorageValueBytes = MaxStorageValueBytes;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
