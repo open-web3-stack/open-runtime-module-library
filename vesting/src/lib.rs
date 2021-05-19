@@ -322,21 +322,20 @@ impl<T: Config> Pallet<T> {
 	}
 
 	fn do_update_vesting_schedules(who: &T::AccountId, schedules: Vec<VestingScheduleOf<T>>) -> DispatchResult {
-		let total_amount = schedules.iter().try_fold::<_, _, Result<BalanceOf<T>, DispatchError>>(
-			Zero::zero(),
-			|acc_amount, schedule| {
+		let bounded_schedules: BoundedVec<VestingScheduleOf<T>, T::MaxVestingSchedules> = schedules
+			.try_into()
+			.map_err(|_| Error::<T>::MaxVestingSchedulesExceeded)?;
+
+		let total_amount = bounded_schedules
+			.iter()
+			.try_fold::<_, _, Result<BalanceOf<T>, DispatchError>>(Zero::zero(), |acc_amount, schedule| {
 				let amount = Self::ensure_valid_vesting_schedule(schedule)?;
 				Ok(acc_amount + amount)
-			},
-		)?;
+			})?;
 		ensure!(
 			T::Currency::free_balance(who) >= total_amount,
 			Error::<T>::InsufficientBalanceToLock,
 		);
-
-		let bounded_schedules: BoundedVec<VestingScheduleOf<T>, T::MaxVestingSchedules> = schedules
-			.try_into()
-			.map_err(|_| Error::<T>::MaxVestingSchedulesExceeded)?;
 
 		T::Currency::set_lock(VESTING_LOCK_ID, who, total_amount, WithdrawReasons::all());
 		<VestingSchedules<T>>::insert(who, bounded_schedules);
