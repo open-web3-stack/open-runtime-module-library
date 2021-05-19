@@ -31,8 +31,11 @@ use codec::HasCompact;
 use frame_support::{
 	ensure,
 	pallet_prelude::*,
-	traits::{Currency, EnsureOrigin, ExistenceRequirement, Get, LockIdentifier, LockableCurrency, WithdrawReasons},
-	transactional,
+	traits::{
+		Currency, EnsureOrigin, ExistenceRequirement, Get, LockIdentifier, LockableCurrency, MaxEncodedLen,
+		WithdrawReasons,
+	},
+	transactional, BoundedVec,
 };
 use frame_system::{ensure_root, ensure_signed, pallet_prelude::*};
 use sp_runtime::{
@@ -41,6 +44,7 @@ use sp_runtime::{
 };
 use sp_std::{
 	cmp::{Eq, PartialEq},
+	convert::TryInto,
 	vec::Vec,
 };
 
@@ -51,16 +55,13 @@ mod weights;
 pub use module::*;
 pub use weights::WeightInfo;
 
-/// The maximum number of vesting schedules an account can have.
-pub const MAX_VESTINGS: usize = 20;
-
 pub const VESTING_LOCK_ID: LockIdentifier = *b"ormlvest";
 
 /// The vesting schedule.
 ///
 /// Benefits would be granted gradually, `per_period` amount every `period`
 /// of blocks after `start`.
-#[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug)]
+#[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug, MaxEncodedLen)]
 pub struct VestingSchedule<BlockNumber, Balance: HasCompact> {
 	/// Vesting starting block
 	pub start: BlockNumber,
@@ -136,6 +137,9 @@ pub mod module {
 
 		/// Weight information for extrinsics in this module.
 		type WeightInfo: WeightInfo;
+
+		/// The maximum vesting schedules
+		type MaxVestingSchedules: Get<u32>;
 	}
 
 	#[pallet::error]
@@ -150,6 +154,8 @@ pub mod module {
 		TooManyVestingSchedules,
 		/// The vested transfer amount is too low
 		AmountLow,
+		/// Failed because the maximum vesting schedules was exceeded
+		MaxVestingSchedulesExceeded,
 	}
 
 	#[pallet::event]
@@ -166,8 +172,13 @@ pub mod module {
 	/// Vesting schedules of an account.
 	#[pallet::storage]
 	#[pallet::getter(fn vesting_schedules)]
-	pub type VestingSchedules<T: Config> =
-		StorageMap<_, Blake2_128Concat, T::AccountId, Vec<VestingScheduleOf<T>>, ValueQuery>;
+	pub type VestingSchedules<T: Config> = StorageMap<
+		_,
+		Blake2_128Concat,
+		T::AccountId,
+		BoundedVec<VestingScheduleOf<T>, T::MaxVestingSchedules>,
+		ValueQuery,
+	>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
@@ -189,21 +200,23 @@ pub mod module {
 				.for_each(|(who, start, period, period_count, per_period)| {
 					let total = *per_period * Into::<BalanceOf<T>>::into(*period_count);
 
+					let bounded_schedule: BoundedVec<VestingScheduleOf<T>, T::MaxVestingSchedules> =
+						vec![VestingSchedule {
+							start: *start,
+							period: *period,
+							period_count: *period_count,
+							per_period: *per_period,
+						}]
+						.try_into()
+						.expect("Max vesting schedules exceeded");
+
 					assert!(
 						T::Currency::free_balance(who) >= total,
 						"Account do not have enough balance"
 					);
 
 					T::Currency::set_lock(VESTING_LOCK_ID, who, total, WithdrawReasons::all());
-					VestingSchedules::<T>::insert(
-						who,
-						vec![VestingSchedule {
-							start: *start,
-							period: *period,
-							period_count: *period_count,
-							per_period: *per_period,
-						}],
-					);
+					VestingSchedules::<T>::insert(who, bounded_schedule);
 				});
 		}
 	}
@@ -216,8 +229,7 @@ pub mod module {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		// can not get VestingSchedule count from `who`, so use `MAX_VESTINGS / 2`
-		#[pallet::weight(T::WeightInfo::claim((MAX_VESTINGS / 2) as u32))]
+		#[pallet::weight(T::WeightInfo::claim((<T as Config>::MaxVestingSchedules::get() / 2) as u32))]
 		pub fn claim(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 			let locked_amount = Self::do_claim(&who);
@@ -294,36 +306,34 @@ impl<T: Config> Pallet<T> {
 	fn do_vested_transfer(from: &T::AccountId, to: &T::AccountId, schedule: VestingScheduleOf<T>) -> DispatchResult {
 		let schedule_amount = Self::ensure_valid_vesting_schedule(&schedule)?;
 
-		ensure!(
-			<VestingSchedules<T>>::decode_len(to).unwrap_or(0) < MAX_VESTINGS,
-			Error::<T>::TooManyVestingSchedules
-		);
-
 		let total_amount = Self::locked_balance(to)
 			.checked_add(&schedule_amount)
 			.ok_or(ArithmeticError::Overflow)?;
 
 		T::Currency::transfer(from, to, schedule_amount, ExistenceRequirement::AllowDeath)?;
 		T::Currency::set_lock(VESTING_LOCK_ID, to, total_amount, WithdrawReasons::all());
-		<VestingSchedules<T>>::append(to, schedule);
+		<VestingSchedules<T>>::try_append(to, schedule).map_err(|_| Error::<T>::MaxVestingSchedulesExceeded)?;
 		Ok(())
 	}
 
 	fn do_update_vesting_schedules(who: &T::AccountId, schedules: Vec<VestingScheduleOf<T>>) -> DispatchResult {
-		let total_amount = schedules.iter().try_fold::<_, _, Result<BalanceOf<T>, DispatchError>>(
-			Zero::zero(),
-			|acc_amount, schedule| {
+		let bounded_schedules: BoundedVec<VestingScheduleOf<T>, T::MaxVestingSchedules> = schedules
+			.try_into()
+			.map_err(|_| Error::<T>::MaxVestingSchedulesExceeded)?;
+
+		let total_amount = bounded_schedules
+			.iter()
+			.try_fold::<_, _, Result<BalanceOf<T>, DispatchError>>(Zero::zero(), |acc_amount, schedule| {
 				let amount = Self::ensure_valid_vesting_schedule(schedule)?;
 				Ok(acc_amount + amount)
-			},
-		)?;
+			})?;
 		ensure!(
 			T::Currency::free_balance(who) >= total_amount,
 			Error::<T>::InsufficientBalanceToLock,
 		);
 
 		T::Currency::set_lock(VESTING_LOCK_ID, who, total_amount, WithdrawReasons::all());
-		<VestingSchedules<T>>::insert(who, schedules);
+		<VestingSchedules<T>>::insert(who, bounded_schedules);
 
 		Ok(())
 	}
