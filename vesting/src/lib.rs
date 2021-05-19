@@ -306,18 +306,13 @@ impl<T: Config> Pallet<T> {
 	fn do_vested_transfer(from: &T::AccountId, to: &T::AccountId, schedule: VestingScheduleOf<T>) -> DispatchResult {
 		let schedule_amount = Self::ensure_valid_vesting_schedule(&schedule)?;
 
-		let mut bounded_schedules = <VestingSchedules<T>>::get(to);
-		bounded_schedules
-			.try_push(schedule)
-			.map_err(|_| Error::<T>::MaxVestingSchedulesExceeded)?;
-
 		let total_amount = Self::locked_balance(to)
 			.checked_add(&schedule_amount)
 			.ok_or(ArithmeticError::Overflow)?;
 
 		T::Currency::transfer(from, to, schedule_amount, ExistenceRequirement::AllowDeath)?;
 		T::Currency::set_lock(VESTING_LOCK_ID, to, total_amount, WithdrawReasons::all());
-		<VestingSchedules<T>>::insert(to, bounded_schedules);
+		<VestingSchedules<T>>::try_append(to, schedule).map_err(|_| Error::<T>::MaxVestingSchedulesExceeded)?;
 		Ok(())
 	}
 
