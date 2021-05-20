@@ -84,7 +84,7 @@ fn schedule_dispatch_at_work() {
 		assert!(System::events().iter().any(|record| record.event == event));
 
 		run_to_block(2);
-		let event = mock::Event::pallet_scheduler(pallet_scheduler::RawEvent::Dispatched(
+		let event = mock::Event::pallet_scheduler(pallet_scheduler::Event::<Runtime>::Dispatched(
 			(2, 0),
 			Some([1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0].to_vec()),
 			Ok(()),
@@ -103,7 +103,7 @@ fn schedule_dispatch_at_work() {
 		assert!(System::events().iter().any(|record| record.event == event));
 
 		run_to_block(3);
-		let event = mock::Event::pallet_scheduler(pallet_scheduler::RawEvent::Dispatched(
+		let event = mock::Event::pallet_scheduler(pallet_scheduler::Event::<Runtime>::Dispatched(
 			(3, 0),
 			Some([0, 0, 2, 0, 0, 0].to_vec()),
 			Ok(()),
@@ -143,7 +143,7 @@ fn schedule_dispatch_after_work() {
 		assert!(System::events().iter().any(|record| record.event == event));
 
 		run_to_block(2);
-		let event = mock::Event::pallet_scheduler(pallet_scheduler::RawEvent::Dispatched(
+		let event = mock::Event::pallet_scheduler(pallet_scheduler::Event::<Runtime>::Dispatched(
 			(2, 0),
 			Some([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0].to_vec()),
 			Ok(()),
@@ -162,7 +162,7 @@ fn schedule_dispatch_after_work() {
 		assert!(System::events().iter().any(|record| record.event == event));
 
 		run_to_block(3);
-		let event = mock::Event::pallet_scheduler(pallet_scheduler::RawEvent::Dispatched(
+		let event = mock::Event::pallet_scheduler(pallet_scheduler::Event::<Runtime>::Dispatched(
 			(3, 0),
 			Some([0, 0, 2, 0, 0, 0].to_vec()),
 			Ok(()),
