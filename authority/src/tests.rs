@@ -123,7 +123,7 @@ fn schedule_dispatch_after_work() {
 		run_to_block(1);
 		assert_eq!(
 			Authority::schedule_dispatch(Origin::root(), DispatchTime::At(0), 0, true, Box::new(call.clone())),
-			Err(Error::<Runtime>::Overflow.into())
+			Err(ArithmeticError::Overflow.into())
 		);
 
 		assert_ok!(Authority::schedule_dispatch(

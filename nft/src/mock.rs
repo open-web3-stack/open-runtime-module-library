@@ -43,11 +43,18 @@ impl frame_system::Config for Runtime {
 	type OnSetCode = ();
 }
 
+parameter_types! {
+	pub const MaxClassMetadata: u32 = 1;
+	pub const MaxTokenMetadata: u32 = 1;
+}
+
 impl Config for Runtime {
 	type ClassId = u64;
 	type TokenId = u64;
 	type ClassData = ();
 	type TokenData = ();
+	type MaxClassMetadata = MaxClassMetadata;
+	type MaxTokenMetadata = MaxTokenMetadata;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;

@@ -25,11 +25,12 @@ use frame_support::{
 	ensure,
 	pallet_prelude::*,
 	storage,
-	traits::{EnsureOrigin, Get},
+	traits::{EnsureOrigin, Get, MaxEncodedLen},
+	BoundedVec,
 };
 use frame_system::pallet_prelude::*;
 use sp_runtime::{traits::SaturatedConversion, DispatchResult, RuntimeDebug};
-use sp_std::prelude::Vec;
+use sp_std::convert::TryInto;
 
 mod default_weight;
 mod mock;
@@ -38,14 +39,11 @@ mod tests;
 /// Gradually update a value stored at `key` to `target_value`,
 /// change `per_block` * `T::UpdateFrequency` per `T::UpdateFrequency`
 /// blocks.
-#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
-pub struct GraduallyUpdate {
-	/// The storage key of the value to update
-	pub key: StorageKeyBytes,
-	/// The target value
-	pub target_value: StorageValueBytes,
-	/// The amount of the value to update per one block
-	pub per_block: StorageValueBytes,
+#[derive(Encode, Decode, Clone, Eq, PartialEq, MaxEncodedLen, RuntimeDebug)]
+pub struct GraduallyUpdate<Key, Value> {
+	pub key: Key,
+	pub target_value: Value,
+	pub per_block: Value,
 }
 
 pub use module::*;
@@ -60,8 +58,10 @@ pub mod module {
 		fn on_finalize(u: u32) -> Weight;
 	}
 
-	pub(crate) type StorageKeyBytes = Vec<u8>;
-	pub(crate) type StorageValueBytes = Vec<u8>;
+	pub(crate) type StorageKeyBytes<T> = BoundedVec<u8, <T as Config>::MaxStorageKeyBytes>;
+	pub(crate) type StorageValueBytes<T> = BoundedVec<u8, <T as Config>::MaxStorageValueBytes>;
+
+	type GraduallyUpdateOf<T> = GraduallyUpdate<StorageKeyBytes<T>, StorageValueBytes<T>>;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -76,6 +76,15 @@ pub mod module {
 
 		/// Weight information for extrinsics in this module.
 		type WeightInfo: WeightInfo;
+
+		/// Maximum active gradual updates
+		type MaxGraduallyUpdate: Get<u32>;
+
+		/// Maximum size of storage key
+		type MaxStorageKeyBytes: Get<u32>;
+
+		/// Maximum size of storage value
+		type MaxStorageValueBytes: Get<u32>;
 	}
 
 	#[pallet::error]
@@ -88,23 +97,30 @@ pub mod module {
 		GraduallyUpdateHasExisted,
 		/// No update exists to cancel.
 		GraduallyUpdateNotFound,
+		/// Maximum updates exceeded
+		MaxGraduallyUpdateExceeded,
+		/// Maximum key size exceeded
+		MaxStorageKeyBytesExceeded,
+		/// Maximum value size exceeded
+		MaxStorageValueBytesExceeded,
 	}
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Gradually update added. [key, per_block, target_value]
-		GraduallyUpdateAdded(StorageKeyBytes, StorageValueBytes, StorageValueBytes),
+		GraduallyUpdateAdded(StorageKeyBytes<T>, StorageValueBytes<T>, StorageValueBytes<T>),
 		/// Gradually update cancelled. [key]
-		GraduallyUpdateCancelled(StorageKeyBytes),
+		GraduallyUpdateCancelled(StorageKeyBytes<T>),
 		/// Gradually update applied. [block_number, key, target_value]
-		Updated(T::BlockNumber, StorageKeyBytes, StorageValueBytes),
+		Updated(T::BlockNumber, StorageKeyBytes<T>, StorageValueBytes<T>),
 	}
 
 	/// All the on-going updates
 	#[pallet::storage]
 	#[pallet::getter(fn gradually_updates)]
-	pub(crate) type GraduallyUpdates<T: Config> = StorageValue<_, Vec<GraduallyUpdate>, ValueQuery>;
+	pub(crate) type GraduallyUpdates<T: Config> =
+		StorageValue<_, BoundedVec<GraduallyUpdateOf<T>, T::MaxGraduallyUpdate>, ValueQuery>;
 
 	/// The last updated block number
 	#[pallet::storage]
@@ -135,7 +151,7 @@ pub mod module {
 	impl<T: Config> Pallet<T> {
 		/// Add gradually_update to adjust numeric parameter.
 		#[pallet::weight(T::WeightInfo::gradually_update())]
-		pub fn gradually_update(origin: OriginFor<T>, update: GraduallyUpdate) -> DispatchResultWithPostInfo {
+		pub fn gradually_update(origin: OriginFor<T>, update: GraduallyUpdateOf<T>) -> DispatchResultWithPostInfo {
 			T::DispatchOrigin::try_origin(origin).map(|_| ()).or_else(ensure_root)?;
 
 			// Support max value is u128, ensure per_block and target_value <= 16 bytes.
@@ -145,7 +161,7 @@ pub mod module {
 			);
 
 			if storage::unhashed::exists(&update.key) {
-				let current_value = storage::unhashed::get::<StorageValueBytes>(&update.key).unwrap();
+				let current_value = storage::unhashed::get::<StorageValueBytes<T>>(&update.key).unwrap();
 				ensure!(
 					current_value.len() == update.target_value.len(),
 					Error::<T>::InvalidTargetValue
@@ -158,7 +174,9 @@ pub mod module {
 					Error::<T>::GraduallyUpdateHasExisted
 				);
 
-				gradually_updates.push(update.clone());
+				gradually_updates
+					.try_push(update.clone())
+					.map_err(|_| Error::<T>::MaxGraduallyUpdateExceeded)?;
 
 				Ok(())
 			})?;
@@ -173,7 +191,7 @@ pub mod module {
 
 		/// Cancel gradually_update to adjust numeric parameter.
 		#[pallet::weight(T::WeightInfo::cancel_gradually_update())]
-		pub fn cancel_gradually_update(origin: OriginFor<T>, key: StorageKeyBytes) -> DispatchResultWithPostInfo {
+		pub fn cancel_gradually_update(origin: OriginFor<T>, key: StorageKeyBytes<T>) -> DispatchResultWithPostInfo {
 			T::DispatchOrigin::try_origin(origin).map(|_| ()).or_else(ensure_root)?;
 
 			GraduallyUpdates::<T>::try_mutate(|gradually_updates| -> DispatchResult {
@@ -206,7 +224,7 @@ impl<T: Config> Pallet<T> {
 
 		gradually_updates.retain(|update| {
 			let mut keep = true;
-			let current_value = storage::unhashed::get::<StorageValueBytes>(&update.key).unwrap_or_default();
+			let current_value = storage::unhashed::get::<StorageValueBytes<T>>(&update.key).unwrap_or_default();
 			let current_value_u128 = u128::from_le_bytes(Self::convert_vec_to_u8(&current_value));
 
 			let frequency_u128: u128 = T::UpdateFrequency::get().saturated_into();
@@ -232,7 +250,9 @@ impl<T: Config> Pallet<T> {
 
 			storage::unhashed::put(&update.key, &value);
 
-			Self::deposit_event(Event::Updated(now, update.key.clone(), value));
+			let bounded_value: StorageValueBytes<T> = value.to_vec().try_into().unwrap();
+
+			Self::deposit_event(Event::Updated(now, update.key.clone(), bounded_value));
 
 			keep
 		});
@@ -246,7 +266,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	#[allow(clippy::ptr_arg)]
-	fn convert_vec_to_u8(input: &StorageValueBytes) -> [u8; 16] {
+	fn convert_vec_to_u8(input: &StorageValueBytes<T>) -> [u8; 16] {
 		let mut array: [u8; 16] = [0; 16];
 		for (i, v) in input.iter().enumerate() {
 			array[i] = *v;

@@ -76,12 +76,17 @@ impl EnsureOrigin<Origin> for EnsureAliceOrBob {
 	}
 }
 
+parameter_types! {
+	pub const MaxVestingSchedule: u32 = 2;
+}
+
 impl Config for Runtime {
 	type Event = Event;
 	type Currency = PalletBalances;
 	type MinVestedTransfer = MinVestedTransfer;
 	type VestedTransferOrigin = EnsureAliceOrBob;
 	type WeightInfo = ();
+	type MaxVestingSchedules = MaxVestingSchedule;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;

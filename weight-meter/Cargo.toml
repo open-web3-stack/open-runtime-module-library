@@ -1,0 +1,32 @@
+[package]
+name = "orml-weight-meter"
+version = "0.4.1-dev"
+license = "Apache-2.0"
+authors = ["Laminar Developers <hello@laminar.one>"]
+edition = "2018"
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[dependencies]
+spin = "0.7.1"
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
+weight-meter-procedural = { path = "weight-meter-procedural", default-features = false }
+
+[dev-dependencies]
+serde = { version = "1.0.124" }
+codec = { package = "parity-scale-codec", version = "2.0.0" }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
+sp-std = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
+
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1"}
+frame-system = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
+pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
+
+[features]
+default = ["std"]
+std = [
+    "frame-support/std",
+    "weight-meter-procedural/std",
+]

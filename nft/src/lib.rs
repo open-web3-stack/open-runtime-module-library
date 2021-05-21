@@ -22,21 +22,26 @@
 #![allow(clippy::unused_unit)]
 
 use codec::{Decode, Encode};
-use frame_support::{ensure, pallet_prelude::*, Parameter};
+use frame_support::{
+	ensure,
+	pallet_prelude::*,
+	traits::{Get, MaxEncodedLen},
+	BoundedVec, Parameter,
+};
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, One, Zero},
-	DispatchError, DispatchResult, RuntimeDebug,
+	ArithmeticError, DispatchError, DispatchResult, RuntimeDebug,
 };
-use sp_std::vec::Vec;
+use sp_std::{convert::TryInto, vec::Vec};
 
 mod mock;
 mod tests;
 
 /// Class info
-#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
-pub struct ClassInfo<TokenId, AccountId, Data> {
+#[derive(Encode, Decode, Clone, Eq, PartialEq, MaxEncodedLen, RuntimeDebug)]
+pub struct ClassInfo<TokenId, AccountId, Data, ClassMetadataOf> {
 	/// Class metadata
-	pub metadata: Vec<u8>,
+	pub metadata: ClassMetadataOf,
 	/// Total issuance for the class
 	pub total_issuance: TokenId,
 	/// Class owner
@@ -46,10 +51,10 @@ pub struct ClassInfo<TokenId, AccountId, Data> {
 }
 
 /// Token info
-#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
-pub struct TokenInfo<AccountId, Data> {
+#[derive(Encode, Decode, Clone, Eq, PartialEq, MaxEncodedLen, RuntimeDebug)]
+pub struct TokenInfo<AccountId, Data, TokenMetadataOf> {
 	/// Token metadata
-	pub metadata: Vec<u8>,
+	pub metadata: TokenMetadataOf,
 	/// Token owner
 	pub owner: AccountId,
 	/// Token Properties
@@ -72,11 +77,22 @@ pub mod module {
 		type ClassData: Parameter + Member + MaybeSerializeDeserialize;
 		/// The token properties type
 		type TokenData: Parameter + Member + MaybeSerializeDeserialize;
+		/// The maximum size of a class's metadata
+		type MaxClassMetadata: Get<u32>;
+		/// The maximum size of a token's metadata
+		type MaxTokenMetadata: Get<u32>;
 	}
 
-	pub type ClassInfoOf<T> =
-		ClassInfo<<T as Config>::TokenId, <T as frame_system::Config>::AccountId, <T as Config>::ClassData>;
-	pub type TokenInfoOf<T> = TokenInfo<<T as frame_system::Config>::AccountId, <T as Config>::TokenData>;
+	pub type ClassMetadataOf<T> = BoundedVec<u8, <T as Config>::MaxClassMetadata>;
+	pub type TokenMetadataOf<T> = BoundedVec<u8, <T as Config>::MaxTokenMetadata>;
+	pub type ClassInfoOf<T> = ClassInfo<
+		<T as Config>::TokenId,
+		<T as frame_system::Config>::AccountId,
+		<T as Config>::ClassData,
+		ClassMetadataOf<T>,
+	>;
+	pub type TokenInfoOf<T> =
+		TokenInfo<<T as frame_system::Config>::AccountId, <T as Config>::TokenData, TokenMetadataOf<T>>;
 
 	pub type GenesisTokenData<T> = (
 		<T as frame_system::Config>::AccountId, // Token owner
@@ -103,11 +119,11 @@ pub mod module {
 		ClassNotFound,
 		/// The operator is not the owner of the token and has no permission
 		NoPermission,
-		/// Arithmetic calculation overflow
-		NumOverflow,
 		/// Can not destroy class
 		/// Total issuance is not 0
 		CannotDestroyClass,
+		/// Failed because the Maximum amount of metadata was exceeded
+		MaxMetadataExceeded,
 	}
 
 	/// Next available class ID.
@@ -184,6 +200,9 @@ impl<T: Config> Pallet<T> {
 		metadata: Vec<u8>,
 		data: T::ClassData,
 	) -> Result<T::ClassId, DispatchError> {
+		let bounded_metadata: BoundedVec<u8, T::MaxClassMetadata> =
+			metadata.try_into().map_err(|_| Error::<T>::MaxMetadataExceeded)?;
+
 		let class_id = NextClassId::<T>::try_mutate(|id| -> Result<T::ClassId, DispatchError> {
 			let current_id = *id;
 			*id = id.checked_add(&One::one()).ok_or(Error::<T>::NoAvailableClassId)?;
@@ -191,7 +210,7 @@ impl<T: Config> Pallet<T> {
 		})?;
 
 		let info = ClassInfo {
-			metadata,
+			metadata: bounded_metadata,
 			total_issuance: Default::default(),
 			owner: owner.clone(),
 			data,
@@ -228,6 +247,9 @@ impl<T: Config> Pallet<T> {
 		data: T::TokenData,
 	) -> Result<T::TokenId, DispatchError> {
 		NextTokenId::<T>::try_mutate(class_id, |id| -> Result<T::TokenId, DispatchError> {
+			let bounded_metadata: BoundedVec<u8, T::MaxTokenMetadata> =
+				metadata.try_into().map_err(|_| Error::<T>::MaxMetadataExceeded)?;
+
 			let token_id = *id;
 			*id = id.checked_add(&One::one()).ok_or(Error::<T>::NoAvailableTokenId)?;
 
@@ -236,12 +258,12 @@ impl<T: Config> Pallet<T> {
 				info.total_issuance = info
 					.total_issuance
 					.checked_add(&One::one())
-					.ok_or(Error::<T>::NumOverflow)?;
+					.ok_or(ArithmeticError::Overflow)?;
 				Ok(())
 			})?;
 
 			let token_info = TokenInfo {
-				metadata,
+				metadata: bounded_metadata,
 				owner: owner.clone(),
 				data,
 			};
@@ -263,7 +285,7 @@ impl<T: Config> Pallet<T> {
 				info.total_issuance = info
 					.total_issuance
 					.checked_sub(&One::one())
-					.ok_or(Error::<T>::NumOverflow)?;
+					.ok_or(ArithmeticError::Overflow)?;
 				Ok(())
 			})?;
 
