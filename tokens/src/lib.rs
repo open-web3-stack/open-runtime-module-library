@@ -449,7 +449,9 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 				frame_system::Pallet::<T>::dec_consumers(who);
 			}
 		} else {
-			<Locks<T, I>>::insert(who, currency_id, locks);
+			let bounded_locks: BoundedVec<BalanceLock<T::Balance>, T::MaxLocks> =
+				locks.to_vec().try_into().map_err(|_| Error::<T, I>::MaxLocksExceeded)?;
+			<Locks<T, I>>::insert(who, currency_id, bounded_locks);
 			if !existed {
 				// increase account ref count when initialize lock
 				if frame_system::Pallet::<T>::inc_consumers(who).is_err() {
@@ -542,7 +544,7 @@ impl<T: Config<I>, I: 'static> MultiCurrency<T::AccountId> for Pallet<T, I> {
 		TotalIssuance::<T, I>::try_mutate(currency_id, |total_issuance| -> DispatchResult {
 			*total_issuance = total_issuance
 				.checked_add(&amount)
-				.ok_or(Error::<T, I>::TotalIssuanceOverflow)?;
+				.ok_or(ArithmeticError::Overflow)?;
 
 			Self::set_free_balance(currency_id, who, Self::free_balance(currency_id, who) + amount);
 
@@ -929,7 +931,7 @@ where
 		let new_total = Pallet::<T, I>::free_balance(currency_id, who)
 			.checked_add(&value)
 			.ok_or(ArithmeticError::Overflow)?;
-		Pallet::<T>::set_free_balance(currency_id, who, new_total);
+		Pallet::<T,I>::set_free_balance(currency_id, who, new_total);
 
 		Ok(Self::PositiveImbalance::new(value))
 	}
