@@ -7,13 +7,17 @@ use codec::Encode;
 use frame_support::{assert_noop, assert_ok};
 use mock::{Event, *};
 use sp_runtime::{FixedPointNumber, FixedU128, Permill};
+use sp_std::convert::TryInto;
 
 fn storage_set(key: &Vec<u8>, value: &Vec<u8>) {
+	// let bounded_key: StorageValueBytes<Runtime> =
+	// key.to_vec().try_into().unwrap(); let bounded_value:
+	// StorageValueBytes<Runtime> = key.to_vec().try_into().unwrap();
 	frame_support::storage::unhashed::put(key, value);
 }
 
-fn storage_get(key: &Vec<u8>) -> Vec<u8> {
-	frame_support::storage::unhashed::get::<StorageValueBytes>(key).unwrap_or_default()
+fn storage_get(key: &Vec<u8>) -> StorageValueBytes<Runtime> {
+	frame_support::storage::unhashed::get::<StorageValueBytes<Runtime>>(key).unwrap_or_default()
 }
 
 #[test]
@@ -21,50 +25,46 @@ fn gradually_update_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		System::set_block_number(1);
 
-		let update = GraduallyUpdate {
-			key: vec![1],
-			target_value: vec![9],
-			per_block: vec![1],
+		let update: GraduallyUpdate<StorageKeyBytes<Runtime>, StorageValueBytes<Runtime>> = GraduallyUpdate {
+			key: vec![1].try_into().unwrap(),
+			target_value: vec![9].try_into().unwrap(),
+			per_block: vec![1].try_into().unwrap(),
 		};
 		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()));
-
-		let gradually_update_event = Event::gradually_update(crate::Event::GraduallyUpdateAdded(
+		System::assert_last_event(Event::gradually_update(crate::Event::GraduallyUpdateAdded(
 			update.key,
 			update.per_block,
 			update.target_value,
-		));
-		assert!(System::events()
-			.iter()
-			.any(|record| record.event == gradually_update_event));
+		)));
 	});
 }
 
 #[test]
 fn gradually_update_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		let update = GraduallyUpdate {
-			key: vec![1],
-			target_value: 9u32.encode(),
-			per_block: 1u64.encode(),
+		let update: GraduallyUpdate<StorageKeyBytes<Runtime>, StorageValueBytes<Runtime>> = GraduallyUpdate {
+			key: vec![1].try_into().unwrap(),
+			target_value: 9u32.encode().try_into().unwrap(),
+			per_block: 1u64.encode().try_into().unwrap(),
 		};
 		assert_noop!(
 			GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()),
 			Error::<Runtime>::InvalidPerBlockOrTargetValue
 		);
 
-		let update = GraduallyUpdate {
-			key: vec![1],
-			target_value: 90u32.encode(),
-			per_block: 1u32.encode(),
+		let update: GraduallyUpdate<StorageKeyBytes<Runtime>, StorageValueBytes<Runtime>> = GraduallyUpdate {
+			key: vec![1].try_into().unwrap(),
+			target_value: 90u32.encode().try_into().unwrap(),
+			per_block: 1u32.encode().try_into().unwrap(),
 		};
 		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()));
 
 		GraduallyUpdateModule::on_finalize(20);
 
 		let new_update = GraduallyUpdate {
-			key: vec![1],
-			target_value: 9u64.encode(),
-			per_block: 1u64.encode(),
+			key: vec![1].try_into().unwrap(),
+			target_value: 9u64.encode().try_into().unwrap(),
+			per_block: 1u64.encode().try_into().unwrap(),
 		};
 		assert_noop!(
 			GraduallyUpdateModule::gradually_update(Origin::root(), new_update.clone()),
@@ -83,39 +83,35 @@ fn cancel_gradually_update_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		System::set_block_number(1);
 
-		let update = GraduallyUpdate {
-			key: vec![1],
-			target_value: vec![9],
-			per_block: vec![1],
+		let update: GraduallyUpdate<StorageKeyBytes<Runtime>, StorageValueBytes<Runtime>> = GraduallyUpdate {
+			key: vec![1].try_into().unwrap(),
+			target_value: vec![9].try_into().unwrap(),
+			per_block: vec![1].try_into().unwrap(),
 		};
 		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()));
-		let gradually_update_event = Event::gradually_update(crate::Event::GraduallyUpdateAdded(
+		System::assert_last_event(Event::gradually_update(crate::Event::GraduallyUpdateAdded(
 			update.key.clone(),
 			update.per_block,
 			update.target_value,
-		));
-		assert!(System::events()
-			.iter()
-			.any(|record| record.event == gradually_update_event));
+		)));
 
 		assert_ok!(GraduallyUpdateModule::cancel_gradually_update(
 			Origin::root(),
 			update.key.clone()
 		));
-		let cancel_gradually_update_event = Event::gradually_update(crate::Event::GraduallyUpdateCancelled(update.key));
-		assert!(System::events()
-			.iter()
-			.any(|record| record.event == cancel_gradually_update_event));
+		System::assert_last_event(Event::gradually_update(crate::Event::GraduallyUpdateCancelled(
+			update.key.clone(),
+		)));
 	});
 }
 
 #[test]
 fn cancel_gradually_update_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		let update = GraduallyUpdate {
-			key: vec![1],
-			target_value: 9u32.encode(),
-			per_block: 1u32.encode(),
+		let update: GraduallyUpdate<StorageKeyBytes<Runtime>, StorageValueBytes<Runtime>> = GraduallyUpdate {
+			key: vec![1].try_into().unwrap(),
+			target_value: 9u32.encode().try_into().unwrap(),
+			per_block: 1u32.encode().try_into().unwrap(),
 		};
 		assert_noop!(
 			GraduallyUpdateModule::cancel_gradually_update(Origin::root(), update.key.clone()),
@@ -136,21 +132,22 @@ fn add_on_finalize_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		System::set_block_number(1);
 
-		let update = GraduallyUpdate {
-			key: vec![1],
-			target_value: vec![30],
-			per_block: vec![1],
+		let update: GraduallyUpdate<StorageKeyBytes<Runtime>, StorageValueBytes<Runtime>> = GraduallyUpdate {
+			key: vec![1].try_into().unwrap(),
+			target_value: vec![30].try_into().unwrap(),
+			per_block: vec![1].try_into().unwrap(),
 		};
 		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()));
 		assert_eq!(storage_get(&update.key), Vec::<u8>::new());
 
 		GraduallyUpdateModule::on_finalize(10);
 		assert_eq!(storage_get(&update.key), vec![10]);
-		let gradually_update_blocknumber_event =
-			Event::gradually_update(crate::Event::Updated(10, update.key.clone(), vec![10]));
-		assert!(System::events()
-			.iter()
-			.any(|record| record.event == gradually_update_blocknumber_event));
+		println!("Length {}", System::events().len());
+		System::assert_last_event(Event::gradually_update(crate::Event::Updated(
+			10,
+			update.key.clone(),
+			vec![10].try_into().unwrap(),
+		)));
 		assert_eq!(System::events().len(), 2);
 
 		GraduallyUpdateModule::on_finalize(15);
@@ -159,20 +156,20 @@ fn add_on_finalize_should_work() {
 
 		GraduallyUpdateModule::on_finalize(20);
 		assert_eq!(storage_get(&update.key), vec![20]);
-		let gradually_update_blocknumber_event =
-			Event::gradually_update(crate::Event::Updated(20, update.key.clone(), vec![20]));
-		assert!(System::events()
-			.iter()
-			.any(|record| record.event == gradually_update_blocknumber_event));
+		System::assert_last_event(Event::gradually_update(crate::Event::Updated(
+			20,
+			update.key.clone(),
+			vec![20].try_into().unwrap(),
+		)));
 		assert_eq!(System::events().len(), 3);
 
 		GraduallyUpdateModule::on_finalize(40);
 		assert_eq!(storage_get(&update.key), vec![30]);
-		let gradually_update_blocknumber_event =
-			Event::gradually_update(crate::Event::Updated(40, update.key.clone(), vec![30]));
-		assert!(System::events()
-			.iter()
-			.any(|record| record.event == gradually_update_blocknumber_event));
+		System::assert_last_event(Event::gradually_update(crate::Event::Updated(
+			40,
+			update.key.clone(),
+			vec![30].try_into().unwrap(),
+		)));
 	});
 }
 
@@ -181,10 +178,10 @@ fn sub_on_finalize_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		System::set_block_number(1);
 
-		let update = GraduallyUpdate {
-			key: vec![1],
-			target_value: vec![5],
-			per_block: vec![1],
+		let update: GraduallyUpdate<StorageKeyBytes<Runtime>, StorageValueBytes<Runtime>> = GraduallyUpdate {
+			key: vec![1].try_into().unwrap(),
+			target_value: vec![5].try_into().unwrap(),
+			per_block: vec![1].try_into().unwrap(),
 		};
 
 		storage_set(&update.key, &vec![30]);
@@ -193,11 +190,11 @@ fn sub_on_finalize_should_work() {
 
 		GraduallyUpdateModule::on_finalize(10);
 		assert_eq!(storage_get(&update.key), vec![20]);
-		let gradually_update_blocknumber_event =
-			Event::gradually_update(crate::Event::Updated(10, update.key.clone(), vec![20]));
-		assert!(System::events()
-			.iter()
-			.any(|record| record.event == gradually_update_blocknumber_event));
+		System::assert_last_event(Event::gradually_update(crate::Event::Updated(
+			10,
+			update.key.clone(),
+			vec![20].try_into().unwrap(),
+		)));
 		assert_eq!(System::events().len(), 2);
 
 		GraduallyUpdateModule::on_finalize(15);
@@ -206,30 +203,30 @@ fn sub_on_finalize_should_work() {
 
 		GraduallyUpdateModule::on_finalize(20);
 		assert_eq!(storage_get(&update.key), vec![10]);
-		let gradually_update_blocknumber_event =
-			Event::gradually_update(crate::Event::Updated(20, update.key.clone(), vec![10]));
-		assert!(System::events()
-			.iter()
-			.any(|record| record.event == gradually_update_blocknumber_event));
+		System::assert_last_event(Event::gradually_update(crate::Event::Updated(
+			20,
+			update.key.clone(),
+			vec![10].try_into().unwrap(),
+		)));
 		assert_eq!(System::events().len(), 3);
 
 		GraduallyUpdateModule::on_finalize(40);
 		assert_eq!(storage_get(&update.key), vec![5]);
-		let gradually_update_blocknumber_event =
-			Event::gradually_update(crate::Event::Updated(40, update.key.clone(), vec![5]));
-		assert!(System::events()
-			.iter()
-			.any(|record| record.event == gradually_update_blocknumber_event));
+		System::assert_last_event(Event::gradually_update(crate::Event::Updated(
+			40,
+			update.key.clone(),
+			vec![5].try_into().unwrap(),
+		)));
 	});
 }
 
 #[test]
 fn u32_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let update = GraduallyUpdate {
-			key: vec![1],
-			target_value: 30u32.encode(),
-			per_block: 1u32.encode(),
+		let update: GraduallyUpdate<StorageKeyBytes<Runtime>, StorageValueBytes<Runtime>> = GraduallyUpdate {
+			key: vec![1].try_into().unwrap(),
+			target_value: 30u32.encode().try_into().unwrap(),
+			per_block: 1u32.encode().try_into().unwrap(),
 		};
 		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()));
 		assert_eq!(storage_get(&update.key), Vec::<u8>::new());
@@ -247,10 +244,10 @@ fn u32_should_work() {
 #[test]
 fn u128_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let update = GraduallyUpdate {
-			key: vec![1],
-			target_value: 30u128.encode(),
-			per_block: 1u128.encode(),
+		let update: GraduallyUpdate<StorageKeyBytes<Runtime>, StorageValueBytes<Runtime>> = GraduallyUpdate {
+			key: vec![1].try_into().unwrap(),
+			target_value: 30u128.encode().try_into().unwrap(),
+			per_block: 1u128.encode().try_into().unwrap(),
 		};
 		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()));
 		assert_eq!(storage_get(&update.key), Vec::<u8>::new());
@@ -280,10 +277,10 @@ fn u128_should_work() {
 #[test]
 fn permill_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let update = GraduallyUpdate {
-			key: vec![1],
-			target_value: Permill::from_percent(30).encode(),
-			per_block: Permill::from_percent(1).encode(),
+		let update: GraduallyUpdate<StorageKeyBytes<Runtime>, StorageValueBytes<Runtime>> = GraduallyUpdate {
+			key: vec![1].try_into().unwrap(),
+			target_value: Permill::from_percent(30).encode().try_into().unwrap(),
+			per_block: Permill::from_percent(1).encode().try_into().unwrap(),
 		};
 		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()));
 		assert_eq!(storage_get(&update.key), Vec::<u8>::new());
@@ -301,10 +298,10 @@ fn permill_should_work() {
 #[test]
 fn fixedu128_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let update = GraduallyUpdate {
-			key: vec![1],
-			target_value: FixedU128::saturating_from_rational(30, 1).encode(),
-			per_block: FixedU128::saturating_from_rational(1, 1).encode(),
+		let update: GraduallyUpdate<StorageKeyBytes<Runtime>, StorageValueBytes<Runtime>> = GraduallyUpdate {
+			key: vec![1].try_into().unwrap(),
+			target_value: FixedU128::saturating_from_rational(30, 1).encode().try_into().unwrap(),
+			per_block: FixedU128::saturating_from_rational(1, 1).encode().try_into().unwrap(),
 		};
 		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()));
 		assert_eq!(storage_get(&update.key), Vec::<u8>::new());
@@ -336,20 +333,20 @@ fn finish_multiple_on_finalize_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		System::set_block_number(1);
 
-		let update = GraduallyUpdate {
-			key: vec![10],
-			target_value: vec![30],
-			per_block: vec![1],
+		let update: GraduallyUpdate<StorageKeyBytes<Runtime>, StorageValueBytes<Runtime>> = GraduallyUpdate {
+			key: vec![10].try_into().unwrap(),
+			target_value: vec![30].try_into().unwrap(),
+			per_block: vec![1].try_into().unwrap(),
 		};
-		let update2 = GraduallyUpdate {
-			key: vec![20],
-			target_value: vec![60],
-			per_block: vec![2],
+		let update2: GraduallyUpdate<StorageKeyBytes<Runtime>, StorageValueBytes<Runtime>> = GraduallyUpdate {
+			key: vec![20].try_into().unwrap(),
+			target_value: vec![60].try_into().unwrap(),
+			per_block: vec![2].try_into().unwrap(),
 		};
-		let update3 = GraduallyUpdate {
-			key: vec![30],
-			target_value: vec![100],
-			per_block: vec![3],
+		let update3: GraduallyUpdate<StorageKeyBytes<Runtime>, StorageValueBytes<Runtime>> = GraduallyUpdate {
+			key: vec![30].try_into().unwrap(),
+			target_value: vec![100].try_into().unwrap(),
+			per_block: vec![3].try_into().unwrap(),
 		};
 		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()));
 		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update2.clone()));
@@ -379,5 +376,52 @@ fn finish_multiple_on_finalize_should_work() {
 		assert_eq!(storage_get(&update.key), vec![30]);
 		assert_eq!(storage_get(&update2.key), vec![60]);
 		assert_eq!(storage_get(&update3.key), vec![100]);
+	});
+}
+
+#[test]
+fn exceeding_max_gradually_updates_should_fail() {
+	ExtBuilder::default().build().execute_with(|| {
+		System::set_block_number(1);
+
+		let update: GraduallyUpdate<StorageKeyBytes<Runtime>, StorageValueBytes<Runtime>> = GraduallyUpdate {
+			key: vec![10].try_into().unwrap(),
+			target_value: vec![30].try_into().unwrap(),
+			per_block: vec![1].try_into().unwrap(),
+		};
+		let update2: GraduallyUpdate<StorageKeyBytes<Runtime>, StorageValueBytes<Runtime>> = GraduallyUpdate {
+			key: vec![20].try_into().unwrap(),
+			target_value: vec![60].try_into().unwrap(),
+			per_block: vec![2].try_into().unwrap(),
+		};
+		let update3: GraduallyUpdate<StorageKeyBytes<Runtime>, StorageValueBytes<Runtime>> = GraduallyUpdate {
+			key: vec![30].try_into().unwrap(),
+			target_value: vec![100].try_into().unwrap(),
+			per_block: vec![3].try_into().unwrap(),
+		};
+		let update4: GraduallyUpdate<StorageKeyBytes<Runtime>, StorageValueBytes<Runtime>> = GraduallyUpdate {
+			key: vec![40].try_into().unwrap(),
+			target_value: vec![120].try_into().unwrap(),
+			per_block: vec![4].try_into().unwrap(),
+		};
+		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()));
+		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update2.clone()));
+		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update3.clone()));
+		assert_noop!(
+			GraduallyUpdateModule::gradually_update(Origin::root(), update4.clone()),
+			Error::<Runtime>::MaxGraduallyUpdateExceeded
+		);
+
+		GraduallyUpdateModule::on_finalize(10);
+		GraduallyUpdateModule::on_finalize(20);
+		GraduallyUpdateModule::on_finalize(30);
+		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update4.clone()));
+		GraduallyUpdateModule::on_finalize(40);
+		GraduallyUpdateModule::on_finalize(50);
+		GraduallyUpdateModule::on_finalize(60);
+		assert_eq!(storage_get(&update.key), vec![30]);
+		assert_eq!(storage_get(&update2.key), vec![60]);
+		assert_eq!(storage_get(&update3.key), vec![100]);
+		assert_eq!(storage_get(&update4.key), vec![120]);
 	});
 }

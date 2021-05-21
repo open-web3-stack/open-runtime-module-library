@@ -4,11 +4,7 @@
 
 use super::*;
 use codec::{Decode, Encode};
-use frame_support::{
-	parameter_types,
-	traits::{OnFinalize, OnInitialize},
-	weights::Weight,
-};
+use frame_support::{parameter_types, weights::Weight};
 use frame_system::{ensure_root, ensure_signed, EnsureRoot};
 use sp_core::H256;
 use sp_runtime::{

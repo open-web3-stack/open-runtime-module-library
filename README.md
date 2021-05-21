@@ -67,6 +67,7 @@ _In alphabetical order_
 - [Bit.Country](https://github.com/bit-country/Bit-Country-Blockchain)
 - [ChainX](https://github.com/chainx-org/ChainX)
 - [HydraDX](https://github.com/galacticcouncil/hack.HydraDX-node)
+- [KodaDot: MetaPrime Network](https://github.com/kodadot/metaprime.network) 
 - [Laminar Chain](https://github.com/laminar-protocol/laminar-chain)
 - [Listen](https://github.com/listenofficial)
 - [Manta Network](https://github.com/Manta-Network)

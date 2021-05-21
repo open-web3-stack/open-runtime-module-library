@@ -38,9 +38,7 @@ fn deposit_concrete_fungible_asset_works() {
 			UnknownTokens::concrete_fungible_balances(&MOCK_RECIPIENT, &MOCK_CONCRETE_FUNGIBLE_ID),
 			3
 		);
-
-		let deposited_event = Event::unknown_tokens(crate::Event::Deposited(asset, MOCK_RECIPIENT));
-		assert!(System::events().iter().any(|record| record.event == deposited_event));
+		System::assert_last_event(Event::unknown_tokens(crate::Event::Deposited(asset, MOCK_RECIPIENT)));
 
 		// overflow case
 		let max_asset = concrete_fungible(u128::max_value());
@@ -60,9 +58,7 @@ fn deposit_abstract_fungible_asset() {
 			UnknownTokens::abstract_fungible_balances(&MOCK_RECIPIENT, &mock_abstract_fungible_id()),
 			3
 		);
-
-		let deposited_event = Event::unknown_tokens(crate::Event::Deposited(asset, MOCK_RECIPIENT));
-		assert!(System::events().iter().any(|record| record.event == deposited_event));
+		System::assert_last_event(Event::unknown_tokens(crate::Event::Deposited(asset, MOCK_RECIPIENT)));
 
 		// overflow case
 		let max_asset = abstract_fungible(u128::max_value());
@@ -98,9 +94,7 @@ fn withdraw_concrete_fungible_asset_works() {
 			UnknownTokens::concrete_fungible_balances(&MOCK_RECIPIENT, &MOCK_CONCRETE_FUNGIBLE_ID),
 			0
 		);
-
-		let withdrawn_event = Event::unknown_tokens(crate::Event::Withdrawn(asset.clone(), MOCK_RECIPIENT));
-		assert!(System::events().iter().any(|record| record.event == withdrawn_event));
+		System::assert_last_event(Event::unknown_tokens(crate::Event::Withdrawn(asset.clone(), MOCK_RECIPIENT)));
 
 		// balance too low case
 		assert_err!(
@@ -121,9 +115,7 @@ fn withdraw_abstract_fungible_asset_works() {
 			UnknownTokens::abstract_fungible_balances(&MOCK_RECIPIENT, &mock_abstract_fungible_id()),
 			0
 		);
-
-		let withdrawn_event = Event::unknown_tokens(crate::Event::Withdrawn(asset.clone(), MOCK_RECIPIENT));
-		assert!(System::events().iter().any(|record| record.event == withdrawn_event));
+		System::assert_last_event(Event::unknown_tokens(crate::Event::Withdrawn(asset.clone(), MOCK_RECIPIENT)));
 
 		// balance too low case
 		assert_err!(

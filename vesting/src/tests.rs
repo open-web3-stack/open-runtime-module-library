@@ -66,9 +66,7 @@ fn vested_transfer_works() {
 		};
 		assert_ok!(Vesting::vested_transfer(Origin::signed(ALICE), BOB, schedule.clone()));
 		assert_eq!(Vesting::vesting_schedules(&BOB), vec![schedule.clone()]);
-
-		let vested_event = Event::vesting(crate::Event::VestingScheduleAdded(ALICE, BOB, schedule));
-		assert!(System::events().iter().any(|record| record.event == vested_event));
+		System::assert_last_event(Event::vesting(crate::Event::VestingScheduleAdded(ALICE, BOB, schedule)));
 	});
 }
 
@@ -168,22 +166,22 @@ fn vested_transfer_fails_if_overflow() {
 			start: 1u64,
 			period: 1u64,
 			period_count: 2u32,
-			per_period: u64::max_value(),
+			per_period: u64::MAX,
 		};
 		assert_noop!(
 			Vesting::vested_transfer(Origin::signed(ALICE), BOB, schedule),
-			Error::<Runtime>::NumOverflow
+			ArithmeticError::Overflow,
 		);
 
 		let another_schedule = VestingSchedule {
-			start: u64::max_value(),
+			start: u64::MAX,
 			period: 1u64,
 			period_count: 2u32,
 			per_period: 1u64,
 		};
 		assert_noop!(
 			Vesting::vested_transfer(Origin::signed(ALICE), BOB, another_schedule),
-			Error::<Runtime>::NumOverflow
+			ArithmeticError::Overflow,
 		);
 	});
 }
@@ -327,5 +325,30 @@ fn multiple_vesting_schedule_claim_works() {
 		assert_eq!(VestingSchedules::<Runtime>::contains_key(&BOB), false);
 
 		assert_eq!(PalletBalances::locks(&BOB), vec![]);
+	});
+}
+
+#[test]
+fn exceeding_maximum_schedules_should_fail() {
+	ExtBuilder::build().execute_with(|| {
+		let schedule = VestingSchedule {
+			start: 0u64,
+			period: 10u64,
+			period_count: 2u32,
+			per_period: 10u64,
+		};
+		assert_ok!(Vesting::vested_transfer(Origin::signed(ALICE), BOB, schedule.clone()));
+		assert_ok!(Vesting::vested_transfer(Origin::signed(ALICE), BOB, schedule.clone()));
+		assert_noop!(
+			Vesting::vested_transfer(Origin::signed(ALICE), BOB, schedule.clone()),
+			Error::<Runtime>::MaxVestingSchedulesExceeded
+		);
+
+		let schedules = vec![schedule.clone(), schedule.clone(), schedule.clone()];
+
+		assert_noop!(
+			Vesting::update_vesting_schedules(Origin::root(), BOB, schedules),
+			Error::<Runtime>::MaxVestingSchedulesExceeded
+		);
 	});
 }

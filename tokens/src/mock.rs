@@ -24,6 +24,7 @@ pub const BOB: AccountId = AccountId32::new([1u8; 32]);
 pub const TREASURY_ACCOUNT: AccountId = AccountId32::new([2u8; 32]);
 pub const ID_1: LockIdentifier = *b"1       ";
 pub const ID_2: LockIdentifier = *b"2       ";
+pub const ID_3: LockIdentifier = *b"3       ";
 
 use crate as tokens;
 
@@ -98,6 +99,7 @@ parameter_types! {
 	pub const Burn: Permill = Permill::from_percent(50);
 	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
 	pub const GetTokenId: CurrencyId = DOT;
+	pub const MaxApprovals: u32 = 100;
 }
 
 impl pallet_treasury::Config for Runtime {
@@ -114,6 +116,7 @@ impl pallet_treasury::Config for Runtime {
 	type BurnDestination = ();
 	type SpendFunds = ();
 	type WeightInfo = ();
+	type MaxApprovals = MaxApprovals;
 }
 
 thread_local! {
@@ -205,6 +208,7 @@ parameter_type_with_key! {
 
 parameter_types! {
 	pub DustAccount: AccountId = PalletId(*b"orml/dst").into_account();
+	pub MaxLocks: u32 = 2;
 }
 
 type GeneralInstance = tokens::Instance1;
@@ -215,7 +219,8 @@ impl Config<GeneralInstance> for Runtime {
 	type CurrencyId = CurrencyId;
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
-	type OnDust = TransferDust<Runtime, DustAccount, tokens::Instance1>;
+	type OnDust = TransferDust<Runtime, DustAccount>;
+	type MaxLocks = MaxLocks;
 }
 pub type TreasuryCurrencyAdapter = <Runtime as pallet_treasury::Config>::Currency;
 
