@@ -78,6 +78,7 @@ sp-timestamp = { git = "https://github.com/paritytech//substrate", rev = "1d7f6e
 sp-session = { git = "https://github.com/paritytech//substrate", rev = "1d7f6e12c651d776fc0dc1adefd007bb60f60b63" }
 sp-blockchain = { git = "https://github.com/paritytech//substrate", rev = "1d7f6e12c651d776fc0dc1adefd007bb60f60b63" }
 sp-transaction-pool = { git = "https://github.com/paritytech//substrate", rev = "1d7f6e12c651d776fc0dc1adefd007bb60f60b63" }
+sc-client-db = { git = "https://github.com/paritytech//substrate", rev = "1d7f6e12c651d776fc0dc1adefd007bb60f60b63" }
 
 # [patch.'https://github.com/paritytech/cumulus']
 # cumulus-primitives-core = { git = "https://github.com/paritytech//cumulus", rev = "95d81d499927e508769690fc43a480f00ddd131e" }
