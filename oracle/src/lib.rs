@@ -245,7 +245,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 }
 
 impl<T: Config<I>, I: 'static> ChangeMembers<T::AccountId> for Pallet<T, I> {
-	fn change_members_sorted(_incoming: &[T::AccountId], outgoing: &[T::AccountId], new: &[T::AccountId]) {
+	fn change_members_sorted(_incoming: &[T::AccountId], outgoing: &[T::AccountId], _new: &[T::AccountId]) {
 		// remove values
 		for removed in outgoing {
 			RawValues::<T, I>::remove_prefix(removed);
