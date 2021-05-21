@@ -31,15 +31,11 @@ fn gradually_update_should_work() {
 			per_block: vec![1].try_into().unwrap(),
 		};
 		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()));
-
-		let gradually_update_event = Event::gradually_update(crate::Event::GraduallyUpdateAdded(
+		System::assert_last_event(Event::gradually_update(crate::Event::GraduallyUpdateAdded(
 			update.key,
 			update.per_block,
 			update.target_value,
-		));
-		assert!(System::events()
-			.iter()
-			.any(|record| record.event == gradually_update_event));
+		)));
 	});
 }
 
@@ -93,24 +89,19 @@ fn cancel_gradually_update_should_work() {
 			per_block: vec![1].try_into().unwrap(),
 		};
 		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()));
-		let gradually_update_event = Event::gradually_update(crate::Event::GraduallyUpdateAdded(
+		System::assert_last_event(Event::gradually_update(crate::Event::GraduallyUpdateAdded(
 			update.key.clone(),
 			update.per_block,
 			update.target_value,
-		));
-		assert!(System::events()
-			.iter()
-			.any(|record| record.event == gradually_update_event));
+		)));
 
 		assert_ok!(GraduallyUpdateModule::cancel_gradually_update(
 			Origin::root(),
 			update.key.clone()
 		));
-		let cancel_gradually_update_event =
-			Event::gradually_update(crate::Event::GraduallyUpdateCancelled(update.key.clone()));
-		assert!(System::events()
-			.iter()
-			.any(|record| record.event == cancel_gradually_update_event));
+		System::assert_last_event(Event::gradually_update(crate::Event::GraduallyUpdateCancelled(
+			update.key.clone(),
+		)));
 	});
 }
 
@@ -151,16 +142,12 @@ fn add_on_finalize_should_work() {
 
 		GraduallyUpdateModule::on_finalize(10);
 		assert_eq!(storage_get(&update.key), vec![10]);
-		let gradually_update_blocknumber_event = Event::gradually_update(crate::Event::Updated(
+		println!("Length {}", System::events().len());
+		System::assert_last_event(Event::gradually_update(crate::Event::Updated(
 			10,
 			update.key.clone(),
 			vec![10].try_into().unwrap(),
-		));
-		println!("Length {}", System::events().len());
-		assert!(System::events().iter().any(|record| {
-			println!("{:?}", record.event);
-			record.event == gradually_update_blocknumber_event
-		}));
+		)));
 		assert_eq!(System::events().len(), 2);
 
 		GraduallyUpdateModule::on_finalize(15);
@@ -169,26 +156,20 @@ fn add_on_finalize_should_work() {
 
 		GraduallyUpdateModule::on_finalize(20);
 		assert_eq!(storage_get(&update.key), vec![20]);
-		let gradually_update_blocknumber_event = Event::gradually_update(crate::Event::Updated(
+		System::assert_last_event(Event::gradually_update(crate::Event::Updated(
 			20,
 			update.key.clone(),
 			vec![20].try_into().unwrap(),
-		));
-		assert!(System::events()
-			.iter()
-			.any(|record| record.event == gradually_update_blocknumber_event));
+		)));
 		assert_eq!(System::events().len(), 3);
 
 		GraduallyUpdateModule::on_finalize(40);
 		assert_eq!(storage_get(&update.key), vec![30]);
-		let gradually_update_blocknumber_event = Event::gradually_update(crate::Event::Updated(
+		System::assert_last_event(Event::gradually_update(crate::Event::Updated(
 			40,
 			update.key.clone(),
 			vec![30].try_into().unwrap(),
-		));
-		assert!(System::events()
-			.iter()
-			.any(|record| record.event == gradually_update_blocknumber_event));
+		)));
 	});
 }
 
@@ -209,14 +190,11 @@ fn sub_on_finalize_should_work() {
 
 		GraduallyUpdateModule::on_finalize(10);
 		assert_eq!(storage_get(&update.key), vec![20]);
-		let gradually_update_blocknumber_event = Event::gradually_update(crate::Event::Updated(
+		System::assert_last_event(Event::gradually_update(crate::Event::Updated(
 			10,
 			update.key.clone(),
 			vec![20].try_into().unwrap(),
-		));
-		assert!(System::events()
-			.iter()
-			.any(|record| record.event == gradually_update_blocknumber_event));
+		)));
 		assert_eq!(System::events().len(), 2);
 
 		GraduallyUpdateModule::on_finalize(15);
@@ -225,26 +203,20 @@ fn sub_on_finalize_should_work() {
 
 		GraduallyUpdateModule::on_finalize(20);
 		assert_eq!(storage_get(&update.key), vec![10]);
-		let gradually_update_blocknumber_event = Event::gradually_update(crate::Event::Updated(
+		System::assert_last_event(Event::gradually_update(crate::Event::Updated(
 			20,
 			update.key.clone(),
 			vec![10].try_into().unwrap(),
-		));
-		assert!(System::events()
-			.iter()
-			.any(|record| record.event == gradually_update_blocknumber_event));
+		)));
 		assert_eq!(System::events().len(), 3);
 
 		GraduallyUpdateModule::on_finalize(40);
 		assert_eq!(storage_get(&update.key), vec![5]);
-		let gradually_update_blocknumber_event = Event::gradually_update(crate::Event::Updated(
+		System::assert_last_event(Event::gradually_update(crate::Event::Updated(
 			40,
 			update.key.clone(),
 			vec![5].try_into().unwrap(),
-		));
-		assert!(System::events()
-			.iter()
-			.any(|record| record.event == gradually_update_blocknumber_event));
+		)));
 	});
 }
 

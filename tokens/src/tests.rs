@@ -62,8 +62,7 @@ fn remove_dust_work() {
 		assert_eq!(Tokens::free_balance(DOT, &DustAccount::get()), 1);
 		assert_eq!(System::providers(&DustAccount::get()), 1);
 
-		let dust_lost_event = Event::tokens(crate::Event::DustLost(ALICE, DOT, 1));
-		assert!(System::events().iter().any(|record| record.event == dust_lost_event));
+		System::assert_last_event(Event::tokens(crate::Event::DustLost(ALICE, DOT, 1)));
 	});
 }
 
@@ -306,8 +305,7 @@ fn transfer_should_work() {
 			assert_eq!(Tokens::free_balance(DOT, &BOB), 150);
 			assert_eq!(Tokens::total_issuance(DOT), 200);
 
-			let transferred_event = Event::tokens(crate::Event::Transferred(DOT, ALICE, BOB, 50));
-			assert!(System::events().iter().any(|record| record.event == transferred_event));
+			System::assert_last_event(Event::tokens(crate::Event::Transferred(DOT, ALICE, BOB, 50)));
 
 			assert_noop!(
 				Tokens::transfer(Some(ALICE).into(), BOB, DOT, 60),
@@ -328,8 +326,7 @@ fn transfer_all_should_work() {
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
 			assert_eq!(Tokens::free_balance(DOT, &BOB), 200);
 
-			let transferred_event = Event::tokens(crate::Event::Transferred(DOT, ALICE, BOB, 100));
-			assert!(System::events().iter().any(|record| record.event == transferred_event));
+			System::assert_last_event(Event::tokens(crate::Event::Transferred(DOT, ALICE, BOB, 100)));
 		});
 }
 

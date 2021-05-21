@@ -21,11 +21,10 @@ fn should_feed_values_from_member() {
 				.pays_fee,
 			Pays::No
 		);
-
-		let new_feed_data_event = Event::oracle(crate::Event::NewFeedData(1, vec![(50, 1000), (51, 900), (52, 800)]));
-		assert!(System::events()
-			.iter()
-			.any(|record| record.event == new_feed_data_event));
+		System::assert_last_event(Event::oracle(crate::Event::NewFeedData(
+			1,
+			vec![(50, 1000), (51, 900), (52, 800)],
+		)));
 
 		assert_eq!(
 			ModuleOracle::raw_values(&account_id, &50),
