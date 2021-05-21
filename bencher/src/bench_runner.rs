@@ -4,7 +4,7 @@ use frame_benchmarking::{
 };
 use sc_client_db::BenchmarkingState;
 use sc_executor::{sp_wasm_interface::HostFunctions, WasmExecutionMethod, WasmExecutor};
-use sp_core::traits::{CallInWasm, MissingHostFunctions};
+use sc_executor_common::runtime_blob::RuntimeBlob;
 use sp_io::SubstrateHostFunctions;
 use sp_state_machine::{Ext, OverlayedChanges, StorageTransactionCache};
 
@@ -27,13 +27,12 @@ pub fn run<B: Block>(wasm_code: Vec<u8>) -> Vec<u8> {
 	);
 
 	executor
-		.call_in_wasm(
-			&wasm_code[..],
-			None,
+		.uncached_call(
+			RuntimeBlob::uncompress_if_needed(&wasm_code[..]).unwrap(),
+			&mut ext,
+			true,
 			"run_benches",
 			&[],
-			&mut ext,
-			MissingHostFunctions::Disallow,
 		)
 		.unwrap()
 }
