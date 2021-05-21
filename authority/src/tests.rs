@@ -74,7 +74,7 @@ fn schedule_dispatch_at_work() {
 			true,
 			Box::new(call.clone())
 		));
-		System::assert_has_event(mock::Event::authority(Event::Scheduled(
+		System::assert_last_event(mock::Event::authority(Event::Scheduled(
 			OriginCaller::authority(DelayedOrigin {
 				delay: 1,
 				origin: Box::new(OriginCaller::system(RawOrigin::Root)),
@@ -83,7 +83,7 @@ fn schedule_dispatch_at_work() {
 		)));
 
 		run_to_block(2);
-		System::assert_has_event(mock::Event::pallet_scheduler(
+		System::assert_last_event(mock::Event::pallet_scheduler(
 			pallet_scheduler::Event::<Runtime>::Dispatched(
 				(2, 0),
 				Some([1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0].to_vec()),
@@ -99,13 +99,13 @@ fn schedule_dispatch_at_work() {
 			false,
 			Box::new(call.clone())
 		));
-		System::assert_has_event(mock::Event::authority(Event::Scheduled(
+		System::assert_last_event(mock::Event::authority(Event::Scheduled(
 			OriginCaller::system(RawOrigin::Root),
 			2,
 		)));
 
 		run_to_block(3);
-		System::assert_has_event(mock::Event::pallet_scheduler(
+		System::assert_last_event(mock::Event::pallet_scheduler(
 			pallet_scheduler::Event::<Runtime>::Dispatched((3, 0), Some([0, 0, 2, 0, 0, 0].to_vec()), Ok(())),
 		));
 	});
@@ -132,7 +132,7 @@ fn schedule_dispatch_after_work() {
 			true,
 			Box::new(call.clone())
 		));
-		System::assert_has_event(mock::Event::authority(Event::Scheduled(
+		System::assert_last_event(mock::Event::authority(Event::Scheduled(
 			OriginCaller::authority(DelayedOrigin {
 				delay: 0,
 				origin: Box::new(OriginCaller::system(RawOrigin::Root)),
@@ -141,7 +141,7 @@ fn schedule_dispatch_after_work() {
 		)));
 
 		run_to_block(2);
-		System::assert_has_event(mock::Event::pallet_scheduler(
+		System::assert_last_event(mock::Event::pallet_scheduler(
 			pallet_scheduler::Event::<Runtime>::Dispatched(
 				(2, 0),
 				Some([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0].to_vec()),
@@ -157,13 +157,13 @@ fn schedule_dispatch_after_work() {
 			false,
 			Box::new(call.clone())
 		));
-		System::assert_has_event(mock::Event::authority(Event::Scheduled(
+		System::assert_last_event(mock::Event::authority(Event::Scheduled(
 			OriginCaller::system(RawOrigin::Root),
 			2,
 		)));
 
 		run_to_block(3);
-		System::assert_has_event(mock::Event::pallet_scheduler(
+		System::assert_last_event(mock::Event::pallet_scheduler(
 			pallet_scheduler::Event::<Runtime>::Dispatched((3, 0), Some([0, 0, 2, 0, 0, 0].to_vec()), Ok(())),
 		));
 	});
@@ -186,7 +186,7 @@ fn fast_track_scheduled_dispatch_work() {
 			true,
 			Box::new(call.clone())
 		));
-		System::assert_has_event(mock::Event::authority(Event::Scheduled(
+		System::assert_last_event(mock::Event::authority(Event::Scheduled(
 			OriginCaller::authority(DelayedOrigin {
 				delay: 1,
 				origin: Box::new(OriginCaller::system(RawOrigin::Root)),
@@ -211,7 +211,7 @@ fn fast_track_scheduled_dispatch_work() {
 			0,
 			DispatchTime::At(4),
 		));
-		System::assert_has_event(mock::Event::authority(Event::FastTracked(
+		System::assert_last_event(mock::Event::authority(Event::FastTracked(
 			OriginCaller::authority(DelayedOrigin {
 				delay: 1,
 				origin: Box::new(OriginCaller::system(RawOrigin::Root)),
@@ -227,7 +227,7 @@ fn fast_track_scheduled_dispatch_work() {
 			false,
 			Box::new(call.clone())
 		));
-		System::assert_has_event(mock::Event::authority(Event::Scheduled(
+		System::assert_last_event(mock::Event::authority(Event::Scheduled(
 			OriginCaller::system(RawOrigin::Root),
 			1,
 		)));
@@ -238,7 +238,7 @@ fn fast_track_scheduled_dispatch_work() {
 			1,
 			DispatchTime::At(4),
 		));
-		System::assert_has_event(mock::Event::authority(Event::FastTracked(
+		System::assert_last_event(mock::Event::authority(Event::FastTracked(
 			OriginCaller::system(RawOrigin::Root),
 			1,
 			4,
@@ -263,7 +263,7 @@ fn delay_scheduled_dispatch_work() {
 			true,
 			Box::new(call.clone())
 		));
-		System::assert_has_event(mock::Event::authority(Event::Scheduled(
+		System::assert_last_event(mock::Event::authority(Event::Scheduled(
 			OriginCaller::authority(DelayedOrigin {
 				delay: 1,
 				origin: Box::new(OriginCaller::system(RawOrigin::Root)),
@@ -288,7 +288,7 @@ fn delay_scheduled_dispatch_work() {
 			0,
 			4,
 		));
-		System::assert_has_event(mock::Event::authority(Event::Delayed(
+		System::assert_last_event(mock::Event::authority(Event::Delayed(
 			OriginCaller::authority(DelayedOrigin {
 				delay: 1,
 				origin: Box::new(OriginCaller::system(RawOrigin::Root)),
@@ -304,7 +304,7 @@ fn delay_scheduled_dispatch_work() {
 			false,
 			Box::new(call.clone())
 		));
-		System::assert_has_event(mock::Event::authority(Event::Scheduled(
+		System::assert_last_event(mock::Event::authority(Event::Scheduled(
 			OriginCaller::system(RawOrigin::Root),
 			1,
 		)));
@@ -315,7 +315,7 @@ fn delay_scheduled_dispatch_work() {
 			1,
 			4,
 		));
-		System::assert_has_event(mock::Event::authority(Event::Delayed(
+		System::assert_last_event(mock::Event::authority(Event::Delayed(
 			OriginCaller::system(RawOrigin::Root),
 			1,
 			5,
@@ -339,7 +339,7 @@ fn cancel_scheduled_dispatch_work() {
 			true,
 			Box::new(call.clone())
 		));
-		System::assert_has_event(mock::Event::authority(Event::Scheduled(
+		System::assert_last_event(mock::Event::authority(Event::Scheduled(
 			OriginCaller::authority(DelayedOrigin {
 				delay: 1,
 				origin: Box::new(OriginCaller::system(RawOrigin::Root)),
@@ -359,7 +359,7 @@ fn cancel_scheduled_dispatch_work() {
 
 		let pallets_origin = schedule_origin.caller().clone();
 		assert_ok!(Authority::cancel_scheduled_dispatch(Origin::root(), pallets_origin, 0));
-		System::assert_has_event(mock::Event::authority(Event::Cancelled(
+		System::assert_last_event(mock::Event::authority(Event::Cancelled(
 			OriginCaller::authority(DelayedOrigin {
 				delay: 1,
 				origin: Box::new(OriginCaller::system(RawOrigin::Root)),
@@ -374,7 +374,7 @@ fn cancel_scheduled_dispatch_work() {
 			false,
 			Box::new(call.clone())
 		));
-		System::assert_has_event(mock::Event::authority(Event::Scheduled(
+		System::assert_last_event(mock::Event::authority(Event::Scheduled(
 			OriginCaller::system(RawOrigin::Root),
 			1,
 		)));
@@ -384,7 +384,7 @@ fn cancel_scheduled_dispatch_work() {
 			frame_system::RawOrigin::Root.into(),
 			1
 		));
-		System::assert_has_event(mock::Event::authority(Event::Cancelled(
+		System::assert_last_event(mock::Event::authority(Event::Cancelled(
 			OriginCaller::system(RawOrigin::Root),
 			1,
 		)));
