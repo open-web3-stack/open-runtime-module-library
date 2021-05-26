@@ -12,15 +12,15 @@ pub trait Parse {
 }
 
 fn is_chain_junction(junction: Option<&Junction>) -> bool {
-	matches!(junction, Some(Parent) | Some(Parachain { id: _ }))
+	matches!(junction, Some(Parent) | Some(Parachain(_)))
 }
 
 impl Parse for MultiLocation {
 	fn chain_part(&self) -> Option<MultiLocation> {
 		match (self.first(), self.at(1)) {
-			(Some(Parent), Some(Parachain { id })) => Some((Parent, Parachain { id: *id }).into()),
+			(Some(Parent), Some(Parachain(id))) => Some((Parent, Parachain(*id)).into()),
 			(Some(Parent), _) => Some(Parent.into()),
-			(Some(Parachain { id }), _) => Some(Parachain { id: *id }.into()),
+			(Some(Parachain(id)), _) => Some(Parachain(*id).into()),
 			_ => None,
 		}
 	}

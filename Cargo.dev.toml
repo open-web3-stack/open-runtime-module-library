@@ -18,7 +18,7 @@ members = [
 	"rewards",
 	"nft",
 	# "xtokens",
-	# "xcm-support",
+	"xcm-support",
 	# "unknown-tokens",
 	"build-script-utils",
 	"weight-gen",
