@@ -58,7 +58,7 @@ impl Reserve for MultiAsset {
 mod tests {
 	use super::*;
 
-	const PARACHAIN: Junction = Parachain { id: 1 };
+	const PARACHAIN: Junction = Parachain(1);
 	const GENERAL_INDEX: Junction = GeneralIndex { id: 1 };
 
 	fn concrete_fungible(id: MultiLocation) -> MultiAsset {
