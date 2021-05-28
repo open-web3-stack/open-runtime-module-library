@@ -42,13 +42,13 @@
 /// substrate-wasm-builder = '4.0.0'
 ///
 /// [[bench]]
-/// name = 'benches'
+/// name = 'my-module-benches'
 /// harness = false
 /// path = 'bench_runner.rs'
 /// required-features = ['bench']
 ///
 /// [features]
-/// bench = []
+/// bench = ['orml-weight-meter/bench']
 /// ..
 /// ```
 /// 
@@ -78,12 +78,22 @@ macro_rules! run_benches {
 /// use crate::mock::YourModule;
 ///
 /// fn foo(b: &mut Bencher) {
+///     b.set_prepare(|| {
+///         // optional. prepare block, run before bench
+///     });
+///
+///     b.set_verify(|| {
+///         // optional. verify block, run before bench
+///     });
+///
+///     // Add macro `[orml_weight_meter::weight(..)]` for method `foo` before running bench
 ///     b.bench("foo", || {
 ///         YourModule::foo();
 ///     });
 /// }
 ///
 /// fn bar(b: &mut Bencher) {
+///     // Add macro `[orml_weight_meter::weight(..)]` for method `bar` before running bench
 ///     b.bench("bar", || {
 ///         YourModule::bar();
 ///     });
@@ -104,15 +114,46 @@ macro_rules! bench {
         $($method:path),+
     ) => {
         use $crate::BenchResult;
-        use $crate::sp_std::{cmp::max, prelude::Vec};
+        use $crate::sp_std::{cmp::max, prelude::{Box, Vec}};
+        use $crate::frame_support::log;
         use $crate::frame_benchmarking::{benchmarking, BenchmarkResults};
 
-        #[derive(Default, Clone, PartialEq, Debug)]
         struct Bencher {
             pub results: Vec<BenchResult>,
+            pub prepare: Box<dyn Fn() -> ()>,
+            pub verify: Box<dyn Fn() -> ()>,
+        }
+
+        impl Default for Bencher {
+            fn default() -> Self {
+                Bencher {
+                    results: Vec::new(),
+                    prepare: Box::new(|| {}),
+                    verify: Box::new(|| {}),
+                }
+            }
         }
 
         impl Bencher {
+            /// Reset prepare and verify block
+            pub fn reset(&mut self) {
+                self.prepare = Box::new(|| {});
+                self.verify = Box::new(|| {});
+            }
+
+            /// Set prepare block
+            pub fn set_prepare(&mut self, prepare: impl Fn() -> () + 'static) -> &mut Self {
+                self.prepare = Box::new(prepare);
+                self
+            }
+
+            /// Set verify block
+            pub fn set_verify(&mut self, verify: impl Fn() -> () + 'static) -> &mut Self {
+                self.verify = Box::new(verify);
+                self
+            }
+
+            /// Run benchmark for block
             pub fn bench<F: Fn() -> ()>(&mut self, name: &str, block: F) {
                 // Warm up the DB
                 benchmarking::commit_db();
@@ -124,24 +165,32 @@ macro_rules! bench {
                 };
 
                 for _ in 0..50 {
+                    // Execute prepare block
+                    (self.prepare)();
+
                     benchmarking::commit_db();
                     benchmarking::reset_read_write_count();
 
                     let start_time = benchmarking::current_time();
+                    // Execute bench block
                     block();
                     let end_time = benchmarking::current_time();
-                    let elasped = end_time - start_time;
-                    result.elapses.push(elasped);
-
                     benchmarking::commit_db();
-                    let (reads, repeat_reads, writes, repeat_writes) = benchmarking::read_write_count();
+
+                    let (elapsed, reads, repeat_reads, writes, repeat_writes) = $crate::bencher::finalized_results(end_time - start_time);
+
+                    // Execute verify block
+                    (self.verify)();
+
+                    // Reset the DB
+                    benchmarking::wipe_db();
+
+                    result.elapses.push(elapsed);
 
                     result.reads = max(result.reads, reads);
                     result.repeat_reads = max(result.repeat_reads, repeat_reads);
                     result.writes = max(result.writes, writes);
                     result.repeat_writes = max(result.repeat_writes, repeat_writes);
-
-                    benchmarking::wipe_db();
                 }
                 self.results.push(result);
             }
@@ -151,6 +200,7 @@ macro_rules! bench {
             fn run_benches() -> Vec<BenchResult> {
                 let mut bencher = Bencher::default();
                 $(
+                    bencher.reset();
                     $method(&mut bencher);
                 )+
                 bencher.results

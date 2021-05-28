@@ -17,6 +17,7 @@ pub fn run<B: Block>(wasm_code: Vec<u8>) -> Vec<u8> {
 
 	let mut host_functions = benchmarking::HostFunctions::host_functions();
 	host_functions.append(&mut SubstrateHostFunctions::host_functions());
+	host_functions.append(&mut super::bencher::HostFunctions::host_functions());
 
 	let executor = WasmExecutor::new(
 		WasmExecutionMethod::Compiled,
