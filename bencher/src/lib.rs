@@ -38,8 +38,8 @@ pub struct BenchResult {
 
 pub struct Bencher {
 	pub results: Vec<BenchResult>,
-	pub prepare: Box<dyn Fn() -> ()>,
-	pub verify: Box<dyn Fn() -> ()>,
+	pub prepare: Box<dyn Fn()>,
+	pub verify: Box<dyn Fn()>,
 }
 
 impl Default for Bencher {
@@ -60,19 +60,19 @@ impl Bencher {
 	}
 
 	/// Set prepare block
-	pub fn set_prepare(&mut self, prepare: impl Fn() -> () + 'static) -> &mut Self {
+	pub fn set_prepare(&mut self, prepare: impl Fn() + 'static) -> &mut Self {
 		self.prepare = Box::new(prepare);
 		self
 	}
 
 	/// Set verify block
-	pub fn set_verify(&mut self, verify: impl Fn() -> () + 'static) -> &mut Self {
+	pub fn set_verify(&mut self, verify: impl Fn() + 'static) -> &mut Self {
 		self.verify = Box::new(verify);
 		self
 	}
 
 	/// Run benchmark for block
-	pub fn bench<F: Fn() -> ()>(&mut self, name: &str, block: F) {
+	pub fn bench<F: Fn()>(&mut self, name: &str, block: F) {
 		// Warm up the DB
 		frame_benchmarking::benchmarking::commit_db();
 		frame_benchmarking::benchmarking::wipe_db();

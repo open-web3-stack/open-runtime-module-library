@@ -20,7 +20,7 @@ struct BenchData {
 
 /// Handle bench results
 pub fn handle(output: Vec<u8>) {
-	println!("");
+	println!();
 
 	let pkg_name = std::env::var("CARGO_PKG_NAME").unwrap_or_default().replace("-", "_");
 
@@ -65,7 +65,7 @@ pub fn handle(output: Vec<u8>) {
 		})
 		.collect();
 
-	println!("");
+	println!();
 
 	if let Ok(json) = serde_json::to_string(&data) {
 		let stdout = ::std::io::stdout();
