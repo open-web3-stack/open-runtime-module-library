@@ -43,7 +43,7 @@ pub fn weight(_attr: TokenStream, item: TokenStream) -> TokenStream {
 			let identifier: ::sp_std::vec::Vec<u8> = ::orml_bencher::bencher::entering_method();
 			let result = #block;
 			#[cfg(feature = "bench")]
-			::orml_bencher::bencher::leaving_method(&identifier);
+			::orml_bencher::bencher::leaving_method(identifier);
 			result
 		}
 	})

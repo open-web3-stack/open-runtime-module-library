@@ -15,6 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#![allow(clippy::option_map_unit_fn)]
+
 use super::{
 	color_output_enabled,
 	prerequisites::{copy_file_if_changed, write_file_if_changed, CargoCommandVersioned},
@@ -678,7 +680,7 @@ fn package_rerun_if_changed(package: &DeduplicatePackage) {
 		})
 		.filter_map(|p| p.ok().map(|p| p.into_path()))
 		.filter(|p| p.is_dir() || p.extension().map(|e| e == "rs" || e == "toml").unwrap_or_default())
-		.for_each(|p| rerun_if_changed(p));
+		.for_each(rerun_if_changed);
 }
 
 /// Copy the WASM binary to the target directory set in `WASM_TARGET_DIRECTORY`

@@ -126,7 +126,7 @@ pub trait Bencher {
 		REDUNDANT_METER.with(|x| x.borrow_mut().entering_method())
 	}
 
-	fn leaving_method(identifier: &Vec<u8>) {
+	fn leaving_method(identifier: Vec<u8>) {
 		REDUNDANT_METER.with(|x| {
 			x.borrow_mut().leaving_method(identifier);
 		});

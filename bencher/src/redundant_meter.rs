@@ -45,7 +45,7 @@ impl RedundantMeter {
 			.encode();
 
 		self.current = Some(RedundantResult {
-			identifier: identifier.clone(),
+			identifier: identifier.to_owned(),
 			timestamp,
 			reads,
 			repeat_reads,
@@ -57,14 +57,14 @@ impl RedundantMeter {
 	}
 
 	/// Leaving method with `[orml_weight_meter::weight(..)]` macro
-	pub fn leaving_method(&mut self, identifier: &Vec<u8>) {
+	pub fn leaving_method(&mut self, identifier: Vec<u8>) {
 		if let Some(current) = &self.current {
-			if current.identifier.eq(identifier) {
+			if current.identifier.eq(&identifier) {
 				let (reads, repeat_reads, writes, repeat_writes) = frame_benchmarking::benchmarking::read_write_count();
 				let timestamp = frame_benchmarking::benchmarking::current_time();
 
 				self.results.push(RedundantResult {
-					identifier: identifier.clone(),
+					identifier,
 					timestamp: timestamp - current.timestamp,
 					reads: reads - current.reads,
 					repeat_reads: repeat_reads - current.repeat_reads,
