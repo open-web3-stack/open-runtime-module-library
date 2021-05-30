@@ -7,8 +7,24 @@ pub extern crate sp_core;
 #[doc(hidden)]
 pub extern crate sp_std;
 
+mod macros;
+
+#[cfg(feature = "std")]
+pub mod bench_runner;
+#[cfg(feature = "std")]
+pub mod build_wasm;
+#[cfg(feature = "std")]
+mod colorize;
+#[cfg(feature = "std")]
+pub mod handler;
+#[cfg(feature = "std")]
+mod redundant_meter;
+
 use codec::{Decode, Encode};
-use sp_std::prelude::Vec;
+use sp_std::{
+	cmp::max,
+	prelude::{Box, Vec},
+};
 
 #[derive(Encode, Decode, Default, Clone, PartialEq, Debug)]
 pub struct BenchResult {
@@ -20,126 +36,88 @@ pub struct BenchResult {
 	pub repeat_writes: u32,
 }
 
-mod macros;
-
-#[cfg(feature = "std")]
-pub mod bench_runner;
-#[cfg(feature = "std")]
-pub mod handler;
-
-#[cfg(feature = "std")]
-#[derive(Encode, Decode, Default, Clone, PartialEq, Debug)]
-struct RedundantResult {
-	pub identifier: Vec<u8>,
-	pub timestamp: u128,
-	pub reads: u32,
-	pub repeat_reads: u32,
-	pub writes: u32,
-	pub repeat_writes: u32,
+pub struct Bencher {
+	pub results: Vec<BenchResult>,
+	pub prepare: Box<dyn Fn() -> ()>,
+	pub verify: Box<dyn Fn() -> ()>,
 }
 
-#[cfg(feature = "std")]
-use rand::{distributions::Alphanumeric, thread_rng, Rng};
-
-#[cfg(feature = "std")]
-#[derive(Default)]
-/// RedundantMeter is used to measure resources been used by methods that
-/// already been benchmarked and have `[orml_weight_meter::weight(..)] macro
-/// defined. First method with that macro will be skipped and after that every
-/// method with macro defined will be measured as redundant result.
-struct RedundantMeter {
-	pub started: bool,
-	pub results: Vec<RedundantResult>,
-	pub current: Option<RedundantResult>,
+impl Default for Bencher {
+	fn default() -> Self {
+		Bencher {
+			results: Vec::new(),
+			prepare: Box::new(|| {}),
+			verify: Box::new(|| {}),
+		}
+	}
 }
 
-#[cfg(feature = "std")]
-impl RedundantMeter {
-	/// Entering method with `[orml_weight_meter::weight(..)]` macro
-	fn entering_method(&mut self) -> Vec<u8> {
-		if !self.started {
-			self.started = true;
-			return Vec::new();
-		}
-
-		if self.current.is_some() {
-			return Vec::new();
-		}
-
-		let timestamp = frame_benchmarking::benchmarking::current_time();
-		let (reads, repeat_reads, writes, repeat_writes) = frame_benchmarking::benchmarking::read_write_count();
-
-		let identifier: Vec<u8> = thread_rng()
-			.sample_iter(&Alphanumeric)
-			.take(10)
-			.map(char::from)
-			.collect::<String>()
-			.encode();
-
-		self.current = Some(RedundantResult {
-			identifier: identifier.clone(),
-			timestamp,
-			reads,
-			repeat_reads,
-			writes,
-			repeat_writes,
-		});
-
-		identifier
+impl Bencher {
+	/// Reset prepare and verify block
+	pub fn reset(&mut self) {
+		self.prepare = Box::new(|| {});
+		self.verify = Box::new(|| {});
 	}
 
-	/// Leaving method with `[orml_weight_meter::weight(..)]` macro
-	fn leaving_method(&mut self, identifier: &Vec<u8>) {
-		if let Some(current) = &self.current {
-			if current.identifier.eq(identifier) {
-				let (reads, repeat_reads, writes, repeat_writes) = frame_benchmarking::benchmarking::read_write_count();
-				let timestamp = frame_benchmarking::benchmarking::current_time();
-
-				self.results.push(RedundantResult {
-					identifier: identifier.clone(),
-					timestamp: timestamp - current.timestamp,
-					reads: reads - current.reads,
-					repeat_reads: repeat_reads - current.repeat_reads,
-					writes: writes - current.writes,
-					repeat_writes: repeat_writes - current.repeat_writes,
-				});
-
-				// reset current
-				self.current = None;
-			}
-		}
+	/// Set prepare block
+	pub fn set_prepare(&mut self, prepare: impl Fn() -> () + 'static) -> &mut Self {
+		self.prepare = Box::new(prepare);
+		self
 	}
 
-	/// Take bench results and reset for next measurement
-	fn take_results(&mut self) -> (u128, u32, u32, u32, u32) {
-		assert!(self.current == None, "benchmark in progress");
+	/// Set verify block
+	pub fn set_verify(&mut self, verify: impl Fn() -> () + 'static) -> &mut Self {
+		self.verify = Box::new(verify);
+		self
+	}
 
-		let mut elapsed = 0u128;
-		let mut reads = 0u32;
-		let mut repeat_reads = 0u32;
-		let mut writes = 0u32;
-		let mut repeat_writes = 0u32;
+	/// Run benchmark for block
+	pub fn bench<F: Fn() -> ()>(&mut self, name: &str, block: F) {
+		// Warm up the DB
+		frame_benchmarking::benchmarking::commit_db();
+		frame_benchmarking::benchmarking::wipe_db();
 
-		self.results.iter().for_each(|x| {
-			elapsed += x.timestamp;
-			reads += x.reads;
-			repeat_reads += x.repeat_reads;
-			writes += x.writes;
-			repeat_writes += x.repeat_writes;
-		});
+		let mut result = BenchResult {
+			method: name.as_bytes().to_vec(),
+			..Default::default()
+		};
 
-		// reset all
-		self.started = false;
-		self.results = Vec::new();
-		self.current = None;
+		for _ in 0..50 {
+			// Execute prepare block
+			(self.prepare)();
 
-		(elapsed, reads, repeat_reads, writes, repeat_writes)
+			frame_benchmarking::benchmarking::commit_db();
+			frame_benchmarking::benchmarking::reset_read_write_count();
+
+			let start_time = frame_benchmarking::benchmarking::current_time();
+			// Execute bench block
+			block();
+			let end_time = frame_benchmarking::benchmarking::current_time();
+			frame_benchmarking::benchmarking::commit_db();
+
+			let (elapsed, reads, repeat_reads, writes, repeat_writes) =
+				bencher::finalized_results(end_time - start_time);
+
+			// Execute verify block
+			(self.verify)();
+
+			// Reset the DB
+			frame_benchmarking::benchmarking::wipe_db();
+
+			result.elapses.push(elapsed);
+
+			result.reads = max(result.reads, reads);
+			result.repeat_reads = max(result.repeat_reads, repeat_reads);
+			result.writes = max(result.writes, writes);
+			result.repeat_writes = max(result.repeat_writes, repeat_writes);
+		}
+		self.results.push(result);
 	}
 }
 
 #[cfg(feature = "std")]
 thread_local! {
-	static REDUNDANT_METER: std::cell::RefCell<RedundantMeter> = std::cell::RefCell::new(RedundantMeter::default());
+	static REDUNDANT_METER: std::cell::RefCell<redundant_meter::RedundantMeter> = std::cell::RefCell::new(redundant_meter::RedundantMeter::default());
 }
 
 #[sp_runtime_interface::runtime_interface]

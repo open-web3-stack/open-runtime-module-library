@@ -1,4 +1,7 @@
-use crate::BenchResult;
+use crate::{
+	colorize::{cyan, green_bold},
+	BenchResult,
+};
 use codec::Decode;
 use linregress::{FormulaRegressionBuilder, RegressionDataBuilder};
 use serde::{Deserialize, Serialize};
@@ -17,7 +20,10 @@ struct BenchData {
 
 /// Handle bench results
 pub fn handle(output: Vec<u8>) {
-	eprintln!("");
+	println!("");
+
+	let pkg_name = std::env::var("CARGO_PKG_NAME").unwrap_or_default().replace("-", "_");
+
 	let results = <Vec<BenchResult> as Decode>::decode(&mut &output[..]).unwrap();
 	let data: Vec<BenchData> = results
 		.into_iter()
@@ -36,12 +42,16 @@ pub fn handle(output: Vec<u8>) {
 				.fit()
 				.unwrap();
 
-			eprintln!(
-				"Bench [{}] {:?}, reads: {}, writes: {}",
-				name.clone(),
-				Duration::from_nanos(model.parameters.intercept_value as u64),
-				result.reads,
-				result.writes
+			println!(
+				"{} {} elapsed: {} reads: {} writes: {}",
+				green_bold("Bench"),
+				cyan(&format!("[{}::{}]", pkg_name, name)),
+				green_bold(&format!(
+					"{:?}",
+					Duration::from_nanos(model.parameters.intercept_value as u64)
+				)),
+				green_bold(&result.reads.to_string()),
+				green_bold(&result.writes.to_string())
 			);
 
 			BenchData {
@@ -55,7 +65,7 @@ pub fn handle(output: Vec<u8>) {
 		})
 		.collect();
 
-	eprintln!("");
+	println!("");
 
 	if let Ok(json) = serde_json::to_string(&data) {
 		let stdout = ::std::io::stdout();

@@ -35,10 +35,10 @@ pub fn weight(attr: TokenStream, item: TokenStream) -> TokenStream {
 #[cfg(feature = "bench")]
 #[proc_macro_attribute]
 pub fn weight(_attr: TokenStream, item: TokenStream) -> TokenStream {
-	let ItemFn { attrs, vis, sig, block } = syn::parse(item).unwrap();
+	let ItemFn { attrs, sig, block, .. } = syn::parse(item).unwrap();
 	(quote! {
 		#(#attrs)*
-		#vis #sig {
+		pub #sig {
 			#[cfg(feature = "bench")]
 			let identifier: ::sp_std::vec::Vec<u8> = ::orml_bencher::bencher::entering_method();
 			let result = #block;
