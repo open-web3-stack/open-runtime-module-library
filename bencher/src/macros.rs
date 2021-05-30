@@ -59,6 +59,8 @@
 ///
 /// extern crate self as your_module;
 /// ```
+///
+/// Run benchmarking: `cargo bench --features=bench`
 #[macro_export]
 macro_rules! bench {
     (
