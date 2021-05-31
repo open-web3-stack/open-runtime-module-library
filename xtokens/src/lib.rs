@@ -143,11 +143,7 @@ pub mod module {
 		//TODO: weight
 		#[transactional]
 		#[pallet::weight(1000)]
-		pub fn transfer_multiasset(
-			origin: OriginFor<T>,
-			asset: MultiAsset,
-			dest: MultiLocation,
-		) -> DispatchResult {
+		pub fn transfer_multiasset(origin: OriginFor<T>, asset: MultiAsset, dest: MultiLocation) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
 			if Self::is_zero_amount(&asset) {
@@ -162,11 +158,7 @@ pub mod module {
 
 	impl<T: Config> Pallet<T> {
 		/// Transfer `MultiAsset` without depositing event.
-		fn do_transfer_multiasset(
-			who: T::AccountId,
-			asset: MultiAsset,
-			dest: MultiLocation,
-		) -> DispatchResult {
+		fn do_transfer_multiasset(who: T::AccountId, asset: MultiAsset, dest: MultiLocation) -> DispatchResult {
 			let (dest, recipient) = Self::ensure_valid_dest(dest)?;
 
 			let self_location = T::SelfLocation::get();
@@ -193,7 +185,11 @@ pub mod module {
 			}
 		}
 
-		fn transfer_self_reserve_asset(asset: MultiAsset, dest: MultiLocation, recipient: MultiLocation) -> Xcm<T::Call> {
+		fn transfer_self_reserve_asset(
+			asset: MultiAsset,
+			dest: MultiLocation,
+			recipient: MultiLocation,
+		) -> Xcm<T::Call> {
 			//TODO: buy execution order
 			WithdrawAsset {
 				assets: vec![asset],
