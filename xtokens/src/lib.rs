@@ -30,18 +30,13 @@ use sp_runtime::{
 };
 use sp_std::prelude::*;
 
-use xcm::v0::{
-	Junction::*,
-	MultiAsset, MultiLocation, Order,
-	Order::*,
-	Xcm::{self, *},
-};
+use xcm::v0::prelude::*;
 
 use orml_traits::location::{Parse, Reserve};
-use orml_xcm_support::XcmHandler;
+// use orml_xcm_support::ExecuteXcm;
 
-mod mock;
-mod tests;
+// mod mock;
+// mod tests;
 
 pub use module::*;
 
@@ -65,18 +60,21 @@ pub mod module {
 		/// Currency Id.
 		type CurrencyId: Parameter + Member + Clone;
 
-		/// Convert `T::CurrencyIn` to `MultiLocation`.
+		/// Convert `T::CurrencyId` to `MultiLocation`.
 		type CurrencyIdConvert: Convert<Self::CurrencyId, Option<MultiLocation>>;
 
-		/// Convert `Self::Account` to `AccountId32`
-		type AccountId32Convert: Convert<Self::AccountId, [u8; 32]>;
+		// /// Convert `Self::Account` to `AccountId32`
+		// type AccountId32Convert: Convert<Self::AccountId, [u8; 32]>;
+
+		/// Convert `T::AccountId` to `MultiLocation`.
+		type AccountIdToMultiLocation: Convert<Self::AccountId, MultiLocation>;
 
 		/// Self chain location.
 		#[pallet::constant]
 		type SelfLocation: Get<MultiLocation>;
 
-		/// Xcm handler to execute XCM.
-		type XcmHandler: XcmHandler<Self::AccountId>;
+		/// XCM executor.
+		type XcmExecutor: ExecuteXcm<Self::Call>;
 	}
 
 	#[pallet::event]
@@ -99,6 +97,11 @@ pub mod module {
 		InvalidDest,
 		/// Currency is not cross-chain transferable.
 		NotCrossChainTransferableCurrency,
+		/// The message's weight could not be determined.
+		UnweighableMessage,
+		//TODO: more detailed err
+		/// Xcm execution failed.
+		XcmExecutionFailed,
 	}
 
 	#[pallet::hooks]
@@ -110,6 +113,7 @@ pub mod module {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		/// Transfer native currencies.
+		//TODO: weight
 		#[transactional]
 		#[pallet::weight(1000)]
 		pub fn transfer(
@@ -117,7 +121,7 @@ pub mod module {
 			currency_id: T::CurrencyId,
 			amount: T::Balance,
 			dest: MultiLocation,
-		) -> DispatchResultWithPostInfo {
+		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
 			if amount == Zero::zero() {
@@ -136,13 +140,14 @@ pub mod module {
 		}
 
 		/// Transfer `MultiAsset`.
+		//TODO: weight
 		#[transactional]
 		#[pallet::weight(1000)]
 		pub fn transfer_multiasset(
 			origin: OriginFor<T>,
 			asset: MultiAsset,
 			dest: MultiLocation,
-		) -> DispatchResultWithPostInfo {
+		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
 			if Self::is_zero_amount(&asset) {
@@ -161,7 +166,7 @@ pub mod module {
 			who: T::AccountId,
 			asset: MultiAsset,
 			dest: MultiLocation,
-		) -> DispatchResultWithPostInfo {
+		) -> DispatchResult {
 			let (dest, recipient) = Self::ensure_valid_dest(dest)?;
 
 			let self_location = T::SelfLocation::get();
@@ -176,12 +181,20 @@ pub mod module {
 				Self::transfer_to_non_reserve(asset, reserve, dest, recipient)
 			};
 
-			T::XcmHandler::execute_xcm(who, xcm)?;
-
-			Ok(().into())
+			//TODO: use weighter to get the actual weight
+			let origin_location = T::AccountIdToMultiLocation::convert(who);
+			let outcome = T::XcmExecutor::execute_xcm_in_credit(origin_location, xcm, 100_000_000_000, 100_000_000_000);
+			match outcome {
+				Outcome::Complete(_w) => Ok(().into()),
+				//TODO: more detailed err
+				Outcome::Incomplete(_w, _e) => Err(Error::<T>::XcmExecutionFailed.into()),
+				//TODO: more detailed err
+				Outcome::Error(_e) => Err(Error::<T>::XcmExecutionFailed.into()),
+			}
 		}
 
-		fn transfer_self_reserve_asset(asset: MultiAsset, dest: MultiLocation, recipient: MultiLocation) -> Xcm {
+		fn transfer_self_reserve_asset(asset: MultiAsset, dest: MultiLocation, recipient: MultiLocation) -> Xcm<T::Call> {
+			//TODO: buy execution order
 			WithdrawAsset {
 				assets: vec![asset],
 				effects: vec![DepositReserveAsset {
@@ -192,7 +205,8 @@ pub mod module {
 			}
 		}
 
-		fn transfer_to_reserve(asset: MultiAsset, reserve: MultiLocation, recipient: MultiLocation) -> Xcm {
+		fn transfer_to_reserve(asset: MultiAsset, reserve: MultiLocation, recipient: MultiLocation) -> Xcm<T::Call> {
+			//TODO: buy execution order
 			WithdrawAsset {
 				assets: vec![asset],
 				effects: vec![InitiateReserveWithdraw {
@@ -208,11 +222,12 @@ pub mod module {
 			reserve: MultiLocation,
 			dest: MultiLocation,
 			recipient: MultiLocation,
-		) -> Xcm {
+		) -> Xcm<T::Call> {
+			//TODO: buy execution order
 			let mut reanchored_dest = dest.clone();
 			if reserve == Parent.into() {
-				if let MultiLocation::X2(Parent, Parachain { id }) = dest {
-					reanchored_dest = Parachain { id }.into();
+				if let MultiLocation::X2(Parent, Parachain(id)) = dest {
+					reanchored_dest = Parachain(id).into();
 				}
 			}
 
@@ -230,7 +245,7 @@ pub mod module {
 			}
 		}
 
-		fn deposit_asset(recipient: MultiLocation) -> Vec<Order> {
+		fn deposit_asset(recipient: MultiLocation) -> Vec<Order<()>> {
 			vec![DepositAsset {
 				assets: vec![MultiAsset::All],
 				dest: recipient,

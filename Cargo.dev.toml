@@ -17,7 +17,7 @@ members = [
 	"vesting",
 	"rewards",
 	"nft",
-	# "xtokens",
+	"xtokens",
 	"xcm-support",
 	"unknown-tokens",
 	"build-script-utils",
