@@ -129,6 +129,7 @@ pub mod module {
 			currency_id: T::CurrencyId,
 			amount: T::Balance,
 			dest: MultiLocation,
+			dest_weight: Weight,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
@@ -142,7 +143,7 @@ pub mod module {
 				id,
 				amount: amount.into(),
 			};
-			Self::do_transfer_multiasset(who.clone(), asset, dest.clone())?;
+			Self::do_transfer_multiasset(who.clone(), asset, dest.clone(), dest_weight)?;
 			Self::deposit_event(Event::<T>::Transferred(who, currency_id, amount, dest));
 			Ok(())
 		}
@@ -150,14 +151,14 @@ pub mod module {
 		/// Transfer `MultiAsset`.
 		#[transactional]
 		#[pallet::weight(Pallet::<T>::weight_of_transfer_multiasset(&asset, &dest))]
-		pub fn transfer_multiasset(origin: OriginFor<T>, asset: MultiAsset, dest: MultiLocation) -> DispatchResult {
+		pub fn transfer_multiasset(origin: OriginFor<T>, asset: MultiAsset, dest: MultiLocation, dest_weight: Weight) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
 			if Self::is_zero_amount(&asset) {
 				return Ok(());
 			}
 
-			Self::do_transfer_multiasset(who.clone(), asset.clone(), dest.clone())?;
+			Self::do_transfer_multiasset(who.clone(), asset.clone(), dest.clone(), dest_weight)?;
 			Self::deposit_event(Event::<T>::TransferredMultiAsset(who, asset, dest));
 			Ok(())
 		}
@@ -165,12 +166,20 @@ pub mod module {
 
 	impl<T: Config> Pallet<T> {
 		/// Transfer `MultiAsset` without depositing event.
-		fn do_transfer_multiasset(who: T::AccountId, asset: MultiAsset, dest: MultiLocation) -> DispatchResult {
+		fn do_transfer_multiasset(who: T::AccountId, asset: MultiAsset, dest: MultiLocation, dest_weight: Weight) -> DispatchResult {
 			let (transfer_kind, reserve, dest, recipient) = Self::transfer_kind(&asset, &dest)?;
+			let buy_order = BuyExecution {
+				fees: All,
+				// Zero weight for additional XCM (since there are none to execute)
+				weight: 0,
+				debt: dest_weight,
+				halt_on_error: false,
+				xcm: vec![],
+			};
 			let mut msg = match transfer_kind {
-				SelfReserveAsset => Self::transfer_self_reserve_asset(asset, dest, recipient),
-				ToReserve => Self::transfer_to_reserve(asset, dest, recipient),
-				ToNonReserve => Self::transfer_to_non_reserve(asset, reserve, dest, recipient),
+				SelfReserveAsset => Self::transfer_self_reserve_asset(asset, dest, recipient, buy_order),
+				ToReserve => Self::transfer_to_reserve(asset, dest, recipient, buy_order),
+				ToNonReserve => Self::transfer_to_non_reserve(asset, reserve, dest, recipient, buy_order),
 			};
 
 			let origin_location = T::AccountIdToMultiLocation::convert(who);
@@ -189,26 +198,25 @@ pub mod module {
 			asset: MultiAsset,
 			dest: MultiLocation,
 			recipient: MultiLocation,
+			buy_order: Order<()>,
 		) -> Xcm<T::Call> {
-			//TODO: buy execution order
 			WithdrawAsset {
 				assets: vec![asset],
 				effects: vec![DepositReserveAsset {
 					assets: vec![MultiAsset::All],
 					dest,
-					effects: Self::deposit_asset(recipient),
+					effects: vec![buy_order, Self::deposit_asset(recipient)],
 				}],
 			}
 		}
 
-		fn transfer_to_reserve(asset: MultiAsset, reserve: MultiLocation, recipient: MultiLocation) -> Xcm<T::Call> {
-			//TODO: buy execution order
+		fn transfer_to_reserve(asset: MultiAsset, reserve: MultiLocation, recipient: MultiLocation, buy_order: Order<()>) -> Xcm<T::Call> {
 			WithdrawAsset {
 				assets: vec![asset],
 				effects: vec![InitiateReserveWithdraw {
 					assets: vec![MultiAsset::All],
 					reserve,
-					effects: Self::deposit_asset(recipient),
+					effects: vec![buy_order, Self::deposit_asset(recipient)],
 				}],
 			}
 		}
@@ -218,8 +226,8 @@ pub mod module {
 			reserve: MultiLocation,
 			dest: MultiLocation,
 			recipient: MultiLocation,
+			buy_order: Order<()>,
 		) -> Xcm<T::Call> {
-			//TODO: buy execution order
 			let mut reanchored_dest = dest.clone();
 			if reserve == Parent.into() {
 				if let MultiLocation::X2(Parent, Parachain(id)) = dest {
@@ -232,20 +240,20 @@ pub mod module {
 				effects: vec![InitiateReserveWithdraw {
 					assets: vec![MultiAsset::All],
 					reserve,
-					effects: vec![DepositReserveAsset {
+					effects: vec![buy_order.clone(), DepositReserveAsset {
 						assets: vec![MultiAsset::All],
 						dest: reanchored_dest,
-						effects: Self::deposit_asset(recipient),
+						effects: vec![buy_order, Self::deposit_asset(recipient)],
 					}],
 				}],
 			}
 		}
 
-		fn deposit_asset(recipient: MultiLocation) -> Vec<Order<()>> {
-			vec![DepositAsset {
+		fn deposit_asset(recipient: MultiLocation) -> Order<()> {
+			DepositAsset {
 				assets: vec![MultiAsset::All],
 				dest: recipient,
-			}]
+			}
 		}
 
 		fn is_zero_amount(asset: &MultiAsset) -> bool {
