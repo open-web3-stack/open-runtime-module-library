@@ -33,7 +33,6 @@ use sp_std::prelude::*;
 use xcm::v0::prelude::*;
 
 use orml_traits::location::{Parse, Reserve};
-// use orml_xcm_support::ExecuteXcm;
 
 // mod mock;
 // mod tests;
@@ -62,9 +61,6 @@ pub mod module {
 
 		/// Convert `T::CurrencyId` to `MultiLocation`.
 		type CurrencyIdConvert: Convert<Self::CurrencyId, Option<MultiLocation>>;
-
-		// /// Convert `Self::Account` to `AccountId32`
-		// type AccountId32Convert: Convert<Self::AccountId, [u8; 32]>;
 
 		/// Convert `T::AccountId` to `MultiLocation`.
 		type AccountIdToMultiLocation: Convert<Self::AccountId, MultiLocation>;
