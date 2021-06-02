@@ -20,6 +20,7 @@ frame-system = { git = "https://github.com/paritytech/substrate", branch = "polk
 cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.3", default-features = false }
 
 xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.3", default-features = false }
+xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.3", default-features = false }
 
 orml-xcm-support = { path = "../xcm-support", default-features = false }
 orml-traits = { path = "../traits", default-features = false}
@@ -49,6 +50,7 @@ std = [
 	"frame-system/std",
 	"cumulus-primitives-core/std",
 	"xcm/std",
+	"xcm-executor/std",
 	"orml-xcm-support/std",
 	"orml-traits/std",
 ]

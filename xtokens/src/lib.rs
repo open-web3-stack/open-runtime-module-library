@@ -31,13 +31,22 @@ use sp_runtime::{
 use sp_std::prelude::*;
 
 use xcm::v0::prelude::*;
+use xcm_executor::traits::WeightBounds;
 
 use orml_traits::location::{Parse, Reserve};
+pub use module::*;
 
 // mod mock;
 // mod tests;
 
-pub use module::*;
+enum TransferKind {
+	/// Transfer self reserve asset.
+	SelfReserveAsset,
+	/// To reserve location.
+	ToReserve,
+	/// To non-reserve location.
+	ToNonReserve,
+}
 
 #[frame_support::pallet]
 pub mod module {
@@ -71,6 +80,9 @@ pub mod module {
 
 		/// XCM executor.
 		type XcmExecutor: ExecuteXcm<Self::Call>;
+
+		/// Means of measuring the weight consumed by an XCM message locally.
+		type Weigher: WeightBounds<Self::Call>;
 	}
 
 	#[pallet::event]
@@ -109,9 +121,8 @@ pub mod module {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		/// Transfer native currencies.
-		//TODO: weight
 		#[transactional]
-		#[pallet::weight(1000)]
+		#[pallet::weight(Pallet::<T>::weight_of_transfer(currency_id.clone(),*amount, &dest))]
 		pub fn transfer(
 			origin: OriginFor<T>,
 			currency_id: T::CurrencyId,
@@ -136,9 +147,8 @@ pub mod module {
 		}
 
 		/// Transfer `MultiAsset`.
-		//TODO: weight
 		#[transactional]
-		#[pallet::weight(1000)]
+		#[pallet::weight(Pallet::<T>::weight_of_transfer_multiasset(&asset, &dest))]
 		pub fn transfer_multiasset(origin: OriginFor<T>, asset: MultiAsset, dest: MultiLocation) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
@@ -155,7 +165,7 @@ pub mod module {
 	impl<T: Config> Pallet<T> {
 		/// Transfer `MultiAsset` without depositing event.
 		fn do_transfer_multiasset(who: T::AccountId, asset: MultiAsset, dest: MultiLocation) -> DispatchResult {
-			let (dest, recipient) = Self::ensure_valid_dest(dest)?;
+			let (dest, recipient) = Self::ensure_valid_dest(&dest)?;
 
 			let self_location = T::SelfLocation::get();
 			ensure!(dest != self_location, Error::<T>::NotCrossChainTransfer);
@@ -262,7 +272,7 @@ pub mod module {
 
 		/// Ensure has the `dest` has chain part and recipient part.
 		fn ensure_valid_dest(
-			dest: MultiLocation,
+			dest: &MultiLocation,
 		) -> sp_std::result::Result<(MultiLocation, MultiLocation), DispatchError> {
 			if let (Some(dest), Some(recipient)) = (dest.chain_part(), dest.non_chain_part()) {
 				Ok((dest, recipient))
@@ -270,5 +280,86 @@ pub mod module {
 				Err(Error::<T>::InvalidDest.into())
 			}
 		}
+
+		/// Get the transfer kind.
+		///
+		/// Returns `Err` if `asset` and `dest` combination doesn't make sense, else returns a
+		/// tuple of:
+		/// - `transfer_kind`.
+		/// -  asset's `reserve` parachain or relay chain location,
+		/// - `dest` parachain or relay chain location.
+		/// - `recipient` location.
+		fn transfer_kind(asset: &MultiAsset, dest: &MultiLocation) -> sp_std::result::Result<(TransferKind, MultiLocation, MultiLocation, MultiLocation), DispatchError> {
+			use TransferKind::*;
+
+			let (dest, recipient) = Self::ensure_valid_dest(dest)?;
+
+			let self_location = T::SelfLocation::get();
+			ensure!(dest != self_location, Error::<T>::NotCrossChainTransfer);
+
+			let reserve = asset.reserve().ok_or(Error::<T>::AssetHasNoReserve)?;
+			let transfer_kind = if reserve == self_location {
+				SelfReserveAsset
+			} else if reserve == dest {
+				ToReserve
+			} else {
+				ToNonReserve
+			};
+			Ok((transfer_kind, dest, reserve, recipient))
+		}
 	}
+
+	// weights
+		impl<T: Config> Pallet<T> {
+			/// Returns weight of `transfer_multiasset` call.
+			fn weight_of_transfer_multiasset(asset: &MultiAsset, dest: &MultiLocation) -> Weight {
+				use TransferKind::*;
+
+				if let Ok((transfer_kind, dest, _, reserve)) = Self::transfer_kind(asset, dest) {
+					let mut msg = match transfer_kind {
+						SelfReserveAsset => {
+							WithdrawAsset {
+								assets: sp_std::vec![asset.clone()],
+								effects: sp_std::vec![DepositReserveAsset {
+									assets: sp_std::vec![All],
+									dest: dest.clone(),
+									effects: sp_std::vec![],
+								}]
+							}
+						},
+						ToReserve | ToNonReserve => {
+							WithdrawAsset {
+								assets: sp_std::vec![asset.clone()],
+								effects: sp_std::vec![InitiateReserveWithdraw {
+									assets: sp_std::vec![All],
+									// dest is always reserve in both cases
+									reserve: reserve.clone(),
+									effects: sp_std::vec![],
+								}]
+							}
+						},
+					};
+					T::Weigher::weight(&mut msg).map_or(Weight::max_value(), |w| 100_000_000 + w)
+				} else {
+					0
+				}
+			}
+
+			/// Returns weight of `transfer` call.
+			fn weight_of_transfer(
+				currency_id: T::CurrencyId,
+				amount: T::Balance,
+				dest: &MultiLocation,
+			) -> Weight {
+				if let Some(id) = T::CurrencyIdConvert::convert(currency_id) {
+					let asset = MultiAsset::ConcreteFungible {
+						id,
+						amount: amount.into(),
+					};
+					Self::weight_of_transfer_multiasset(&asset, &dest)
+				} else {
+					0
+				}
+			}
+		}
 }
