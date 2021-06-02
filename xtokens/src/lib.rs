@@ -133,7 +133,7 @@ pub mod module {
 			let who = ensure_signed(origin)?;
 
 			if amount == Zero::zero() {
-				return Ok(().into());
+				return Ok(());
 			}
 
 			let id: MultiLocation = T::CurrencyIdConvert::convert(currency_id.clone())
@@ -144,7 +144,7 @@ pub mod module {
 			};
 			Self::do_transfer_multiasset(who.clone(), asset, dest.clone())?;
 			Self::deposit_event(Event::<T>::Transferred(who, currency_id, amount, dest));
-			Ok(().into())
+			Ok(())
 		}
 
 		/// Transfer `MultiAsset`.
@@ -154,12 +154,12 @@ pub mod module {
 			let who = ensure_signed(origin)?;
 
 			if Self::is_zero_amount(&asset) {
-				return Ok(().into());
+				return Ok(());
 			}
 
 			Self::do_transfer_multiasset(who.clone(), asset.clone(), dest.clone())?;
 			Self::deposit_event(Event::<T>::TransferredMultiAsset(who, asset, dest));
-			Ok(().into())
+			Ok(())
 		}
 	}
 
@@ -177,7 +177,7 @@ pub mod module {
 			let weight = T::Weigher::weight(&mut msg).map_err(|()| Error::<T>::UnweighableMessage)?;
 			let outcome = T::XcmExecutor::execute_xcm_in_credit(origin_location, msg, weight, weight);
 			match outcome {
-				Outcome::Complete(_w) => Ok(().into()),
+				Outcome::Complete(_w) => Ok(()),
 				//TODO: more detailed err
 				Outcome::Incomplete(_w, _e) => Err(Error::<T>::XcmExecutionFailed.into()),
 				//TODO: more detailed err
@@ -314,7 +314,7 @@ pub mod module {
 						assets: sp_std::vec![asset.clone()],
 						effects: sp_std::vec![DepositReserveAsset {
 							assets: sp_std::vec![All],
-							dest: dest.clone(),
+							dest,
 							effects: sp_std::vec![],
 						}],
 					},
@@ -323,8 +323,8 @@ pub mod module {
 							assets: sp_std::vec![asset.clone()],
 							effects: sp_std::vec![InitiateReserveWithdraw {
 								assets: sp_std::vec![All],
-								// dest is always reserve in both cases
-								reserve: reserve.clone(),
+								// `dest` is always (equal to) `reserve` in both cases
+								reserve,
 								effects: sp_std::vec![],
 							}],
 						}
