@@ -311,21 +311,21 @@ pub mod module {
 			if let Ok((transfer_kind, dest, _, reserve)) = Self::transfer_kind(asset, dest) {
 				let mut msg = match transfer_kind {
 					SelfReserveAsset => WithdrawAsset {
-						assets: sp_std::vec![asset.clone()],
-						effects: sp_std::vec![DepositReserveAsset {
-							assets: sp_std::vec![All],
+						assets: vec![asset.clone()],
+						effects: vec![DepositReserveAsset {
+							assets: vec![All],
 							dest,
-							effects: sp_std::vec![],
+							effects: vec![],
 						}],
 					},
 					ToReserve | ToNonReserve => {
 						WithdrawAsset {
-							assets: sp_std::vec![asset.clone()],
-							effects: sp_std::vec![InitiateReserveWithdraw {
-								assets: sp_std::vec![All],
+							assets: vec![asset.clone()],
+							effects: vec![InitiateReserveWithdraw {
+								assets: vec![All],
 								// `dest` is always (equal to) `reserve` in both cases
 								reserve,
-								effects: sp_std::vec![],
+								effects: vec![],
 							}],
 						}
 					}
