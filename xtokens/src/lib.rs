@@ -22,7 +22,7 @@
 #![allow(clippy::unused_unit)]
 #![allow(clippy::large_enum_variant)]
 
-use frame_support::{pallet_prelude::*, traits::Get, transactional, Parameter};
+use frame_support::{pallet_prelude::*, traits::Get, storage::{with_transaction, TransactionOutcome}, Parameter};
 use frame_system::{ensure_signed, pallet_prelude::*};
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, Convert, MaybeSerializeDeserialize, Member, Zero},
@@ -92,8 +92,12 @@ pub mod module {
 	pub enum Event<T: Config> {
 		/// Transferred. \[sender, currency_id, amount, dest\]
 		Transferred(T::AccountId, T::CurrencyId, T::Balance, MultiLocation),
+		/// Transfer XCM execution failed. \[sender, currency_id, amount, dest, xcm_err\]
+		TransferFailed(T::AccountId, T::CurrencyId, T::Balance, MultiLocation, XcmError),
 		/// Transferred `MultiAsset`. \[sender, asset, dest\]
 		TransferredMultiAsset(T::AccountId, MultiAsset, MultiLocation),
+		/// Transfer `MultiAsset` XCM execution failed. \[sender, asset, dest, xcm_err\]
+		TransferredMultiAssetFailed(T::AccountId, MultiAsset, MultiLocation, XcmError),
 	}
 
 	#[pallet::error]
@@ -108,9 +112,6 @@ pub mod module {
 		NotCrossChainTransferableCurrency,
 		/// The message's weight could not be determined.
 		UnweighableMessage,
-		//TODO: more detailed err
-		/// Xcm execution failed.
-		XcmExecutionFailed,
 	}
 
 	#[pallet::hooks]
@@ -122,7 +123,6 @@ pub mod module {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		/// Transfer native currencies.
-		#[transactional]
 		#[pallet::weight(Pallet::<T>::weight_of_transfer(currency_id.clone(),*amount, &dest))]
 		pub fn transfer(
 			origin: OriginFor<T>,
@@ -143,13 +143,20 @@ pub mod module {
 				id,
 				amount: amount.into(),
 			};
-			Self::do_transfer_multiasset(who.clone(), asset, dest.clone(), dest_weight)?;
-			Self::deposit_event(Event::<T>::Transferred(who, currency_id, amount, dest));
+
+			let maybe_xcm_err = with_xcm_execution_transaction(|| {
+				Self::do_transfer_multiasset(who.clone(), asset, dest.clone(), dest_weight)
+			})?;
+			if let Some(xcm_err) = maybe_xcm_err {
+				Self::deposit_event(Event::<T>::TransferFailed(who, currency_id, amount, dest, xcm_err));
+			} else {
+				Self::deposit_event(Event::<T>::Transferred(who, currency_id, amount, dest));
+			}
+
 			Ok(())
 		}
 
 		/// Transfer `MultiAsset`.
-		#[transactional]
 		#[pallet::weight(Pallet::<T>::weight_of_transfer_multiasset(&asset, &dest))]
 		pub fn transfer_multiasset(origin: OriginFor<T>, asset: MultiAsset, dest: MultiLocation, dest_weight: Weight) -> DispatchResult {
 			let who = ensure_signed(origin)?;
@@ -158,15 +165,22 @@ pub mod module {
 				return Ok(());
 			}
 
-			Self::do_transfer_multiasset(who.clone(), asset.clone(), dest.clone(), dest_weight)?;
-			Self::deposit_event(Event::<T>::TransferredMultiAsset(who, asset, dest));
+			let maybe_xcm_err = with_xcm_execution_transaction(|| {
+				Self::do_transfer_multiasset(who.clone(), asset.clone(), dest.clone(), dest_weight)
+			})?;
+			if let Some(xcm_err) = maybe_xcm_err {
+				Self::deposit_event(Event::<T>::TransferredMultiAssetFailed(who, asset, dest, xcm_err));
+			} else {
+				Self::deposit_event(Event::<T>::TransferredMultiAsset(who, asset, dest));
+			}
+
 			Ok(())
 		}
 	}
 
 	impl<T: Config> Pallet<T> {
 		/// Transfer `MultiAsset` without depositing event.
-		fn do_transfer_multiasset(who: T::AccountId, asset: MultiAsset, dest: MultiLocation, dest_weight: Weight) -> DispatchResult {
+		fn do_transfer_multiasset(who: T::AccountId, asset: MultiAsset, dest: MultiLocation, dest_weight: Weight) -> XcmExecutionResult {
 			let (transfer_kind, reserve, dest, recipient) = Self::transfer_kind(&asset, &dest)?;
 			let buy_order = BuyExecution {
 				fees: All,
@@ -185,13 +199,12 @@ pub mod module {
 			let origin_location = T::AccountIdToMultiLocation::convert(who);
 			let weight = T::Weigher::weight(&mut msg).map_err(|()| Error::<T>::UnweighableMessage)?;
 			let outcome = T::XcmExecutor::execute_xcm_in_credit(origin_location, msg, weight, weight);
-			match outcome {
-				Outcome::Complete(_w) => Ok(()),
-				//TODO: more detailed err
-				Outcome::Incomplete(_w, _e) => Err(Error::<T>::XcmExecutionFailed.into()),
-				//TODO: more detailed err
-				Outcome::Error(_e) => Err(Error::<T>::XcmExecutionFailed.into()),
-			}
+			let maybe_xcm_err: Option<XcmError> = match outcome {
+				Outcome::Complete(_w) => Option::None,
+				Outcome::Incomplete(_w, err) => Some(err),
+				Outcome::Error(err) => Some(err),
+			};
+			Ok(maybe_xcm_err)
 		}
 
 		fn transfer_self_reserve_asset(
@@ -357,4 +370,17 @@ pub mod module {
 			}
 		}
 	}
+}
+
+type XcmExecutionResult = sp_std::result::Result<Option<XcmError>, DispatchError>;
+
+/// Only commit storage if no `DispatchError` and no `XcmError`, else roll back.
+fn with_xcm_execution_transaction(f: impl FnOnce() -> XcmExecutionResult) -> XcmExecutionResult {
+	with_transaction(|| {
+		let res = f();
+		match res {
+			Ok(ref err) if err.is_none() => TransactionOutcome::Commit(res),
+			_ => TransactionOutcome::Rollback(res),
+		}
+	})
 }
