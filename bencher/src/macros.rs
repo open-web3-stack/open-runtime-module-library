@@ -98,5 +98,19 @@ macro_rules! bench {
             };
             Ok(())
         }
+
+        // Tests
+        $(
+            $crate::paste::item! {
+                #[test]
+                fn [<test_ $method>] () {
+                    $crate::sp_io::TestExternalities::new_empty().execute_with(|| {
+                        let mut bencher = $crate::Bencher::default();
+                        $method(&mut bencher);
+                    });
+                }
+            }
+        )+
+
     }
 }

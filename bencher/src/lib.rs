@@ -3,6 +3,8 @@
 #[doc(hidden)]
 pub extern crate frame_benchmarking;
 #[doc(hidden)]
+pub extern crate paste;
+#[doc(hidden)]
 pub extern crate sp_core;
 #[doc(hidden)]
 pub extern crate sp_io;
