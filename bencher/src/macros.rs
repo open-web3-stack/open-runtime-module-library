@@ -48,13 +48,13 @@
 ///     });
 /// }
 ///
-/// bench!(Block, foo, bar);
+/// bench!(Block, foo, bar); // Tests are generated automatically
 /// ```
 /// Update `src/lib.rs`:
 /// ```.ignore
 /// #[cfg(any(feature = "bench", test))]
 /// pub mod mock; /* mock runtime needs to be compiled into wasm */
-/// #[cfg(feature = "bench")]
+/// #[cfg(any(feature = "bench", test))]
 /// pub mod benches;
 ///
 /// extern crate self as your_module;
