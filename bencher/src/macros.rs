@@ -78,11 +78,24 @@ macro_rules! bench {
             }
         }
 
+        #[cfg(not(feature = "std"))]
+        #[panic_handler]
+        #[no_mangle]
+        fn panic_handler(info: &::core::panic::PanicInfo) -> ! {
+            unsafe {
+                let message = $crate::sp_std::alloc::format!("{}", info);
+                $crate::bencher::panic(message.as_bytes().to_vec());
+                core::arch::wasm32::unreachable();
+            }
+        }
+
         #[cfg(all(feature = "std", feature = "bench"))]
         pub fn main() -> std::io::Result<()> {
             let wasm = $crate::build_wasm::build()?;
-            let output = $crate::bench_runner::run::<$block>(wasm);
-			$crate::handler::handle(output);
+            match $crate::bench_runner::run::<$block>(wasm) {
+                Ok(output) => { $crate::handler::handle(output); }
+                Err(e) => { eprintln!("{:?}", e); }
+            };
             Ok(())
         }
     }

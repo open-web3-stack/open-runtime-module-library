@@ -43,15 +43,15 @@ pub fn handle(output: Vec<u8>) {
 				.unwrap();
 
 			println!(
-				"{} {} elapsed: {} reads: {} writes: {}",
+				"{} {:<60} {:>20}  {:<20}  {:<20}",
 				green_bold("Bench"),
-				cyan(&format!("[{}::{}]", pkg_name, name)),
+				cyan(&format!("{}::{}", pkg_name, name)),
 				green_bold(&format!(
 					"{:?}",
 					Duration::from_nanos(model.parameters.intercept_value as u64)
 				)),
-				green_bold(&result.reads.to_string()),
-				green_bold(&result.writes.to_string())
+				green_bold(&format!("reads: {}", result.reads.to_string())),
+				green_bold(&format!("writes: {}", result.writes.to_string()))
 			);
 
 			BenchData {

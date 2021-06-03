@@ -5,6 +5,8 @@ pub extern crate frame_benchmarking;
 #[doc(hidden)]
 pub extern crate sp_core;
 #[doc(hidden)]
+pub extern crate sp_io;
+#[doc(hidden)]
 pub extern crate sp_std;
 
 mod macros;
@@ -21,10 +23,7 @@ pub mod handler;
 mod redundant_meter;
 
 use codec::{Decode, Encode};
-use sp_std::{
-	cmp::max,
-	prelude::{Box, Vec},
-};
+use sp_std::prelude::{Box, Vec};
 
 #[derive(Encode, Decode, Default, Clone, PartialEq, Debug)]
 pub struct BenchResult {
@@ -71,7 +70,19 @@ impl Bencher {
 		self
 	}
 
+	#[cfg(feature = "std")]
+	/// Run benchmark for block in tests
+	pub fn bench<F: Fn()>(&mut self, _name: &str, block: F) {
+		// Execute prepare block
+		(self.prepare)();
+		// Execute bench block
+		block();
+		// Execute verify block
+		(self.verify)();
+	}
+
 	/// Run benchmark for block
+	#[cfg(not(feature = "std"))]
 	pub fn bench<F: Fn()>(&mut self, name: &str, block: F) {
 		// Warm up the DB
 		frame_benchmarking::benchmarking::commit_db();
@@ -106,10 +117,10 @@ impl Bencher {
 
 			result.elapses.push(elapsed);
 
-			result.reads = max(result.reads, reads);
-			result.repeat_reads = max(result.repeat_reads, repeat_reads);
-			result.writes = max(result.writes, writes);
-			result.repeat_writes = max(result.repeat_writes, repeat_writes);
+			result.reads = sp_std::cmp::max(result.reads, reads);
+			result.repeat_reads = sp_std::cmp::max(result.repeat_reads, repeat_reads);
+			result.writes = sp_std::cmp::max(result.writes, writes);
+			result.repeat_writes = sp_std::cmp::max(result.repeat_writes, repeat_writes);
 		}
 		self.results.push(result);
 	}
@@ -122,6 +133,12 @@ thread_local! {
 
 #[sp_runtime_interface::runtime_interface]
 pub trait Bencher {
+	fn panic(str: Vec<u8>) {
+		let msg = String::from_utf8_lossy(&str);
+		eprintln!("{}", colorize::red_bold(&msg));
+		std::process::exit(-1);
+	}
+
 	fn entering_method() -> Vec<u8> {
 		REDUNDANT_METER.with(|x| x.borrow_mut().entering_method())
 	}
