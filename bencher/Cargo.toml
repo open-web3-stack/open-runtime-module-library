@@ -23,7 +23,7 @@ serde_json = {version = "1.0.64", optional = true }
 codec = { package = "parity-scale-codec", version = "2.0.0", features = ["derive"], default-features = false }
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.3", default-features = false }
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.3", default-features = false }
-sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.3", default-features = false,  features = ['disable_panic_handler'] }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.3", default-features = false }
 sp-runtime-interface = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.3", default-features = false }
 sp-state-machine = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.3", default-features = false, optional = true }
 sc-executor = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.3", default-features = false, features = ["wasmtime"], optional = true }
@@ -57,4 +57,7 @@ std = [
     "sc-client-db",
     "sp-maybe-compressed-blob",
     "frame-benchmarking/std",
+]
+bench = [
+    "sp-io/disable_panic_handler"
 ]

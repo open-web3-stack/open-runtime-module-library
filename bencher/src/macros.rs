@@ -13,7 +13,10 @@
 /// required-features = ['bench']
 ///
 /// [features]
-/// bench = ['orml-weight-meter/bench']
+/// bench = [
+///    'orml-bencher/bench'
+///    'orml-weight-meter/bench'
+/// ]
 /// ..
 /// ```
 ///
@@ -67,6 +70,7 @@ macro_rules! bench {
         $block:tt,
         $($method:path),+
     ) => {
+        #[cfg(feature = "bench")]
         $crate::sp_core::wasm_export_functions! {
             fn run_benches() -> $crate::sp_std::vec::Vec<$crate::BenchResult> {
                 let mut bencher = $crate::Bencher::default();
@@ -78,7 +82,7 @@ macro_rules! bench {
             }
         }
 
-        #[cfg(not(feature = "std"))]
+        #[cfg(all(feature = "bench", not(feature = "std")))]
         #[panic_handler]
         #[no_mangle]
         fn panic_handler(info: &::core::panic::PanicInfo) -> ! {
