@@ -92,8 +92,8 @@ fn add_new_vesting_schedule_merges_with_current_locked_balance_and_until() {
 		assert_ok!(Vesting::vested_transfer(Origin::signed(ALICE), BOB, another_schedule));
 
 		assert_eq!(
-			PalletBalances::locks(&BOB).pop(),
-			Some(BalanceLock {
+			PalletBalances::locks(&BOB).get(0),
+			Some(&BalanceLock {
 				id: VESTING_LOCK_ID,
 				amount: 17u64,
 				reasons: Reasons::All,
