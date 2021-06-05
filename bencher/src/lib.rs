@@ -38,60 +38,79 @@ pub struct BenchResult {
 }
 
 pub struct Bencher {
+	pub name: Vec<u8>,
 	pub results: Vec<BenchResult>,
 	pub prepare: Box<dyn Fn()>,
+	pub bench: Box<dyn Fn()>,
 	pub verify: Box<dyn Fn()>,
 }
 
 impl Default for Bencher {
 	fn default() -> Self {
 		Bencher {
+			name: Vec::new(),
 			results: Vec::new(),
 			prepare: Box::new(|| {}),
+			bench: Box::new(|| {}),
 			verify: Box::new(|| {}),
 		}
 	}
 }
 
 impl Bencher {
-	/// Reset prepare and verify block
+	/// Reset name and blocks
 	pub fn reset(&mut self) {
+		self.name = Vec::new();
 		self.prepare = Box::new(|| {});
+		self.bench = Box::new(|| {});
 		self.verify = Box::new(|| {});
 	}
 
+	/// Set bench name
+	pub fn name(&mut self, name: &str) -> &mut Self {
+		self.name = name.as_bytes().to_vec();
+		self
+	}
+
 	/// Set prepare block
-	pub fn set_prepare(&mut self, prepare: impl Fn() + 'static) -> &mut Self {
+	pub fn prepare(&mut self, prepare: impl Fn() + 'static) -> &mut Self {
 		self.prepare = Box::new(prepare);
 		self
 	}
 
 	/// Set verify block
-	pub fn set_verify(&mut self, verify: impl Fn() + 'static) -> &mut Self {
+	pub fn verify(&mut self, verify: impl Fn() + 'static) -> &mut Self {
 		self.verify = Box::new(verify);
 		self
 	}
 
+	/// Set bench block
+	pub fn bench(&mut self, bench: impl Fn() + 'static) -> &mut Self {
+		self.bench = Box::new(bench);
+		self
+	}
+
+	/// Run benchmark for tests
 	#[cfg(feature = "std")]
-	/// Run benchmark for block in tests
-	pub fn bench<F: Fn()>(&mut self, _name: &str, block: F) {
+	pub fn run(&mut self) {
 		// Execute prepare block
 		(self.prepare)();
 		// Execute bench block
-		block();
+		(self.bench)();
 		// Execute verify block
 		(self.verify)();
 	}
 
-	/// Run benchmark for block
+	/// Run benchmark
 	#[cfg(not(feature = "std"))]
-	pub fn bench<F: Fn()>(&mut self, name: &str, block: F) {
+	pub fn run(&mut self) {
+		assert!(self.name.len() > 0, "bench name not defined");
 		// Warm up the DB
 		frame_benchmarking::benchmarking::commit_db();
 		frame_benchmarking::benchmarking::wipe_db();
 
 		let mut result = BenchResult {
-			method: name.as_bytes().to_vec(),
+			method: self.name.clone(),
 			..Default::default()
 		};
 
@@ -104,7 +123,7 @@ impl Bencher {
 
 			let start_time = frame_benchmarking::benchmarking::current_time();
 			// Execute bench block
-			block();
+			(self.bench)();
 			let end_time = frame_benchmarking::benchmarking::current_time();
 			frame_benchmarking::benchmarking::commit_db();
 

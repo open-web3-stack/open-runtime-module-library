@@ -30,23 +30,23 @@
 /// use your_module::mock::{Block, YourModule};
 ///
 /// fn foo(b: &mut Bencher) {
-///     b.set_prepare(|| {
-///         // optional. prepare block, run before bench
-///     });
-///
-///     b.set_verify(|| {
-///         // optional. verify block, run before bench
-///     });
-///
-///     // Add macro `[orml_weight_meter::weight(..)]` for method `foo` before running bench
-///     b.bench("foo", || {
+///     b.prepare(|| {
+///         // optional. prepare block, runs before bench
+///     })
+///     .bench(|| {
+///         // foo must have macro `[orml_weight_meter::weight(..)]`
 ///         YourModule::foo();
+///     })
+///     .verify(|| {
+///         // optional. verify block, runs before bench
 ///     });
 /// }
 ///
 /// fn bar(b: &mut Bencher) {
-///     // Add macro `[orml_weight_meter::weight(..)]` for method `bar` before running bench
-///     b.bench("bar", || {
+///     // optional. method name is used by default i.e: `bar`
+///     b.name("bench_name")
+///     .bench(|| {
+///         // bar must have macro `[orml_weight_meter::weight(..)]`
 ///         YourModule::bar();
 ///     });
 /// }
@@ -77,6 +77,11 @@ macro_rules! bench {
                 $(
                     bencher.reset();
                     $method(&mut bencher);
+                    if bencher.name.len() == 0 {
+                        // use method name as default bench name
+                        bencher.name(stringify!($method));
+                    }
+                    bencher.run();
                 )+
                 bencher.results
             }
@@ -111,6 +116,7 @@ macro_rules! bench {
                     $crate::sp_io::TestExternalities::new_empty().execute_with(|| {
                         let mut bencher = $crate::Bencher::default();
                         $method(&mut bencher);
+                        bencher.run();
                     });
                 }
             }
