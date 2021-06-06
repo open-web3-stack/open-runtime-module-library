@@ -50,8 +50,8 @@ pub fn handle(output: Vec<u8>) {
 					"{:?}",
 					Duration::from_nanos(model.parameters.intercept_value as u64)
 				)),
-				green_bold(&format!("reads: {}", result.reads.to_string())),
-				green_bold(&format!("writes: {}", result.writes.to_string()))
+				format!("reads: {}", green_bold(&result.reads.to_string())),
+				format!("writes: {}", green_bold(&result.writes.to_string()))
 			);
 
 			BenchData {
