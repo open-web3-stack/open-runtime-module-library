@@ -96,11 +96,14 @@ impl RedundantMeter {
 			repeat_writes += x.repeat_writes;
 		});
 
-		// reset all
+		self.reset();
+
+		(elapsed, reads, repeat_reads, writes, repeat_writes)
+	}
+
+	pub fn reset(&mut self) {
 		self.started = false;
 		self.results = Vec::new();
 		self.current = None;
-
-		(elapsed, reads, repeat_reads, writes, repeat_writes)
 	}
 }

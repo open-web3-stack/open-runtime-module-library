@@ -120,6 +120,7 @@ impl Bencher {
 
 			frame_benchmarking::benchmarking::commit_db();
 			frame_benchmarking::benchmarking::reset_read_write_count();
+			bencher::reset();
 
 			let start_time = frame_benchmarking::benchmarking::current_time();
 			// Execute bench block
@@ -183,5 +184,11 @@ pub trait Bencher {
 		let repeat_writes = repeat_writes - redundant_repeat_writes;
 
 		(elapsed, reads, repeat_reads, writes, repeat_writes)
+	}
+
+	fn reset() {
+		REDUNDANT_METER.with(|x| {
+			x.borrow_mut().reset();
+		});
 	}
 }
