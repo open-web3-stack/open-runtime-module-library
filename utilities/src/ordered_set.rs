@@ -9,9 +9,9 @@ use sp_std::{
 	fmt,
 };
 
-/// An ordered set backed by `Vec`
+/// An ordered set backed by `BoundedVec`
 // #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-#[derive(Eq, Encode, Decode, Default, Clone)]
+#[derive(PartialEq, Eq, Encode, Decode, Default, Clone)]
 pub struct OrderedSet<T, S>(pub BoundedVec<T, S>);
 
 impl<T: Ord, S: Get<u32>> OrderedSet<T, S> {
@@ -79,26 +79,11 @@ impl<T: Ord, S: Get<u32>> TryFrom<Vec<T>> for OrderedSet<T, S> {
 	}
 }
 
-impl<T, S> PartialEq for OrderedSet<T, S>
-where
-	T: PartialEq,
-{
-	fn eq(&self, rhs: &Self) -> bool {
-		self.0 == rhs.0
-	}
-}
-
-impl<T: PartialEq, S: Get<u32>> PartialEq<Vec<T>> for OrderedSet<T, S> {
-	fn eq(&self, other: &Vec<T>) -> bool {
-		&self.0 == other
-	}
-}
-
 #[cfg(feature = "std")]
 impl<T, S> fmt::Debug for OrderedSet<T, S>
 where
 	T: fmt::Debug,
-	S: Get<u32>,
+	S: Get<u32> + fmt::Debug,
 {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		f.debug_tuple("OrderedSet").field(&self.0).finish()
@@ -111,7 +96,10 @@ mod tests {
 	use frame_support::parameter_types;
 
 	parameter_types! {
+		#[derive(PartialEq, RuntimeDebug)]
 		pub const Eight: u32 = 8;
+		#[derive(PartialEq, RuntimeDebug)]
+		pub const Five: u32 = 5;
 	}
 
 	#[test]
@@ -167,7 +155,7 @@ mod tests {
 
 	#[test]
 	fn contains() {
-		let set: OrderedSet<i32, Eight> = OrderedSet::<i32, Eight>::try_from(vec![1, 2, 3, 4]).unwrap();
+		let set: OrderedSet<i32, Eight> = OrderedSet::try_from(vec![1, 2, 3, 4]).unwrap();
 
 		assert_eq!(set.contains(&5), false);
 
@@ -178,8 +166,20 @@ mod tests {
 
 	#[test]
 	fn clear() {
-		let mut set: OrderedSet<i32, Eight> = OrderedSet::<i32, Eight>::try_from(vec![1, 2, 3, 4]).unwrap();
+		let mut set: OrderedSet<i32, Eight> = OrderedSet::try_from(vec![1, 2, 3, 4]).unwrap();
 		set.clear();
 		assert_eq!(set, OrderedSet::new());
+	}
+
+	#[test]
+	fn exceeding_max_size_should_fail() {
+		let set: Result<OrderedSet<i32, Five>, ()> = OrderedSet::try_from(vec![1, 2, 3, 4, 5, 6]);
+
+		assert_eq!(set, Err(()));
+
+		let mut set: OrderedSet<i32, Five> = OrderedSet::try_from(vec![1, 2, 3, 4, 5]).unwrap();
+		let inserted = set.insert(6);
+
+		assert_eq!(inserted, false)
 	}
 }
