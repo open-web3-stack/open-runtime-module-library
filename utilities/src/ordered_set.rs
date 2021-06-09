@@ -1,16 +1,10 @@
 use codec::{Decode, Encode};
 use frame_support::{traits::Get, BoundedVec};
 #[cfg(feature = "std")]
-use serde::{Deserialize, Serialize};
-use sp_runtime::RuntimeDebug;
 use sp_std::prelude::*;
-use sp_std::{
-	convert::{TryFrom, TryInto},
-	fmt,
-};
+use sp_std::{convert::TryInto, fmt};
 
 /// An ordered set backed by `BoundedVec`
-// #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(PartialEq, Eq, Encode, Decode, Default, Clone)]
 pub struct OrderedSet<T, S>(pub BoundedVec<T, S>);
 
@@ -22,22 +16,18 @@ impl<T: Ord, S: Get<u32>> OrderedSet<T, S> {
 
 	/// Create a set from a `Vec`.
 	/// `v` will be sorted and dedup first.
-	pub fn try_from(mut v: Vec<T>) -> Result<Self, ()> {
+	pub fn from(bv: BoundedVec<T, S>) -> Self {
+		let mut v = bv.into_inner();
 		v.sort();
 		v.dedup();
-		Self::try_from_sorted_set(v)
+
+		Self::from_sorted_set(v.try_into().expect("Did not add any values"))
 	}
 
 	/// Create a set from a `Vec`.
 	/// Assume `v` is sorted and contain unique elements.
-	pub fn try_from_sorted_set(v: Vec<T>) -> Result<Self, ()> {
-		let bounded_v: Result<BoundedVec<T, S>, ()> = v.try_into();
-
-		if let Ok(res) = bounded_v {
-			Ok(Self(res))
-		} else {
-			Err(())
-		}
+	pub fn from_sorted_set(bv: BoundedVec<T, S>) -> Self {
+		Self(bv)
 	}
 
 	/// Insert an element.
@@ -72,10 +62,9 @@ impl<T: Ord, S: Get<u32>> OrderedSet<T, S> {
 	}
 }
 
-impl<T: Ord, S: Get<u32>> TryFrom<Vec<T>> for OrderedSet<T, S> {
-	type Error = ();
-	fn try_from(v: Vec<T>) -> Result<Self, Self::Error> {
-		Self::try_from(v)
+impl<T: Ord, S: Get<u32>> From<BoundedVec<T, S>> for OrderedSet<T, S> {
+	fn from(v: BoundedVec<T, S>) -> Self {
+		Self::from(v)
 	}
 }
 
@@ -94,6 +83,7 @@ where
 mod tests {
 	use super::*;
 	use frame_support::parameter_types;
+	use sp_runtime::RuntimeDebug;
 
 	parameter_types! {
 		#[derive(PartialEq, RuntimeDebug)]
@@ -104,58 +94,64 @@ mod tests {
 
 	#[test]
 	fn from() {
-		let v = vec![4, 2, 3, 4, 3, 1];
-		let set: OrderedSet<i32, Eight> = v.try_into().unwrap();
-		assert_eq!(set, OrderedSet::<i32, Eight>::try_from(vec![1, 2, 3, 4]).unwrap());
+		let v: BoundedVec<i32, Eight> = vec![4, 2, 3, 4, 3, 1].try_into().unwrap();
+		let set: OrderedSet<i32, Eight> = v.into();
+		assert_eq!(
+			set,
+			OrderedSet::<i32, Eight>::from(vec![1, 2, 3, 4].try_into().unwrap())
+		);
 	}
 
 	#[test]
 	fn insert() {
 		let mut set: OrderedSet<i32, Eight> = OrderedSet::new();
-		assert_eq!(set, OrderedSet::<i32, Eight>::try_from(vec![]).unwrap());
+		assert_eq!(set, OrderedSet::<i32, Eight>::from(vec![].try_into().unwrap()));
 
 		assert_eq!(set.insert(1), true);
-		assert_eq!(set, OrderedSet::<i32, Eight>::try_from(vec![1]).unwrap());
+		assert_eq!(set, OrderedSet::<i32, Eight>::from(vec![1].try_into().unwrap()));
 
 		assert_eq!(set.insert(5), true);
-		assert_eq!(set, OrderedSet::<i32, Eight>::try_from(vec![1, 5]).unwrap());
+		assert_eq!(set, OrderedSet::<i32, Eight>::from(vec![1, 5].try_into().unwrap()));
 
 		assert_eq!(set.insert(3), true);
-		assert_eq!(set, OrderedSet::<i32, Eight>::try_from(vec![1, 3, 5]).unwrap());
+		assert_eq!(set, OrderedSet::<i32, Eight>::from(vec![1, 3, 5].try_into().unwrap()));
 
 		assert_eq!(set.insert(3), false);
-		assert_eq!(set, OrderedSet::<i32, Eight>::try_from(vec![1, 3, 5]).unwrap());
+		assert_eq!(set, OrderedSet::<i32, Eight>::from(vec![1, 3, 5].try_into().unwrap()));
 	}
 
 	#[test]
 	fn remove() {
-		let mut set: OrderedSet<i32, Eight> = OrderedSet::try_from(vec![1, 2, 3, 4]).unwrap();
+		let mut set: OrderedSet<i32, Eight> = OrderedSet::from(vec![1, 2, 3, 4].try_into().unwrap());
 
 		assert_eq!(set.remove(&5), false);
-		assert_eq!(set, OrderedSet::<i32, Eight>::try_from(vec![1, 2, 3, 4]).unwrap());
+		assert_eq!(
+			set,
+			OrderedSet::<i32, Eight>::from(vec![1, 2, 3, 4].try_into().unwrap())
+		);
 
 		assert_eq!(set.remove(&1), true);
-		assert_eq!(set, OrderedSet::<i32, Eight>::try_from(vec![2, 3, 4]).unwrap());
+		assert_eq!(set, OrderedSet::<i32, Eight>::from(vec![2, 3, 4].try_into().unwrap()));
 
 		assert_eq!(set.remove(&3), true);
-		assert_eq!(set, OrderedSet::<i32, Eight>::try_from(vec![2, 4]).unwrap());
+		assert_eq!(set, OrderedSet::<i32, Eight>::from(vec![2, 4].try_into().unwrap()));
 
 		assert_eq!(set.remove(&3), false);
-		assert_eq!(set, OrderedSet::<i32, Eight>::try_from(vec![2, 4]).unwrap());
+		assert_eq!(set, OrderedSet::<i32, Eight>::from(vec![2, 4].try_into().unwrap()));
 
 		assert_eq!(set.remove(&4), true);
-		assert_eq!(set, OrderedSet::<i32, Eight>::try_from(vec![2]).unwrap());
+		assert_eq!(set, OrderedSet::<i32, Eight>::from(vec![2].try_into().unwrap()));
 
 		assert_eq!(set.remove(&2), true);
-		assert_eq!(set, OrderedSet::<i32, Eight>::try_from(vec![]).unwrap());
+		assert_eq!(set, OrderedSet::<i32, Eight>::from(vec![].try_into().unwrap()));
 
 		assert_eq!(set.remove(&2), false);
-		assert_eq!(set, OrderedSet::<i32, Eight>::try_from(vec![]).unwrap());
+		assert_eq!(set, OrderedSet::<i32, Eight>::from(vec![].try_into().unwrap()));
 	}
 
 	#[test]
 	fn contains() {
-		let set: OrderedSet<i32, Eight> = OrderedSet::try_from(vec![1, 2, 3, 4]).unwrap();
+		let set: OrderedSet<i32, Eight> = OrderedSet::from(vec![1, 2, 3, 4].try_into().unwrap());
 
 		assert_eq!(set.contains(&5), false);
 
@@ -166,18 +162,14 @@ mod tests {
 
 	#[test]
 	fn clear() {
-		let mut set: OrderedSet<i32, Eight> = OrderedSet::try_from(vec![1, 2, 3, 4]).unwrap();
+		let mut set: OrderedSet<i32, Eight> = OrderedSet::from(vec![1, 2, 3, 4].try_into().unwrap());
 		set.clear();
 		assert_eq!(set, OrderedSet::new());
 	}
 
 	#[test]
 	fn exceeding_max_size_should_fail() {
-		let set: Result<OrderedSet<i32, Five>, ()> = OrderedSet::try_from(vec![1, 2, 3, 4, 5, 6]);
-
-		assert_eq!(set, Err(()));
-
-		let mut set: OrderedSet<i32, Five> = OrderedSet::try_from(vec![1, 2, 3, 4, 5]).unwrap();
+		let mut set: OrderedSet<i32, Five> = OrderedSet::from(vec![1, 2, 3, 4, 5].try_into().unwrap());
 		let inserted = set.insert(6);
 
 		assert_eq!(inserted, false)
