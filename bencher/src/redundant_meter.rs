@@ -35,7 +35,6 @@ impl RedundantMeter {
 		}
 
 		let timestamp = frame_benchmarking::benchmarking::current_time();
-		frame_benchmarking::benchmarking::commit_db();
 		let (reads, repeat_reads, writes, repeat_writes) = frame_benchmarking::benchmarking::read_write_count();
 
 		let identifier: Vec<u8> = thread_rng()
@@ -61,7 +60,6 @@ impl RedundantMeter {
 	pub fn leaving_method(&mut self, identifier: Vec<u8>) {
 		if let Some(current) = &self.current {
 			if current.identifier.eq(&identifier) {
-				frame_benchmarking::benchmarking::commit_db();
 				let (reads, repeat_reads, writes, repeat_writes) = frame_benchmarking::benchmarking::read_write_count();
 				let timestamp = frame_benchmarking::benchmarking::current_time();
 
