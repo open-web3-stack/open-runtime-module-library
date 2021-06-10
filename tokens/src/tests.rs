@@ -986,3 +986,107 @@ fn exceeding_max_locks_should_fail() {
 			assert_eq!(Tokens::locks(ALICE, DOT).len(), 2);
 		});
 }
+
+#[test]
+fn fungibles_inspect_trait_should_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_eq!(<Tokens as PalletFungibles::Inspect<_>>::total_issuance(DOT), 200);
+			assert_eq!(<Tokens as PalletFungibles::Inspect<_>>::minimum_balance(DOT), 2);
+			assert_eq!(<Tokens as PalletFungibles::Inspect<_>>::balance(DOT, &ALICE), 100);
+			assert_eq!(
+				<Tokens as PalletFungibles::Inspect<_>>::reducible_balance(DOT, &ALICE, true),
+				98
+			);
+			assert_ok!(<Tokens as PalletFungibles::Inspect<_>>::can_deposit(DOT, &ALICE, 1).into_result());
+			assert_ok!(<Tokens as PalletFungibles::Inspect<_>>::can_withdraw(DOT, &ALICE, 1).into_result());
+		});
+}
+
+#[test]
+fn fungibles_mutate_trait_should_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_ok!(<Tokens as PalletFungibles::Mutate<_>>::mint_into(DOT, &ALICE, 10));
+			assert_eq!(<Tokens as PalletFungibles::Mutate<_>>::burn_from(DOT, &ALICE, 8), Ok(8));
+		});
+}
+
+#[test]
+fn fungibles_transfer_trait_should_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_eq!(<Tokens as PalletFungibles::Inspect<_>>::balance(DOT, &ALICE), 100);
+			assert_eq!(<Tokens as PalletFungibles::Inspect<_>>::balance(DOT, &BOB), 100);
+			assert_ok!(<Tokens as PalletFungibles::Transfer<_>>::transfer(
+				DOT, &ALICE, &BOB, 10, true
+			));
+			assert_eq!(<Tokens as PalletFungibles::Inspect<_>>::balance(DOT, &ALICE), 90);
+			assert_eq!(<Tokens as PalletFungibles::Inspect<_>>::balance(DOT, &BOB), 110);
+		});
+}
+
+#[test]
+fn fungibles_unbalanced_trait_should_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_eq!(<Tokens as PalletFungibles::Inspect<_>>::balance(DOT, &ALICE), 100);
+			assert_ok!(<Tokens as PalletFungibles::Unbalanced<_>>::set_balance(DOT, &ALICE, 10));
+			assert_eq!(<Tokens as PalletFungibles::Inspect<_>>::balance(DOT, &ALICE), 10);
+
+			assert_eq!(<Tokens as PalletFungibles::Inspect<_>>::total_issuance(DOT), 200);
+			<Tokens as PalletFungibles::Unbalanced<_>>::set_total_issuance(DOT, 10);
+			assert_eq!(<Tokens as PalletFungibles::Inspect<_>>::total_issuance(DOT), 10);
+		});
+}
+
+#[test]
+fn fungibles_inspect_hold_trait_should_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_eq!(
+				<Tokens as PalletFungibles::InspectHold<_>>::balance_on_hold(DOT, &ALICE),
+				0
+			);
+			assert_eq!(
+				<Tokens as PalletFungibles::InspectHold<_>>::can_hold(DOT, &ALICE, 50),
+				true
+			);
+			assert_eq!(
+				<Tokens as PalletFungibles::InspectHold<_>>::can_hold(DOT, &ALICE, 100),
+				false
+			);
+		});
+}
+
+#[test]
+fn fungibles_mutate_hold_trait_should_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_noop!(
+				<Tokens as PalletFungibles::MutateHold<_>>::hold(DOT, &ALICE, 200),
+				Error::<Runtime>::BalanceTooLow
+			);
+			assert_ok!(<Tokens as PalletFungibles::MutateHold<_>>::hold(DOT, &ALICE, 100));
+			assert_eq!(
+				<Tokens as PalletFungibles::MutateHold<_>>::release(DOT, &ALICE, 50, true),
+				Ok(50)
+			);
+			assert_eq!(
+				<Tokens as PalletFungibles::MutateHold<_>>::transfer_held(DOT, &ALICE, &BOB, 100, true, true),
+				Ok(50)
+			);
+		});
+}
