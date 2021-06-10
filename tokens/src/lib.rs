@@ -1037,7 +1037,7 @@ impl<T: Config> PalletFungibles::MutateHold<T::AccountId> for Pallet<T> {
 			// Guaranteed to be <= amount and <= a.reserved
 			ensure!(best_effort || actual == amount, Error::<T>::BalanceTooLow);
 			a.free = new_free;
-			a.reserved = a.reserved.saturating_sub(actual.clone());
+			a.reserved = a.reserved.saturating_sub(actual);
 			Ok(actual)
 		})
 	}
