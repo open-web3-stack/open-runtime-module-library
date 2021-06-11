@@ -121,7 +121,12 @@ fn native_currency_should_work() {
 			assert_eq!(NativeCurrency::free_balance(&ALICE), 50);
 			assert_eq!(NativeCurrency::free_balance(&BOB), 150);
 
-			assert_ok!(NativeCurrency::transfer(&ALICE, &BOB, 10));
+			assert_ok!(NativeCurrency::transfer(
+				&ALICE,
+				&BOB,
+				10,
+				ExistenceRequirement::AllowDeath
+			));
 			assert_eq!(NativeCurrency::free_balance(&ALICE), 40);
 			assert_eq!(NativeCurrency::free_balance(&BOB), 160);
 
@@ -155,12 +160,22 @@ fn basic_currency_adapting_pallet_balances_transfer() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
-			assert_ok!(AdaptedBasicCurrency::transfer(&ALICE, &BOB, 50));
+			assert_ok!(AdaptedBasicCurrency::transfer(
+				&ALICE,
+				&BOB,
+				50,
+				ExistenceRequirement::AllowDeath
+			));
 			assert_eq!(PalletBalances::total_balance(&ALICE), 50);
 			assert_eq!(PalletBalances::total_balance(&BOB), 150);
 
 			// creation fee
-			assert_ok!(AdaptedBasicCurrency::transfer(&ALICE, &EVA, 10));
+			assert_ok!(AdaptedBasicCurrency::transfer(
+				&ALICE,
+				&EVA,
+				10,
+				ExistenceRequirement::AllowDeath
+			));
 			assert_eq!(PalletBalances::total_balance(&ALICE), 40);
 			assert_eq!(PalletBalances::total_balance(&EVA), 10);
 		});
@@ -257,7 +272,11 @@ fn call_event_should_work() {
 			System::assert_last_event(Event::currencies(crate::Event::Transferred(X_TOKEN_ID, ALICE, BOB, 50)));
 
 			assert_ok!(<Currencies as MultiCurrency<AccountId>>::transfer(
-				X_TOKEN_ID, &ALICE, &BOB, 10
+				X_TOKEN_ID,
+				&ALICE,
+				&BOB,
+				10,
+				ExistenceRequirement::AllowDeath
 			));
 			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &ALICE), 40);
 			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &BOB), 160);

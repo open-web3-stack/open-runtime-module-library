@@ -145,7 +145,13 @@ pub mod module {
 		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
-			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, &from, &to, amount)?;
+			<Self as MultiCurrency<T::AccountId>>::transfer(
+				currency_id,
+				&from,
+				&to,
+				amount,
+				ExistenceRequirement::AllowDeath,
+			)?;
 			Ok(().into())
 		}
 
@@ -161,7 +167,7 @@ pub mod module {
 		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
-			T::NativeCurrency::transfer(&from, &to, amount)?;
+			T::NativeCurrency::transfer(&from, &to, amount, ExistenceRequirement::AllowDeath)?;
 
 			Self::deposit_event(Event::Transferred(T::GetNativeCurrencyId::get(), from, to, amount));
 			Ok(().into())
@@ -234,14 +240,15 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
 		from: &T::AccountId,
 		to: &T::AccountId,
 		amount: Self::Balance,
+		existence_requirement: ExistenceRequirement,
 	) -> DispatchResult {
 		if amount.is_zero() || from == to {
 			return Ok(());
 		}
 		if currency_id == T::GetNativeCurrencyId::get() {
-			T::NativeCurrency::transfer(from, to, amount)?;
+			T::NativeCurrency::transfer(from, to, amount, existence_requirement)?;
 		} else {
-			T::MultiCurrency::transfer(currency_id, from, to, amount)?;
+			T::MultiCurrency::transfer(currency_id, from, to, amount, existence_requirement)?;
 		}
 		Self::deposit_event(Event::Transferred(currency_id, from.clone(), to.clone(), amount));
 		Ok(())
@@ -427,8 +434,19 @@ where
 		<Pallet<T>>::ensure_can_withdraw(GetCurrencyId::get(), who, amount)
 	}
 
-	fn transfer(from: &T::AccountId, to: &T::AccountId, amount: Self::Balance) -> DispatchResult {
-		<Pallet<T> as MultiCurrency<T::AccountId>>::transfer(GetCurrencyId::get(), from, to, amount)
+	fn transfer(
+		from: &T::AccountId,
+		to: &T::AccountId,
+		amount: Self::Balance,
+		existence_requirement: ExistenceRequirement,
+	) -> DispatchResult {
+		<Pallet<T> as MultiCurrency<T::AccountId>>::transfer(
+			GetCurrencyId::get(),
+			from,
+			to,
+			amount,
+			existence_requirement,
+		)
 	}
 
 	fn deposit(who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
@@ -561,8 +579,13 @@ where
 		Currency::ensure_can_withdraw(who, amount, WithdrawReasons::all(), new_balance)
 	}
 
-	fn transfer(from: &AccountId, to: &AccountId, amount: Self::Balance) -> DispatchResult {
-		Currency::transfer(from, to, amount, ExistenceRequirement::AllowDeath)
+	fn transfer(
+		from: &AccountId,
+		to: &AccountId,
+		amount: Self::Balance,
+		existence_requirement: ExistenceRequirement,
+	) -> DispatchResult {
+		Currency::transfer(from, to, amount, existence_requirement)
 	}
 
 	fn deposit(who: &AccountId, amount: Self::Balance) -> DispatchResult {
@@ -685,7 +708,12 @@ impl<T: Config> TransferAll<T::AccountId> for Pallet<T> {
 			T::MultiCurrency::transfer_all(source, dest)?;
 
 			// transfer all free to dest
-			T::NativeCurrency::transfer(source, dest, T::NativeCurrency::free_balance(source))
+			T::NativeCurrency::transfer(
+				source,
+				dest,
+				T::NativeCurrency::free_balance(source),
+				ExistenceRequirement::AllowDeath,
+			)
 		})
 	}
 }
