@@ -87,7 +87,13 @@ where
 	fn on_dust(who: &T::AccountId, currency_id: T::CurrencyId, amount: T::Balance) {
 		// transfer the dust to treasury account, ignore the result,
 		// if failed will leave some dust which still could be recycled.
-		let _ = <Pallet<T> as MultiCurrency<T::AccountId>>::transfer(currency_id, who, &GetAccountId::get(), amount);
+		let _ = <Pallet<T> as MultiCurrency<T::AccountId>>::transfer(
+			currency_id,
+			who,
+			&GetAccountId::get(),
+			amount,
+			ExistenceRequirement::AllowDeath,
+		);
 	}
 }
 
@@ -197,6 +203,8 @@ pub mod module {
 		LiquidityRestrictions,
 		/// Failed because the maximum locks was exceeded
 		MaxLocksExceeded,
+		/// Transfer/payment would kill account
+		KeepAlive,
 	}
 
 	#[pallet::event]
@@ -315,7 +323,7 @@ pub mod module {
 		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
-			<Self as MultiCurrency<_>>::transfer(currency_id, &from, &to, amount)?;
+			<Self as MultiCurrency<_>>::transfer(currency_id, &from, &to, amount, ExistenceRequirement::AllowDeath)?;
 
 			Self::deposit_event(Event::Transferred(currency_id, from, to, amount));
 			Ok(().into())
@@ -334,7 +342,13 @@ pub mod module {
 			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
 			let balance = <Self as MultiCurrency<T::AccountId>>::free_balance(currency_id, &from);
-			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, &from, &to, balance)?;
+			<Self as MultiCurrency<T::AccountId>>::transfer(
+				currency_id,
+				&from,
+				&to,
+				balance,
+				ExistenceRequirement::AllowDeath,
+			)?;
 
 			Self::deposit_event(Event::Transferred(currency_id, from, to, balance));
 			Ok(().into())
@@ -594,21 +608,31 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
 		from: &T::AccountId,
 		to: &T::AccountId,
 		amount: Self::Balance,
+		existence_requirement: ExistenceRequirement,
 	) -> DispatchResult {
 		if amount.is_zero() || from == to {
 			return Ok(());
 		}
-		Self::ensure_can_withdraw(currency_id, from, amount)?;
 
-		let from_balance = Self::free_balance(currency_id, from);
-		let to_balance = Self::free_balance(currency_id, to)
-			.checked_add(&amount)
-			.ok_or(ArithmeticError::Overflow)?;
-		// Cannot underflow because ensure_can_withdraw check
-		Self::set_free_balance(currency_id, from, from_balance - amount);
-		Self::set_free_balance(currency_id, to, to_balance);
+		Pallet::<T>::try_mutate_account(to, currency_id, |to_account, _is_new| -> DispatchResult {
+			Pallet::<T>::try_mutate_account(from, currency_id, |from_account, _is_new| -> DispatchResult {
+				from_account.free = from_account
+					.free
+					.checked_sub(&amount)
+					.ok_or(Error::<T>::BalanceTooLow)?;
+				to_account.free = to_account.free.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
 
-		Ok(())
+				Self::ensure_can_withdraw(currency_id, from, amount)?;
+
+				let ed = T::ExistentialDeposits::get(&currency_id);
+				let allow_death = existence_requirement == ExistenceRequirement::AllowDeath;
+				let allow_death = allow_death && !frame_system::Pallet::<T>::is_provider_required(from);
+				ensure!(allow_death || from_account.total() >= ed, Error::<T>::KeepAlive);
+
+				Ok(())
+			})?;
+			Ok(())
+		})
 	}
 
 	/// Deposit some `amount` into the free balance of account `who`.
@@ -973,9 +997,14 @@ impl<T: Config> fungibles::Transfer<T::AccountId> for Pallet<T> {
 		source: &T::AccountId,
 		dest: &T::AccountId,
 		amount: T::Balance,
-		_keep_alive: bool,
+		keep_alive: bool,
 	) -> Result<T::Balance, DispatchError> {
-		<Pallet<T> as MultiCurrency<T::AccountId>>::transfer(asset_id, source, dest, amount).map(|_| amount)
+		let er = if keep_alive {
+			ExistenceRequirement::KeepAlive
+		} else {
+			ExistenceRequirement::AllowDeath
+		};
+		<Pallet<T> as MultiCurrency<T::AccountId>>::transfer(asset_id, source, dest, amount, er).map(|_| amount)
 	}
 }
 
@@ -1133,9 +1162,15 @@ where
 		source: &T::AccountId,
 		dest: &T::AccountId,
 		value: Self::Balance,
-		_existence_requirement: ExistenceRequirement,
+		existence_requirement: ExistenceRequirement,
 	) -> DispatchResult {
-		<Pallet<T> as MultiCurrency<T::AccountId>>::transfer(GetCurrencyId::get(), &source, &dest, value)
+		<Pallet<T> as MultiCurrency<T::AccountId>>::transfer(
+			GetCurrencyId::get(),
+			&source,
+			&dest,
+			value,
+			existence_requirement,
+		)
 	}
 
 	fn slash(who: &T::AccountId, value: Self::Balance) -> (Self::NegativeImbalance, Self::Balance) {
@@ -1191,14 +1226,25 @@ where
 		who: &T::AccountId,
 		value: Self::Balance,
 		_reasons: WithdrawReasons,
-		_liveness: ExistenceRequirement,
+		liveness: ExistenceRequirement,
 	) -> sp_std::result::Result<Self::NegativeImbalance, DispatchError> {
 		if value.is_zero() {
 			return Ok(Self::NegativeImbalance::zero());
 		}
+
 		let currency_id = GetCurrencyId::get();
-		Pallet::<T>::ensure_can_withdraw(currency_id, who, value)?;
-		Pallet::<T>::set_free_balance(currency_id, who, Pallet::<T>::free_balance(currency_id, who) - value);
+		Pallet::<T>::try_mutate_account(who, currency_id, |account, _is_new| -> DispatchResult {
+			account.free = account.free.checked_sub(&value).ok_or(Error::<T>::BalanceTooLow)?;
+
+			Pallet::<T>::ensure_can_withdraw(currency_id, who, value)?;
+
+			let ed = T::ExistentialDeposits::get(&currency_id);
+			let allow_death = liveness == ExistenceRequirement::AllowDeath;
+			let allow_death = allow_death && !frame_system::Pallet::<T>::is_provider_required(who);
+			ensure!(allow_death || account.total() >= ed, Error::<T>::KeepAlive);
+
+			Ok(())
+		})?;
 
 		Ok(Self::NegativeImbalance::new(value))
 	}
@@ -1296,7 +1342,13 @@ impl<T: Config> TransferAll<T::AccountId> for Pallet<T> {
 	#[transactional]
 	fn transfer_all(source: &T::AccountId, dest: &T::AccountId) -> DispatchResult {
 		Accounts::<T>::iter_prefix(source).try_for_each(|(currency_id, account_data)| -> DispatchResult {
-			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, source, dest, account_data.free)
+			<Self as MultiCurrency<T::AccountId>>::transfer(
+				currency_id,
+				source,
+				dest,
+				account_data.free,
+				ExistenceRequirement::AllowDeath,
+			)
 		})
 	}
 }
