@@ -993,15 +993,15 @@ fn fungibles_inspect_trait_should_work() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
-			assert_eq!(<Tokens as PalletFungibles::Inspect<_>>::total_issuance(DOT), 200);
-			assert_eq!(<Tokens as PalletFungibles::Inspect<_>>::minimum_balance(DOT), 2);
-			assert_eq!(<Tokens as PalletFungibles::Inspect<_>>::balance(DOT, &ALICE), 100);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::total_issuance(DOT), 200);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::minimum_balance(DOT), 2);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 100);
 			assert_eq!(
-				<Tokens as PalletFungibles::Inspect<_>>::reducible_balance(DOT, &ALICE, true),
+				<Tokens as fungibles::Inspect<_>>::reducible_balance(DOT, &ALICE, true),
 				98
 			);
-			assert_ok!(<Tokens as PalletFungibles::Inspect<_>>::can_deposit(DOT, &ALICE, 1).into_result());
-			assert_ok!(<Tokens as PalletFungibles::Inspect<_>>::can_withdraw(DOT, &ALICE, 1).into_result());
+			assert_ok!(<Tokens as fungibles::Inspect<_>>::can_deposit(DOT, &ALICE, 1).into_result());
+			assert_ok!(<Tokens as fungibles::Inspect<_>>::can_withdraw(DOT, &ALICE, 1).into_result());
 		});
 }
 
@@ -1011,8 +1011,8 @@ fn fungibles_mutate_trait_should_work() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
-			assert_ok!(<Tokens as PalletFungibles::Mutate<_>>::mint_into(DOT, &ALICE, 10));
-			assert_eq!(<Tokens as PalletFungibles::Mutate<_>>::burn_from(DOT, &ALICE, 8), Ok(8));
+			assert_ok!(<Tokens as fungibles::Mutate<_>>::mint_into(DOT, &ALICE, 10));
+			assert_eq!(<Tokens as fungibles::Mutate<_>>::burn_from(DOT, &ALICE, 8), Ok(8));
 		});
 }
 
@@ -1022,13 +1022,13 @@ fn fungibles_transfer_trait_should_work() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
-			assert_eq!(<Tokens as PalletFungibles::Inspect<_>>::balance(DOT, &ALICE), 100);
-			assert_eq!(<Tokens as PalletFungibles::Inspect<_>>::balance(DOT, &BOB), 100);
-			assert_ok!(<Tokens as PalletFungibles::Transfer<_>>::transfer(
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 100);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &BOB), 100);
+			assert_ok!(<Tokens as fungibles::Transfer<_>>::transfer(
 				DOT, &ALICE, &BOB, 10, true
 			));
-			assert_eq!(<Tokens as PalletFungibles::Inspect<_>>::balance(DOT, &ALICE), 90);
-			assert_eq!(<Tokens as PalletFungibles::Inspect<_>>::balance(DOT, &BOB), 110);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 90);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &BOB), 110);
 		});
 }
 
@@ -1038,13 +1038,13 @@ fn fungibles_unbalanced_trait_should_work() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
-			assert_eq!(<Tokens as PalletFungibles::Inspect<_>>::balance(DOT, &ALICE), 100);
-			assert_ok!(<Tokens as PalletFungibles::Unbalanced<_>>::set_balance(DOT, &ALICE, 10));
-			assert_eq!(<Tokens as PalletFungibles::Inspect<_>>::balance(DOT, &ALICE), 10);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 100);
+			assert_ok!(<Tokens as fungibles::Unbalanced<_>>::set_balance(DOT, &ALICE, 10));
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 10);
 
-			assert_eq!(<Tokens as PalletFungibles::Inspect<_>>::total_issuance(DOT), 200);
-			<Tokens as PalletFungibles::Unbalanced<_>>::set_total_issuance(DOT, 10);
-			assert_eq!(<Tokens as PalletFungibles::Inspect<_>>::total_issuance(DOT), 10);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::total_issuance(DOT), 200);
+			<Tokens as fungibles::Unbalanced<_>>::set_total_issuance(DOT, 10);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::total_issuance(DOT), 10);
 		});
 }
 
@@ -1054,18 +1054,9 @@ fn fungibles_inspect_hold_trait_should_work() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
-			assert_eq!(
-				<Tokens as PalletFungibles::InspectHold<_>>::balance_on_hold(DOT, &ALICE),
-				0
-			);
-			assert_eq!(
-				<Tokens as PalletFungibles::InspectHold<_>>::can_hold(DOT, &ALICE, 50),
-				true
-			);
-			assert_eq!(
-				<Tokens as PalletFungibles::InspectHold<_>>::can_hold(DOT, &ALICE, 100),
-				false
-			);
+			assert_eq!(<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, &ALICE), 0);
+			assert_eq!(<Tokens as fungibles::InspectHold<_>>::can_hold(DOT, &ALICE, 50), true);
+			assert_eq!(<Tokens as fungibles::InspectHold<_>>::can_hold(DOT, &ALICE, 100), false);
 		});
 }
 
@@ -1076,16 +1067,16 @@ fn fungibles_mutate_hold_trait_should_work() {
 		.build()
 		.execute_with(|| {
 			assert_noop!(
-				<Tokens as PalletFungibles::MutateHold<_>>::hold(DOT, &ALICE, 200),
+				<Tokens as fungibles::MutateHold<_>>::hold(DOT, &ALICE, 200),
 				Error::<Runtime>::BalanceTooLow
 			);
-			assert_ok!(<Tokens as PalletFungibles::MutateHold<_>>::hold(DOT, &ALICE, 100));
+			assert_ok!(<Tokens as fungibles::MutateHold<_>>::hold(DOT, &ALICE, 100));
 			assert_eq!(
-				<Tokens as PalletFungibles::MutateHold<_>>::release(DOT, &ALICE, 50, true),
+				<Tokens as fungibles::MutateHold<_>>::release(DOT, &ALICE, 50, true),
 				Ok(50)
 			);
 			assert_eq!(
-				<Tokens as PalletFungibles::MutateHold<_>>::transfer_held(DOT, &ALICE, &BOB, 100, true, true),
+				<Tokens as fungibles::MutateHold<_>>::transfer_held(DOT, &ALICE, &BOB, 100, true, true),
 				Ok(50)
 			);
 		});

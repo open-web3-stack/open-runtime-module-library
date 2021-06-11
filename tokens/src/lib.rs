@@ -43,7 +43,7 @@ use frame_support::{
 	ensure, log,
 	pallet_prelude::*,
 	traits::{
-		tokens::{fungible as PalletFungible, fungibles as PalletFungibles, DepositConsequence, WithdrawConsequence},
+		tokens::{fungible, fungibles, DepositConsequence, WithdrawConsequence},
 		BalanceStatus as Status, Currency as PalletCurrency, ExistenceRequirement, Get, Imbalance,
 		LockableCurrency as PalletLockableCurrency, MaxEncodedLen, ReservableCurrency as PalletReservableCurrency,
 		SignedImbalance, WithdrawReasons,
@@ -890,7 +890,7 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 	}
 }
 
-impl<T: Config> PalletFungibles::Inspect<T::AccountId> for Pallet<T> {
+impl<T: Config> fungibles::Inspect<T::AccountId> for Pallet<T> {
 	type AssetId = T::CurrencyId;
 	type Balance = T::Balance;
 
@@ -928,16 +928,18 @@ impl<T: Config> PalletFungibles::Inspect<T::AccountId> for Pallet<T> {
 	}
 }
 
-impl<T: Config> PalletFungibles::Mutate<T::AccountId> for Pallet<T> {
+impl<T: Config> fungibles::Mutate<T::AccountId> for Pallet<T> {
 	fn mint_into(asset_id: Self::AssetId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
 		if amount.is_zero() {
 			return Ok(());
 		}
 		Pallet::<T>::try_mutate_account(who, asset_id, |account, _is_new| -> DispatchResult {
 			Pallet::<T>::deposit_consequence(who, asset_id, amount, &account).into_result()?;
+			// deposit_consequence already did overflow checking
 			account.free += amount;
 			Ok(())
 		})?;
+		// deposit_consequence already did overflow checking
 		<TotalIssuance<T>>::mutate(asset_id, |t| *t += amount);
 		Ok(())
 	}
@@ -953,16 +955,18 @@ impl<T: Config> PalletFungibles::Mutate<T::AccountId> for Pallet<T> {
 		let actual =
 			Pallet::<T>::try_mutate_account(who, asset_id, |account, _is_new| -> Result<T::Balance, DispatchError> {
 				let extra = Pallet::<T>::withdraw_consequence(who, asset_id, amount, &account).into_result()?;
+				// withdraw_consequence already did underflow checking
 				let actual = amount + extra;
 				account.free -= actual;
 				Ok(actual)
 			})?;
+		// withdraw_consequence already did underflow checking
 		<TotalIssuance<T>>::mutate(asset_id, |t| *t -= actual);
 		Ok(actual)
 	}
 }
 
-impl<T: Config> PalletFungibles::Transfer<T::AccountId> for Pallet<T> {
+impl<T: Config> fungibles::Transfer<T::AccountId> for Pallet<T> {
 	fn transfer(
 		asset_id: Self::AssetId,
 		source: &T::AccountId,
@@ -974,18 +978,20 @@ impl<T: Config> PalletFungibles::Transfer<T::AccountId> for Pallet<T> {
 	}
 }
 
-impl<T: Config> PalletFungibles::Unbalanced<T::AccountId> for Pallet<T> {
+impl<T: Config> fungibles::Unbalanced<T::AccountId> for Pallet<T> {
 	fn set_balance(asset_id: Self::AssetId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
+		// Balance is the same type and will not overflow
 		Pallet::<T>::mutate_account(who, asset_id, |account, _| account.free = amount);
 		Ok(())
 	}
 
 	fn set_total_issuance(asset_id: Self::AssetId, amount: Self::Balance) {
+		// Balance is the same type and will not overflow
 		<TotalIssuance<T>>::mutate(asset_id, |t| *t = amount);
 	}
 }
 
-impl<T: Config> PalletFungibles::InspectHold<T::AccountId> for Pallet<T> {
+impl<T: Config> fungibles::InspectHold<T::AccountId> for Pallet<T> {
 	fn balance_on_hold(asset_id: Self::AssetId, who: &T::AccountId) -> T::Balance {
 		Pallet::<T>::accounts(who, asset_id).reserved
 	}
@@ -1006,7 +1012,7 @@ impl<T: Config> PalletFungibles::InspectHold<T::AccountId> for Pallet<T> {
 	}
 }
 
-impl<T: Config> PalletFungibles::MutateHold<T::AccountId> for Pallet<T> {
+impl<T: Config> fungibles::MutateHold<T::AccountId> for Pallet<T> {
 	fn hold(asset_id: Self::AssetId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
 		if amount.is_zero() {
 			return Ok(());
@@ -1016,7 +1022,9 @@ impl<T: Config> PalletFungibles::MutateHold<T::AccountId> for Pallet<T> {
 			Error::<T>::BalanceTooLow
 		);
 		Pallet::<T>::mutate_account(who, asset_id, |a, _| {
+			// `can_reserve` has did underflow checking
 			a.free -= amount;
+			// Cannot overflow as `amount` is from `a.free`
 			a.reserved += amount;
 		});
 		Ok(())
@@ -1292,7 +1300,7 @@ impl<T: Config> TransferAll<T::AccountId> for Pallet<T> {
 	}
 }
 
-impl<T, GetCurrencyId> PalletFungible::Inspect<T::AccountId> for CurrencyAdapter<T, GetCurrencyId>
+impl<T, GetCurrencyId> fungible::Inspect<T::AccountId> for CurrencyAdapter<T, GetCurrencyId>
 where
 	T: Config,
 	GetCurrencyId: Get<T::CurrencyId>,
@@ -1300,39 +1308,39 @@ where
 	type Balance = T::Balance;
 
 	fn total_issuance() -> Self::Balance {
-		<Pallet<T> as PalletFungibles::Inspect<_>>::total_issuance(GetCurrencyId::get())
+		<Pallet<T> as fungibles::Inspect<_>>::total_issuance(GetCurrencyId::get())
 	}
 	fn minimum_balance() -> Self::Balance {
-		<Pallet<T> as PalletFungibles::Inspect<_>>::minimum_balance(GetCurrencyId::get())
+		<Pallet<T> as fungibles::Inspect<_>>::minimum_balance(GetCurrencyId::get())
 	}
 	fn balance(who: &T::AccountId) -> Self::Balance {
-		<Pallet<T> as PalletFungibles::Inspect<_>>::balance(GetCurrencyId::get(), who)
+		<Pallet<T> as fungibles::Inspect<_>>::balance(GetCurrencyId::get(), who)
 	}
 	fn reducible_balance(who: &T::AccountId, keep_alive: bool) -> Self::Balance {
-		<Pallet<T> as PalletFungibles::Inspect<_>>::reducible_balance(GetCurrencyId::get(), who, keep_alive)
+		<Pallet<T> as fungibles::Inspect<_>>::reducible_balance(GetCurrencyId::get(), who, keep_alive)
 	}
 	fn can_deposit(who: &T::AccountId, amount: Self::Balance) -> DepositConsequence {
-		<Pallet<T> as PalletFungibles::Inspect<_>>::can_deposit(GetCurrencyId::get(), who, amount)
+		<Pallet<T> as fungibles::Inspect<_>>::can_deposit(GetCurrencyId::get(), who, amount)
 	}
 	fn can_withdraw(who: &T::AccountId, amount: Self::Balance) -> WithdrawConsequence<Self::Balance> {
-		<Pallet<T> as PalletFungibles::Inspect<_>>::can_withdraw(GetCurrencyId::get(), who, amount)
+		<Pallet<T> as fungibles::Inspect<_>>::can_withdraw(GetCurrencyId::get(), who, amount)
 	}
 }
 
-impl<T, GetCurrencyId> PalletFungible::Mutate<T::AccountId> for CurrencyAdapter<T, GetCurrencyId>
+impl<T, GetCurrencyId> fungible::Mutate<T::AccountId> for CurrencyAdapter<T, GetCurrencyId>
 where
 	T: Config,
 	GetCurrencyId: Get<T::CurrencyId>,
 {
 	fn mint_into(who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
-		<Pallet<T> as PalletFungibles::Mutate<_>>::mint_into(GetCurrencyId::get(), who, amount)
+		<Pallet<T> as fungibles::Mutate<_>>::mint_into(GetCurrencyId::get(), who, amount)
 	}
 	fn burn_from(who: &T::AccountId, amount: Self::Balance) -> Result<Self::Balance, DispatchError> {
-		<Pallet<T> as PalletFungibles::Mutate<_>>::burn_from(GetCurrencyId::get(), who, amount)
+		<Pallet<T> as fungibles::Mutate<_>>::burn_from(GetCurrencyId::get(), who, amount)
 	}
 }
 
-impl<T, GetCurrencyId> PalletFungible::Transfer<T::AccountId> for CurrencyAdapter<T, GetCurrencyId>
+impl<T, GetCurrencyId> fungible::Transfer<T::AccountId> for CurrencyAdapter<T, GetCurrencyId>
 where
 	T: Config,
 	GetCurrencyId: Get<T::CurrencyId>,
@@ -1343,46 +1351,46 @@ where
 		amount: T::Balance,
 		keep_alive: bool,
 	) -> Result<T::Balance, DispatchError> {
-		<Pallet<T> as PalletFungibles::Transfer<_>>::transfer(GetCurrencyId::get(), source, dest, amount, keep_alive)
+		<Pallet<T> as fungibles::Transfer<_>>::transfer(GetCurrencyId::get(), source, dest, amount, keep_alive)
 	}
 }
 
-impl<T, GetCurrencyId> PalletFungible::Unbalanced<T::AccountId> for CurrencyAdapter<T, GetCurrencyId>
+impl<T, GetCurrencyId> fungible::Unbalanced<T::AccountId> for CurrencyAdapter<T, GetCurrencyId>
 where
 	T: Config,
 	GetCurrencyId: Get<T::CurrencyId>,
 {
 	fn set_balance(who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
-		<Pallet<T> as PalletFungibles::Unbalanced<_>>::set_balance(GetCurrencyId::get(), who, amount)
+		<Pallet<T> as fungibles::Unbalanced<_>>::set_balance(GetCurrencyId::get(), who, amount)
 	}
 	fn set_total_issuance(amount: Self::Balance) {
-		<Pallet<T> as PalletFungibles::Unbalanced<_>>::set_total_issuance(GetCurrencyId::get(), amount)
+		<Pallet<T> as fungibles::Unbalanced<_>>::set_total_issuance(GetCurrencyId::get(), amount)
 	}
 }
 
-impl<T, GetCurrencyId> PalletFungible::InspectHold<T::AccountId> for CurrencyAdapter<T, GetCurrencyId>
+impl<T, GetCurrencyId> fungible::InspectHold<T::AccountId> for CurrencyAdapter<T, GetCurrencyId>
 where
 	T: Config,
 	GetCurrencyId: Get<T::CurrencyId>,
 {
 	fn balance_on_hold(who: &T::AccountId) -> T::Balance {
-		<Pallet<T> as PalletFungibles::InspectHold<_>>::balance_on_hold(GetCurrencyId::get(), who)
+		<Pallet<T> as fungibles::InspectHold<_>>::balance_on_hold(GetCurrencyId::get(), who)
 	}
 	fn can_hold(who: &T::AccountId, amount: T::Balance) -> bool {
-		<Pallet<T> as PalletFungibles::InspectHold<_>>::can_hold(GetCurrencyId::get(), who, amount)
+		<Pallet<T> as fungibles::InspectHold<_>>::can_hold(GetCurrencyId::get(), who, amount)
 	}
 }
 
-impl<T, GetCurrencyId> PalletFungible::MutateHold<T::AccountId> for CurrencyAdapter<T, GetCurrencyId>
+impl<T, GetCurrencyId> fungible::MutateHold<T::AccountId> for CurrencyAdapter<T, GetCurrencyId>
 where
 	T: Config,
 	GetCurrencyId: Get<T::CurrencyId>,
 {
 	fn hold(who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
-		<Pallet<T> as PalletFungibles::MutateHold<_>>::hold(GetCurrencyId::get(), who, amount)
+		<Pallet<T> as fungibles::MutateHold<_>>::hold(GetCurrencyId::get(), who, amount)
 	}
 	fn release(who: &T::AccountId, amount: Self::Balance, best_effort: bool) -> Result<T::Balance, DispatchError> {
-		<Pallet<T> as PalletFungibles::MutateHold<_>>::release(GetCurrencyId::get(), who, amount, best_effort)
+		<Pallet<T> as fungibles::MutateHold<_>>::release(GetCurrencyId::get(), who, amount, best_effort)
 	}
 	fn transfer_held(
 		source: &T::AccountId,
@@ -1391,7 +1399,7 @@ where
 		best_effort: bool,
 		on_hold: bool,
 	) -> Result<Self::Balance, DispatchError> {
-		<Pallet<T> as PalletFungibles::MutateHold<_>>::transfer_held(
+		<Pallet<T> as fungibles::MutateHold<_>>::transfer_held(
 			GetCurrencyId::get(),
 			source,
 			dest,
