@@ -172,6 +172,7 @@ pub mod module {
 			+ MaybeSerializeDeserialize;
 
 		/// The currency ID type
+		// TODO: remove `Default` after https://github.com/paritytech/substrate/pull/9062
 		type CurrencyId: Parameter + Member + Copy + MaybeSerializeDeserialize + Ord + Default;
 
 		/// Weight information for extrinsics in this module.
