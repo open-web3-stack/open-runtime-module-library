@@ -262,15 +262,13 @@ pub mod module {
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
-		pub endowed_accounts: Vec<(T::AccountId, T::CurrencyId, T::Balance)>,
+		pub balances: Vec<(T::AccountId, T::CurrencyId, T::Balance)>,
 	}
 
 	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
-			GenesisConfig {
-				endowed_accounts: vec![],
-			}
+			GenesisConfig { balances: vec![] }
 		}
 	}
 
@@ -279,16 +277,16 @@ pub mod module {
 		fn build(&self) {
 			// ensure no duplicates exist.
 			let unique_endowed_accounts = self
-				.endowed_accounts
+				.balances
 				.iter()
 				.map(|(account_id, currency_id, _)| (account_id, currency_id))
 				.collect::<std::collections::BTreeSet<_>>();
 			assert!(
-				unique_endowed_accounts.len() == self.endowed_accounts.len(),
+				unique_endowed_accounts.len() == self.balances.len(),
 				"duplicate endowed accounts in genesis."
 			);
 
-			self.endowed_accounts
+			self.balances
 				.iter()
 				.for_each(|(account_id, currency_id, initial_balance)| {
 					assert!(
