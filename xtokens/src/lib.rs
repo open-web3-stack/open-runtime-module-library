@@ -22,7 +22,12 @@
 #![allow(clippy::unused_unit)]
 #![allow(clippy::large_enum_variant)]
 
-use frame_support::{pallet_prelude::*, traits::Get, storage::{with_transaction, TransactionOutcome}, Parameter};
+use frame_support::{
+	pallet_prelude::*,
+	storage::{with_transaction, TransactionOutcome},
+	traits::Get,
+	Parameter,
+};
 use frame_system::{ensure_signed, pallet_prelude::*};
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, Convert, MaybeSerializeDeserialize, Member, Zero},
@@ -92,11 +97,13 @@ pub mod module {
 	pub enum Event<T: Config> {
 		/// Transferred. \[sender, currency_id, amount, dest\]
 		Transferred(T::AccountId, T::CurrencyId, T::Balance, MultiLocation),
-		/// Transfer XCM execution failed. \[sender, currency_id, amount, dest, xcm_err\]
+		/// Transfer XCM execution failed. \[sender, currency_id, amount, dest,
+		/// xcm_err\]
 		TransferFailed(T::AccountId, T::CurrencyId, T::Balance, MultiLocation, XcmError),
 		/// Transferred `MultiAsset`. \[sender, asset, dest\]
 		TransferredMultiAsset(T::AccountId, MultiAsset, MultiLocation),
-		/// Transfer `MultiAsset` XCM execution failed. \[sender, asset, dest, xcm_err\]
+		/// Transfer `MultiAsset` XCM execution failed. \[sender, asset, dest,
+		/// xcm_err\]
 		TransferredMultiAssetFailed(T::AccountId, MultiAsset, MultiLocation, XcmError),
 	}
 
@@ -158,7 +165,12 @@ pub mod module {
 
 		/// Transfer `MultiAsset`.
 		#[pallet::weight(Pallet::<T>::weight_of_transfer_multiasset(&asset, &dest))]
-		pub fn transfer_multiasset(origin: OriginFor<T>, asset: MultiAsset, dest: MultiLocation, dest_weight: Weight) -> DispatchResult {
+		pub fn transfer_multiasset(
+			origin: OriginFor<T>,
+			asset: MultiAsset,
+			dest: MultiLocation,
+			dest_weight: Weight,
+		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
 			if Self::is_zero_amount(&asset) {
@@ -180,7 +192,12 @@ pub mod module {
 
 	impl<T: Config> Pallet<T> {
 		/// Transfer `MultiAsset` without depositing event.
-		fn do_transfer_multiasset(who: T::AccountId, asset: MultiAsset, dest: MultiLocation, dest_weight: Weight) -> XcmExecutionResult {
+		fn do_transfer_multiasset(
+			who: T::AccountId,
+			asset: MultiAsset,
+			dest: MultiLocation,
+			dest_weight: Weight,
+		) -> XcmExecutionResult {
 			let (transfer_kind, reserve, dest, recipient) = Self::transfer_kind(&asset, &dest)?;
 			let buy_order = BuyExecution {
 				fees: All,
@@ -223,7 +240,12 @@ pub mod module {
 			}
 		}
 
-		fn transfer_to_reserve(asset: MultiAsset, reserve: MultiLocation, recipient: MultiLocation, buy_order: Order<()>) -> Xcm<T::Call> {
+		fn transfer_to_reserve(
+			asset: MultiAsset,
+			reserve: MultiLocation,
+			recipient: MultiLocation,
+			buy_order: Order<()>,
+		) -> Xcm<T::Call> {
 			WithdrawAsset {
 				assets: vec![asset],
 				effects: vec![InitiateReserveWithdraw {
@@ -253,11 +275,14 @@ pub mod module {
 				effects: vec![InitiateReserveWithdraw {
 					assets: vec![MultiAsset::All],
 					reserve,
-					effects: vec![buy_order.clone(), DepositReserveAsset {
-						assets: vec![MultiAsset::All],
-						dest: reanchored_dest,
-						effects: vec![buy_order, Self::deposit_asset(recipient)],
-					}],
+					effects: vec![
+						buy_order.clone(),
+						DepositReserveAsset {
+							assets: vec![MultiAsset::All],
+							dest: reanchored_dest,
+							effects: vec![buy_order, Self::deposit_asset(recipient)],
+						},
+					],
 				}],
 			}
 		}
