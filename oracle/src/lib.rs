@@ -89,6 +89,8 @@ pub mod module {
 
 		/// Weight information for extrinsics in this module.
 		type WeightInfo: WeightInfo;
+
+		type MaxHasDispatchedSize: Get<u32> + Default;
 	}
 
 	#[pallet::error]
@@ -127,7 +129,7 @@ pub mod module {
 	/// If an oracle operator has feed a value in this block
 	#[pallet::storage]
 	pub(crate) type HasDispatched<T: Config<I>, I: 'static = ()> =
-		StorageValue<_, OrderedSet<T::AccountId>, ValueQuery>;
+		StorageValue<_, OrderedSet<T::AccountId, T::MaxHasDispatchedSize>, ValueQuery>;
 
 	#[pallet::pallet]
 	pub struct Pallet<T, I = ()>(PhantomData<(T, I)>);
