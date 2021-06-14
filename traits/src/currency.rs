@@ -213,12 +213,7 @@ pub trait BasicCurrency<AccountId> {
 	// Public mutables
 
 	/// Transfer some amount from one account to another.
-	fn transfer(
-		from: &AccountId,
-		to: &AccountId,
-		amount: Self::Balance,
-		existence_requirement: ExistenceRequirement,
-	) -> DispatchResult;
+	fn transfer(from: &AccountId, to: &AccountId, amount: Self::Balance) -> DispatchResult;
 
 	/// Add `amount` to the balance of `who` and increase total issuance.
 	fn deposit(who: &AccountId, amount: Self::Balance) -> DispatchResult;
