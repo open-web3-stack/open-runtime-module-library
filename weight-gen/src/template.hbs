@@ -12,10 +12,10 @@ impl<T: frame_system::Config> ModuleWeights<T> {
 	{{~#each benchmarks as |benchmark|}}
 	pub fn {{benchmark.name~}} () -> Weight {
 		({{underscore benchmark.base_weight}} as Weight)
-			{{~#if (ne benchmark.base_reads "0")}}
+			{{~#if (ne benchmark.base_reads 0)}}
 			.saturating_add(T::DbWeight::get().reads({{benchmark.base_reads}} as Weight))
 			{{~/if}}
-			{{~#if (ne benchmark.base_writes "0")}}
+			{{~#if (ne benchmark.base_writes 0)}}
 			.saturating_add(T::DbWeight::get().writes({{benchmark.base_writes}} as Weight))
 			{{~/if}}
 	}

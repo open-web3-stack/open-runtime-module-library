@@ -157,7 +157,13 @@ pub mod module {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
 		/// The balance type
-		type Balance: Parameter + Member + AtLeast32BitUnsigned + Default + Copy + MaybeSerializeDeserialize;
+		type Balance: Parameter
+			+ Member
+			+ AtLeast32BitUnsigned
+			+ Default
+			+ Copy
+			+ MaybeSerializeDeserialize
+			+ MaxEncodedLen;
 
 		/// The amount type, should be signed version of `Balance`
 		type Amount: Signed
@@ -200,12 +206,21 @@ pub mod module {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// Token transfer success. \[currency_id, from, to, amount\]
-		Transferred(T::CurrencyId, T::AccountId, T::AccountId, T::Balance),
+		/// An account was created with some free balance. \[currency_id,
+		/// account, free_balance\]
+		Endowed(T::CurrencyId, T::AccountId, T::Balance),
 		/// An account was removed whose balance was non-zero but below
-		/// ExistentialDeposit, resulting in an outright loss. \[account,
-		/// currency_id, amount\]
-		DustLost(T::AccountId, T::CurrencyId, T::Balance),
+		/// ExistentialDeposit, resulting in an outright loss. \[currency_id,
+		/// account, balance\]
+		DustLost(T::CurrencyId, T::AccountId, T::Balance),
+		/// Transfer succeeded. \[currency_id, from, to, value\]
+		Transfer(T::CurrencyId, T::AccountId, T::AccountId, T::Balance),
+		/// Some balance was reserved (moved from free to reserved).
+		/// \[currency_id, who, value\]
+		Reserved(T::CurrencyId, T::AccountId, T::Balance),
+		/// Some balance was unreserved (moved from reserved to free).
+		/// \[currency_id, who, value\]
+		Unreserved(T::CurrencyId, T::AccountId, T::Balance),
 	}
 
 	/// The total issuance of a token type.
@@ -247,15 +262,13 @@ pub mod module {
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
-		pub endowed_accounts: Vec<(T::AccountId, T::CurrencyId, T::Balance)>,
+		pub balances: Vec<(T::AccountId, T::CurrencyId, T::Balance)>,
 	}
 
 	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
-			GenesisConfig {
-				endowed_accounts: vec![],
-			}
+			GenesisConfig { balances: vec![] }
 		}
 	}
 
@@ -264,16 +277,16 @@ pub mod module {
 		fn build(&self) {
 			// ensure no duplicates exist.
 			let unique_endowed_accounts = self
-				.endowed_accounts
+				.balances
 				.iter()
 				.map(|(account_id, currency_id, _)| (account_id, currency_id))
 				.collect::<std::collections::BTreeSet<_>>();
 			assert!(
-				unique_endowed_accounts.len() == self.endowed_accounts.len(),
+				unique_endowed_accounts.len() == self.balances.len(),
 				"duplicate endowed accounts in genesis."
 			);
 
-			self.endowed_accounts
+			self.balances
 				.iter()
 				.for_each(|(account_id, currency_id, initial_balance)| {
 					assert!(
@@ -315,7 +328,7 @@ pub mod module {
 			let to = T::Lookup::lookup(dest)?;
 			<Self as MultiCurrency<_>>::transfer(currency_id, &from, &to, amount)?;
 
-			Self::deposit_event(Event::Transferred(currency_id, from, to, amount));
+			Self::deposit_event(Event::Transfer(currency_id, from, to, amount));
 			Ok(().into())
 		}
 
@@ -334,7 +347,7 @@ pub mod module {
 			let balance = <Self as MultiCurrency<T::AccountId>>::free_balance(currency_id, &from);
 			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, &from, &to, balance)?;
 
-			Self::deposit_event(Event::Transferred(currency_id, from, to, balance));
+			Self::deposit_event(Event::Transfer(currency_id, from, to, balance));
 			Ok(().into())
 		}
 	}
@@ -355,7 +368,8 @@ impl<T: Config> Pallet<T> {
 			let existed = maybe_account.is_some();
 			let mut account = maybe_account.take().unwrap_or_default();
 			f(&mut account, existed).map(move |result| {
-				let mut handle_dust: Option<T::Balance> = None;
+				let maybe_endowed = if !existed { Some(account.free) } else { None };
+				let mut maybe_dust: Option<T::Balance> = None;
 				let total = account.total();
 				*maybe_account = if total.is_zero() {
 					None
@@ -363,30 +377,34 @@ impl<T: Config> Pallet<T> {
 					// if non_zero total is below existential deposit and the account is not a
 					// module account, should handle the dust.
 					if total < T::ExistentialDeposits::get(&currency_id) && !Self::is_module_account_id(who) {
-						handle_dust = Some(total);
+						maybe_dust = Some(total);
 					}
 					Some(account)
 				};
 
-				(existed, maybe_account.is_some(), handle_dust, result)
+				(maybe_endowed, existed, maybe_account.is_some(), maybe_dust, result)
 			})
 		})
-		.map(|(existed, exists, handle_dust, result)| {
+		.map(|(maybe_endowed, existed, exists, maybe_dust, result)| {
 			if existed && !exists {
 				// If existed before, decrease account provider.
-				// Ignore the result, because if it failed means that these’s remain consumers,
-				// and the account storage in frame_system shouldn't be repeaded.
+				// Ignore the result, because if it failed then there are remaining consumers,
+				// and the account storage in frame_system shouldn't be reaped.
 				let _ = frame_system::Pallet::<T>::dec_providers(who);
 			} else if !existed && exists {
 				// if new, increase account provider
 				frame_system::Pallet::<T>::inc_providers(who);
 			}
 
-			if let Some(dust_amount) = handle_dust {
+			if let Some(endowed) = maybe_endowed {
+				Self::deposit_event(Event::Endowed(currency_id, who.clone(), endowed));
+			}
+
+			if let Some(dust_amount) = maybe_dust {
 				// `OnDust` maybe get/set storage `Accounts` of `who`, trigger handler here
 				// to avoid some unexpected errors.
 				T::OnDust::on_dust(who, currency_id, dust_amount);
-				Self::deposit_event(Event::DustLost(who.clone(), currency_id, dust_amount));
+				Self::deposit_event(Event::DustLost(currency_id, who.clone(), dust_amount));
 			}
 
 			result
@@ -751,6 +769,8 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 		// Cannot overflow becuase total issuance is using the same balance type and
 		// this doesn't increase total issuance
 		Self::set_reserved_balance(currency_id, who, account.reserved + value);
+
+		Self::deposit_event(Event::Reserved(currency_id, who.clone(), value));
 		Ok(())
 	}
 
@@ -768,6 +788,7 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 		Self::set_reserved_balance(currency_id, who, account.reserved - actual);
 		Self::set_free_balance(currency_id, who, account.free + actual);
 
+		Self::deposit_event(Event::Unreserved(currency_id, who.clone(), actual));
 		value - actual
 	}
 
