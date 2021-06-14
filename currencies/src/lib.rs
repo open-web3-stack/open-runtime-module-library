@@ -145,13 +145,7 @@ pub mod module {
 		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
-			<Self as MultiCurrency<T::AccountId>>::transfer(
-				currency_id,
-				&from,
-				&to,
-				amount,
-				ExistenceRequirement::AllowDeath,
-			)?;
+			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, &from, &to, amount)?;
 			Ok(().into())
 		}
 
@@ -240,7 +234,6 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
 		from: &T::AccountId,
 		to: &T::AccountId,
 		amount: Self::Balance,
-		existence_requirement: ExistenceRequirement,
 	) -> DispatchResult {
 		if amount.is_zero() || from == to {
 			return Ok(());
@@ -248,7 +241,7 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
 		if currency_id == T::GetNativeCurrencyId::get() {
 			T::NativeCurrency::transfer(from, to, amount)?;
 		} else {
-			T::MultiCurrency::transfer(currency_id, from, to, amount, existence_requirement)?;
+			T::MultiCurrency::transfer(currency_id, from, to, amount)?;
 		}
 		Self::deposit_event(Event::Transferred(currency_id, from.clone(), to.clone(), amount));
 		Ok(())
@@ -435,13 +428,7 @@ where
 	}
 
 	fn transfer(from: &T::AccountId, to: &T::AccountId, amount: Self::Balance) -> DispatchResult {
-		<Pallet<T> as MultiCurrency<T::AccountId>>::transfer(
-			GetCurrencyId::get(),
-			from,
-			to,
-			amount,
-			ExistenceRequirement::AllowDeath,
-		)
+		<Pallet<T> as MultiCurrency<T::AccountId>>::transfer(GetCurrencyId::get(), from, to, amount)
 	}
 
 	fn deposit(who: &T::AccountId, amount: Self::Balance) -> DispatchResult {

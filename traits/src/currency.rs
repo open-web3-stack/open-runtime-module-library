@@ -1,7 +1,7 @@
 use crate::arithmetic;
 use codec::{Codec, FullCodec};
 pub use frame_support::{
-	traits::{BalanceStatus, ExistenceRequirement, LockIdentifier},
+	traits::{BalanceStatus, LockIdentifier},
 	transactional,
 };
 use sp_runtime::{
@@ -49,7 +49,6 @@ pub trait MultiCurrency<AccountId> {
 		from: &AccountId,
 		to: &AccountId,
 		amount: Self::Balance,
-		existence_requirement: ExistenceRequirement,
 	) -> DispatchResult;
 
 	/// Add `amount` to the balance of `who` under `currency_id` and increase

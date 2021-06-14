@@ -125,17 +125,11 @@ fn frozen_can_limit_liquidity() {
 		.execute_with(|| {
 			assert_ok!(Tokens::set_lock(ID_1, DOT, &ALICE, 90));
 			assert_noop!(
-				<Tokens as MultiCurrency<_>>::transfer(DOT, &ALICE, &BOB, 11, ExistenceRequirement::AllowDeath),
+				<Tokens as MultiCurrency<_>>::transfer(DOT, &ALICE, &BOB, 11),
 				Error::<Runtime>::LiquidityRestrictions,
 			);
 			assert_ok!(Tokens::set_lock(ID_1, DOT, &ALICE, 10));
-			assert_ok!(<Tokens as MultiCurrency<_>>::transfer(
-				DOT,
-				&ALICE,
-				&BOB,
-				11,
-				ExistenceRequirement::AllowDeath
-			),);
+			assert_ok!(<Tokens as MultiCurrency<_>>::transfer(DOT, &ALICE, &BOB, 11));
 		});
 }
 
@@ -157,7 +151,7 @@ fn reserve_should_work() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
-			assert_noop!(Tokens::reserve(DOT, &ALICE, 101), Error::<Runtime>::BalanceTooLow,);
+			assert_noop!(Tokens::reserve(DOT, &ALICE, 101), Error::<Runtime>::BalanceTooLow);
 			assert_ok!(Tokens::reserve(DOT, &ALICE, 0));
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
 			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 0);

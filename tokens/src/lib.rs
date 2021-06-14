@@ -87,13 +87,7 @@ where
 	fn on_dust(who: &T::AccountId, currency_id: T::CurrencyId, amount: T::Balance) {
 		// transfer the dust to treasury account, ignore the result,
 		// if failed will leave some dust which still could be recycled.
-		let _ = <Pallet<T> as MultiCurrency<T::AccountId>>::transfer(
-			currency_id,
-			who,
-			&GetAccountId::get(),
-			amount,
-			ExistenceRequirement::AllowDeath,
-		);
+		let _ = <Pallet<T> as MultiCurrency<T::AccountId>>::transfer(currency_id, who, &GetAccountId::get(), amount);
 	}
 }
 
@@ -323,7 +317,7 @@ pub mod module {
 		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
-			<Self as MultiCurrency<_>>::transfer(currency_id, &from, &to, amount, ExistenceRequirement::AllowDeath)?;
+			<Self as MultiCurrency<_>>::transfer(currency_id, &from, &to, amount)?;
 
 			Self::deposit_event(Event::Transferred(currency_id, from, to, amount));
 			Ok(().into())
@@ -342,13 +336,7 @@ pub mod module {
 			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
 			let balance = <Self as MultiCurrency<T::AccountId>>::free_balance(currency_id, &from);
-			<Self as MultiCurrency<T::AccountId>>::transfer(
-				currency_id,
-				&from,
-				&to,
-				balance,
-				ExistenceRequirement::AllowDeath,
-			)?;
+			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, &from, &to, balance)?;
 
 			Self::deposit_event(Event::Transferred(currency_id, from, to, balance));
 			Ok(().into())
@@ -560,6 +548,41 @@ impl<T: Config> Pallet<T> {
 
 		Ok(())
 	}
+
+	/// Transfer some free balance from `from` to `to`.
+	/// Is a no-op if value to be transferred is zero or the `from` is the
+	/// same as `to`.
+	pub(crate) fn do_transfer(
+		currency_id: T::CurrencyId,
+		from: &T::AccountId,
+		to: &T::AccountId,
+		amount: T::Balance,
+		existence_requirement: ExistenceRequirement,
+	) -> DispatchResult {
+		if amount.is_zero() || from == to {
+			return Ok(());
+		}
+
+		Pallet::<T>::try_mutate_account(to, currency_id, |to_account, _is_new| -> DispatchResult {
+			Pallet::<T>::try_mutate_account(from, currency_id, |from_account, _is_new| -> DispatchResult {
+				from_account.free = from_account
+					.free
+					.checked_sub(&amount)
+					.ok_or(Error::<T>::BalanceTooLow)?;
+				to_account.free = to_account.free.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
+
+				Self::ensure_can_withdraw(currency_id, from, amount)?;
+
+				let ed = T::ExistentialDeposits::get(&currency_id);
+				let allow_death = existence_requirement == ExistenceRequirement::AllowDeath;
+				let allow_death = allow_death && !frame_system::Pallet::<T>::is_provider_required(from);
+				ensure!(allow_death || from_account.total() >= ed, Error::<T>::KeepAlive);
+
+				Ok(())
+			})?;
+			Ok(())
+		})
+	}
 }
 
 impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
@@ -608,31 +631,8 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
 		from: &T::AccountId,
 		to: &T::AccountId,
 		amount: Self::Balance,
-		existence_requirement: ExistenceRequirement,
 	) -> DispatchResult {
-		if amount.is_zero() || from == to {
-			return Ok(());
-		}
-
-		Pallet::<T>::try_mutate_account(to, currency_id, |to_account, _is_new| -> DispatchResult {
-			Pallet::<T>::try_mutate_account(from, currency_id, |from_account, _is_new| -> DispatchResult {
-				from_account.free = from_account
-					.free
-					.checked_sub(&amount)
-					.ok_or(Error::<T>::BalanceTooLow)?;
-				to_account.free = to_account.free.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
-
-				Self::ensure_can_withdraw(currency_id, from, amount)?;
-
-				let ed = T::ExistentialDeposits::get(&currency_id);
-				let allow_death = existence_requirement == ExistenceRequirement::AllowDeath;
-				let allow_death = allow_death && !frame_system::Pallet::<T>::is_provider_required(from);
-				ensure!(allow_death || from_account.total() >= ed, Error::<T>::KeepAlive);
-
-				Ok(())
-			})?;
-			Ok(())
-		})
+		Self::do_transfer(currency_id, from, to, amount, ExistenceRequirement::AllowDeath)
 	}
 
 	/// Deposit some `amount` into the free balance of account `who`.
@@ -1004,7 +1004,7 @@ impl<T: Config> fungibles::Transfer<T::AccountId> for Pallet<T> {
 		} else {
 			ExistenceRequirement::AllowDeath
 		};
-		<Pallet<T> as MultiCurrency<T::AccountId>>::transfer(asset_id, source, dest, amount, er).map(|_| amount)
+		Self::do_transfer(asset_id, source, dest, amount, er).map(|_| amount)
 	}
 }
 
@@ -1164,13 +1164,7 @@ where
 		value: Self::Balance,
 		existence_requirement: ExistenceRequirement,
 	) -> DispatchResult {
-		<Pallet<T> as MultiCurrency<T::AccountId>>::transfer(
-			GetCurrencyId::get(),
-			&source,
-			&dest,
-			value,
-			existence_requirement,
-		)
+		Self::do_transfer(GetCurrencyId::get(), &source, &dest, value, existence_requirement)
 	}
 
 	fn slash(who: &T::AccountId, value: Self::Balance) -> (Self::NegativeImbalance, Self::Balance) {
@@ -1342,13 +1336,7 @@ impl<T: Config> TransferAll<T::AccountId> for Pallet<T> {
 	#[transactional]
 	fn transfer_all(source: &T::AccountId, dest: &T::AccountId) -> DispatchResult {
 		Accounts::<T>::iter_prefix(source).try_for_each(|(currency_id, account_data)| -> DispatchResult {
-			<Self as MultiCurrency<T::AccountId>>::transfer(
-				currency_id,
-				source,
-				dest,
-				account_data.free,
-				ExistenceRequirement::AllowDeath,
-			)
+			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, source, dest, account_data.free)
 		})
 	}
 }
