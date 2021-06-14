@@ -1164,7 +1164,7 @@ where
 		value: Self::Balance,
 		existence_requirement: ExistenceRequirement,
 	) -> DispatchResult {
-		Self::do_transfer(GetCurrencyId::get(), &source, &dest, value, existence_requirement)
+		Pallet::<T>::do_transfer(GetCurrencyId::get(), &source, &dest, value, existence_requirement)
 	}
 
 	fn slash(who: &T::AccountId, value: Self::Balance) -> (Self::NegativeImbalance, Self::Balance) {
