@@ -83,7 +83,6 @@ impl SortedMembers<AccountId> for Members {
 }
 
 parameter_types! {
-	#[derive(Default)]
 	pub const MaxHasDispatchedSize: u32 = 100;
 }
 

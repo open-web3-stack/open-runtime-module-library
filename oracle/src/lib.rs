@@ -90,7 +90,7 @@ pub mod module {
 		/// Weight information for extrinsics in this module.
 		type WeightInfo: WeightInfo;
 
-		type MaxHasDispatchedSize: Get<u32> + Default;
+		type MaxHasDispatchedSize: Get<u32>;
 	}
 
 	#[pallet::error]
