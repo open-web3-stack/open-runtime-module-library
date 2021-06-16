@@ -572,6 +572,8 @@ impl<T: Config> Pallet<T> {
 	/// Transfer some free balance from `from` to `to`.
 	/// Is a no-op if value to be transferred is zero or the `from` is the
 	/// same as `to`.
+	/// Ensure from_account allow death or new balance above existential
+	/// deposit. Ensure to_account new balance above existential deposit.
 	pub(crate) fn do_transfer(
 		currency_id: T::CurrencyId,
 		from: &T::AccountId,
@@ -592,6 +594,8 @@ impl<T: Config> Pallet<T> {
 				to_account.free = to_account.free.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
 
 				let ed = T::ExistentialDeposits::get(&currency_id);
+				// if to_account non_zero total is below existential deposit and the account is
+				// not a module account, would return an error.
 				ensure!(
 					to_account.total() >= ed || Self::is_module_account_id(to),
 					Error::<T>::ExistentialDeposit
@@ -601,6 +605,8 @@ impl<T: Config> Pallet<T> {
 
 				let allow_death = existence_requirement == ExistenceRequirement::AllowDeath;
 				let allow_death = allow_death && !frame_system::Pallet::<T>::is_provider_required(from);
+				// if from_account does not allow death and non_zero total is below existential
+				// deposit, would return an error.
 				ensure!(allow_death || from_account.total() >= ed, Error::<T>::KeepAlive);
 
 				Ok(())
