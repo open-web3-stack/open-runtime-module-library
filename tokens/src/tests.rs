@@ -324,6 +324,11 @@ fn transfer_should_work() {
 				Tokens::transfer(Some(ALICE).into(), BOB, DOT, 60),
 				Error::<Runtime>::BalanceTooLow,
 			);
+			assert_noop!(
+				Tokens::transfer(Some(ALICE).into(), CHARLIE, DOT, 1),
+				Error::<Runtime>::ExistentialDeposit,
+			);
+			assert_ok!(Tokens::transfer(Some(ALICE).into(), CHARLIE, DOT, 2));
 		});
 }
 
@@ -708,7 +713,7 @@ fn currency_adapter_partial_locking_should_work() {
 			assert_ok!(TreasuryCurrencyAdapter::transfer(
 				&TREASURY_ACCOUNT,
 				&ALICE,
-				1,
+				2,
 				ExistenceRequirement::AllowDeath
 			));
 		});
@@ -725,7 +730,7 @@ fn currency_adapter_lock_removal_should_work() {
 			assert_ok!(TreasuryCurrencyAdapter::transfer(
 				&TREASURY_ACCOUNT,
 				&ALICE,
-				1,
+				2,
 				ExistenceRequirement::AllowDeath
 			));
 		});
@@ -742,7 +747,7 @@ fn currency_adapter_lock_replacement_should_work() {
 			assert_ok!(TreasuryCurrencyAdapter::transfer(
 				&TREASURY_ACCOUNT,
 				&ALICE,
-				1,
+				2,
 				ExistenceRequirement::AllowDeath
 			));
 		});
@@ -759,7 +764,7 @@ fn currency_adapter_double_locking_should_work() {
 			assert_ok!(TreasuryCurrencyAdapter::transfer(
 				&TREASURY_ACCOUNT,
 				&ALICE,
-				1,
+				2,
 				ExistenceRequirement::AllowDeath
 			));
 		});
@@ -775,7 +780,7 @@ fn currency_adapter_combination_locking_should_work() {
 			TreasuryCurrencyAdapter::set_lock(ID_1, &TREASURY_ACCOUNT, u64::max_value(), WithdrawReasons::empty());
 			TreasuryCurrencyAdapter::set_lock(ID_2, &TREASURY_ACCOUNT, 0, WithdrawReasons::all());
 			assert_noop!(
-				TreasuryCurrencyAdapter::transfer(&TREASURY_ACCOUNT, &ALICE, 1, ExistenceRequirement::AllowDeath),
+				TreasuryCurrencyAdapter::transfer(&TREASURY_ACCOUNT, &ALICE, 2, ExistenceRequirement::AllowDeath),
 				Error::<Runtime>::LiquidityRestrictions
 			);
 		});

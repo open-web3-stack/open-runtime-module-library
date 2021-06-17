@@ -205,6 +205,8 @@ pub mod module {
 		MaxLocksExceeded,
 		/// Transfer/payment would kill account
 		KeepAlive,
+		/// Value too low to create account due to existential deposit
+		ExistentialDeposit,
 	}
 
 	#[pallet::event]
@@ -570,6 +572,8 @@ impl<T: Config> Pallet<T> {
 	/// Transfer some free balance from `from` to `to`.
 	/// Is a no-op if value to be transferred is zero or the `from` is the
 	/// same as `to`.
+	/// Ensure from_account allow death or new balance above existential
+	/// deposit. Ensure to_account new balance above existential deposit.
 	pub(crate) fn do_transfer(
 		currency_id: T::CurrencyId,
 		from: &T::AccountId,
@@ -581,19 +585,28 @@ impl<T: Config> Pallet<T> {
 			return Ok(());
 		}
 
-		Pallet::<T>::try_mutate_account(to, currency_id, |to_account, _is_new| -> DispatchResult {
-			Pallet::<T>::try_mutate_account(from, currency_id, |from_account, _is_new| -> DispatchResult {
+		Pallet::<T>::try_mutate_account(to, currency_id, |to_account, _existed| -> DispatchResult {
+			Pallet::<T>::try_mutate_account(from, currency_id, |from_account, _existed| -> DispatchResult {
 				from_account.free = from_account
 					.free
 					.checked_sub(&amount)
 					.ok_or(Error::<T>::BalanceTooLow)?;
 				to_account.free = to_account.free.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
 
+				let ed = T::ExistentialDeposits::get(&currency_id);
+				// if to_account non_zero total is below existential deposit and the account is
+				// not a module account, would return an error.
+				ensure!(
+					to_account.total() >= ed || Self::is_module_account_id(to),
+					Error::<T>::ExistentialDeposit
+				);
+
 				Self::ensure_can_withdraw(currency_id, from, amount)?;
 
-				let ed = T::ExistentialDeposits::get(&currency_id);
 				let allow_death = existence_requirement == ExistenceRequirement::AllowDeath;
 				let allow_death = allow_death && !frame_system::Pallet::<T>::is_provider_required(from);
+				// if from_account does not allow death and non_zero total is below existential
+				// deposit, would return an error.
 				ensure!(allow_death || from_account.total() >= ed, Error::<T>::KeepAlive);
 
 				Ok(())
@@ -979,7 +992,7 @@ impl<T: Config> fungibles::Mutate<T::AccountId> for Pallet<T> {
 		if amount.is_zero() {
 			return Ok(());
 		}
-		Pallet::<T>::try_mutate_account(who, asset_id, |account, _is_new| -> DispatchResult {
+		Pallet::<T>::try_mutate_account(who, asset_id, |account, _existed| -> DispatchResult {
 			Pallet::<T>::deposit_consequence(who, asset_id, amount, &account).into_result()?;
 			// deposit_consequence already did overflow checking
 			account.free += amount;
@@ -998,14 +1011,17 @@ impl<T: Config> fungibles::Mutate<T::AccountId> for Pallet<T> {
 		if amount.is_zero() {
 			return Ok(Self::Balance::zero());
 		}
-		let actual =
-			Pallet::<T>::try_mutate_account(who, asset_id, |account, _is_new| -> Result<T::Balance, DispatchError> {
+		let actual = Pallet::<T>::try_mutate_account(
+			who,
+			asset_id,
+			|account, _existed| -> Result<T::Balance, DispatchError> {
 				let extra = Pallet::<T>::withdraw_consequence(who, asset_id, amount, &account).into_result()?;
 				// withdraw_consequence already did underflow checking
 				let actual = amount + extra;
 				account.free -= actual;
 				Ok(actual)
-			})?;
+			},
+		)?;
 		// withdraw_consequence already did underflow checking
 		<TotalIssuance<T>>::mutate(asset_id, |t| *t -= actual);
 		Ok(actual)
@@ -1090,7 +1106,7 @@ impl<T: Config> fungibles::MutateHold<T::AccountId> for Pallet<T> {
 			return Ok(amount);
 		}
 		// Done on a best-effort basis.
-		Pallet::<T>::try_mutate_account(who, asset_id, |a, _| {
+		Pallet::<T>::try_mutate_account(who, asset_id, |a, _existed| {
 			let new_free = a.free.saturating_add(amount.min(a.reserved));
 			let actual = new_free - a.free;
 			// Guaranteed to be <= amount and <= a.reserved
@@ -1248,7 +1264,7 @@ where
 		}
 
 		let currency_id = GetCurrencyId::get();
-		Pallet::<T>::try_mutate_account(who, currency_id, |account, _is_new| -> DispatchResult {
+		Pallet::<T>::try_mutate_account(who, currency_id, |account, _existed| -> DispatchResult {
 			account.free = account.free.checked_sub(&value).ok_or(Error::<T>::BalanceTooLow)?;
 
 			Pallet::<T>::ensure_can_withdraw(currency_id, who, value)?;
