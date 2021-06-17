@@ -62,7 +62,7 @@ fn remove_dust_work() {
 		assert_eq!(Tokens::free_balance(DOT, &DustAccount::get()), 1);
 		assert_eq!(System::providers(&DustAccount::get()), 1);
 
-		System::assert_last_event(Event::tokens(crate::Event::DustLost(DOT, ALICE, 1)));
+		System::assert_last_event(Event::Tokens(crate::Event::DustLost(DOT, ALICE, 1)));
 	});
 }
 
@@ -70,7 +70,7 @@ fn remove_dust_work() {
 fn set_free_balance_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		Tokens::set_free_balance(DOT, &ALICE, 100);
-		System::assert_last_event(Event::tokens(crate::Event::Endowed(DOT, ALICE, 100)));
+		System::assert_last_event(Event::Tokens(crate::Event::Endowed(DOT, ALICE, 100)));
 	});
 }
 
@@ -165,7 +165,7 @@ fn reserve_should_work() {
 			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 0);
 			assert_eq!(Tokens::total_balance(DOT, &ALICE), 100);
 			assert_ok!(Tokens::reserve(DOT, &ALICE, 50));
-			System::assert_last_event(Event::tokens(crate::Event::Reserved(DOT, ALICE, 50)));
+			System::assert_last_event(Event::Tokens(crate::Event::Reserved(DOT, ALICE, 50)));
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 50);
 			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 50);
 			assert_eq!(Tokens::total_balance(DOT, &ALICE), 100);
@@ -182,17 +182,17 @@ fn unreserve_should_work() {
 			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 0);
 			assert_eq!(Tokens::unreserve(DOT, &ALICE, 0), 0);
 			assert_eq!(Tokens::unreserve(DOT, &ALICE, 50), 50);
-			System::assert_last_event(Event::tokens(crate::Event::Unreserved(DOT, ALICE, 0)));
+			System::assert_last_event(Event::Tokens(crate::Event::Unreserved(DOT, ALICE, 0)));
 			assert_ok!(Tokens::reserve(DOT, &ALICE, 30));
-			System::assert_last_event(Event::tokens(crate::Event::Reserved(DOT, ALICE, 30)));
+			System::assert_last_event(Event::Tokens(crate::Event::Reserved(DOT, ALICE, 30)));
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 70);
 			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 30);
 			assert_eq!(Tokens::unreserve(DOT, &ALICE, 15), 0);
-			System::assert_last_event(Event::tokens(crate::Event::Unreserved(DOT, ALICE, 15)));
+			System::assert_last_event(Event::Tokens(crate::Event::Unreserved(DOT, ALICE, 15)));
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 85);
 			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 15);
 			assert_eq!(Tokens::unreserve(DOT, &ALICE, 30), 15);
-			System::assert_last_event(Event::tokens(crate::Event::Unreserved(DOT, ALICE, 15)));
+			System::assert_last_event(Event::Tokens(crate::Event::Unreserved(DOT, ALICE, 15)));
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
 			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 0);
 		});
@@ -318,7 +318,7 @@ fn transfer_should_work() {
 			assert_eq!(Tokens::free_balance(DOT, &BOB), 150);
 			assert_eq!(Tokens::total_issuance(DOT), 200);
 
-			System::assert_last_event(Event::tokens(crate::Event::Transfer(DOT, ALICE, BOB, 50)));
+			System::assert_last_event(Event::Tokens(crate::Event::Transfer(DOT, ALICE, BOB, 50)));
 
 			assert_noop!(
 				Tokens::transfer(Some(ALICE).into(), BOB, DOT, 60),
@@ -344,7 +344,7 @@ fn transfer_all_should_work() {
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
 			assert_eq!(Tokens::free_balance(DOT, &BOB), 200);
 
-			System::assert_last_event(Event::tokens(crate::Event::Transfer(DOT, ALICE, BOB, 100)));
+			System::assert_last_event(Event::Tokens(crate::Event::Transfer(DOT, ALICE, BOB, 100)));
 		});
 }
 
