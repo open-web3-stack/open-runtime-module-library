@@ -83,10 +83,10 @@ sp-version = { git = "https://github.com/paritytech//substrate", rev = "c666a251
 sp-wasm-interface = { git = "https://github.com/paritytech//substrate", rev = "c666a251691300c1651075a3b59ba1cf59c5a664" }
 
 # [patch.'https://github.com/paritytech/cumulus']
-# cumulus-primitives-core = { git = "https://github.com/paritytech//cumulus", rev = "a84f7866f5ce36eb246407fce1e5f813e5eff575" }
-# cumulus-pallet-parachain-system = { git = "https://github.com/paritytech//cumulus", rev = "a84f7866f5ce36eb246407fce1e5f813e5eff575" }
-# parachain-info = { git = "https://github.com/paritytech//cumulus", rev = "a84f7866f5ce36eb246407fce1e5f813e5eff575" }
-# cumulus-pallet-xcm-handler = { git = "https://github.com/paritytech//cumulus", rev = "a84f7866f5ce36eb246407fce1e5f813e5eff575" }
+# cumulus-primitives-core = { git = "https://github.com/paritytech//cumulus", rev = "05ab7a377d2c3b73566c0c3bd41b003486d6913b" }
+# cumulus-pallet-parachain-system = { git = "https://github.com/paritytech//cumulus", rev = "05ab7a377d2c3b73566c0c3bd41b003486d6913b" }
+# parachain-info = { git = "https://github.com/paritytech//cumulus", rev = "05ab7a377d2c3b73566c0c3bd41b003486d6913b" }
+# cumulus-pallet-xcm-handler = { git = "https://github.com/paritytech//cumulus", rev = "05ab7a377d2c3b73566c0c3bd41b003486d6913b" }
 
 # [patch.'https://github.com/paritytech/polkadot']
 # xcm = { git = "https://github.com/paritytech//polkadot", rev = "293b7697bb3cd3b00cdf4e64b4e2315412c33f70" }
