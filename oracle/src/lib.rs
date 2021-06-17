@@ -90,6 +90,7 @@ pub mod module {
 		/// Weight information for extrinsics in this module.
 		type WeightInfo: WeightInfo;
 
+		/// Maximum size of HasDispatched
 		type MaxHasDispatchedSize: Get<u32>;
 	}
 
