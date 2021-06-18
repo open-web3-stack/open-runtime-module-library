@@ -130,7 +130,7 @@ pub mod module {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		/// Transfer native currencies.
-		#[pallet::weight(Pallet::<T>::weight_of_transfer(currency_id.clone(),*amount, &dest))]
+		#[pallet::weight(Pallet::<T>::weight_of_transfer(currency_id.clone(), *amount, &dest))]
 		pub fn transfer(
 			origin: OriginFor<T>,
 			currency_id: T::CurrencyId,
