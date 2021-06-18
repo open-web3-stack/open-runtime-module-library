@@ -31,7 +31,7 @@ fn gradually_update_should_work() {
 			per_block: vec![1].try_into().unwrap(),
 		};
 		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()));
-		System::assert_last_event(Event::gradually_update(crate::Event::GraduallyUpdateAdded(
+		System::assert_last_event(Event::GraduallyUpdateModule(crate::Event::GraduallyUpdateAdded(
 			update.key,
 			update.per_block,
 			update.target_value,
@@ -89,7 +89,7 @@ fn cancel_gradually_update_should_work() {
 			per_block: vec![1].try_into().unwrap(),
 		};
 		assert_ok!(GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()));
-		System::assert_last_event(Event::gradually_update(crate::Event::GraduallyUpdateAdded(
+		System::assert_last_event(Event::GraduallyUpdateModule(crate::Event::GraduallyUpdateAdded(
 			update.key.clone(),
 			update.per_block,
 			update.target_value,
@@ -99,7 +99,7 @@ fn cancel_gradually_update_should_work() {
 			Origin::root(),
 			update.key.clone()
 		));
-		System::assert_last_event(Event::gradually_update(crate::Event::GraduallyUpdateCancelled(
+		System::assert_last_event(Event::GraduallyUpdateModule(crate::Event::GraduallyUpdateCancelled(
 			update.key.clone(),
 		)));
 	});
@@ -143,7 +143,7 @@ fn add_on_finalize_should_work() {
 		GraduallyUpdateModule::on_finalize(10);
 		assert_eq!(storage_get(&update.key), vec![10]);
 		println!("Length {}", System::events().len());
-		System::assert_last_event(Event::gradually_update(crate::Event::Updated(
+		System::assert_last_event(Event::GraduallyUpdateModule(crate::Event::Updated(
 			10,
 			update.key.clone(),
 			vec![10].try_into().unwrap(),
@@ -156,7 +156,7 @@ fn add_on_finalize_should_work() {
 
 		GraduallyUpdateModule::on_finalize(20);
 		assert_eq!(storage_get(&update.key), vec![20]);
-		System::assert_last_event(Event::gradually_update(crate::Event::Updated(
+		System::assert_last_event(Event::GraduallyUpdateModule(crate::Event::Updated(
 			20,
 			update.key.clone(),
 			vec![20].try_into().unwrap(),
@@ -165,7 +165,7 @@ fn add_on_finalize_should_work() {
 
 		GraduallyUpdateModule::on_finalize(40);
 		assert_eq!(storage_get(&update.key), vec![30]);
-		System::assert_last_event(Event::gradually_update(crate::Event::Updated(
+		System::assert_last_event(Event::GraduallyUpdateModule(crate::Event::Updated(
 			40,
 			update.key.clone(),
 			vec![30].try_into().unwrap(),
@@ -190,7 +190,7 @@ fn sub_on_finalize_should_work() {
 
 		GraduallyUpdateModule::on_finalize(10);
 		assert_eq!(storage_get(&update.key), vec![20]);
-		System::assert_last_event(Event::gradually_update(crate::Event::Updated(
+		System::assert_last_event(Event::GraduallyUpdateModule(crate::Event::Updated(
 			10,
 			update.key.clone(),
 			vec![20].try_into().unwrap(),
@@ -203,7 +203,7 @@ fn sub_on_finalize_should_work() {
 
 		GraduallyUpdateModule::on_finalize(20);
 		assert_eq!(storage_get(&update.key), vec![10]);
-		System::assert_last_event(Event::gradually_update(crate::Event::Updated(
+		System::assert_last_event(Event::GraduallyUpdateModule(crate::Event::Updated(
 			20,
 			update.key.clone(),
 			vec![10].try_into().unwrap(),
@@ -212,7 +212,7 @@ fn sub_on_finalize_should_work() {
 
 		GraduallyUpdateModule::on_finalize(40);
 		assert_eq!(storage_get(&update.key), vec![5]);
-		System::assert_last_event(Event::gradually_update(crate::Event::Updated(
+		System::assert_last_event(Event::GraduallyUpdateModule(crate::Event::Updated(
 			40,
 			update.key.clone(),
 			vec![5].try_into().unwrap(),

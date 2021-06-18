@@ -447,7 +447,7 @@ impl ParaExtBuilder {
 		.unwrap();
 
 		orml_tokens::GenesisConfig::<Runtime> {
-			endowed_accounts: vec![(ALICE, CurrencyId::R, 100)],
+			balances: vec![(ALICE, CurrencyId::R, 100)],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();
