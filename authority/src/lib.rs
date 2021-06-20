@@ -123,6 +123,7 @@ pub mod module {
 	use super::*;
 
 	/// Origin for the authority module.
+	#[pallet::origin]
 	pub type Origin<T> = DelayedOrigin<<T as frame_system::Config>::BlockNumber, <T as Config>::PalletsOrigin>;
 	pub(crate) type CallOf<T> = <T as Config>::Call;
 
