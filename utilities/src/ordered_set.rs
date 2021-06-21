@@ -72,7 +72,7 @@ impl<T: Ord, S: Get<u32>> From<BoundedVec<T, S>> for OrderedSet<T, S> {
 impl<T, S> fmt::Debug for OrderedSet<T, S>
 where
 	T: fmt::Debug,
-	S: Get<u32> + fmt::Debug,
+	S: Get<u32>,
 {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		f.debug_tuple("OrderedSet").field(&self.0).finish()
