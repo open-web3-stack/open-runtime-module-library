@@ -25,8 +25,8 @@ mod currency_adapter;
 mod tests;
 
 /// The XCM handler to execute XCM locally.
-pub trait XcmHandler<AccountId> {
-	fn execute_xcm(origin: AccountId, xcm: Xcm) -> DispatchResult;
+pub trait ExecuteXcm<AccountId, Call> {
+	fn execute_xcm(origin: AccountId, xcm: Xcm<Call>) -> DispatchResult;
 }
 
 /// A `MatchesFungible` implementation. It matches concrete fungible assets

@@ -27,7 +27,7 @@ pub mod auction;
 pub mod currency;
 pub mod data_provider;
 pub mod get_by_key;
-// pub mod location;
+pub mod location;
 pub mod nft;
 pub mod price;
 pub mod rewards;

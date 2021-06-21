@@ -21,8 +21,8 @@ impl Convert<MultiLocation, Option<TestCurrencyId>> for CurrencyIdConvert {
 		let token_b: Vec<u8> = "TokenB".into();
 		match l {
 			X1(Parent) => Some(RelayChainToken),
-			X3(Parent, Parachain { id: 1 }, GeneralKey(k)) if k == token_a => Some(TokenA),
-			X3(Parent, Parachain { id: 2 }, GeneralKey(k)) if k == token_b => Some(TokenB),
+			X3(Parent, Parachain(1), GeneralKey(k)) if k == token_a => Some(TokenA),
+			X3(Parent, Parachain(2), GeneralKey(k)) if k == token_b => Some(TokenB),
 			_ => None,
 		}
 	}
@@ -41,14 +41,14 @@ fn is_native_concrete_matches_native_currencies() {
 	);
 	assert_eq!(
 		MatchesCurrencyId::matches_fungible(&ConcreteFungible {
-			id: X3(Parent, Parachain { id: 1 }, GeneralKey("TokenA".into())),
+			id: X3(Parent, Parachain(1), GeneralKey("TokenA".into())),
 			amount: 100
 		}),
 		Some(100),
 	);
 	assert_eq!(
 		MatchesCurrencyId::matches_fungible(&ConcreteFungible {
-			id: X3(Parent, Parachain { id: 2 }, GeneralKey("TokenB".into())),
+			id: X3(Parent, Parachain(2), GeneralKey("TokenB".into())),
 			amount: 100
 		}),
 		Some(100),
@@ -59,14 +59,14 @@ fn is_native_concrete_matches_native_currencies() {
 fn is_native_concrete_does_not_matches_non_native_currencies() {
 	assert!(
 		<MatchesCurrencyId as MatchesFungible<u128>>::matches_fungible(&ConcreteFungible {
-			id: X3(Parent, Parachain { id: 2 }, GeneralKey("TokenC".into())),
+			id: X3(Parent, Parachain(2), GeneralKey("TokenC".into())),
 			amount: 100
 		})
 		.is_none()
 	);
 	assert!(
 		<MatchesCurrencyId as MatchesFungible<u128>>::matches_fungible(&ConcreteFungible {
-			id: X3(Parent, Parachain { id: 1 }, GeneralKey("TokenB".into())),
+			id: X3(Parent, Parachain(1), GeneralKey("TokenB".into())),
 			amount: 100
 		})
 		.is_none()
@@ -91,15 +91,15 @@ fn multi_native_asset() {
 	));
 	assert!(MultiNativeAsset::filter_asset_location(
 		&ConcreteFungible {
-			id: X3(Parent, Parachain { id: 1 }, GeneralKey("TokenA".into())),
+			id: X3(Parent, Parachain(1), GeneralKey("TokenA".into())),
 			amount: 10,
 		},
-		&X2(Parent, Parachain { id: 1 }),
+		&X2(Parent, Parachain(1)),
 	));
 	assert_eq!(
 		MultiNativeAsset::filter_asset_location(
 			&ConcreteFungible {
-				id: X3(Parent, Parachain { id: 1 }, GeneralKey("TokenA".into())),
+				id: X3(Parent, Parachain(1), GeneralKey("TokenA".into())),
 				amount: 10,
 			},
 			&X1(Parent),
