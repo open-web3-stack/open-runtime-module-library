@@ -82,6 +82,10 @@ impl SortedMembers<AccountId> for Members {
 	}
 }
 
+parameter_types! {
+	pub const MaxHasDispatchedSize: u32 = 100;
+}
+
 impl Config for Test {
 	type Event = Event;
 	type OnNewData = ();
@@ -92,6 +96,7 @@ impl Config for Test {
 	type RootOperatorAccountId = RootOperatorAccountId;
 	type Members = Members;
 	type WeightInfo = ();
+	type MaxHasDispatchedSize = MaxHasDispatchedSize;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
