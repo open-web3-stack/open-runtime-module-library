@@ -81,7 +81,3 @@ impl<T> Handler<T> for Tuple {
 		Ok(())
 	}
 }
-
-pub trait Contains<T> {
-	fn contains(t: &T) -> bool;
-}
