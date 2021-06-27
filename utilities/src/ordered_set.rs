@@ -1,8 +1,8 @@
 use codec::{Decode, Encode};
 use frame_support::{traits::Get, BoundedVec, DefaultNoBound};
+use sp_std::convert::TryInto;
 #[cfg(feature = "std")]
-use sp_std::prelude::*;
-use sp_std::{convert::TryInto, fmt};
+use sp_std::{fmt, prelude::*};
 
 /// An ordered set backed by `BoundedVec`
 #[derive(PartialEq, Eq, Encode, Decode, DefaultNoBound, Clone)]
