@@ -28,7 +28,7 @@ fn vesting_from_chain_spec_works() {
 			}]
 		);
 
-		System::set_block_number(13);
+		MockBlockNumberProvider::set(13);
 
 		assert_ok!(Vesting::claim(Origin::signed(CHARLIE)));
 
@@ -40,7 +40,7 @@ fn vesting_from_chain_spec_works() {
 		));
 		assert!(PalletBalances::ensure_can_withdraw(&CHARLIE, 26, WithdrawReasons::TRANSFER, 4).is_err());
 
-		System::set_block_number(14);
+		MockBlockNumberProvider::set(14);
 
 		assert_ok!(Vesting::claim(Origin::signed(CHARLIE)));
 
@@ -81,7 +81,7 @@ fn add_new_vesting_schedule_merges_with_current_locked_balance_and_until() {
 		};
 		assert_ok!(Vesting::vested_transfer(Origin::signed(ALICE), BOB, schedule));
 
-		System::set_block_number(12);
+		MockBlockNumberProvider::set(12);
 
 		let another_schedule = VestingSchedule {
 			start: 10u64,
@@ -213,7 +213,7 @@ fn claim_works() {
 		};
 		assert_ok!(Vesting::vested_transfer(Origin::signed(ALICE), BOB, schedule.clone()));
 
-		System::set_block_number(11);
+		MockBlockNumberProvider::set(11);
 		// remain locked if not claimed
 		assert!(PalletBalances::transfer(Origin::signed(BOB), ALICE, 10).is_err());
 		// unlocked after claiming
@@ -222,7 +222,7 @@ fn claim_works() {
 		// more are still locked
 		assert!(PalletBalances::transfer(Origin::signed(BOB), ALICE, 1).is_err());
 
-		System::set_block_number(21);
+		MockBlockNumberProvider::set(21);
 		// claim more
 		assert_ok!(Vesting::claim(Origin::signed(BOB)));
 		assert_ok!(PalletBalances::transfer(Origin::signed(BOB), ALICE, 10));
@@ -257,11 +257,11 @@ fn update_vesting_schedules_works() {
 			vec![updated_schedule]
 		));
 
-		System::set_block_number(11);
+		MockBlockNumberProvider::set(11);
 		assert_ok!(Vesting::claim(Origin::signed(BOB)));
 		assert!(PalletBalances::transfer(Origin::signed(BOB), ALICE, 1).is_err());
 
-		System::set_block_number(21);
+		MockBlockNumberProvider::set(21);
 		assert_ok!(Vesting::claim(Origin::signed(BOB)));
 		assert_ok!(PalletBalances::transfer(Origin::signed(BOB), ALICE, 10));
 	});
@@ -312,13 +312,13 @@ fn multiple_vesting_schedule_claim_works() {
 
 		assert_eq!(Vesting::vesting_schedules(&BOB), vec![schedule, schedule2.clone()]);
 
-		System::set_block_number(21);
+		MockBlockNumberProvider::set(21);
 
 		assert_ok!(Vesting::claim(Origin::signed(BOB)));
 
 		assert_eq!(Vesting::vesting_schedules(&BOB), vec![schedule2]);
 
-		System::set_block_number(31);
+		MockBlockNumberProvider::set(31);
 
 		assert_ok!(Vesting::claim(Origin::signed(BOB)));
 

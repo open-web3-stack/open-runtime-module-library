@@ -45,7 +45,6 @@ type Balance = u64;
 
 parameter_types! {
 	pub const ExistentialDeposit: u64 = 1;
-	pub const MinVestedTransfer: u64 = 5;
 }
 
 impl pallet_balances::Config for Runtime {
@@ -80,6 +79,16 @@ impl EnsureOrigin<Origin> for EnsureAliceOrBob {
 
 parameter_types! {
 	pub const MaxVestingSchedule: u32 = 2;
+	pub const MinVestedTransfer: u64 = 5;
+	pub static MockBlockNumberProvider: u64 = 0;
+}
+
+impl BlockNumberProvider for MockBlockNumberProvider {
+	type BlockNumber = u64;
+
+	fn current_block_number() -> Self::BlockNumber {
+		Self::get()
+	}
 }
 
 impl Config for Runtime {
@@ -89,6 +98,7 @@ impl Config for Runtime {
 	type VestedTransferOrigin = EnsureAliceOrBob;
 	type WeightInfo = ();
 	type MaxVestingSchedules = MaxVestingSchedule;
+	type BlockNumberProvider = MockBlockNumberProvider;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;

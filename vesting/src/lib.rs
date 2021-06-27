@@ -39,8 +39,12 @@ use frame_support::{
 };
 use frame_system::{ensure_root, ensure_signed, pallet_prelude::*};
 use sp_runtime::{
+	// TODO: move after https://github.com/paritytech/substrate/pull/9209
+	offchain::storage_lock::BlockNumberProvider,
 	traits::{AtLeast32Bit, CheckedAdd, Saturating, StaticLookup, Zero},
-	ArithmeticError, DispatchResult, RuntimeDebug,
+	ArithmeticError,
+	DispatchResult,
+	RuntimeDebug,
 };
 use sp_std::{
 	cmp::{Eq, PartialEq},
@@ -140,6 +144,9 @@ pub mod module {
 
 		/// The maximum vesting schedules
 		type MaxVestingSchedules: Get<u32>;
+
+		// The block number provider
+		type BlockNumberProvider: BlockNumberProvider<BlockNumber = Self::BlockNumber>;
 	}
 
 	#[pallet::error]
@@ -170,6 +177,8 @@ pub mod module {
 	}
 
 	/// Vesting schedules of an account.
+	///
+	/// VestingSchedules: map AccountId => Vec<VestingSchedule>
 	#[pallet::storage]
 	#[pallet::getter(fn vesting_schedules)]
 	pub type VestingSchedules<T: Config> = StorageMap<
@@ -282,7 +291,7 @@ impl<T: Config> Pallet<T> {
 
 	/// Returns locked balance based on current block number.
 	fn locked_balance(who: &T::AccountId) -> BalanceOf<T> {
-		let now = <frame_system::Pallet<T>>::block_number();
+		let now = T::BlockNumberProvider::current_block_number();
 		<VestingSchedules<T>>::mutate_exists(who, |maybe_schedules| {
 			let total = if let Some(schedules) = maybe_schedules.as_mut() {
 				let mut total: BalanceOf<T> = Zero::zero();
