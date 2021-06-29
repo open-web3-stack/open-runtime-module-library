@@ -13,7 +13,7 @@ use frame_support::dispatch::{DispatchError, DispatchResult};
 use sp_runtime::traits::{CheckedConversion, Convert};
 use sp_std::{convert::TryFrom, marker::PhantomData, prelude::*};
 
-use xcm::v0::{MultiAsset, MultiLocation, Xcm};
+use xcm::v0::{MultiAsset, MultiLocation};
 use xcm_executor::traits::{FilterAssetLocation, MatchesFungible};
 
 use orml_traits::location::Reserve;
@@ -23,11 +23,6 @@ pub use currency_adapter::MultiCurrencyAdapter;
 mod currency_adapter;
 
 mod tests;
-
-/// The XCM handler to execute XCM locally.
-pub trait ExecuteXcm<AccountId, Call> {
-	fn execute_xcm(origin: AccountId, xcm: Xcm<Call>) -> DispatchResult;
-}
 
 /// A `MatchesFungible` implementation. It matches concrete fungible assets
 /// whose `id` could be converted into `CurrencyId`.
