@@ -88,13 +88,13 @@ cumulus-pallet-parachain-system = { git = "https://github.com/paritytech//cumulu
 parachain-info = { git = "https://github.com/paritytech//cumulus", rev = "87863098c78611d22edf51913b72dc92c04b4726" }
 
 [patch.'https://github.com/paritytech/polkadot']
-xcm = { git = "https://github.com/paritytech//polkadot", rev = "9c572625f6557dfdb19f47474369a0327d51dfbc" }
-xcm-executor = { git = "https://github.com/paritytech//polkadot", rev = "9c572625f6557dfdb19f47474369a0327d51dfbc" }
-xcm-builder = { git = "https://github.com/paritytech//polkadot", rev = "9c572625f6557dfdb19f47474369a0327d51dfbc" }
-polkadot-core-primitives = { git = "https://github.com/paritytech//polkadot", rev = "9c572625f6557dfdb19f47474369a0327d51dfbc" }
-polkadot-runtime-parachains = { git = "https://github.com/paritytech//polkadot", rev = "9c572625f6557dfdb19f47474369a0327d51dfbc" }
-polkadot-parachain = { git = "https://github.com/paritytech//polkadot", rev = "9c572625f6557dfdb19f47474369a0327d51dfbc" }
-polkadot-primitives = { git = "https://github.com/paritytech//polkadot", rev = "9c572625f6557dfdb19f47474369a0327d51dfbc" }
+xcm = { git = "https://github.com/paritytech//polkadot", rev = "5d35bac7408a4cb12a578764217d06f3920b36aa" }
+xcm-executor = { git = "https://github.com/paritytech//polkadot", rev = "5d35bac7408a4cb12a578764217d06f3920b36aa" }
+xcm-builder = { git = "https://github.com/paritytech//polkadot", rev = "5d35bac7408a4cb12a578764217d06f3920b36aa" }
+polkadot-core-primitives = { git = "https://github.com/paritytech//polkadot", rev = "5d35bac7408a4cb12a578764217d06f3920b36aa" }
+polkadot-runtime-parachains = { git = "https://github.com/paritytech//polkadot", rev = "5d35bac7408a4cb12a578764217d06f3920b36aa" }
+polkadot-parachain = { git = "https://github.com/paritytech//polkadot", rev = "5d35bac7408a4cb12a578764217d06f3920b36aa" }
+polkadot-primitives = { git = "https://github.com/paritytech//polkadot", rev = "5d35bac7408a4cb12a578764217d06f3920b36aa" }
 
 # [patch.'https://github.com/shaunxw/xcm-simulator']
 # xcm-simulator = { git = "https://github.com/shaunxw//xcm-simulator", rev = "c52bd64a41a51d08bd5a1e27f32c47419b41f3e5" }
