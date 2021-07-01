@@ -73,6 +73,7 @@ _In alphabetical order_
 - [Manta Network](https://github.com/Manta-Network)
 - [Minterest](https://github.com/minterest-finance/minterest-chain-node)
 - [Plasm Network](https://github.com/PlasmNetwork)
+- [PolkaFoundry Network](https://github.com/PolkaFoundry)
 - [Setheum Network](https://github.com/Setheum-Labs/Setheum)
 - [Valiu Liquidity Network](https://github.com/valibre-org/vln-node)
 - [Zeitgeist](https://github.com/zeitgeistpm/zeitgeist)
