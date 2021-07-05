@@ -39,7 +39,10 @@ use xcm::v0::prelude::*;
 use xcm_executor::traits::WeightBounds;
 
 pub use module::*;
-use orml_traits::location::{Parse, Reserve};
+use orml_traits::{
+	location::{Parse, Reserve},
+	XcmTransfer,
+};
 
 // mod mock;
 // mod tests;
@@ -393,6 +396,39 @@ pub mod module {
 			} else {
 				0
 			}
+		}
+	}
+
+	impl<T: Config> XcmTransfer<T::AccountId, T::Balance, T::CurrencyId> for Pallet<T> {
+		fn transfer(
+			who: T::AccountId,
+			currency_id: T::CurrencyId,
+			amount: T::Balance,
+			dest: MultiLocation,
+			dest_weight: Weight,
+		) -> XcmExecutionResult {
+			if amount == Zero::zero() {
+				return Ok(Option::None);
+			}
+			let id: MultiLocation = T::CurrencyIdConvert::convert(currency_id.clone())
+				.ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
+			let asset = MultiAsset::ConcreteFungible {
+				id,
+				amount: amount.into(),
+			};
+			Self::do_transfer_multiasset(who, asset, dest, dest_weight)
+		}
+
+		fn transfer_multi_asset(
+			who: T::AccountId,
+			asset: MultiAsset,
+			dest: MultiLocation,
+			dest_weight: Weight,
+		) -> XcmExecutionResult {
+			if Self::is_zero_amount(&asset) {
+				return Ok(Option::None);
+			}
+			Self::do_transfer_multiasset(who, asset, dest, dest_weight)
 		}
 	}
 }
