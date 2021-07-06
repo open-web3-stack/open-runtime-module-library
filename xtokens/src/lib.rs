@@ -143,7 +143,7 @@ pub mod module {
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
-			if amount == Zero::zero() {
+			if amount.is_zero() {
 				return Ok(());
 			}
 
@@ -299,13 +299,13 @@ pub mod module {
 
 		fn is_zero_amount(asset: &MultiAsset) -> bool {
 			if let MultiAsset::ConcreteFungible { id: _, amount } = asset {
-				if *amount == Zero::zero() {
+				if amount.is_zero() {
 					return true;
 				}
 			}
 
 			if let MultiAsset::AbstractFungible { id: _, amount } = asset {
-				if *amount == Zero::zero() {
+				if amount.is_zero() {
 					return true;
 				}
 			}
@@ -407,16 +407,17 @@ pub mod module {
 			dest: MultiLocation,
 			dest_weight: Weight,
 		) -> XcmExecutionResult {
-			if amount == Zero::zero() {
+			if amount.is_zero() {
 				return Ok(Option::None);
 			}
-			let id: MultiLocation = T::CurrencyIdConvert::convert(currency_id.clone())
-				.ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
+			let id: MultiLocation =
+				T::CurrencyIdConvert::convert(currency_id).ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
 			let asset = MultiAsset::ConcreteFungible {
 				id,
 				amount: amount.into(),
 			};
-			Self::do_transfer_multiasset(who, asset, dest, dest_weight)
+
+			with_xcm_execution_transaction(|| Self::do_transfer_multiasset(who, asset, dest, dest_weight))
 		}
 
 		fn transfer_multi_asset(
@@ -428,7 +429,8 @@ pub mod module {
 			if Self::is_zero_amount(&asset) {
 				return Ok(Option::None);
 			}
-			Self::do_transfer_multiasset(who, asset, dest, dest_weight)
+
+			with_xcm_execution_transaction(|| Self::do_transfer_multiasset(who, asset, dest, dest_weight))
 		}
 	}
 }
