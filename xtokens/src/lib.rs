@@ -440,15 +440,10 @@ type XcmExecutionResult = sp_std::result::Result<Outcome, DispatchError>;
 fn with_xcm_execution_transaction(f: impl FnOnce() -> XcmExecutionResult) -> XcmExecutionResult {
 	with_transaction(|| {
 		let res = f();
-		match res {
-			Ok(ref outcome) => {
-				if let Outcome::Complete(_) = outcome {
-					TransactionOutcome::Commit(res)
-				} else {
-					TransactionOutcome::Rollback(res)
-				}
-			}
-			_ => TransactionOutcome::Rollback(res),
+		if let Ok(Outcome::Complete(_)) = res {
+			TransactionOutcome::Commit(res)
+		} else {
+			TransactionOutcome::Rollback(res)
 		}
 	})
 }
