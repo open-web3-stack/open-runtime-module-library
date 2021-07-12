@@ -166,8 +166,8 @@ fn cannot_lost_fund_on_send_failed() {
 // 	});
 
 // 	ParaB::execute_with(|| {
-// 		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &sibling_a_account()), 70);
-// 		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &BOB), 30);
+// 		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &sibling_a_account()),
+// 70); 		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &BOB), 30);
 // 	});
 // }
 
@@ -203,9 +203,9 @@ fn cannot_lost_fund_on_send_failed() {
 
 // 	// check reserve accounts
 // 	ParaB::execute_with(|| {
-// 		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &sibling_a_account()), 70);
-// 		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &sibling_c_account()), 30);
-// 	});
+// 		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &sibling_a_account()),
+// 70); 		assert_eq!(ParaTokens::free_balance(CurrencyId::B,
+// &sibling_c_account()), 30); 	});
 
 // 	ParaC::execute_with(|| {
 // 		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &BOB), 30);
@@ -235,8 +235,8 @@ fn cannot_lost_fund_on_send_failed() {
 // 		));
 
 // 		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &ALICE), 70);
-// 		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &sibling_b_account()), 30);
-// 	});
+// 		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &sibling_b_account()),
+// 30); 	});
 
 // 	ParaB::execute_with(|| {
 // 		para_b::System::events().iter().for_each(|r| {
@@ -267,7 +267,7 @@ fn transfer_no_reserve_assets_fails() {
 					}
 				)
 					.into(),
-					50,
+				50,
 			),
 			Error::<para::Runtime>::AssetHasNoReserve
 		);
@@ -295,7 +295,7 @@ fn transfer_to_self_chain_fails() {
 					}
 				)
 					.into(),
-					50,
+				50,
 			),
 			Error::<para::Runtime>::NotCrossChainTransfer
 		);
