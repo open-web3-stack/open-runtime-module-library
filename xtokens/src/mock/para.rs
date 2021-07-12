@@ -14,6 +14,7 @@ use sp_runtime::{
 	AccountId32,
 };
 
+use cumulus_primitives_core::{ChannelStatus, GetChannelInfo, ParaId};
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
 pub use xcm::v0::{
@@ -63,7 +64,7 @@ impl frame_system::Config for Runtime {
 	type BaseCallFilter = ();
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
-	type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
+	type OnSetCode = ();
 }
 
 parameter_types! {
@@ -104,17 +105,6 @@ impl orml_tokens::Config for Runtime {
 parameter_types! {
 	pub const ReservedXcmpWeight: Weight = WEIGHT_PER_SECOND / 4;
 	pub const ReservedDmpWeight: Weight = WEIGHT_PER_SECOND / 4;
-}
-
-impl cumulus_pallet_parachain_system::Config for Runtime {
-	type Event = Event;
-	type OnValidationData = ();
-	type SelfParaId = ParachainInfo;
-	type DmpMessageHandler = DmpQueue;
-	type ReservedDmpWeight = ReservedDmpWeight;
-	type OutboundXcmpMessageSource = XcmpQueue;
-	type XcmpMessageHandler = XcmpQueue;
-	type ReservedXcmpWeight = ReservedXcmpWeight;
 }
 
 impl parachain_info::Config for Runtime {}
@@ -173,10 +163,20 @@ impl Config for XcmConfig {
 	type ResponseHandler = ();
 }
 
+pub struct ChannelInfo;
+impl GetChannelInfo for ChannelInfo {
+	fn get_channel_status(_id: ParaId) -> ChannelStatus {
+		ChannelStatus::Ready(10, 10)
+	}
+	fn get_channel_max(_id: ParaId) -> Option<usize> {
+		Some(usize::max_value())
+	}
+}
+
 impl cumulus_pallet_xcmp_queue::Config for Runtime {
 	type Event = Event;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
-	type ChannelInfo = ParachainSystem;
+	type ChannelInfo = ChannelInfo;
 }
 
 impl cumulus_pallet_dmp_queue::Config for Runtime {
@@ -241,7 +241,6 @@ construct_runtime!(
 		System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 
-		ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>},
 		ParachainInfo: parachain_info::{Pallet, Storage, Config},
 		XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Call, Storage, Event<T>},
 		DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>},
