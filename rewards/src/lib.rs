@@ -171,12 +171,7 @@ impl<T: Config> Pallet<T> {
 			}
 
 			Pools::<T>::mutate(pool, |pool_info| {
-				if pool_info.total_shares.is_zero() {
-					return;
-				}
-
-				let proportion = FixedU128::checked_from_rational(*share, pool_info.total_shares)
-					.unwrap_or_else(FixedU128::max_value);
+				let proportion = FixedU128::checked_from_rational(*share, pool_info.total_shares).unwrap_or_default();
 				let reward_to_withdraw = proportion
 					.saturating_mul_int(pool_info.total_rewards)
 					.saturating_sub(*withdrawn_rewards)
