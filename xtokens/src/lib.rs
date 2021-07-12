@@ -41,8 +41,8 @@ use xcm_executor::traits::WeightBounds;
 pub use module::*;
 use orml_traits::location::{Parse, Reserve};
 
-// mod mock;
-// mod tests;
+mod mock;
+mod tests;
 
 enum TransferKind {
 	/// Transfer self reserve asset.
