@@ -8,7 +8,7 @@ use codec::{FullCodec, HasCompact};
 use frame_support::{pallet_prelude::*, traits::MaxEncodedLen};
 use orml_traits::RewardHandler;
 use sp_runtime::{
-	traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize, Member, Saturating, Zero},
+	traits::{AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, Saturating, Zero},
 	FixedPointNumber, FixedPointOperand, FixedU128, RuntimeDebug,
 };
 use sp_std::{
@@ -102,8 +102,13 @@ impl<T: Config> Pallet<T> {
 		}
 
 		Pools::<T>::mutate(pool, |pool_info| {
-			let proportion = FixedU128::checked_from_rational(add_amount, pool_info.total_shares).unwrap_or_default();
-			let reward_inflation = proportion.saturating_mul_int(pool_info.total_rewards);
+			let reward_inflation = if pool_info.total_shares.is_zero() {
+				Zero::zero()
+			} else {
+				let proportion = FixedU128::checked_from_rational(add_amount, pool_info.total_shares)
+					.unwrap_or_else(FixedU128::max_value);
+				proportion.saturating_mul_int(pool_info.total_rewards)
+			};
 
 			pool_info.total_shares = pool_info.total_shares.saturating_add(add_amount);
 			pool_info.total_rewards = pool_info.total_rewards.saturating_add(reward_inflation);
@@ -132,7 +137,8 @@ impl<T: Config> Pallet<T> {
 			}
 
 			Pools::<T>::mutate(pool, |pool_info| {
-				let proportion = FixedU128::checked_from_rational(remove_amount, *share).unwrap_or_default();
+				let proportion = FixedU128::checked_from_rational(remove_amount, *share)
+					.expect("share is gte remove_amount and not zero which checked before; qed");
 				let withdrawn_rewards_to_remove = proportion.saturating_mul_int(*withdrawn_rewards);
 
 				pool_info.total_shares = pool_info.total_shares.saturating_sub(remove_amount);
