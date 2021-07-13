@@ -167,12 +167,13 @@ pub mod module {
 
 	#[pallet::event]
 	#[pallet::generate_deposit(fn deposit_event)]
+	#[pallet::metadata(T::AccountId = "AccountId", VestingScheduleOf<T> = "VestingScheduleOf", BalanceOf<T> = "Balance")]
 	pub enum Event<T: Config> {
-		/// Added new vesting schedule. [from, to, vesting_schedule]
+		/// Added new vesting schedule. \[from, to, vesting_schedule\]
 		VestingScheduleAdded(T::AccountId, T::AccountId, VestingScheduleOf<T>),
-		/// Claimed vesting. [who, locked_amount]
+		/// Claimed vesting. \[who, locked_amount\]
 		Claimed(T::AccountId, BalanceOf<T>),
-		/// Updated vesting schedules. [who]
+		/// Updated vesting schedules. \[who\]
 		VestingSchedulesUpdated(T::AccountId),
 	}
 
