@@ -16,20 +16,9 @@ fn minimum_balance_work() {
 }
 
 #[test]
-fn is_module_account_id_work() {
-	ExtBuilder::default().build().execute_with(|| {
-		assert_eq!(Tokens::is_module_account_id(&ALICE), false);
-		assert_eq!(Tokens::is_module_account_id(&BOB), false);
-		assert_eq!(Tokens::is_module_account_id(&TREASURY_ACCOUNT), false);
-		assert_eq!(Tokens::is_module_account_id(&DustAccount::get()), true);
-	});
-}
-
-#[test]
 fn remove_dust_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		System::set_block_number(1);
-
 		assert_ok!(Tokens::deposit(DOT, &ALICE, 100));
 		assert_eq!(Tokens::total_issuance(DOT), 100);
 		assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), true);
@@ -49,17 +38,20 @@ fn remove_dust_work() {
 		assert_eq!(Tokens::free_balance(DOT, &DustAccount::get()), 0);
 		assert_eq!(System::providers(&DustAccount::get()), 0);
 
+		// ensure dust account balance gte ED
+		assert_ok!(Tokens::deposit(DOT, &DustAccount::get(), Tokens::minimum_balance(DOT)));
+
 		assert_ok!(Tokens::withdraw(DOT, &ALICE, 1));
 
 		// total is lte ED, will handle dust
-		assert_eq!(Tokens::total_issuance(DOT), 1);
+		assert_eq!(Tokens::total_issuance(DOT), 3);
 		assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), false);
 		assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
 		assert_eq!(System::providers(&ALICE), 0);
 
 		// will not handle dust for module account
 		assert_eq!(Accounts::<Runtime>::contains_key(DustAccount::get(), DOT), true);
-		assert_eq!(Tokens::free_balance(DOT, &DustAccount::get()), 1);
+		assert_eq!(Tokens::free_balance(DOT, &DustAccount::get()), 3);
 		assert_eq!(System::providers(&DustAccount::get()), 1);
 
 		System::assert_last_event(Event::Tokens(crate::Event::DustLost(DOT, ALICE, 1)));

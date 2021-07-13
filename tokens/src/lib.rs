@@ -48,7 +48,7 @@ use frame_support::{
 		LockableCurrency as PalletLockableCurrency, MaxEncodedLen, ReservableCurrency as PalletReservableCurrency,
 		SignedImbalance, WithdrawReasons,
 	},
-	transactional, BoundedVec, PalletId,
+	transactional, BoundedVec,
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
 use orml_traits::{
@@ -59,8 +59,8 @@ use orml_traits::{
 };
 use sp_runtime::{
 	traits::{
-		AccountIdConversion, AtLeast32BitUnsigned, Bounded, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member,
-		Saturating, StaticLookup, Zero,
+		AtLeast32BitUnsigned, Bounded, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, Saturating,
+		StaticLookup, Zero,
 	},
 	ArithmeticError, DispatchError, DispatchResult, RuntimeDebug,
 };
@@ -360,11 +360,6 @@ pub mod module {
 }
 
 impl<T: Config> Pallet<T> {
-	/// Check whether account_id is a module account
-	pub(crate) fn is_module_account_id(account_id: &T::AccountId) -> bool {
-		PalletId::try_from_account(account_id).is_some()
-	}
-
 	pub(crate) fn deposit_consequence(
 		_who: &T::AccountId,
 		currency_id: T::CurrencyId,
@@ -457,9 +452,8 @@ impl<T: Config> Pallet<T> {
 				*maybe_account = if total.is_zero() {
 					None
 				} else {
-					// if non_zero total is below existential deposit and the account is not a
-					// module account, should handle the dust.
-					if total < T::ExistentialDeposits::get(&currency_id) && !Self::is_module_account_id(who) {
+					// if non_zero total is below existential deposit, should handle the dust.
+					if total < T::ExistentialDeposits::get(&currency_id) {
 						maybe_dust = Some(total);
 					}
 					Some(account)
@@ -594,12 +588,9 @@ impl<T: Config> Pallet<T> {
 				to_account.free = to_account.free.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
 
 				let ed = T::ExistentialDeposits::get(&currency_id);
-				// if to_account non_zero total is below existential deposit and the account is
-				// not a module account, would return an error.
-				ensure!(
-					to_account.total() >= ed || Self::is_module_account_id(to),
-					Error::<T>::ExistentialDeposit
-				);
+				// if to_account non_zero total is below existential deposit, would return an
+				// error.
+				ensure!(to_account.total() >= ed, Error::<T>::ExistentialDeposit);
 
 				Self::ensure_can_withdraw(currency_id, from, amount)?;
 
