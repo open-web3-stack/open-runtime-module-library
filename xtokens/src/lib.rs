@@ -383,7 +383,7 @@ pub mod module {
 						}
 					}
 				};
-				T::Weigher::weight(&mut msg).map_or(Weight::max_value(), |w| T::BaseXcmWeight::get() + w)
+				T::Weigher::weight(&mut msg).map_or(Weight::max_value(), |w| T::BaseXcmWeight::get().saturating_add(w))
 			} else {
 				0
 			}
