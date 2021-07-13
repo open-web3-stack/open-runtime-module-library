@@ -92,7 +92,8 @@ pub mod module {
 
 		/// Base XCM weight.
 		///
-		/// The actually weight for an XCM message is `T::BaseXcmWeight + T::Weigher::weight(&msg)`.
+		/// The actually weight for an XCM message is `T::BaseXcmWeight +
+		/// T::Weigher::weight(&msg)`.
 		#[pallet::constant]
 		type BaseXcmWeight: Get<Weight>;
 	}
