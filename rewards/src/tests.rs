@@ -75,6 +75,21 @@ fn add_share_should_work() {
 			}
 		);
 		assert_eq!(RewardsModule::share_and_withdrawn_reward(DOT_POOL, ALICE), (250, 7500));
+
+		// overflow occurs when saturating calculation
+		RewardsModule::add_share(&ALICE, &DOT_POOL, u64::MAX);
+		assert_eq!(
+			RewardsModule::pools(DOT_POOL),
+			PoolInfo {
+				total_shares: u64::MAX,
+				total_rewards: u64::MAX,
+				total_withdrawn_rewards: u64::MAX,
+			}
+		);
+		assert_eq!(
+			RewardsModule::share_and_withdrawn_reward(DOT_POOL, ALICE),
+			(u64::MAX, u64::MAX)
+		);
 	});
 }
 
