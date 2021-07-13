@@ -89,6 +89,13 @@ pub mod module {
 
 		/// Means of measuring the weight consumed by an XCM message locally.
 		type Weigher: WeightBounds<Self::Call>;
+
+		/// Base XCM weight.
+		///
+		/// The actually weight for an XCM message is `T::BaseXcmWeight +
+		/// T::Weigher::weight(&msg)`.
+		#[pallet::constant]
+		type BaseXcmWeight: Get<Weight>;
 	}
 
 	#[pallet::event]
@@ -376,7 +383,7 @@ pub mod module {
 						}
 					}
 				};
-				T::Weigher::weight(&mut msg).map_or(Weight::max_value(), |w| 100_000_000 + w)
+				T::Weigher::weight(&mut msg).map_or(Weight::max_value(), |w| T::BaseXcmWeight::get().saturating_add(w))
 			} else {
 				0
 			}
