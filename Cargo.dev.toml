@@ -52,7 +52,6 @@ sc-client-db = { git = "https://github.com/paritytech//substrate", rev = "1b758b
 sc-executor = { git = "https://github.com/paritytech//substrate", rev = "1b758b2a8d151d97d2242260c465b6df9cb8a7a4" }
 sc-executor-common = { git = "https://github.com/paritytech//substrate", rev = "1b758b2a8d151d97d2242260c465b6df9cb8a7a4" }
 sc-executor-wasmi = { git = "https://github.com/paritytech//substrate", rev = "1b758b2a8d151d97d2242260c465b6df9cb8a7a4" }
-sp-allocator = { git = "https://github.com/paritytech//substrate", rev = "1b758b2a8d151d97d2242260c465b6df9cb8a7a4" }
 sp-api = { git = "https://github.com/paritytech//substrate", rev = "1b758b2a8d151d97d2242260c465b6df9cb8a7a4" }
 sp-application-crypto = { git = "https://github.com/paritytech//substrate", rev = "1b758b2a8d151d97d2242260c465b6df9cb8a7a4" }
 sp-arithmetic = { git = "https://github.com/paritytech//substrate", rev = "1b758b2a8d151d97d2242260c465b6df9cb8a7a4" }
