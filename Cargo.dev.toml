@@ -17,6 +17,7 @@ members = [
 	"vesting",
 	"rewards",
 	"nft",
+	"xcm",
 	"xtokens",
 	"xcm-support",
 	"unknown-tokens",
@@ -92,6 +93,7 @@ parachain-info = { git = "https://github.com/paritytech//cumulus", rev = "4e51d3
 xcm = { git = "https://github.com/paritytech//polkadot", rev = "3a10ee63c0b5703a1c802db3438ab7e01344a8ce" }
 xcm-executor = { git = "https://github.com/paritytech//polkadot", rev = "3a10ee63c0b5703a1c802db3438ab7e01344a8ce" }
 xcm-builder = { git = "https://github.com/paritytech//polkadot", rev = "3a10ee63c0b5703a1c802db3438ab7e01344a8ce" }
+pallet-xcm = { git = "https://github.com/paritytech//polkadot", rev = "3a10ee63c0b5703a1c802db3438ab7e01344a8ce" }
 polkadot-core-primitives = { git = "https://github.com/paritytech//polkadot", rev = "3a10ee63c0b5703a1c802db3438ab7e01344a8ce" }
 polkadot-runtime-parachains = { git = "https://github.com/paritytech//polkadot", rev = "3a10ee63c0b5703a1c802db3438ab7e01344a8ce" }
 polkadot-parachain = { git = "https://github.com/paritytech//polkadot", rev = "3a10ee63c0b5703a1c802db3438ab7e01344a8ce" }

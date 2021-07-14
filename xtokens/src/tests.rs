@@ -1,14 +1,15 @@
 #![cfg(test)]
 
 use super::*;
+use codec::Encode;
 use cumulus_primitives_core::ParaId;
-use frame_support::{assert_noop, assert_ok, traits::Currency};
+use frame_support::{assert_err, assert_noop, assert_ok, traits::Currency};
 use mock::*;
 use orml_traits::MultiCurrency;
 // use polkadot_parachain::primitives::{AccountIdConversion, Sibling};
 use polkadot_parachain::primitives::AccountIdConversion;
 use sp_runtime::AccountId32;
-use xcm::v0::{Junction, NetworkId};
+use xcm::v0::{Junction, NetworkId, Order};
 use xcm_simulator::TestExt;
 
 fn para_a_account() -> AccountId32 {
@@ -322,6 +323,91 @@ fn transfer_to_invalid_dest_fails() {
 				50,
 			),
 			Error::<para::Runtime>::InvalidDest
+		);
+	});
+}
+
+#[test]
+fn send_as_sovereign() {
+	TestNet::reset();
+
+	Relay::execute_with(|| {
+		let _ = RelayBalances::deposit_creating(&para_a_account(), 1_000_000_000_000);
+	});
+
+	ParaA::execute_with(|| {
+		use xcm::v0::OriginKind::SovereignAccount;
+
+		let call = relay::Call::System(frame_system::Call::<relay::Runtime>::remark_with_event(vec![1, 1, 1]));
+		assert_ok!(para::OrmlXcm::send_as_sovereign(
+			para::Origin::root(),
+			Junction::Parent.into(),
+			WithdrawAsset {
+				assets: vec![MultiAsset::ConcreteFungible {
+					id: MultiLocation::Null,
+					amount: 1_000_000_000_000
+				}],
+				effects: vec![Order::BuyExecution {
+					fees: MultiAsset::All,
+					weight: 10_000_000,
+					debt: 10_000_000,
+					halt_on_error: true,
+					xcm: vec![Transact {
+						origin_type: SovereignAccount,
+						require_weight_at_most: 1_000_000_000,
+						call: call.encode().into(),
+					}],
+				}]
+			}
+		));
+	});
+
+	Relay::execute_with(|| {
+		relay::System::events().iter().any(|r| {
+			if let relay::Event::System(frame_system::Event::<relay::Runtime>::Remarked(_, _)) = r.event {
+				true
+			} else {
+				false
+			}
+		});
+	})
+}
+
+#[test]
+fn send_as_sovereign_fails_if_bad_origin() {
+	TestNet::reset();
+
+	Relay::execute_with(|| {
+		let _ = RelayBalances::deposit_creating(&para_a_account(), 1_000_000_000_000);
+	});
+
+	ParaA::execute_with(|| {
+		use xcm::v0::OriginKind::SovereignAccount;
+
+		let call = relay::Call::System(frame_system::Call::<relay::Runtime>::remark_with_event(vec![1, 1, 1]));
+		assert_err!(
+			para::OrmlXcm::send_as_sovereign(
+				para::Origin::signed(ALICE),
+				Junction::Parent.into(),
+				WithdrawAsset {
+					assets: vec![MultiAsset::ConcreteFungible {
+						id: MultiLocation::Null,
+						amount: 1_000_000_000_000
+					}],
+					effects: vec![Order::BuyExecution {
+						fees: MultiAsset::All,
+						weight: 10_000_000,
+						debt: 10_000_000,
+						halt_on_error: true,
+						xcm: vec![Transact {
+							origin_type: SovereignAccount,
+							require_weight_at_most: 1_000_000_000,
+							call: call.encode().into(),
+						}],
+					}]
+				}
+			),
+			DispatchError::BadOrigin,
 		);
 	});
 }
