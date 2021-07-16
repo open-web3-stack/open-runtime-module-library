@@ -206,6 +206,8 @@ pub mod module {
 		KeepAlive,
 		/// Value too low to create account due to existential deposit
 		ExistentialDeposit,
+		/// Beneficiary account must pre-exist
+		DeadAccount,
 	}
 
 	#[pallet::event]
@@ -1224,6 +1226,8 @@ where
 		}
 	}
 
+	/// Deposit some `value` into the free balance of an existing target account
+	/// `who`.
 	fn deposit_into_existing(
 		who: &T::AccountId,
 		value: Self::Balance,
@@ -1232,16 +1236,35 @@ where
 			return Ok(Self::PositiveImbalance::zero());
 		}
 		let currency_id = GetCurrencyId::get();
-		let new_total = Pallet::<T>::free_balance(currency_id, who)
-			.checked_add(&value)
-			.ok_or(ArithmeticError::Overflow)?;
-		Pallet::<T>::set_free_balance(currency_id, who, new_total);
-
-		Ok(Self::PositiveImbalance::new(value))
+		Pallet::<T>::try_mutate_account(
+			who,
+			currency_id,
+			|account, existed| -> Result<Self::PositiveImbalance, DispatchError> {
+				ensure!(existed, Error::<T>::DeadAccount);
+				account.free = account.free.checked_add(&value).ok_or(ArithmeticError::Overflow)?;
+				Ok(PositiveImbalance::new(value))
+			},
+		)
 	}
 
+	/// Deposit some `value` into the free balance of `who`, possibly creating a
+	/// new account.
 	fn deposit_creating(who: &T::AccountId, value: Self::Balance) -> Self::PositiveImbalance {
-		Self::deposit_into_existing(who, value).unwrap_or_else(|_| Self::PositiveImbalance::zero())
+		if value.is_zero() {
+			return Self::PositiveImbalance::zero();
+		}
+		let currency_id = GetCurrencyId::get();
+		Pallet::<T>::try_mutate_account(
+			who,
+			currency_id,
+			|account, existed| -> Result<Self::PositiveImbalance, DispatchError> {
+				let ed = T::ExistentialDeposits::get(&currency_id);
+				ensure!(value >= ed || existed, Error::<T>::ExistentialDeposit);
+				account.free = account.free.checked_add(&value).ok_or(ArithmeticError::Overflow)?;
+				Ok(PositiveImbalance::new(value))
+			},
+		)
+		.unwrap_or_else(|_| Self::PositiveImbalance::zero())
 	}
 
 	fn withdraw(
