@@ -151,7 +151,7 @@ pub mod module {
 	impl<T: Config> Pallet<T> {
 		/// Add gradually_update to adjust numeric parameter.
 		#[pallet::weight(T::WeightInfo::gradually_update())]
-		pub fn gradually_update(origin: OriginFor<T>, update: GraduallyUpdateOf<T>) -> DispatchResultWithPostInfo {
+		pub fn gradually_update(origin: OriginFor<T>, update: GraduallyUpdateOf<T>) -> DispatchResult {
 			T::DispatchOrigin::try_origin(origin).map(|_| ()).or_else(ensure_root)?;
 
 			// Support max value is u128, ensure per_block and target_value <= 16 bytes.
@@ -186,12 +186,12 @@ pub mod module {
 				update.per_block,
 				update.target_value,
 			));
-			Ok(().into())
+			Ok(())
 		}
 
 		/// Cancel gradually_update to adjust numeric parameter.
 		#[pallet::weight(T::WeightInfo::cancel_gradually_update())]
-		pub fn cancel_gradually_update(origin: OriginFor<T>, key: StorageKeyBytes<T>) -> DispatchResultWithPostInfo {
+		pub fn cancel_gradually_update(origin: OriginFor<T>, key: StorageKeyBytes<T>) -> DispatchResult {
 			T::DispatchOrigin::try_origin(origin).map(|_| ()).or_else(ensure_root)?;
 
 			GraduallyUpdates::<T>::try_mutate(|gradually_updates| -> DispatchResult {
@@ -204,7 +204,7 @@ pub mod module {
 			})?;
 
 			Self::deposit_event(Event::GraduallyUpdateCancelled(key));
-			Ok(().into())
+			Ok(())
 		}
 	}
 }

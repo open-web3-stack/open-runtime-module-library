@@ -206,17 +206,13 @@ pub mod module {
 			let info = call.get_dispatch_info();
 			(T::WeightInfo::dispatch_as().saturating_add(info.weight), info.class)
 		})]
-		pub fn dispatch_as(
-			origin: OriginFor<T>,
-			as_origin: T::AsOriginId,
-			call: Box<CallOf<T>>,
-		) -> DispatchResultWithPostInfo {
+		pub fn dispatch_as(origin: OriginFor<T>, as_origin: T::AsOriginId, call: Box<CallOf<T>>) -> DispatchResult {
 			as_origin.check_dispatch_from(origin)?;
 
 			let e = call.dispatch(as_origin.into_origin().into());
 
 			Self::deposit_event(Event::Dispatched(e.map(|_| ()).map_err(|e| e.error)));
-			Ok(().into())
+			Ok(())
 		}
 
 		/// Schedule a dispatchable to be dispatched at later block.
@@ -228,7 +224,7 @@ pub mod module {
 			priority: Priority,
 			with_delayed_origin: bool,
 			call: Box<CallOf<T>>,
-		) -> DispatchResultWithPostInfo {
+		) -> DispatchResult {
 			T::AuthorityConfig::check_schedule_dispatch(origin.clone(), priority)?;
 
 			let id = NextTaskIndex::<T>::mutate(|id| -> sp_std::result::Result<ScheduleTaskIndex, DispatchError> {
@@ -264,7 +260,7 @@ pub mod module {
 			.map_err(|_| Error::<T>::FailedToSchedule)?;
 
 			Self::deposit_event(Event::Scheduled(pallets_origin, id));
-			Ok(().into())
+			Ok(())
 		}
 
 		/// Fast track a scheduled dispatchable.
@@ -274,7 +270,7 @@ pub mod module {
 			initial_origin: T::PalletsOrigin,
 			task_id: ScheduleTaskIndex,
 			when: DispatchTime<T::BlockNumber>,
-		) -> DispatchResultWithPostInfo {
+		) -> DispatchResult {
 			let now = frame_system::Pallet::<T>::block_number();
 			let new_delay = match when {
 				DispatchTime::At(x) => x.checked_sub(&now).ok_or(ArithmeticError::Overflow)?,
@@ -290,7 +286,7 @@ pub mod module {
 				.map_err(|_| Error::<T>::FailedToFastTrack)?;
 
 			Self::deposit_event(Event::FastTracked(initial_origin, task_id, dispatch_at));
-			Ok(().into())
+			Ok(())
 		}
 
 		/// Delay a scheduled dispatchable.
@@ -300,7 +296,7 @@ pub mod module {
 			initial_origin: T::PalletsOrigin,
 			task_id: ScheduleTaskIndex,
 			additional_delay: T::BlockNumber,
-		) -> DispatchResultWithPostInfo {
+		) -> DispatchResult {
 			T::AuthorityConfig::check_delay_schedule(origin, &initial_origin)?;
 
 			T::Scheduler::reschedule_named(
@@ -313,7 +309,7 @@ pub mod module {
 			let dispatch_at = now.saturating_add(additional_delay);
 
 			Self::deposit_event(Event::Delayed(initial_origin, task_id, dispatch_at));
-			Ok(().into())
+			Ok(())
 		}
 
 		/// Cancel a scheduled dispatchable.
@@ -322,12 +318,12 @@ pub mod module {
 			origin: OriginFor<T>,
 			initial_origin: T::PalletsOrigin,
 			task_id: ScheduleTaskIndex,
-		) -> DispatchResultWithPostInfo {
+		) -> DispatchResult {
 			T::AuthorityConfig::check_cancel_schedule(origin, &initial_origin)?;
 			T::Scheduler::cancel_named((&initial_origin, task_id).encode()).map_err(|_| Error::<T>::FailedToCancel)?;
 
 			Self::deposit_event(Event::Cancelled(initial_origin, task_id));
-			Ok(().into())
+			Ok(())
 		}
 	}
 }
