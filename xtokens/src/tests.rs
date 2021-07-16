@@ -87,13 +87,13 @@ fn cannot_lost_fund_on_send_failed() {
 				.into(),
 			30,
 		));
-		para::System::events().iter().any(|r| {
+		assert!(para::System::events().iter().any(|r| {
 			if let para::Event::XTokens(Event::<para::Runtime>::TransferFailed(_, _, _, _, _)) = r.event {
 				true
 			} else {
 				false
 			}
-		});
+		}));
 
 		assert_eq!(ParaTokens::free_balance(CurrencyId::R, &ALICE), 1_000);
 	});
