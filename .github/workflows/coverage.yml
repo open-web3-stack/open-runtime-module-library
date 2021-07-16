@@ -40,7 +40,7 @@ jobs:
         run: |
           make Cargo.toml
           cargo install cargo-tarpaulin
-          cargo tarpaulin --verbose --features with-mandala-runtime --no-fail-fast --workspace --timeout 300 --out Xml
+          cargo tarpaulin --verbose --no-fail-fast --workspace --timeout 300 --out Xml
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v1
         with:
