@@ -115,11 +115,7 @@ pub mod module {
 		/// The dispatch origin for this call must be `Signed` by the
 		/// transactor.
 		#[pallet::weight(T::WeightInfo::bid_collateral_auction())]
-		pub fn bid(
-			origin: OriginFor<T>,
-			id: T::AuctionId,
-			#[pallet::compact] value: T::Balance,
-		) -> DispatchResultWithPostInfo {
+		pub fn bid(origin: OriginFor<T>, id: T::AuctionId, #[pallet::compact] value: T::Balance) -> DispatchResult {
 			let from = ensure_signed(origin)?;
 
 			Auctions::<T>::try_mutate_exists(id, |auction| -> DispatchResult {
@@ -156,7 +152,7 @@ pub mod module {
 			})?;
 
 			Self::deposit_event(Event::Bid(id, from, value));
-			Ok(().into())
+			Ok(())
 		}
 	}
 }

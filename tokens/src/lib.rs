@@ -329,13 +329,13 @@ pub mod module {
 			dest: <T::Lookup as StaticLookup>::Source,
 			currency_id: T::CurrencyId,
 			#[pallet::compact] amount: T::Balance,
-		) -> DispatchResultWithPostInfo {
+		) -> DispatchResult {
 			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
 			<Self as MultiCurrency<_>>::transfer(currency_id, &from, &to, amount)?;
 
 			Self::deposit_event(Event::Transfer(currency_id, from, to, amount));
-			Ok(().into())
+			Ok(())
 		}
 
 		/// Transfer all remaining balance to the given account.
@@ -347,14 +347,14 @@ pub mod module {
 			origin: OriginFor<T>,
 			dest: <T::Lookup as StaticLookup>::Source,
 			currency_id: T::CurrencyId,
-		) -> DispatchResultWithPostInfo {
+		) -> DispatchResult {
 			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
 			let balance = <Self as MultiCurrency<T::AccountId>>::free_balance(currency_id, &from);
 			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, &from, &to, balance)?;
 
 			Self::deposit_event(Event::Transfer(currency_id, from, to, balance));
-			Ok(().into())
+			Ok(())
 		}
 	}
 }
