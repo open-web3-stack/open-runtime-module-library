@@ -152,7 +152,7 @@ pub mod module {
 			})?;
 
 			Self::deposit_event(Event::Bid(id, from, value));
-			Ok(().into())
+			Ok(())
 		}
 	}
 }
