@@ -852,6 +852,50 @@ fn currency_adapter_lock_reasons_extension_should_work() {
 }
 
 #[test]
+fn currency_adapter_deposit_creating_should_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 200);
+			assert_eq!(TreasuryCurrencyAdapter::total_balance(&TREASURY_ACCOUNT), 0);
+			let _ = TreasuryCurrencyAdapter::deposit_creating(&TREASURY_ACCOUNT, 1);
+			assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 200);
+			assert_eq!(TreasuryCurrencyAdapter::total_balance(&TREASURY_ACCOUNT), 0);
+
+			let _ = TreasuryCurrencyAdapter::deposit_creating(&TREASURY_ACCOUNT, 2);
+			assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 202);
+			assert_eq!(TreasuryCurrencyAdapter::total_balance(&TREASURY_ACCOUNT), 2);
+
+			assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 202);
+			assert_eq!(TreasuryCurrencyAdapter::total_balance(&ALICE), 100);
+			let _ = TreasuryCurrencyAdapter::deposit_creating(&ALICE, 1);
+			assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 203);
+			assert_eq!(TreasuryCurrencyAdapter::total_balance(&ALICE), 101);
+		});
+}
+
+#[test]
+fn currency_adapter_deposit_into_existing_should_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_eq!(TreasuryCurrencyAdapter::total_balance(&TREASURY_ACCOUNT), 0);
+			assert_noop!(
+				TreasuryCurrencyAdapter::deposit_into_existing(&TREASURY_ACCOUNT, 10).map(drop),
+				Error::<Runtime>::DeadAccount,
+			);
+
+			assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 200);
+			assert_eq!(TreasuryCurrencyAdapter::total_balance(&ALICE), 100);
+			assert_ok!(TreasuryCurrencyAdapter::deposit_into_existing(&ALICE, 10).map(drop));
+			assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 210);
+			assert_eq!(TreasuryCurrencyAdapter::total_balance(&ALICE), 110);
+		});
+}
+
+#[test]
 fn currency_adapter_reward_should_work() {
 	ExtBuilder::default()
 		.one_hundred_for_treasury_account()
