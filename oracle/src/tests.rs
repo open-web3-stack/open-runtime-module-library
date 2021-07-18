@@ -162,6 +162,42 @@ fn should_combined_data() {
 }
 
 #[test]
+fn should_recombine_after_expiry() {
+	new_test_ext().execute_with(|| {
+		let key: u32 = 50;
+		let expiration_period = 1000;
+
+		OracleMembers::set(vec![10, 11, 12, 13, 14]);
+		ExpiresIn::set(expiration_period);
+
+		// submit 1000, 1100, 1200, 1300, 1400
+		for idx in 0..5 {
+			Timestamp::set_timestamp(idx * 100);
+			assert_ok!(ModuleOracle::feed_values(
+				Origin::signed(idx as u128 + 10),
+				vec![(key, idx as u32 * 100 + 1000)]
+			));
+		}
+
+		let expected = Some(TimestampedValue {
+			value: 1200,
+			timestamp: 200,
+		});
+
+		assert_eq!(ModuleOracle::get(&key), expected);
+
+		// make the first two values expire - this should set median to 1300.
+		// note that we do not submit new values to trigger re-combination
+		Timestamp::set_timestamp(150 + expiration_period);
+		let expected = Some(TimestampedValue {
+			value: 1300,
+			timestamp: 300,
+		});
+		assert_eq!(ModuleOracle::get(&key), expected);
+	});
+}
+
+#[test]
 fn should_return_none_for_non_exist_key() {
 	new_test_ext().execute_with(|| {
 		assert_eq!(ModuleOracle::get(&50), None);

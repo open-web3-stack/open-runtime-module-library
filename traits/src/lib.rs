@@ -42,13 +42,14 @@ pub trait OnNewData<AccountId, Key, Value> {
 }
 
 /// Combine data provided by operators
-pub trait CombineData<Key, TimestampedValue> {
-	/// Combine data provided by operators
+pub trait CombineData<Key, TimestampedValue, ExpiresAt> {
+	/// Combine data provided by operators. Optionally includes an expiration
+	/// timestamp in the return value
 	fn combine_data(
 		key: &Key,
 		values: Vec<TimestampedValue>,
 		prev_value: Option<TimestampedValue>,
-	) -> Option<TimestampedValue>;
+	) -> Option<(TimestampedValue, Option<ExpiresAt>)>;
 }
 
 /// Indicate if should change a value

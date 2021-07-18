@@ -69,7 +69,7 @@ impl Timestamp {
 
 parameter_types! {
 	pub const MinimumCount: u32 = 3;
-	pub const ExpiresIn: u32 = 600;
+	pub static ExpiresIn: u32 = 600;
 	pub const RootOperatorAccountId: AccountId = 4;
 	pub static OracleMembers: Vec<AccountId> = vec![1, 2, 3];
 }

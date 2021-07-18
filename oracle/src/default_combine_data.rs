@@ -7,7 +7,7 @@ use sp_std::{marker, prelude::*};
 /// Returns prev_value if not enough valid values.
 pub struct DefaultCombineData<T, MinimumCount, ExpiresIn, I = ()>(marker::PhantomData<(T, I, MinimumCount, ExpiresIn)>);
 
-impl<T, I, MinimumCount, ExpiresIn> CombineData<<T as Config<I>>::OracleKey, TimestampedValueOf<T, I>>
+impl<T, I, MinimumCount, ExpiresIn> CombineData<<T as Config<I>>::OracleKey, TimestampedValueOf<T, I>, MomentOf<T, I>>
 	for DefaultCombineData<T, MinimumCount, ExpiresIn, I>
 where
 	T: Config<I>,
@@ -19,21 +19,23 @@ where
 		_key: &<T as Config<I>>::OracleKey,
 		mut values: Vec<TimestampedValueOf<T, I>>,
 		prev_value: Option<TimestampedValueOf<T, I>>,
-	) -> Option<TimestampedValueOf<T, I>> {
+	) -> Option<(TimestampedValueOf<T, I>, Option<MomentOf<T, I>>)> {
 		let expires_in = ExpiresIn::get();
 		let now = T::Time::now();
 
 		values.retain(|x| x.timestamp + expires_in > now);
+		let valid_until = values.iter().map(|x| x.timestamp).min();
 
 		let count = values.len() as u32;
 		let minimum_count = MinimumCount::get();
 		if count < minimum_count || count == 0 {
-			return prev_value;
+			// return the previous value, without a valid_until deadline
+			return prev_value.map(|x| (x, None));
 		}
 
 		let mid_index = count / 2;
 		// Won't panic as `values` ensured not empty.
 		let (_, value, _) = values.select_nth_unstable_by(mid_index as usize, |a, b| a.value.cmp(&b.value));
-		Some(value.clone())
+		Some((value.clone(), valid_until))
 	}
 }
