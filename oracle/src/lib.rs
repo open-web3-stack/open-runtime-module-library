@@ -32,7 +32,7 @@ use frame_support::{
 	Parameter,
 };
 use frame_system::{ensure_root, ensure_signed, pallet_prelude::*};
-pub use orml_traits::{CombineData, DataFeeder, DataProvider, DataProviderExtended, OnNewData};
+pub use orml_traits::{AggregateResult, CombineData, DataFeeder, DataProvider, DataProviderExtended, OnNewData};
 use orml_utilities::OrderedSet;
 use sp_runtime::{traits::Member, DispatchResult, RuntimeDebug};
 use sp_std::{prelude::*, vec};
@@ -189,14 +189,25 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		if Self::is_updated(key) && !Self::is_expired(key) {
 			<Values<T, I>>::get(key)
 		} else {
-			let (timestamped, expiration) = Self::combined(key)?;
-			<Values<T, I>>::insert(key, timestamped.clone());
-			IsUpdated::<T, I>::insert(key, true);
-			match expiration {
-				Some(expiration) => ExpirationTime::<T, I>::insert(key, expiration),
-				None => ExpirationTime::<T, I>::remove(key),
+			let aggregate = Self::combined(key);
+
+			// store the expiration time
+			match aggregate {
+				AggregateResult::TemporarilyNone(ref expiration)
+				| AggregateResult::TemporaryValue(_, ref expiration) => <ExpirationTime<T, I>>::insert(key, expiration),
+				_ => <ExpirationTime<T, I>>::remove(key),
 			}
-			Some(timestamped)
+
+			// store the value
+			let timestamped = aggregate.get_value();
+			match timestamped {
+				Some(ref value) => <Values<T, I>>::insert(key, value),
+				_ => <Values<T, I>>::remove(key),
+			};
+
+			IsUpdated::<T, I>::insert(key, true);
+
+			timestamped
 		}
 	}
 
@@ -208,7 +219,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		if Self::is_updated(key) {
 			Self::values(key)
 		} else {
-			Self::combined(key).map(|(timestamped_value, _expiration)| timestamped_value)
+			Self::combined(key).get_value()
 		}
 	}
 
@@ -223,7 +234,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 			.collect()
 	}
 
-	fn combined(key: &T::OracleKey) -> Option<(TimestampedValueOf<T, I>, Option<MomentOf<T, I>>)> {
+	fn combined(key: &T::OracleKey) -> AggregateResult<TimestampedValueOf<T, I>, MomentOf<T, I>> {
 		let values = Self::read_raw_values(key);
 		T::CombineData::combine_data(key, values, Self::values(key))
 	}

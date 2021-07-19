@@ -1,6 +1,6 @@
 use crate::{Config, MomentOf, TimestampedValueOf};
 use frame_support::traits::{Get, Time};
-use orml_traits::CombineData;
+use orml_traits::{AggregateResult, CombineData};
 use sp_std::{marker, prelude::*};
 
 /// Sort by value and returns median timestamped value.
@@ -19,27 +19,33 @@ where
 		_key: &<T as Config<I>>::OracleKey,
 		mut values: Vec<TimestampedValueOf<T, I>>,
 		prev_value: Option<TimestampedValueOf<T, I>>,
-	) -> Option<(TimestampedValueOf<T, I>, Option<MomentOf<T, I>>)> {
+	) -> AggregateResult<TimestampedValueOf<T, I>, MomentOf<T, I>> {
 		let expires_in = ExpiresIn::get();
 		let now = T::Time::now();
 
 		values.retain(|x| x.timestamp + expires_in > now);
-		let valid_until = values
-			.iter()
-			.map(|x| x.timestamp)
-			.min()
-			.map(|timestamp| timestamp + expires_in);
 
 		let count = values.len() as u32;
 		let minimum_count = MinimumCount::get();
 		if count < minimum_count || count == 0 {
 			// return the previous value, without a valid_until deadline
-			return prev_value.map(|x| (x, None));
+			return match prev_value {
+				Some(value) => AggregateResult::PermanentValue(value),
+				None => AggregateResult::PermanentlyNone,
+			};
 		}
+
+		let valid_until = values
+			.iter()
+			.map(|x| x.timestamp)
+			.min()
+			.map(|timestamp| timestamp + expires_in)
+			.unwrap(); // Won't panic as `values` ensured not empty.
 
 		let mid_index = count / 2;
 		// Won't panic as `values` ensured not empty.
 		let (_, value, _) = values.select_nth_unstable_by(mid_index as usize, |a, b| a.value.cmp(&b.value));
-		Some((value.clone(), valid_until))
+
+		AggregateResult::TemporaryValue(value.clone(), valid_until)
 	}
 }
