@@ -597,7 +597,7 @@ impl<T: Config> Pallet<T> {
 				Self::ensure_can_withdraw(currency_id, from, amount)?;
 
 				let allow_death = existence_requirement == ExistenceRequirement::AllowDeath;
-				let allow_death = allow_death && !frame_system::Pallet::<T>::is_provider_required(from);
+				let allow_death = allow_death && frame_system::Pallet::<T>::can_dec_provider(from);
 				// if from_account does not allow death and non_zero total is below existential
 				// deposit, would return an error.
 				ensure!(allow_death || from_account.total() >= ed, Error::<T>::KeepAlive);
@@ -1285,7 +1285,7 @@ where
 
 			let ed = T::ExistentialDeposits::get(&currency_id);
 			let allow_death = liveness == ExistenceRequirement::AllowDeath;
-			let allow_death = allow_death && !frame_system::Pallet::<T>::is_provider_required(who);
+			let allow_death = allow_death && frame_system::Pallet::<T>::can_dec_provider(who);
 			ensure!(allow_death || account.total() >= ed, Error::<T>::KeepAlive);
 
 			Ok(())

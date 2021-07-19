@@ -341,6 +341,26 @@ fn transfer_all_should_work() {
 }
 
 #[test]
+fn transfer_failed_when_allow_death_but_cannot_dec_provider() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_eq!(System::can_dec_provider(&ALICE), true);
+			assert_ok!(System::inc_consumers(&ALICE));
+			assert_eq!(System::can_dec_provider(&ALICE), false);
+			assert_noop!(
+				Tokens::transfer(Some(ALICE).into(), BOB, DOT, 100),
+				Error::<Runtime>::KeepAlive
+			);
+
+			assert_ok!(Tokens::deposit(BTC, &ALICE, 100));
+			assert_eq!(System::can_dec_provider(&ALICE), true);
+			assert_ok!(Tokens::transfer(Some(ALICE).into(), BOB, DOT, 100));
+		});
+}
+
+#[test]
 fn deposit_should_work() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
@@ -590,6 +610,34 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 				<Runtime as pallet_elections_phragmen::Config>::Currency::total_issuance(),
 				103
 			);
+		});
+}
+
+#[test]
+fn currency_adapter_withdraw_failed_when_allow_death_but_cannot_dec_provider() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_eq!(System::can_dec_provider(&ALICE), true);
+			assert_ok!(System::inc_consumers(&ALICE));
+			assert_eq!(System::can_dec_provider(&ALICE), false);
+			assert!(TreasuryCurrencyAdapter::withdraw(
+				&ALICE,
+				100,
+				WithdrawReasons::TRANSFER,
+				ExistenceRequirement::AllowDeath
+			)
+			.is_err());
+			assert_ok!(Tokens::deposit(BTC, &ALICE, 100));
+			assert_eq!(System::can_dec_provider(&ALICE), true);
+			assert!(TreasuryCurrencyAdapter::withdraw(
+				&ALICE,
+				100,
+				WithdrawReasons::TRANSFER,
+				ExistenceRequirement::AllowDeath
+			)
+			.is_ok());
 		});
 }
 
