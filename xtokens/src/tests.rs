@@ -78,7 +78,7 @@ fn cannot_lost_fund_on_send_failed() {
 			500,
 			(
 				Parent,
-				Parachain(3),
+				Parachain(100),
 				Junction::AccountId32 {
 					network: NetworkId::Kusama,
 					id: BOB.into(),
@@ -173,88 +173,83 @@ fn send_sibling_asset_to_reserve_sibling() {
 
 	ParaB::execute_with(|| {
 		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &sibling_a_account()), 500);
-		para::System::events()
-			.iter()
-			.for_each(|r| println!(">>> {:?}", r.event));
 		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &BOB), 470);
 	});
 }
 
-// #[test]
-// fn send_sibling_asset_to_non_reserve_sibling() {
-// 	TestNet::reset();
+#[test]
+fn send_sibling_asset_to_non_reserve_sibling() {
+	TestNet::reset();
 
-// 	ParaA::execute_with(|| {
-// 		assert_ok!(ParaTokens::deposit(CurrencyId::B, &ALICE, 100));
-// 	});
+	ParaA::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::B, &ALICE, 1_000));
+	});
 
-// 	ParaB::execute_with(|| {
-// 		assert_ok!(ParaTokens::deposit(CurrencyId::B, &sibling_a_account(), 100));
-// 	});
+	ParaB::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::B, &sibling_a_account(), 1_000));
+	});
 
-// 	ParaA::execute_with(|| {
-// 		assert_ok!(ParaXTokens::transfer(
-// 			Some(ALICE).into(),
-// 			CurrencyId::B,
-// 			30,
-// 			(
-// 				Parent,
-// 				Parachain { id: 3 },
-// 				Junction::AccountId32 {
-// 					network: NetworkId::Any,
-// 					id: BOB.into(),
-// 				},
-// 			)
-// 				.into(),
-// 		));
-// 		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &ALICE), 70);
-// 	});
+	ParaA::execute_with(|| {
+		assert_ok!(ParaXTokens::transfer(
+			Some(ALICE).into(),
+			CurrencyId::B,
+			500,
+			(
+				Parent,
+				Parachain(3),
+				Junction::AccountId32 {
+					network: NetworkId::Any,
+					id: BOB.into(),
+				},
+			)
+				.into(),
+			30
+		));
+		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &ALICE), 500);
+	});
 
-// 	// check reserve accounts
-// 	ParaB::execute_with(|| {
-// 		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &sibling_a_account()),
-// 70); 		assert_eq!(ParaTokens::free_balance(CurrencyId::B,
-// &sibling_c_account()), 30); 	});
-//
-// 	ParaC::execute_with(|| {
-// 		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &BOB), 30);
-// 	});
-// }
-//
-// #[test]
-// fn send_self_parachain_asset_to_sibling() {
-// 	TestNet::reset();
+	// check reserve accounts
+	ParaB::execute_with(|| {
+		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &sibling_a_account()), 500);
+		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &sibling_c_account()), 470);
+	});
 
-// 	ParaA::execute_with(|| {
-// 		assert_ok!(ParaTokens::deposit(CurrencyId::A, &ALICE, 100));
+	ParaC::execute_with(|| {
+		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &BOB), 440);
+	});
+}
 
-// 		assert_ok!(ParaXTokens::transfer(
-// 			Some(ALICE).into(),
-// 			CurrencyId::A,
-// 			50,
-// 			(
-// 				Parent,
-// 				Parachain(2),
-// 				Junction::AccountId32 {
-// 					network: NetworkId::Any,
-// 					id: BOB.into(),
-// 				},
-// 			)
-// 				.into(),
-// 			30,
-// 		));
+#[test]
+fn send_self_parachain_asset_to_sibling() {
+	TestNet::reset();
 
-// 		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &ALICE), 50);
-// 		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &sibling_b_account()),
-// 50); 	});
+	ParaA::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::A, &ALICE, 1_000));
 
-// 	ParaB::execute_with(|| {
-// 		para::System::events().iter().for_each(|r| {
-// 			println!(">>> {:?}", r.event);
-// 		});
-// 		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &BOB), 30);
-// 	});
-// }
+		assert_ok!(ParaXTokens::transfer(
+			Some(ALICE).into(),
+			CurrencyId::A,
+			500,
+			(
+				Parent,
+				Parachain(2),
+				Junction::AccountId32 {
+					network: NetworkId::Any,
+					id: BOB.into(),
+				},
+			)
+				.into(),
+			30,
+		));
+
+		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &ALICE), 500);
+		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &sibling_b_account()), 500);
+	});
+
+	ParaB::execute_with(|| {
+		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &BOB), 470);
+	});
+}
 
 #[test]
 fn transfer_no_reserve_assets_fails() {
