@@ -121,13 +121,11 @@ pub mod module {
 	pub type IsUpdated<T: Config<I>, I: 'static = ()> =
 		StorageMap<_, Twox64Concat, <T as Config<I>>::OracleKey, bool, ValueQuery>;
 
-	/// Time until which the combined value with the given key is valid. Note
-	/// that the value if wrapped in an Option because MomentOf does not
-	/// implement Default
+	/// Time until which the combined value with the given key is valid
 	#[pallet::storage]
 	#[pallet::getter(fn expiration_time)]
 	pub type ExpirationTime<T: Config<I>, I: 'static = ()> =
-		StorageMap<_, Twox64Concat, <T as Config<I>>::OracleKey, Option<MomentOf<T, I>>, ValueQuery>;
+		StorageMap<_, Twox64Concat, <T as Config<I>>::OracleKey, MomentOf<T, I>>;
 
 	/// Combined value, may not be up to date
 	#[pallet::storage]
@@ -194,7 +192,10 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 			let (timestamped, expiration) = Self::combined(key)?;
 			<Values<T, I>>::insert(key, timestamped.clone());
 			IsUpdated::<T, I>::insert(key, true);
-			ExpirationTime::<T, I>::insert(key, expiration);
+			match expiration {
+				Some(expiration) => ExpirationTime::<T, I>::insert(key, expiration),
+				None => ExpirationTime::<T, I>::remove(key),
+			}
 			Some(timestamped)
 		}
 	}
@@ -256,7 +257,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 	}
 
 	fn is_expired(key: &T::OracleKey) -> bool {
-		let expiration = ExpirationTime::<T, I>::get(key);
+		let expiration = Self::expiration_time(key);
 		let current = T::Time::now();
 		matches!(expiration, Some(t) if current > t)
 	}
