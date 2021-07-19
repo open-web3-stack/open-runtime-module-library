@@ -24,7 +24,11 @@ where
 		let now = T::Time::now();
 
 		values.retain(|x| x.timestamp + expires_in > now);
-		let valid_until = values.iter().map(|x| x.timestamp).min();
+		let valid_until = values
+			.iter()
+			.map(|x| x.timestamp)
+			.min()
+			.map(|timestamp| timestamp + expires_in);
 
 		let count = values.len() as u32;
 		let minimum_count = MinimumCount::get();
