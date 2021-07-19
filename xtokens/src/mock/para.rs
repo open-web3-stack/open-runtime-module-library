@@ -131,7 +131,6 @@ pub type XcmOriginToCallOrigin = (
 
 parameter_types! {
 	pub const UnitWeightCost: Weight = 10;
-	pub KsmPerSecond: (MultiLocation, u128) = (X1(Parent), WEIGHT_PER_SECOND as u128);
 }
 
 pub type LocalAssetTransactor = MultiCurrencyAdapter<
