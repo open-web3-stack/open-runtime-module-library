@@ -147,8 +147,8 @@ pub type LocalAssetTransactor = MultiCurrencyAdapter<
 pub type XcmRouter = ParachainXcmRouter<ParachainInfo>;
 pub type Barrier = (TakeWeightCredit, AllowTopLevelPaidExecutionFrom<All<MultiLocation>>);
 
-/// A trader who believes all tokens are created to "weight" of any chain, which
-/// is not true, but good enough to mock the fee payment of XCM execution.
+/// A trader who believes all tokens are created equal to "weight" of any chain,
+/// which is not true, but good enough to mock the fee payment of XCM execution.
 ///
 /// This mock will always trade `n` amount of weight to `n` amount of tokens.
 pub struct AllTokensAreCreatedEqualToWeight(MultiLocation);
