@@ -90,6 +90,13 @@ decl_test_parachain! {
 	}
 }
 
+decl_test_parachain! {
+	pub struct ParaC {
+		Runtime = para::Runtime,
+		new_ext = para_ext(3),
+	}
+}
+
 decl_test_relay_chain! {
 	pub struct Relay {
 		Runtime = relay::Runtime,
@@ -104,6 +111,7 @@ decl_test_network! {
 		parachains = vec![
 			(1, ParaA),
 			(2, ParaB),
+			(3, ParaC),
 		],
 	}
 }

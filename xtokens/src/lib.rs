@@ -208,7 +208,7 @@ pub mod module {
 			dest: MultiLocation,
 			dest_weight: Weight,
 		) -> XcmExecutionResult {
-			let (transfer_kind, reserve, dest, recipient) = Self::transfer_kind(&asset, &dest)?;
+			let (transfer_kind, dest, reserve, recipient) = Self::transfer_kind(&asset, &dest)?;
 			let buy_order = BuyExecution {
 				fees: All,
 				// Zero weight for additional XCM (since there are none to execute)

@@ -17,23 +17,22 @@ use sp_runtime::{
 use cumulus_primitives_core::{ChannelStatus, GetChannelInfo, ParaId};
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
-pub use xcm::v0::{
+use xcm::v0::{
+	Error as XcmError,
 	Junction::{self, Parachain, Parent},
 	MultiAsset,
-	MultiLocation::{self, X1, X2, X3},
+	MultiLocation::{self, X1, X2},
 	NetworkId, Xcm,
 };
-pub use xcm_builder::{
-	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom,
-	CurrencyAdapter as XcmCurrencyAdapter, EnsureXcmOrigin, FixedRateOfConcreteFungible, FixedWeightBounds, IsConcrete,
-	LocationInverter, NativeAsset, ParentAsSuperuser, ParentIsDefault, RelayChainAsNative, SiblingParachainAsNative,
-	SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation,
-	TakeWeightCredit,
+use xcm_builder::{
+	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin, FixedWeightBounds, LocationInverter,
+	ParentIsDefault, RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
+	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 };
-use xcm_executor::{Config, XcmExecutor};
+use xcm_executor::{traits::WeightTrader, Assets, Config, XcmExecutor};
 
 use orml_traits::parameter_type_with_key;
-use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter};
+use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
 
 pub type AccountId = AccountId32;
 
@@ -132,7 +131,6 @@ pub type XcmOriginToCallOrigin = (
 
 parameter_types! {
 	pub const UnitWeightCost: Weight = 10;
-	pub KsmPerSecond: (MultiLocation, u128) = (X1(Parent), 1_000);
 }
 
 pub type LocalAssetTransactor = MultiCurrencyAdapter<
@@ -146,7 +144,42 @@ pub type LocalAssetTransactor = MultiCurrencyAdapter<
 >;
 
 pub type XcmRouter = ParachainXcmRouter<ParachainInfo>;
-pub type Barrier = AllowUnpaidExecutionFrom<All<MultiLocation>>;
+pub type Barrier = (TakeWeightCredit, AllowTopLevelPaidExecutionFrom<All<MultiLocation>>);
+
+/// A trader who believes all tokens are created equal to "weight" of any chain,
+/// which is not true, but good enough to mock the fee payment of XCM execution.
+///
+/// This mock will always trade `n` amount of weight to `n` amount of tokens.
+pub struct AllTokensAreCreatedEqualToWeight(MultiLocation);
+impl WeightTrader for AllTokensAreCreatedEqualToWeight {
+	fn new() -> Self {
+		Self(MultiLocation::Null)
+	}
+
+	fn buy_weight(&mut self, weight: Weight, payment: Assets) -> Result<Assets, XcmError> {
+		let asset_id = payment
+			.fungible
+			.iter()
+			.next()
+			.expect("Payment must be something; qed")
+			.0;
+		let required = asset_id.clone().into_fungible_multiasset(weight as u128);
+
+		if let MultiAsset::ConcreteFungible { ref id, amount: _ } = required {
+			self.0 = id.clone();
+		}
+
+		let (unused, _) = payment.less(required).map_err(|_| XcmError::TooExpensive)?;
+		Ok(unused)
+	}
+
+	fn refund_weight(&mut self, weight: Weight) -> MultiAsset {
+		MultiAsset::ConcreteFungible {
+			id: self.0.clone(),
+			amount: weight as u128,
+		}
+	}
+}
 
 pub struct XcmConfig;
 impl Config for XcmConfig {
@@ -154,12 +187,12 @@ impl Config for XcmConfig {
 	type XcmSender = XcmRouter;
 	type AssetTransactor = LocalAssetTransactor;
 	type OriginConverter = XcmOriginToCallOrigin;
-	type IsReserve = NativeAsset;
+	type IsReserve = MultiNativeAsset;
 	type IsTeleporter = ();
 	type LocationInverter = LocationInverter<Ancestry>;
 	type Barrier = Barrier;
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
-	type Trader = FixedRateOfConcreteFungible<KsmPerSecond, ()>;
+	type Trader = AllTokensAreCreatedEqualToWeight;
 	type ResponseHandler = ();
 }
 
