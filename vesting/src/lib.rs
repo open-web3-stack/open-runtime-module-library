@@ -283,6 +283,8 @@ impl<T: Config> Pallet<T> {
 	fn do_claim(who: &T::AccountId) -> BalanceOf<T> {
 		let locked = Self::locked_balance(who);
 		if locked.is_zero() {
+			// cleanup the storage and unlock the fund
+			<VestingSchedules<T>>::remove(who);
 			T::Currency::remove_lock(VESTING_LOCK_ID, who);
 		} else {
 			T::Currency::set_lock(VESTING_LOCK_ID, who, locked, WithdrawReasons::all());
@@ -330,6 +332,13 @@ impl<T: Config> Pallet<T> {
 		let bounded_schedules: BoundedVec<VestingScheduleOf<T>, T::MaxVestingSchedules> = schedules
 			.try_into()
 			.map_err(|_| Error::<T>::MaxVestingSchedulesExceeded)?;
+
+		// empty vesting schedules cleanup the storage and unlock the fund
+		if bounded_schedules.len().is_zero() {
+			<VestingSchedules<T>>::remove(who);
+			T::Currency::remove_lock(VESTING_LOCK_ID, who);
+			return Ok(());
+		}
 
 		let total_amount = bounded_schedules
 			.iter()
