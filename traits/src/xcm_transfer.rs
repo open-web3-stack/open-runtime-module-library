@@ -2,7 +2,7 @@ use frame_support::dispatch::DispatchError;
 use frame_support::weights::Weight;
 use xcm::opaque::v0::{MultiAsset, MultiLocation, Outcome};
 
-type XcmExecutionResult = sp_std::result::Result<Outcome, DispatchError>;
+pub type XcmExecutionResult = sp_std::result::Result<Outcome, DispatchError>;
 
 /// Abstraction over cross-chain token transfers.
 pub trait XcmTransfer<AccountId, Balance, CurrencyId> {
