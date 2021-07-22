@@ -321,6 +321,13 @@ fn transfer_should_work() {
 				Error::<Runtime>::ExistentialDeposit,
 			);
 			assert_ok!(Tokens::transfer(Some(ALICE).into(), CHARLIE, DOT, 2));
+
+			assert_noop!(
+				Tokens::transfer(Some(ALICE).into(), TREASURY_ACCOUNT, DOT, 1),
+				Error::<Runtime>::ExistentialDeposit,
+			);
+			assert_ok!(Tokens::deposit(BTC, &TREASURY_ACCOUNT, 1));
+			assert_ok!(Tokens::transfer(Some(ALICE).into(), TREASURY_ACCOUNT, DOT, 1));
 		});
 }
 
