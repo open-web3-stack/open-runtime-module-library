@@ -103,7 +103,7 @@ impl<T: Config> OnDust<T::AccountId, T::CurrencyId, T::Balance> for BurnDust<T> 
 	fn on_dust(who: &T::AccountId, currency_id: T::CurrencyId, amount: T::Balance) {
 		// burn the dust, ignore the result,
 		// if failed will leave some dust which still could be recycled.
-		let _ = Pallet::<T>::do_withdraw(currency_id, who, amount, ExistenceRequirement::AllowDeath);
+		let _ = Pallet::<T>::do_withdraw(currency_id, who, amount, ExistenceRequirement::AllowDeath, true);
 	}
 }
 
@@ -466,13 +466,14 @@ pub mod module {
 			let who = T::Lookup::lookup(who)?;
 
 			Self::try_mutate_account(&who, currency_id, |account, _| -> DispatchResult {
+				let mut new_total = new_free.checked_add(&new_reserved).ok_or(ArithmeticError::Overflow)?;
 				let (new_free, new_reserved) = if new_free + new_reserved < T::ExistentialDeposits::get(&currency_id) {
+					new_total = Zero::zero();
 					(Zero::zero(), Zero::zero())
 				} else {
 					(new_free, new_reserved)
 				};
 				let old_total = account.total();
-				let new_total = new_free.checked_add(&new_reserved).ok_or(ArithmeticError::Overflow)?;
 
 				account.free = new_free;
 				account.reserved = new_reserved;
@@ -771,7 +772,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	/// Withdraw some free balance from an account, respecting existence
-	/// requirements.
+	/// requirements, and if AllowDeath do not require ED.
 	///
 	/// Is a no-op if value to be withdrawn is zero.
 	pub(crate) fn do_withdraw(
@@ -779,6 +780,7 @@ impl<T: Config> Pallet<T> {
 		who: &T::AccountId,
 		amount: T::Balance,
 		existence_requirement: ExistenceRequirement,
+		change_total_issuance: bool,
 	) -> DispatchResult {
 		if amount.is_zero() {
 			return Ok(());
@@ -786,14 +788,21 @@ impl<T: Config> Pallet<T> {
 
 		Self::try_mutate_account(who, currency_id, |account, _existed| -> DispatchResult {
 			Self::ensure_can_withdraw(currency_id, who, amount)?;
+			let previous_total = account.total();
 			account.free -= amount;
 
 			let ed = T::ExistentialDeposits::get(&currency_id);
-			let allow_death = existence_requirement == ExistenceRequirement::AllowDeath;
-			let allow_death = allow_death && frame_system::Pallet::<T>::can_dec_provider(who);
-			ensure!(allow_death || account.total() >= ed, Error::<T>::KeepAlive);
+			let would_be_dead = account.total() < ed;
+			let would_kill = would_be_dead && previous_total >= ed;
+			ensure!(
+				existence_requirement == ExistenceRequirement::AllowDeath || !would_kill,
+				Error::<T>::KeepAlive
+			);
 
-			TotalIssuance::<T>::mutate(currency_id, |v| *v -= amount);
+			if change_total_issuance {
+				TotalIssuance::<T>::mutate(currency_id, |v| *v -= amount);
+			}
+
 			Ok(())
 		})
 	}
@@ -811,6 +820,7 @@ impl<T: Config> Pallet<T> {
 		who: &T::AccountId,
 		amount: T::Balance,
 		require_existed: bool,
+		change_total_issuance: bool,
 	) -> DispatchResult {
 		if amount.is_zero() {
 			return Ok(());
@@ -824,10 +834,12 @@ impl<T: Config> Pallet<T> {
 				ensure!(amount >= ed || existed, Error::<T>::ExistentialDeposit);
 			}
 
-			TotalIssuance::<T>::try_mutate(currency_id, |total_issuance| -> DispatchResult {
-				*total_issuance = total_issuance.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
-				Ok(())
-			})?;
+			let new_total_issuance = Self::total_issuance(currency_id)
+				.checked_add(&amount)
+				.ok_or(ArithmeticError::Overflow)?;
+			if change_total_issuance {
+				TotalIssuance::<T>::mutate(currency_id, |v| *v = new_total_issuance);
+			}
 			account.free += amount;
 
 			Ok(())
@@ -865,15 +877,18 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
 		to: &T::AccountId,
 		amount: Self::Balance,
 	) -> DispatchResult {
+		// allow death
 		Self::do_transfer(currency_id, from, to, amount, ExistenceRequirement::AllowDeath)
 	}
 
 	fn deposit(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
-		Self::do_deposit(currency_id, who, amount, false)
+		// do not require existing
+		Self::do_deposit(currency_id, who, amount, false, true)
 	}
 
 	fn withdraw(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
-		Self::do_withdraw(currency_id, who, amount, ExistenceRequirement::AllowDeath)
+		// allow death
+		Self::do_withdraw(currency_id, who, amount, ExistenceRequirement::AllowDeath, true)
 	}
 
 	// Check if `value` amount of free balance can be slashed from `who`.
@@ -1174,21 +1189,9 @@ impl<T: Config> fungibles::Inspect<T::AccountId> for Pallet<T> {
 
 impl<T: Config> fungibles::Mutate<T::AccountId> for Pallet<T> {
 	fn mint_into(asset_id: Self::AssetId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
-		// if amount.is_zero() {
-		// 	return Ok(());
-		// }
-		// Self::try_mutate_account(who, asset_id, |account, _existed| -> DispatchResult
-		// { 	Self::deposit_consequence(who, asset_id, amount, &account).into_result()?;
-		// 	// deposit_consequence already did overflow checking
-		// 	account.free += amount;
-		// 	Ok(())
-		// })?;
-		// // deposit_consequence already did overflow checking
-		// TotalIssuance::<T>::mutate(asset_id, |t| *t += amount);
-		// Ok(())
-
 		Self::deposit_consequence(who, asset_id, amount, &Self::accounts(who, asset_id)).into_result()?;
-		Self::do_deposit(asset_id, who, amount, false)
+		// do not require existing
+		Self::do_deposit(asset_id, who, amount, false, true)
 	}
 
 	fn burn_from(
@@ -1196,27 +1199,10 @@ impl<T: Config> fungibles::Mutate<T::AccountId> for Pallet<T> {
 		who: &T::AccountId,
 		amount: Self::Balance,
 	) -> Result<Self::Balance, DispatchError> {
-		// if amount.is_zero() {
-		// 	return Ok(Self::Balance::zero());
-		// }
-		// let actual = Self::try_mutate_account(
-		// 	who,
-		// 	asset_id,
-		// 	|account, _existed| -> Result<T::Balance, DispatchError> {
-		// 		let extra = Self::withdraw_consequence(who, asset_id, amount,
-		// &account).into_result()?; 		// withdraw_consequence already did underflow
-		// checking 		let actual = amount + extra;
-		// 		account.free -= actual;
-		// 		Ok(actual)
-		// 	},
-		// )?;
-		// // withdraw_consequence already did underflow checking
-		// TotalIssuance::<T>::mutate(asset_id, |t| *t -= actual);
-		// Ok(actual)
-
 		let extra = Self::withdraw_consequence(who, asset_id, amount, &Self::accounts(who, asset_id)).into_result()?;
 		let actual = amount + extra;
-		Self::do_withdraw(asset_id, who, actual, ExistenceRequirement::AllowDeath).map(|_| actual)
+		// allow death
+		Self::do_withdraw(asset_id, who, actual, ExistenceRequirement::AllowDeath, true).map(|_| actual)
 	}
 }
 
@@ -1333,19 +1319,19 @@ where
 	type NegativeImbalance = NegativeImbalance<T, GetCurrencyId>;
 
 	fn total_balance(who: &T::AccountId) -> Self::Balance {
-		Pallet::<T>::total_balance(GetCurrencyId::get(), who)
+		<Pallet<T> as MultiCurrency<_>>::total_balance(GetCurrencyId::get(), who)
 	}
 
 	fn can_slash(who: &T::AccountId, value: Self::Balance) -> bool {
-		Pallet::<T>::can_slash(GetCurrencyId::get(), who, value)
+		<Pallet<T> as MultiCurrency<_>>::can_slash(GetCurrencyId::get(), who, value)
 	}
 
 	fn total_issuance() -> Self::Balance {
-		Pallet::<T>::total_issuance(GetCurrencyId::get())
+		<Pallet<T> as MultiCurrency<_>>::total_issuance(GetCurrencyId::get())
 	}
 
 	fn minimum_balance() -> Self::Balance {
-		Pallet::<T>::minimum_balance(GetCurrencyId::get())
+		<Pallet<T> as MultiCurrency<_>>::minimum_balance(GetCurrencyId::get())
 	}
 
 	fn burn(mut amount: Self::Balance) -> Self::PositiveImbalance {
@@ -1375,7 +1361,7 @@ where
 	}
 
 	fn free_balance(who: &T::AccountId) -> Self::Balance {
-		Pallet::<T>::free_balance(GetCurrencyId::get(), who)
+		<Pallet<T> as MultiCurrency<_>>::free_balance(GetCurrencyId::get(), who)
 	}
 
 	fn ensure_can_withdraw(
@@ -1384,7 +1370,7 @@ where
 		_reasons: WithdrawReasons,
 		_new_balance: Self::Balance,
 	) -> DispatchResult {
-		Pallet::<T>::ensure_can_withdraw(GetCurrencyId::get(), who, amount)
+		<Pallet<T> as MultiCurrency<_>>::ensure_can_withdraw(GetCurrencyId::get(), who, amount)
 	}
 
 	fn transfer(
@@ -1431,44 +1417,15 @@ where
 		who: &T::AccountId,
 		value: Self::Balance,
 	) -> sp_std::result::Result<Self::PositiveImbalance, DispatchError> {
-		// if value.is_zero() {
-		// 	return Ok(Self::PositiveImbalance::zero());
-		// }
-		// let currency_id = GetCurrencyId::get();
-		// Pallet::<T>::try_mutate_account(
-		// 	who,
-		// 	currency_id,
-		// 	|account, existed| -> Result<Self::PositiveImbalance, DispatchError> {
-		// 		ensure!(existed, Error::<T>::DeadAccount);
-		// 		account.free =
-		// account.free.checked_add(&value).ok_or(ArithmeticError::Overflow)?;
-		// 		Ok(PositiveImbalance::new(value))
-		// 	},
-		// )
-		Pallet::<T>::do_deposit(GetCurrencyId::get(), who, value, true).map(|_| PositiveImbalance::new(value))
+		// do not change total issuance
+		Pallet::<T>::do_deposit(GetCurrencyId::get(), who, value, true, false).map(|_| PositiveImbalance::new(value))
 	}
 
 	/// Deposit some `value` into the free balance of `who`, possibly creating a
 	/// new account.
 	fn deposit_creating(who: &T::AccountId, value: Self::Balance) -> Self::PositiveImbalance {
-		// if value.is_zero() {
-		// 	return Self::PositiveImbalance::zero();
-		// }
-		// let currency_id = GetCurrencyId::get();
-		// Pallet::<T>::try_mutate_account(
-		// 	who,
-		// 	currency_id,
-		// 	|account, existed| -> Result<Self::PositiveImbalance, DispatchError> {
-		// 		let ed = T::ExistentialDeposits::get(&currency_id);
-		// 		ensure!(value >= ed || existed, Error::<T>::ExistentialDeposit);
-		// 		account.free =
-		// account.free.checked_add(&value).ok_or(ArithmeticError::Overflow)?;
-		// 		Ok(PositiveImbalance::new(value))
-		// 	},
-		// )
-		// .unwrap_or_else(|_| Self::PositiveImbalance::zero())
-
-		Pallet::<T>::do_deposit(GetCurrencyId::get(), who, value, false)
+		// do not change total issuance
+		Pallet::<T>::do_deposit(GetCurrencyId::get(), who, value, false, false)
 			.map_or_else(|_| Self::PositiveImbalance::zero(), |_| PositiveImbalance::new(value))
 	}
 
@@ -1478,29 +1435,8 @@ where
 		_reasons: WithdrawReasons,
 		liveness: ExistenceRequirement,
 	) -> sp_std::result::Result<Self::NegativeImbalance, DispatchError> {
-		// if value.is_zero() {
-		// 	return Ok(Self::NegativeImbalance::zero());
-		// }
-
-		// let currency_id = GetCurrencyId::get();
-		// Pallet::<T>::try_mutate_account(who, currency_id, |account, _existed| ->
-		// DispatchResult { 	account.free =
-		// account.free.checked_sub(&value).ok_or(Error::<T>::BalanceTooLow)?;
-
-		// 	Pallet::<T>::ensure_can_withdraw(currency_id, who, value)?;
-
-		// 	let ed = T::ExistentialDeposits::get(&currency_id);
-		// 	let allow_death = liveness == ExistenceRequirement::AllowDeath;
-		// 	let allow_death = allow_death &&
-		// frame_system::Pallet::<T>::can_dec_provider(who); 	ensure!(allow_death ||
-		// account.total() >= ed, Error::<T>::KeepAlive);
-
-		// 	Ok(())
-		// })?;
-
-		// Ok(Self::NegativeImbalance::new(value))
-
-		Pallet::<T>::do_withdraw(GetCurrencyId::get(), who, value, liveness)
+		// do not change total issuance
+		Pallet::<T>::do_withdraw(GetCurrencyId::get(), who, value, liveness, false)
 			.map(|_| Self::NegativeImbalance::new(value))
 	}
 
@@ -1542,24 +1478,24 @@ where
 	GetCurrencyId: Get<T::CurrencyId>,
 {
 	fn can_reserve(who: &T::AccountId, value: Self::Balance) -> bool {
-		Pallet::<T>::can_reserve(GetCurrencyId::get(), who, value)
+		<Pallet<T> as MultiReservableCurrency<_>>::can_reserve(GetCurrencyId::get(), who, value)
 	}
 
 	fn slash_reserved(who: &T::AccountId, value: Self::Balance) -> (Self::NegativeImbalance, Self::Balance) {
-		let actual = Pallet::<T>::slash_reserved(GetCurrencyId::get(), who, value);
+		let actual = <Pallet<T> as MultiReservableCurrency<_>>::slash_reserved(GetCurrencyId::get(), who, value);
 		(Self::NegativeImbalance::zero(), actual)
 	}
 
 	fn reserved_balance(who: &T::AccountId) -> Self::Balance {
-		Pallet::<T>::reserved_balance(GetCurrencyId::get(), who)
+		<Pallet<T> as MultiReservableCurrency<_>>::reserved_balance(GetCurrencyId::get(), who)
 	}
 
 	fn reserve(who: &T::AccountId, value: Self::Balance) -> DispatchResult {
-		Pallet::<T>::reserve(GetCurrencyId::get(), who, value)
+		<Pallet<T> as MultiReservableCurrency<_>>::reserve(GetCurrencyId::get(), who, value)
 	}
 
 	fn unreserve(who: &T::AccountId, value: Self::Balance) -> Self::Balance {
-		Pallet::<T>::unreserve(GetCurrencyId::get(), who, value)
+		<Pallet<T> as MultiReservableCurrency<_>>::unreserve(GetCurrencyId::get(), who, value)
 	}
 
 	fn repatriate_reserved(
@@ -1568,7 +1504,13 @@ where
 		value: Self::Balance,
 		status: Status,
 	) -> sp_std::result::Result<Self::Balance, DispatchError> {
-		Pallet::<T>::repatriate_reserved(GetCurrencyId::get(), slashed, beneficiary, value, status)
+		<Pallet<T> as MultiReservableCurrency<_>>::repatriate_reserved(
+			GetCurrencyId::get(),
+			slashed,
+			beneficiary,
+			value,
+			status,
+		)
 	}
 }
 
@@ -1581,15 +1523,15 @@ where
 	type MaxLocks = ();
 
 	fn set_lock(id: LockIdentifier, who: &T::AccountId, amount: Self::Balance, _reasons: WithdrawReasons) {
-		let _ = Pallet::<T>::set_lock(id, GetCurrencyId::get(), who, amount);
+		let _ = <Pallet<T> as MultiLockableCurrency<_>>::set_lock(id, GetCurrencyId::get(), who, amount);
 	}
 
 	fn extend_lock(id: LockIdentifier, who: &T::AccountId, amount: Self::Balance, _reasons: WithdrawReasons) {
-		let _ = Pallet::<T>::extend_lock(id, GetCurrencyId::get(), who, amount);
+		let _ = <Pallet<T> as MultiLockableCurrency<_>>::extend_lock(id, GetCurrencyId::get(), who, amount);
 	}
 
 	fn remove_lock(id: LockIdentifier, who: &T::AccountId) {
-		let _ = Pallet::<T>::remove_lock(id, GetCurrencyId::get(), who);
+		let _ = <Pallet<T> as MultiLockableCurrency<_>>::remove_lock(id, GetCurrencyId::get(), who);
 	}
 }
 
@@ -1597,6 +1539,7 @@ impl<T: Config> TransferAll<T::AccountId> for Pallet<T> {
 	#[transactional]
 	fn transfer_all(source: &T::AccountId, dest: &T::AccountId) -> DispatchResult {
 		Accounts::<T>::iter_prefix(source).try_for_each(|(currency_id, account_data)| -> DispatchResult {
+			// allow death
 			Self::do_transfer(
 				currency_id,
 				source,
