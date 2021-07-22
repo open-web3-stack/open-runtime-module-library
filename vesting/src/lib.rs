@@ -145,6 +145,13 @@ pub mod module {
 		/// The maximum vesting schedules
 		type MaxVestingSchedules: Get<u32>;
 
+		/// A configuration for base priority of unsigned transactions.
+		///
+		/// This is exposed so that it can be tuned for particular runtime, when
+		/// multiple modules send unsigned transactions.
+		#[pallet::constant]
+		type UnsignedPriority: Get<TransactionPriority>;
+
 		// The block number provider
 		type BlockNumberProvider: BlockNumberProvider<BlockNumber = Self::BlockNumber>;
 	}
@@ -248,6 +255,17 @@ pub mod module {
 			Ok(())
 		}
 
+		/// Verify input by `validate_unsigned
+		#[pallet::weight(T::WeightInfo::claim((<T as Config>::MaxVestingSchedules::get() / 2) as u32))]
+		pub fn claim_for(origin: OriginFor<T>, dest: <T::Lookup as StaticLookup>::Source) -> DispatchResult {
+			ensure_none(origin)?;
+			let who = T::Lookup::lookup(dest)?;
+			let locked_amount = Self::do_claim(&who);
+
+			Self::deposit_event(Event::Claimed(who, locked_amount));
+			Ok(())
+		}
+
 		#[pallet::weight(T::WeightInfo::vested_transfer())]
 		pub fn vested_transfer(
 			origin: OriginFor<T>,
@@ -275,6 +293,28 @@ pub mod module {
 
 			Self::deposit_event(Event::VestingSchedulesUpdated(account));
 			Ok(())
+		}
+	}
+
+	#[pallet::validate_unsigned]
+	impl<T: Config> ValidateUnsigned for Pallet<T> {
+		type Call = Call<T>;
+		fn validate_unsigned(_source: TransactionSource, call: &Self::Call) -> TransactionValidity {
+			if let Call::claim_for(dest) = call {
+				let who = T::Lookup::lookup(dest.clone())?;
+				if !<VestingSchedules<T>>::contains_key(who) {
+					return InvalidTransaction::Payment.into();
+				}
+
+				ValidTransaction::with_tag_prefix("vesting")
+					.priority(T::UnsignedPriority::get())
+					.and_provides(dest)
+					.longevity(64_u64)
+					.propagate(true)
+					.build()
+			} else {
+				InvalidTransaction::Call.into()
+			}
 		}
 	}
 }

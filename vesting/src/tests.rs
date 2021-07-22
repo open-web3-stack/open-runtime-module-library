@@ -2,7 +2,7 @@
 
 #![cfg(test)]
 
-use super::*;
+use super::{Call, *};
 use frame_support::{assert_noop, assert_ok, error::BadOrigin};
 use mock::{Event, *};
 use pallet_balances::{BalanceLock, Reasons};
@@ -233,6 +233,55 @@ fn claim_works() {
 
 		// no locks anymore
 		assert_eq!(PalletBalances::locks(&BOB), vec![]);
+	});
+}
+
+#[test]
+fn claim_for_works() {
+	ExtBuilder::build().execute_with(|| {
+		let call = Call::claim_for(BOB);
+		assert_eq!(
+			<Vesting as sp_runtime::traits::ValidateUnsigned>::validate_unsigned(TransactionSource::External, &call,),
+			InvalidTransaction::Payment.into(),
+		);
+
+		let schedule = VestingSchedule {
+			start: 0u64,
+			period: 10u64,
+			period_count: 2u32,
+			per_period: 10u64,
+		};
+		assert_ok!(Vesting::vested_transfer(Origin::signed(ALICE), BOB, schedule.clone()));
+
+		assert_ok!(<Vesting as sp_runtime::traits::ValidateUnsigned>::validate_unsigned(
+			TransactionSource::External,
+			&call,
+		));
+		assert_ok!(<Vesting as sp_runtime::traits::ValidateUnsigned>::pre_dispatch(&call));
+		assert_ok!(Vesting::claim_for(Origin::none(), BOB));
+
+		assert_eq!(
+			PalletBalances::locks(&BOB).get(0),
+			Some(&BalanceLock {
+				id: VESTING_LOCK_ID,
+				amount: 20u64,
+				reasons: Reasons::All,
+			})
+		);
+		assert_eq!(VestingSchedules::<Runtime>::contains_key(&BOB), true);
+
+		MockBlockNumberProvider::set(21);
+
+		assert_ok!(<Vesting as sp_runtime::traits::ValidateUnsigned>::validate_unsigned(
+			TransactionSource::External,
+			&call,
+		));
+		assert_ok!(<Vesting as sp_runtime::traits::ValidateUnsigned>::pre_dispatch(&call));
+		assert_ok!(Vesting::claim_for(Origin::none(), BOB));
+
+		// no locks anymore
+		assert_eq!(PalletBalances::locks(&BOB), vec![]);
+		assert_eq!(VestingSchedules::<Runtime>::contains_key(&BOB), false);
 	});
 }
 
