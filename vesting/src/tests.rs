@@ -237,6 +237,39 @@ fn claim_works() {
 }
 
 #[test]
+fn claim_for_works() {
+	ExtBuilder::build().execute_with(|| {
+		let schedule = VestingSchedule {
+			start: 0u64,
+			period: 10u64,
+			period_count: 2u32,
+			per_period: 10u64,
+		};
+		assert_ok!(Vesting::vested_transfer(Origin::signed(ALICE), BOB, schedule.clone()));
+
+		assert_ok!(Vesting::claim_for(Origin::signed(ALICE), BOB));
+
+		assert_eq!(
+			PalletBalances::locks(&BOB).get(0),
+			Some(&BalanceLock {
+				id: VESTING_LOCK_ID,
+				amount: 20u64,
+				reasons: Reasons::All,
+			})
+		);
+		assert_eq!(VestingSchedules::<Runtime>::contains_key(&BOB), true);
+
+		MockBlockNumberProvider::set(21);
+
+		assert_ok!(Vesting::claim_for(Origin::signed(ALICE), BOB));
+
+		// no locks anymore
+		assert_eq!(PalletBalances::locks(&BOB), vec![]);
+		assert_eq!(VestingSchedules::<Runtime>::contains_key(&BOB), false);
+	});
+}
+
+#[test]
 fn update_vesting_schedules_works() {
 	ExtBuilder::build().execute_with(|| {
 		let schedule = VestingSchedule {
