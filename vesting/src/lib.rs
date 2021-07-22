@@ -276,6 +276,16 @@ pub mod module {
 			Self::deposit_event(Event::VestingSchedulesUpdated(account));
 			Ok(())
 		}
+
+		#[pallet::weight(T::WeightInfo::claim((<T as Config>::MaxVestingSchedules::get() / 2) as u32))]
+		pub fn claim_for(origin: OriginFor<T>, dest: <T::Lookup as StaticLookup>::Source) -> DispatchResult {
+			let _ = ensure_signed(origin)?;
+			let who = T::Lookup::lookup(dest)?;
+			let locked_amount = Self::do_claim(&who);
+
+			Self::deposit_event(Event::Claimed(who, locked_amount));
+			Ok(())
+		}
 	}
 }
 
