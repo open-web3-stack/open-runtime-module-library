@@ -80,7 +80,6 @@ impl EnsureOrigin<Origin> for EnsureAliceOrBob {
 parameter_types! {
 	pub const MaxVestingSchedule: u32 = 2;
 	pub const MinVestedTransfer: u64 = 5;
-	pub const UnsignedPriority: u64 = 1 << 20;
 	pub static MockBlockNumberProvider: u64 = 0;
 }
 
@@ -99,7 +98,6 @@ impl Config for Runtime {
 	type VestedTransferOrigin = EnsureAliceOrBob;
 	type WeightInfo = ();
 	type MaxVestingSchedules = MaxVestingSchedule;
-	type UnsignedPriority = UnsignedPriority;
 	type BlockNumberProvider = MockBlockNumberProvider;
 }
 
