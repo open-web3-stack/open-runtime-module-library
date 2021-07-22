@@ -2,7 +2,7 @@
 
 #![cfg(test)]
 
-use super::{Call, *};
+use super::*;
 use frame_support::{assert_noop, assert_ok, error::BadOrigin};
 use mock::{Event, *};
 use pallet_balances::{BalanceLock, Reasons};
@@ -239,12 +239,6 @@ fn claim_works() {
 #[test]
 fn claim_for_works() {
 	ExtBuilder::build().execute_with(|| {
-		let call = Call::claim_for(BOB);
-		assert_eq!(
-			<Vesting as sp_runtime::traits::ValidateUnsigned>::validate_unsigned(TransactionSource::External, &call,),
-			InvalidTransaction::Payment.into(),
-		);
-
 		let schedule = VestingSchedule {
 			start: 0u64,
 			period: 10u64,
@@ -253,12 +247,7 @@ fn claim_for_works() {
 		};
 		assert_ok!(Vesting::vested_transfer(Origin::signed(ALICE), BOB, schedule.clone()));
 
-		assert_ok!(<Vesting as sp_runtime::traits::ValidateUnsigned>::validate_unsigned(
-			TransactionSource::External,
-			&call,
-		));
-		assert_ok!(<Vesting as sp_runtime::traits::ValidateUnsigned>::pre_dispatch(&call));
-		assert_ok!(Vesting::claim_for(Origin::none(), BOB));
+		assert_ok!(Vesting::claim_for(Origin::signed(ALICE), BOB));
 
 		assert_eq!(
 			PalletBalances::locks(&BOB).get(0),
@@ -272,12 +261,7 @@ fn claim_for_works() {
 
 		MockBlockNumberProvider::set(21);
 
-		assert_ok!(<Vesting as sp_runtime::traits::ValidateUnsigned>::validate_unsigned(
-			TransactionSource::External,
-			&call,
-		));
-		assert_ok!(<Vesting as sp_runtime::traits::ValidateUnsigned>::pre_dispatch(&call));
-		assert_ok!(Vesting::claim_for(Origin::none(), BOB));
+		assert_ok!(Vesting::claim_for(Origin::signed(ALICE), BOB));
 
 		// no locks anymore
 		assert_eq!(PalletBalances::locks(&BOB), vec![]);
