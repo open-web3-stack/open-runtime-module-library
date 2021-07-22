@@ -141,6 +141,11 @@ pub mod module {
 	impl<T: Config> Pallet<T> {
 		/// Transfer native currencies.
 		///
+		/// `dest_weight` is the weight for XCM execution on the dest chain, and
+		/// it would be paid by the transferred assets. If set below
+		/// requirements, the execution would fail and assets wouldn't be
+		/// received.
+		///
 		/// It's a no-op if any error on local XCM execution or message sending.
 		/// Note sending assets out per se doesn't guarantee it would be
 		/// received. Receiving depends on if the XCM message could be delivered
