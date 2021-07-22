@@ -590,9 +590,12 @@ impl<T: Config> Pallet<T> {
 				to_account.free = to_account.free.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
 
 				let ed = T::ExistentialDeposits::get(&currency_id);
-				// if to_account non_zero total is below existential deposit, would return an
-				// error.
-				ensure!(to_account.total() >= ed, Error::<T>::ExistentialDeposit);
+				// if to_account is new and non_zero total is below existential deposit, would
+				// return an error.
+				ensure!(
+					to_account.total() >= ed || frame_system::Pallet::<T>::can_inc_consumer(to),
+					Error::<T>::ExistentialDeposit
+				);
 
 				Self::ensure_can_withdraw(currency_id, from, amount)?;
 
