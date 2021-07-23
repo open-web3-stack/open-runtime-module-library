@@ -142,15 +142,15 @@ pub mod module {
 		/// Transfer native currencies.
 		///
 		/// `dest_weight` is the weight for XCM execution on the dest chain, and
-		/// it would be paid by the transferred assets. If set below
-		/// requirements, the execution would fail and assets wouldn't be
+		/// it would be charged from the transferred assets. If set below
+		/// requirements, the execution may fail and assets wouldn't be
 		/// received.
 		///
 		/// It's a no-op if any error on local XCM execution or message sending.
-		/// Note sending assets out per se doesn't guarantee it would be
+		/// Note sending assets out per se doesn't guarantee they would be
 		/// received. Receiving depends on if the XCM message could be delivered
-		/// by the network, and if the receiving chain could handle messages
-		/// correctly.
+		/// by the network, and if the receiving chain would handle
+		/// messages correctly.
 		#[pallet::weight(Pallet::<T>::weight_of_transfer(currency_id.clone(), *amount, &dest))]
 		pub fn transfer(
 			origin: OriginFor<T>,
@@ -186,11 +186,16 @@ pub mod module {
 
 		/// Transfer `MultiAsset`.
 		///
+		/// `dest_weight` is the weight for XCM execution on the dest chain, and
+		/// it would be charged from the transferred assets. If set below
+		/// requirements, the execution may fail and assets wouldn't be
+		/// received.
+		///
 		/// It's a no-op if any error on local XCM execution or message sending.
 		/// Note sending assets out per se doesn't guarantee they would be
 		/// received. Receiving depends on if the XCM message could be delivered
-		/// by the network, and if the receiving chain could handle messages
-		/// correctly.
+		/// by the network, and if the receiving chain would handle
+		/// messages correctly.
 		#[pallet::weight(Pallet::<T>::weight_of_transfer_multiasset(&asset, &dest))]
 		pub fn transfer_multiasset(
 			origin: OriginFor<T>,
