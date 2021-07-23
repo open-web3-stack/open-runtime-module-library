@@ -358,32 +358,6 @@ pub mod module {
 			Ok(())
 		}
 
-		/// Same as the [`transfer`] call, but with a check that the transfer
-		/// will not kill the origin account.
-		///
-		/// 99% of the time you want [`transfer`] instead.
-		///
-		/// The dispatch origin for this call must be `Signed` by the
-		/// transactor.
-		///
-		/// - `dest`: The recipient of the transfer.
-		/// - `currency_id`: currency type.
-		/// - `amount`: free balance amount to tranfer.
-		#[pallet::weight(T::WeightInfo::transfer())]
-		pub fn transfer_keep_alive(
-			origin: OriginFor<T>,
-			dest: <T::Lookup as StaticLookup>::Source,
-			currency_id: T::CurrencyId,
-			#[pallet::compact] amount: T::Balance,
-		) -> DispatchResultWithPostInfo {
-			let from = ensure_signed(origin)?;
-			let to = T::Lookup::lookup(dest)?;
-			Self::do_transfer(currency_id, &from, &to, amount, ExistenceRequirement::KeepAlive)?;
-
-			Self::deposit_event(Event::Transfer(currency_id, from, to, amount));
-			Ok(().into())
-		}
-
 		/// Transfer all remaining balance to the given account.
 		///
 		/// NOTE: This function only attempts to transfer _transferable_
@@ -418,6 +392,32 @@ pub mod module {
 
 			Self::deposit_event(Event::Transfer(currency_id, from, to, reducible_balance));
 			Ok(())
+		}
+
+		/// Same as the [`transfer`] call, but with a check that the transfer
+		/// will not kill the origin account.
+		///
+		/// 99% of the time you want [`transfer`] instead.
+		///
+		/// The dispatch origin for this call must be `Signed` by the
+		/// transactor.
+		///
+		/// - `dest`: The recipient of the transfer.
+		/// - `currency_id`: currency type.
+		/// - `amount`: free balance amount to tranfer.
+		#[pallet::weight(T::WeightInfo::transfer())]
+		pub fn transfer_keep_alive(
+			origin: OriginFor<T>,
+			dest: <T::Lookup as StaticLookup>::Source,
+			currency_id: T::CurrencyId,
+			#[pallet::compact] amount: T::Balance,
+		) -> DispatchResultWithPostInfo {
+			let from = ensure_signed(origin)?;
+			let to = T::Lookup::lookup(dest)?;
+			Self::do_transfer(currency_id, &from, &to, amount, ExistenceRequirement::KeepAlive)?;
+
+			Self::deposit_event(Event::Transfer(currency_id, from, to, amount));
+			Ok(().into())
 		}
 
 		/// Exactly as `transfer`, except the origin must be root and the source

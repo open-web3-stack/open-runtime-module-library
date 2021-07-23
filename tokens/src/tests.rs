@@ -30,7 +30,7 @@ fn genesis_issuance_should_work() {
 // *************************************************
 
 #[test]
-fn transfer_work() {
+fn transfer_should_work() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
 		.build()
@@ -62,7 +62,7 @@ fn transfer_work() {
 }
 
 #[test]
-fn transfer_keep_alive_work() {
+fn transfer_keep_alive_should_work() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
 		.build()
@@ -84,7 +84,7 @@ fn transfer_keep_alive_work() {
 }
 
 #[test]
-fn transfer_all_keep_alive_work() {
+fn transfer_all_keep_alive_should_work() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
 		.build()
@@ -103,7 +103,7 @@ fn transfer_all_keep_alive_work() {
 }
 
 #[test]
-fn transfer_all_allow_death_work() {
+fn transfer_all_allow_death_should_work() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
 		.build()
@@ -124,7 +124,7 @@ fn transfer_all_allow_death_work() {
 }
 
 #[test]
-fn force_transfer_work() {
+fn force_transfer_should_work() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
 		.build()
@@ -147,7 +147,7 @@ fn force_transfer_work() {
 }
 
 #[test]
-fn set_balance_work() {
+fn set_balance_should_work() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
 		.build()
@@ -215,7 +215,7 @@ fn set_balance_work() {
 // *************************************************
 
 #[test]
-fn deposit_consequence_work() {
+fn deposit_consequence_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_eq!(
 			Tokens::deposit_consequence(
@@ -298,7 +298,7 @@ fn deposit_consequence_work() {
 }
 
 #[test]
-fn withdraw_consequence_work() {
+fn withdraw_consequence_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_eq!(
 			Tokens::withdraw_consequence(
@@ -468,7 +468,7 @@ fn set_reserved_balance_should_work() {
 }
 
 #[test]
-fn do_transfer_work() {
+fn do_transfer_should_work() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
 		.build()
@@ -522,7 +522,7 @@ fn do_transfer_failed_due_to_keep_alive() {
 }
 
 #[test]
-fn do_transfer_and_dust_remove_work_when_allow_death() {
+fn do_transfer_and_dust_remove_when_allow_death() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
 		.build()
@@ -571,7 +571,7 @@ fn do_transfer_failed_when_allow_death_due_to_cannot_dec_provider() {
 }
 
 #[test]
-fn do_withdraw_work_when_keep_alive() {
+fn do_withdraw_when_keep_alive() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
 		.build()
@@ -615,7 +615,7 @@ fn do_withdraw_work_when_keep_alive() {
 }
 
 #[test]
-fn do_withdraw_work_when_allow_death() {
+fn do_withdraw_when_allow_death() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
 		.build()
@@ -638,7 +638,7 @@ fn do_withdraw_work_when_allow_death() {
 }
 
 #[test]
-fn do_deposit_work() {
+fn do_deposit_should_work() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
 		.build()
