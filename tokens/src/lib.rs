@@ -405,7 +405,7 @@ pub mod module {
 		/// - `dest`: The recipient of the transfer.
 		/// - `currency_id`: currency type.
 		/// - `amount`: free balance amount to tranfer.
-		#[pallet::weight(T::WeightInfo::transfer())]
+		#[pallet::weight(T::WeightInfo::transfer_keep_alive())]
 		pub fn transfer_keep_alive(
 			origin: OriginFor<T>,
 			dest: <T::Lookup as StaticLookup>::Source,
@@ -429,7 +429,7 @@ pub mod module {
 		/// - `dest`: The recipient of the transfer.
 		/// - `currency_id`: currency type.
 		/// - `amount`: free balance amount to tranfer.
-		#[pallet::weight(T::WeightInfo::transfer())]
+		#[pallet::weight(T::WeightInfo::force_transfer())]
 		pub fn force_transfer(
 			origin: OriginFor<T>,
 			source: <T::Lookup as StaticLookup>::Source,
@@ -454,7 +454,7 @@ pub mod module {
 		/// existential deposit, it will reap the `AccountInfo`.
 		///
 		/// The dispatch origin for this call is `root`.
-		#[pallet::weight(T::WeightInfo::transfer())]
+		#[pallet::weight(T::WeightInfo::set_balance())]
 		pub fn set_balance(
 			origin: OriginFor<T>,
 			who: <T::Lookup as StaticLookup>::Source,
