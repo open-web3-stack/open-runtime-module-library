@@ -6,9 +6,14 @@ struct RedundantResult {
 	identifier: Vec<u8>,
 	timestamp: u128,
 	reads: u32,
-	repeat_reads: u32,
 	writes: u32,
-	repeat_writes: u32,
+}
+
+#[derive(Encode, Decode, Default, Clone, PartialEq, Debug)]
+pub struct RedundantOutput {
+	pub elapsed: u128,
+	pub reads: u32,
+	pub writes: u32,
 }
 
 /// RedundantMeter is used to measure resources been used by methods that
@@ -35,7 +40,8 @@ impl RedundantMeter {
 		}
 
 		let timestamp = frame_benchmarking::benchmarking::current_time();
-		let (reads, repeat_reads, writes, repeat_writes) = frame_benchmarking::benchmarking::read_write_count();
+		let writes = super::bench::storage_changes_count();
+		let (reads, _, _, _) = frame_benchmarking::benchmarking::read_write_count();
 
 		let identifier: Vec<u8> = thread_rng()
 			.sample_iter(&Alphanumeric)
@@ -48,9 +54,7 @@ impl RedundantMeter {
 			identifier: identifier.to_owned(),
 			timestamp,
 			reads,
-			repeat_reads,
 			writes,
-			repeat_writes,
 		});
 
 		identifier
@@ -60,16 +64,15 @@ impl RedundantMeter {
 	pub fn leaving_method(&mut self, identifier: Vec<u8>) {
 		if let Some(current) = &self.current {
 			if current.identifier.eq(&identifier) {
-				let (reads, repeat_reads, writes, repeat_writes) = frame_benchmarking::benchmarking::read_write_count();
+				let writes = super::bench::storage_changes_count();
+				let (reads, _, _, _) = frame_benchmarking::benchmarking::read_write_count();
 				let timestamp = frame_benchmarking::benchmarking::current_time();
 
 				self.results.push(RedundantResult {
 					identifier,
-					timestamp: timestamp - current.timestamp,
-					reads: reads - current.reads,
-					repeat_reads: repeat_reads - current.repeat_reads,
-					writes: writes - current.writes,
-					repeat_writes: repeat_writes - current.repeat_writes,
+					timestamp: timestamp.saturating_sub(current.timestamp),
+					reads: reads.saturating_sub(current.reads),
+					writes: writes.saturating_sub(current.writes),
 				});
 
 				// reset current
@@ -79,26 +82,22 @@ impl RedundantMeter {
 	}
 
 	/// Take bench results and reset for next measurement
-	pub fn take_results(&mut self) -> (u128, u32, u32, u32, u32) {
+	pub fn take_results(&mut self) -> RedundantOutput {
 		assert!(self.current == None, "benchmark in progress");
 
 		let mut elapsed = 0u128;
 		let mut reads = 0u32;
-		let mut repeat_reads = 0u32;
 		let mut writes = 0u32;
-		let mut repeat_writes = 0u32;
 
 		self.results.iter().for_each(|x| {
 			elapsed += x.timestamp;
 			reads += x.reads;
-			repeat_reads += x.repeat_reads;
 			writes += x.writes;
-			repeat_writes += x.repeat_writes;
 		});
 
 		self.reset();
 
-		(elapsed, reads, repeat_reads, writes, repeat_writes)
+		RedundantOutput { elapsed, reads, writes }
 	}
 
 	pub fn reset(&mut self) {

@@ -11,11 +11,9 @@ use std::time::Duration;
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
 struct BenchData {
 	pub name: String,
-	pub base_weight: u64,
-	pub base_reads: u32,
-	pub base_repeat_reads: u32,
-	pub base_writes: u32,
-	pub base_repeat_writes: u32,
+	pub weight: u64,
+	pub reads: u32,
+	pub writes: u32,
 }
 
 /// Handle bench results
@@ -56,11 +54,9 @@ pub fn handle(output: Vec<u8>) {
 
 			BenchData {
 				name,
-				base_weight: model.parameters.intercept_value as u64 * 1_000,
-				base_reads: result.reads,
-				base_repeat_reads: result.repeat_reads,
-				base_writes: result.writes,
-				base_repeat_writes: result.repeat_writes,
+				weight: model.parameters.intercept_value as u64 * 1_000,
+				reads: result.reads,
+				writes: result.writes,
 			}
 		})
 		.collect();

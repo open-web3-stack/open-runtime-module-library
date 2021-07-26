@@ -39,9 +39,9 @@ pub fn weight(_attr: TokenStream, item: TokenStream) -> TokenStream {
 	(quote! {
 		#(#attrs)*
 		pub #sig {
-			let identifier: ::sp_std::vec::Vec<u8> = ::orml_bencher::bencher::entering_method();
+			let identifier: ::sp_std::vec::Vec<u8> = ::orml_bencher::bench::entering_method();
 			let result = #block;
-			::orml_bencher::bencher::leaving_method(identifier);
+			::orml_bencher::bench::leaving_method(identifier);
 			result
 		}
 	})
