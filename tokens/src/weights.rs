@@ -32,6 +32,9 @@ use sp_std::marker::PhantomData;
 pub trait WeightInfo {
 	fn transfer() -> Weight;
 	fn transfer_all() -> Weight;
+	fn transfer_keep_alive() -> Weight;
+	fn force_transfer() -> Weight;
+	fn set_balance() -> Weight;
 }
 
 /// Default weights.
@@ -43,6 +46,21 @@ impl WeightInfo for () {
 	}
 	fn transfer_all() -> Weight {
 		(62_000_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(5 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(4 as Weight))
+	}
+	fn transfer_keep_alive() -> Weight {
+		(60_000_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(5 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(4 as Weight))
+	}
+	fn force_transfer() -> Weight {
+		(60_000_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(5 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(4 as Weight))
+	}
+	fn set_balance() -> Weight {
+		(60_000_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(5 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(4 as Weight))
 	}

@@ -4,70 +4,853 @@
 
 use super::*;
 use frame_support::{assert_noop, assert_ok};
+use frame_system::RawOrigin;
 use mock::{Event, *};
+use sp_runtime::{traits::BadOrigin, TokenError};
+
+// *************************************************
+// tests for genesis
+// *************************************************
 
 #[test]
-fn minimum_balance_work() {
+fn genesis_issuance_should_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 100);
+			assert_eq!(Tokens::free_balance(DOT, &DustAccount::get()), 2);
+			assert_eq!(Tokens::total_issuance(DOT), 202);
+		});
+}
+
+// *************************************************
+// tests for call
+// *************************************************
+
+#[test]
+fn transfer_should_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_ok!(Tokens::transfer(Some(ALICE).into(), BOB, DOT, 50));
+			System::assert_last_event(Event::Tokens(crate::Event::Transfer(DOT, ALICE, BOB, 50)));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 50);
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 150);
+			assert_eq!(Tokens::total_issuance(DOT), 202);
+
+			assert_noop!(
+				Tokens::transfer(Some(ALICE).into(), BOB, DOT, 60),
+				Error::<Runtime>::BalanceTooLow,
+			);
+			assert_noop!(
+				Tokens::transfer(Some(ALICE).into(), CHARLIE, DOT, 1),
+				Error::<Runtime>::ExistentialDeposit,
+			);
+			assert_ok!(Tokens::transfer(Some(ALICE).into(), CHARLIE, DOT, 2));
+
+			// imply AllowDeath
+			assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), true);
+			assert_ok!(Tokens::transfer(Some(ALICE).into(), BOB, DOT, 48));
+			assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), false);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 198);
+			assert_eq!(Tokens::total_issuance(DOT), 202);
+		});
+}
+
+#[test]
+fn transfer_keep_alive_should_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 100);
+
+			// imply KeepAlive
+			assert_noop!(
+				Tokens::transfer_keep_alive(Some(ALICE).into(), BOB, DOT, 99),
+				Error::<Runtime>::KeepAlive,
+			);
+
+			assert_ok!(Tokens::transfer_keep_alive(Some(ALICE).into(), BOB, DOT, 98));
+			System::assert_last_event(Event::Tokens(crate::Event::Transfer(DOT, ALICE, BOB, 98)));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 2);
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 198);
+		});
+}
+
+#[test]
+fn transfer_all_keep_alive_should_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+			assert_ok!(Tokens::transfer_all(Some(ALICE).into(), CHARLIE, DOT, true));
+			System::assert_has_event(Event::Tokens(crate::Event::Transfer(DOT, ALICE, CHARLIE, 98)));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 2);
+
+			assert_ok!(Tokens::set_lock(ID_1, DOT, &BOB, 50));
+			assert_eq!(Tokens::accounts(&BOB, DOT).frozen, 50);
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 100);
+			assert_ok!(Tokens::transfer_all(Some(BOB).into(), CHARLIE, DOT, true));
+			System::assert_has_event(Event::Tokens(crate::Event::Transfer(DOT, BOB, CHARLIE, 50)));
+		});
+}
+
+#[test]
+fn transfer_all_allow_death_should_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), true);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+			assert_ok!(Tokens::transfer_all(Some(ALICE).into(), CHARLIE, DOT, false));
+			System::assert_last_event(Event::Tokens(crate::Event::Transfer(DOT, ALICE, CHARLIE, 100)));
+			assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), false);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
+
+			assert_ok!(Tokens::set_lock(ID_1, DOT, &BOB, 50));
+			assert_eq!(Tokens::accounts(&BOB, DOT).frozen, 50);
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 100);
+			assert_ok!(Tokens::transfer_all(Some(BOB).into(), CHARLIE, DOT, false));
+			System::assert_last_event(Event::Tokens(crate::Event::Transfer(DOT, BOB, CHARLIE, 50)));
+		});
+}
+
+#[test]
+fn force_transfer_should_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), true);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 100);
+			assert_noop!(
+				Tokens::force_transfer(Some(ALICE).into(), ALICE, BOB, DOT, 100),
+				BadOrigin
+			);
+
+			// imply AllowDeath
+			assert_ok!(Tokens::force_transfer(RawOrigin::Root.into(), ALICE, BOB, DOT, 100));
+			System::assert_last_event(Event::Tokens(crate::Event::Transfer(DOT, ALICE, BOB, 100)));
+			assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), false);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 200);
+		});
+}
+
+#[test]
+fn set_balance_should_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			// bad origin
+			assert_noop!(Tokens::set_balance(Some(ALICE).into(), ALICE, DOT, 200, 100), BadOrigin);
+
+			// total balance overflow
+			assert_noop!(
+				Tokens::set_balance(RawOrigin::Root.into(), ALICE, DOT, Balance::max_value(), 1),
+				ArithmeticError::Overflow
+			);
+
+			// total issurance overflow
+			assert_noop!(
+				Tokens::set_balance(RawOrigin::Root.into(), ALICE, DOT, Balance::max_value(), 0),
+				ArithmeticError::Overflow
+			);
+
+			// total issurance overflow
+			assert_noop!(
+				Tokens::set_balance(RawOrigin::Root.into(), ALICE, DOT, Balance::max_value(), 0),
+				ArithmeticError::Overflow
+			);
+
+			assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), true);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 0);
+			assert_eq!(Tokens::total_issuance(DOT), 202);
+
+			assert_ok!(Tokens::set_balance(RawOrigin::Root.into(), ALICE, DOT, 200, 100));
+			System::assert_has_event(Event::Tokens(crate::Event::BalanceSet(DOT, ALICE, 200, 100)));
+			assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), true);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 200);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 100);
+			assert_eq!(Tokens::total_issuance(DOT), 402);
+
+			assert_eq!(Accounts::<Runtime>::contains_key(BOB, DOT), true);
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 100);
+			assert_eq!(Tokens::reserved_balance(DOT, &BOB), 0);
+
+			assert_ok!(Tokens::set_balance(RawOrigin::Root.into(), BOB, DOT, 0, 0));
+			System::assert_has_event(Event::Tokens(crate::Event::BalanceSet(DOT, BOB, 0, 0)));
+			assert_eq!(Accounts::<Runtime>::contains_key(BOB, DOT), false);
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 0);
+			assert_eq!(Tokens::reserved_balance(DOT, &BOB), 0);
+			assert_eq!(Tokens::total_issuance(DOT), 302);
+
+			assert_eq!(Accounts::<Runtime>::contains_key(CHARLIE, DOT), false);
+			assert_eq!(Tokens::free_balance(DOT, &CHARLIE), 0);
+			assert_eq!(Tokens::reserved_balance(DOT, &CHARLIE), 0);
+
+			// below ED,
+			assert_ok!(Tokens::set_balance(RawOrigin::Root.into(), CHARLIE, DOT, 1, 0));
+			System::assert_has_event(Event::Tokens(crate::Event::BalanceSet(DOT, CHARLIE, 0, 0)));
+			assert_eq!(Accounts::<Runtime>::contains_key(CHARLIE, DOT), false);
+			assert_eq!(Tokens::free_balance(DOT, &CHARLIE), 0);
+			assert_eq!(Tokens::reserved_balance(DOT, &CHARLIE), 0);
+			assert_eq!(Tokens::total_issuance(DOT), 302);
+		});
+}
+
+// *************************************************
+// tests for inline impl
+// *************************************************
+
+#[test]
+fn deposit_consequence_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_eq!(Tokens::minimum_balance(BTC), 1);
-		assert_eq!(Tokens::minimum_balance(DOT), 2);
-		assert_eq!(Tokens::minimum_balance(ETH), 0);
+		assert_eq!(
+			Tokens::deposit_consequence(
+				&CHARLIE,
+				DOT,
+				0,
+				&AccountData {
+					free: 1,
+					reserved: 0,
+					frozen: 0
+				}
+			)
+			.into_result(),
+			Ok(())
+		);
+
+		// total issuance overflow
+		assert_eq!(
+			Tokens::deposit_consequence(
+				&CHARLIE,
+				DOT,
+				Balance::max_value(),
+				&AccountData {
+					free: 1,
+					reserved: 0,
+					frozen: 0
+				}
+			)
+			.into_result(),
+			Err(ArithmeticError::Overflow.into())
+		);
+
+		// total balance overflow
+		assert_eq!(
+			Tokens::deposit_consequence(
+				&CHARLIE,
+				DOT,
+				1,
+				&AccountData {
+					free: Balance::max_value(),
+					reserved: 0,
+					frozen: 0
+				}
+			)
+			.into_result(),
+			Err(ArithmeticError::Overflow.into())
+		);
+
+		// below ed
+		assert_eq!(
+			Tokens::deposit_consequence(
+				&CHARLIE,
+				DOT,
+				1,
+				&AccountData {
+					free: 0,
+					reserved: 0,
+					frozen: 0
+				}
+			)
+			.into_result(),
+			Err(TokenError::BelowMinimum.into())
+		);
+
+		assert_eq!(
+			Tokens::deposit_consequence(
+				&CHARLIE,
+				DOT,
+				1,
+				&AccountData {
+					free: 1,
+					reserved: 0,
+					frozen: 0
+				}
+			)
+			.into_result(),
+			Ok(())
+		);
 	});
 }
 
 #[test]
-fn remove_dust_work() {
+fn withdraw_consequence_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		System::set_block_number(1);
-		assert_ok!(Tokens::deposit(DOT, &ALICE, 100));
-		assert_eq!(Tokens::total_issuance(DOT), 100);
-		assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), true);
-		assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
-		assert_eq!(System::providers(&ALICE), 1);
-		assert_eq!(Accounts::<Runtime>::contains_key(DustAccount::get(), DOT), false);
-		assert_eq!(Tokens::free_balance(DOT, &DustAccount::get()), 0);
-		assert_eq!(System::providers(&DustAccount::get()), 0);
+		assert_eq!(
+			Tokens::withdraw_consequence(
+				&ALICE,
+				DOT,
+				0,
+				&AccountData {
+					free: 1,
+					reserved: 0,
+					frozen: 0
+				}
+			)
+			.into_result(),
+			Ok(Zero::zero())
+		);
 
-		// total is gte ED, will not handle dust
-		assert_ok!(Tokens::withdraw(DOT, &ALICE, 98));
+		// total issuance underflow
 		assert_eq!(Tokens::total_issuance(DOT), 2);
-		assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), true);
-		assert_eq!(Tokens::free_balance(DOT, &ALICE), 2);
+		assert_eq!(
+			Tokens::withdraw_consequence(
+				&ALICE,
+				DOT,
+				3,
+				&AccountData {
+					free: 1,
+					reserved: 0,
+					frozen: 0
+				}
+			)
+			.into_result(),
+			Err(ArithmeticError::Underflow.into())
+		);
+
+		// total issuance is not enough
+		assert_eq!(
+			Tokens::withdraw_consequence(
+				&ALICE,
+				DOT,
+				2,
+				&AccountData {
+					free: 1,
+					reserved: 0,
+					frozen: 0
+				}
+			)
+			.into_result(),
+			Err(TokenError::NoFunds.into())
+		);
+
+		// below ED and cannot dec provider
+		assert_ok!(Tokens::update_balance(DOT, &ALICE, 2));
 		assert_eq!(System::providers(&ALICE), 1);
-		assert_eq!(Accounts::<Runtime>::contains_key(DustAccount::get(), DOT), false);
-		assert_eq!(Tokens::free_balance(DOT, &DustAccount::get()), 0);
-		assert_eq!(System::providers(&DustAccount::get()), 0);
+		assert_ok!(System::inc_consumers(&ALICE));
+		assert_eq!(System::can_dec_provider(&ALICE), false);
+		assert_eq!(
+			Tokens::withdraw_consequence(
+				&ALICE,
+				DOT,
+				1,
+				&AccountData {
+					free: 2,
+					reserved: 0,
+					frozen: 0
+				}
+			)
+			.into_result(),
+			Err(TokenError::WouldDie.into())
+		);
 
-		// ensure dust account balance gte ED
-		assert_ok!(Tokens::deposit(DOT, &DustAccount::get(), Tokens::minimum_balance(DOT)));
+		// below ED and can dec provider
+		let _ = System::inc_providers(&ALICE);
+		assert_eq!(System::can_dec_provider(&ALICE), true);
+		assert_eq!(
+			Tokens::withdraw_consequence(
+				&ALICE,
+				DOT,
+				1,
+				&AccountData {
+					free: 2,
+					reserved: 0,
+					frozen: 0
+				}
+			)
+			.into_result(),
+			Ok(1)
+		);
 
-		assert_ok!(Tokens::withdraw(DOT, &ALICE, 1));
+		// free balance is not enough
+		assert_eq!(
+			Tokens::withdraw_consequence(
+				&ALICE,
+				DOT,
+				2,
+				&AccountData {
+					free: 1,
+					reserved: 1,
+					frozen: 0
+				}
+			)
+			.into_result(),
+			Err(TokenError::NoFunds.into())
+		);
 
-		// total is lte ED, will handle dust
-		assert_eq!(Tokens::total_issuance(DOT), 3);
-		assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), false);
-		assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
-		assert_eq!(System::providers(&ALICE), 0);
-
-		// will not handle dust for module account
-		assert_eq!(Accounts::<Runtime>::contains_key(DustAccount::get(), DOT), true);
-		assert_eq!(Tokens::free_balance(DOT, &DustAccount::get()), 3);
-		assert_eq!(System::providers(&DustAccount::get()), 1);
-
-		System::assert_last_event(Event::Tokens(crate::Event::DustLost(DOT, ALICE, 1)));
+		// less to frozen balance
+		assert_eq!(
+			Tokens::withdraw_consequence(
+				&ALICE,
+				DOT,
+				2,
+				&AccountData {
+					free: 2,
+					reserved: 0,
+					frozen: 2
+				}
+			)
+			.into_result(),
+			Err(TokenError::Frozen.into())
+		);
 	});
+}
+
+#[test]
+fn ensure_can_withdraw_should_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+
+			assert_noop!(
+				Tokens::ensure_can_withdraw(DOT, &ALICE, 101),
+				Error::<Runtime>::BalanceTooLow
+			);
+
+			assert_ok!(Tokens::set_lock(ID_1, DOT, &ALICE, 50));
+			assert_noop!(
+				Tokens::ensure_can_withdraw(DOT, &ALICE, 51),
+				Error::<Runtime>::LiquidityRestrictions
+			);
+
+			assert_ok!(Tokens::ensure_can_withdraw(DOT, &ALICE, 50));
+		});
 }
 
 #[test]
 fn set_free_balance_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
+		// set_free_balance do not update total inssurance!
+		assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
+		assert_eq!(Tokens::total_issuance(DOT), 2);
 		Tokens::set_free_balance(DOT, &ALICE, 100);
-		System::assert_last_event(Event::Tokens(crate::Event::Endowed(DOT, ALICE, 100)));
+		assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+		assert_eq!(Tokens::total_issuance(DOT), 2);
 	});
 }
 
 #[test]
-fn set_lock_should_work() {
+fn set_reserved_balance_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		// set_reserved_balance do not update total inssurance!
+		assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 0);
+		assert_eq!(Tokens::total_issuance(DOT), 2);
+		Tokens::set_reserved_balance(DOT, &ALICE, 100);
+		assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 100);
+		assert_eq!(Tokens::total_issuance(DOT), 2);
+	});
+}
+
+#[test]
+fn do_transfer_should_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			// always ok when from == to
+			assert_ok!(Tokens::do_transfer(
+				DOT,
+				&ALICE,
+				&ALICE,
+				101,
+				ExistenceRequirement::KeepAlive
+			));
+
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 100);
+			assert_eq!(Tokens::free_balance(DOT, &CHARLIE), 0);
+
+			assert_noop!(
+				Tokens::do_transfer(DOT, &ALICE, &BOB, 101, ExistenceRequirement::KeepAlive),
+				Error::<Runtime>::BalanceTooLow
+			);
+			assert_noop!(
+				Tokens::do_transfer(DOT, &ALICE, &CHARLIE, 1, ExistenceRequirement::KeepAlive),
+				Error::<Runtime>::ExistentialDeposit
+			);
+
+			assert_ok!(Tokens::do_transfer(
+				DOT,
+				&ALICE,
+				&BOB,
+				100,
+				ExistenceRequirement::AllowDeath
+			));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 200);
+		});
+}
+
+#[test]
+fn do_transfer_failed_due_to_keep_alive() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+			assert_noop!(
+				Tokens::do_transfer(DOT, &ALICE, &BOB, 99, ExistenceRequirement::KeepAlive),
+				Error::<Runtime>::KeepAlive
+			);
+		});
+}
+
+#[test]
+fn do_transfer_and_dust_remove_when_allow_death() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 100);
+			assert_eq!(Tokens::free_balance(DOT, &DustAccount::get()), 2);
+
+			assert_ok!(Tokens::do_transfer(
+				DOT,
+				&ALICE,
+				&BOB,
+				99,
+				ExistenceRequirement::AllowDeath
+			));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 199);
+			assert_eq!(Tokens::free_balance(DOT, &DustAccount::get()), 3);
+		});
+}
+
+#[test]
+fn do_transfer_failed_when_allow_death_due_to_cannot_dec_provider() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_eq!(System::can_dec_provider(&ALICE), true);
+			assert_ok!(System::inc_consumers(&ALICE));
+			assert_eq!(System::can_dec_provider(&ALICE), false);
+			assert_noop!(
+				Tokens::do_transfer(DOT, &ALICE, &BOB, 99, ExistenceRequirement::AllowDeath),
+				Error::<Runtime>::KeepAlive
+			);
+
+			assert_ok!(Tokens::deposit(BTC, &ALICE, 100));
+			assert_eq!(System::can_dec_provider(&ALICE), true);
+			assert_ok!(Tokens::do_transfer(
+				DOT,
+				&ALICE,
+				&BOB,
+				99,
+				ExistenceRequirement::AllowDeath
+			));
+		});
+}
+
+#[test]
+fn do_withdraw_when_keep_alive() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+			assert_eq!(Tokens::total_issuance(DOT), 202);
+
+			assert_ok!(Tokens::do_withdraw(
+				DOT,
+				&ALICE,
+				50,
+				ExistenceRequirement::KeepAlive,
+				true
+			));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 50);
+			assert_eq!(Tokens::total_issuance(DOT), 152);
+
+			assert_noop!(
+				Tokens::do_withdraw(DOT, &ALICE, 49, ExistenceRequirement::KeepAlive, true),
+				Error::<Runtime>::KeepAlive
+			);
+
+			// do not change issuance
+			assert_ok!(Tokens::do_withdraw(
+				DOT,
+				&ALICE,
+				10,
+				ExistenceRequirement::KeepAlive,
+				false
+			));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 40);
+			assert_eq!(Tokens::total_issuance(DOT), 152);
+
+			assert_ok!(Tokens::set_lock(ID_1, DOT, &BOB, 50));
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 100);
+			assert_noop!(
+				Tokens::do_withdraw(DOT, &BOB, 51, ExistenceRequirement::KeepAlive, true),
+				Error::<Runtime>::LiquidityRestrictions
+			);
+		});
+}
+
+#[test]
+fn do_withdraw_when_allow_death() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_eq!(Tokens::total_issuance(DOT), 202);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+			assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), true);
+
+			assert_ok!(Tokens::do_withdraw(
+				DOT,
+				&ALICE,
+				99,
+				ExistenceRequirement::AllowDeath,
+				true
+			));
+			assert_eq!(Tokens::total_issuance(DOT), 103);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
+			assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), false);
+		});
+}
+
+#[test]
+fn do_deposit_should_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_eq!(Accounts::<Runtime>::contains_key(CHARLIE, DOT), false);
+			assert_eq!(Tokens::free_balance(DOT, &CHARLIE), 0);
+			assert_eq!(Tokens::total_issuance(DOT), 202);
+			assert_noop!(
+				Tokens::do_deposit(DOT, &CHARLIE, 10, true, true),
+				Error::<Runtime>::DeadAccount
+			);
+
+			assert_noop!(
+				Tokens::do_deposit(DOT, &CHARLIE, 1, false, true),
+				Error::<Runtime>::ExistentialDeposit
+			);
+
+			assert_ok!(Tokens::do_deposit(DOT, &CHARLIE, 10, false, true));
+			assert_eq!(Accounts::<Runtime>::contains_key(CHARLIE, DOT), true);
+			assert_eq!(Tokens::free_balance(DOT, &CHARLIE), 10);
+			assert_eq!(Tokens::total_issuance(DOT), 212);
+
+			assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), true);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+
+			assert_ok!(Tokens::do_deposit(DOT, &ALICE, 10, true, true));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 110);
+			assert_eq!(Tokens::total_issuance(DOT), 222);
+
+			assert_noop!(
+				Tokens::do_deposit(DOT, &BOB, Balance::max_value(), false, true),
+				ArithmeticError::Overflow
+			);
+
+			// do not change issuance
+			assert_ok!(Tokens::do_deposit(DOT, &ALICE, 10, true, false));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 120);
+			assert_eq!(Tokens::total_issuance(DOT), 222);
+		});
+}
+
+// *************************************************
+// tests for endowed account and remove account
+// *************************************************
+
+#[test]
+fn endowed_account_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_eq!(System::providers(&ALICE), 0);
+		assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), false);
+		Tokens::set_free_balance(DOT, &ALICE, 100);
+		System::assert_last_event(Event::Tokens(crate::Event::Endowed(DOT, ALICE, 100)));
+		assert_eq!(System::providers(&ALICE), 1);
+		assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), true);
+	});
+}
+
+#[test]
+fn remove_account_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_eq!(System::providers(&ALICE), 1);
+			assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), true);
+			Tokens::set_free_balance(DOT, &ALICE, 0);
+			assert_eq!(System::providers(&ALICE), 0);
+			assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), false);
+		});
+}
+
+#[test]
+fn dust_remove_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			let dust_account = DustAccount::get();
+
+			assert_eq!(System::providers(&ALICE), 1);
+			assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), true);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+			assert_eq!(Tokens::free_balance(DOT, &dust_account), 2);
+			Tokens::set_free_balance(DOT, &ALICE, 1);
+			System::assert_last_event(Event::Tokens(crate::Event::DustLost(DOT, ALICE, 1)));
+			assert_eq!(System::providers(&ALICE), 0);
+			assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), false);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
+			assert_eq!(Tokens::free_balance(DOT, &dust_account), 3);
+		});
+}
+
+#[test]
+fn account_survive_due_to_dust_transfer_failure() {
+	ExtBuilder::default().build().execute_with(|| {
+		let dust_account = DustAccount::get();
+
+		Tokens::set_free_balance(DOT, &dust_account, 0);
+		assert_eq!(Tokens::free_balance(DOT, &dust_account), 0);
+		assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
+		assert_eq!(System::providers(&ALICE), 0);
+		assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), false);
+		Tokens::set_free_balance(DOT, &ALICE, 1);
+		System::assert_last_event(Event::Tokens(crate::Event::DustLost(DOT, ALICE, 1)));
+		assert_eq!(Tokens::free_balance(DOT, &dust_account), 0);
+		assert_eq!(Tokens::free_balance(DOT, &ALICE), 1);
+		assert_eq!(System::providers(&ALICE), 1);
+		assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), true);
+	});
+}
+
+// *************************************************
+// tests for MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency,
+// MultiReservableCurrency traits **********************************************
+// ***
+
+#[test]
+fn multicurrency_deposit_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_eq!(Accounts::<Runtime>::contains_key(CHARLIE, DOT), false);
+		assert_eq!(Tokens::free_balance(DOT, &CHARLIE), 0);
+		assert_eq!(Tokens::total_issuance(DOT), 2);
+		assert_ok!(Tokens::deposit(DOT, &CHARLIE, 10));
+		assert_eq!(Accounts::<Runtime>::contains_key(CHARLIE, DOT), true);
+		assert_eq!(Tokens::free_balance(DOT, &CHARLIE), 10);
+		assert_eq!(Tokens::total_issuance(DOT), 12);
+	});
+}
+
+#[test]
+fn multicurrency_withdraw_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), true);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+			assert_eq!(Tokens::total_issuance(DOT), 202);
+			assert_ok!(Tokens::withdraw(DOT, &ALICE, 99));
+			assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), false);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
+			assert_eq!(Tokens::total_issuance(DOT), 103);
+		});
+}
+
+#[test]
+fn multicurrency_transfer_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), true);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 100);
+			assert_ok!(<Tokens as MultiCurrency<_>>::transfer(DOT, &ALICE, &BOB, 99));
+			assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), false);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 199);
+		});
+}
+
+#[test]
+fn multicurrency_can_slash_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+			assert_eq!(Tokens::can_slash(DOT, &ALICE, 101), false);
+			assert_eq!(Tokens::can_slash(DOT, &ALICE, 100), true);
+		});
+}
+
+#[test]
+fn multicurrency_slash_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			// slashed_amount < amount
+			assert_eq!(Tokens::total_issuance(DOT), 202);
+			assert_eq!(Tokens::slash(DOT, &ALICE, 50), 0);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 50);
+			assert_eq!(Tokens::total_issuance(DOT), 152);
+
+			// slashed_amount == amount
+			assert_eq!(Tokens::slash(DOT, &ALICE, 51), 1);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
+			assert_eq!(Tokens::total_issuance(DOT), 102);
+		});
+}
+
+#[test]
+fn multicurrency_extended_update_balance_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_ok!(Tokens::update_balance(DOT, &ALICE, 50));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 150);
+			assert_eq!(Tokens::total_issuance(DOT), 252);
+
+			assert_ok!(Tokens::update_balance(DOT, &BOB, -50));
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 50);
+			assert_eq!(Tokens::total_issuance(DOT), 202);
+
+			assert_noop!(Tokens::update_balance(DOT, &BOB, -60), Error::<Runtime>::BalanceTooLow);
+		});
+}
+
+#[test]
+fn multi_lockable_currency_set_lock_work() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
 		.build()
@@ -86,7 +869,7 @@ fn set_lock_should_work() {
 }
 
 #[test]
-fn extend_lock_should_work() {
+fn multi_lockable_currency_extend_lock_work() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
 		.build()
@@ -104,7 +887,7 @@ fn extend_lock_should_work() {
 }
 
 #[test]
-fn remove_lock_should_work() {
+fn multi_lockable_currency_remove_lock_work() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
 		.build()
@@ -118,23 +901,7 @@ fn remove_lock_should_work() {
 }
 
 #[test]
-fn frozen_can_limit_liquidity() {
-	ExtBuilder::default()
-		.one_hundred_for_alice_n_bob()
-		.build()
-		.execute_with(|| {
-			assert_ok!(Tokens::set_lock(ID_1, DOT, &ALICE, 90));
-			assert_noop!(
-				<Tokens as MultiCurrency<_>>::transfer(DOT, &ALICE, &BOB, 11),
-				Error::<Runtime>::LiquidityRestrictions,
-			);
-			assert_ok!(Tokens::set_lock(ID_1, DOT, &ALICE, 10));
-			assert_ok!(<Tokens as MultiCurrency<_>>::transfer(DOT, &ALICE, &BOB, 11));
-		});
-}
-
-#[test]
-fn can_reserve_is_correct() {
+fn multi_reservable_currency_can_reserve_work() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
 		.build()
@@ -146,7 +913,28 @@ fn can_reserve_is_correct() {
 }
 
 #[test]
-fn reserve_should_work() {
+fn multi_reservable_currency_slash_reserved_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_ok!(Tokens::reserve(DOT, &ALICE, 50));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 50);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 50);
+			assert_eq!(Tokens::total_issuance(DOT), 202);
+			assert_eq!(Tokens::slash_reserved(DOT, &ALICE, 0), 0);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 50);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 50);
+			assert_eq!(Tokens::total_issuance(DOT), 202);
+			assert_eq!(Tokens::slash_reserved(DOT, &ALICE, 100), 50);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 50);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 0);
+			assert_eq!(Tokens::total_issuance(DOT), 152);
+		});
+}
+
+#[test]
+fn multi_reservable_currency_reserve_work() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
 		.build()
@@ -165,7 +953,7 @@ fn reserve_should_work() {
 }
 
 #[test]
-fn unreserve_should_work() {
+fn multi_reservable_currency_unreserve_work() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
 		.build()
@@ -191,28 +979,7 @@ fn unreserve_should_work() {
 }
 
 #[test]
-fn slash_reserved_should_work() {
-	ExtBuilder::default()
-		.one_hundred_for_alice_n_bob()
-		.build()
-		.execute_with(|| {
-			assert_ok!(Tokens::reserve(DOT, &ALICE, 50));
-			assert_eq!(Tokens::free_balance(DOT, &ALICE), 50);
-			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 50);
-			assert_eq!(Tokens::total_issuance(DOT), 200);
-			assert_eq!(Tokens::slash_reserved(DOT, &ALICE, 0), 0);
-			assert_eq!(Tokens::free_balance(DOT, &ALICE), 50);
-			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 50);
-			assert_eq!(Tokens::total_issuance(DOT), 200);
-			assert_eq!(Tokens::slash_reserved(DOT, &ALICE, 100), 50);
-			assert_eq!(Tokens::free_balance(DOT, &ALICE), 50);
-			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 0);
-			assert_eq!(Tokens::total_issuance(DOT), 150);
-		});
-}
-
-#[test]
-fn repatriate_reserved_should_work() {
+fn multi_reservable_currency_repatriate_reserved_work() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
 		.build()
@@ -271,175 +1038,17 @@ fn slash_draw_reserved_correct() {
 			assert_ok!(Tokens::reserve(DOT, &ALICE, 50));
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 50);
 			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 50);
-			assert_eq!(Tokens::total_issuance(DOT), 200);
+			assert_eq!(Tokens::total_issuance(DOT), 202);
 
 			assert_eq!(Tokens::slash(DOT, &ALICE, 80), 0);
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
 			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 20);
-			assert_eq!(Tokens::total_issuance(DOT), 120);
+			assert_eq!(Tokens::total_issuance(DOT), 122);
 
 			assert_eq!(Tokens::slash(DOT, &ALICE, 50), 30);
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
 			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 0);
-			assert_eq!(Tokens::total_issuance(DOT), 100);
-		});
-}
-
-#[test]
-fn genesis_issuance_should_work() {
-	ExtBuilder::default()
-		.one_hundred_for_alice_n_bob()
-		.build()
-		.execute_with(|| {
-			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
-			assert_eq!(Tokens::free_balance(DOT, &BOB), 100);
-			assert_eq!(Tokens::total_issuance(DOT), 200);
-		});
-}
-
-#[test]
-fn transfer_should_work() {
-	ExtBuilder::default()
-		.one_hundred_for_alice_n_bob()
-		.build()
-		.execute_with(|| {
-			System::set_block_number(1);
-
-			assert_ok!(Tokens::transfer(Some(ALICE).into(), BOB, DOT, 50));
-			assert_eq!(Tokens::free_balance(DOT, &ALICE), 50);
-			assert_eq!(Tokens::free_balance(DOT, &BOB), 150);
-			assert_eq!(Tokens::total_issuance(DOT), 200);
-
-			System::assert_last_event(Event::Tokens(crate::Event::Transfer(DOT, ALICE, BOB, 50)));
-
-			assert_noop!(
-				Tokens::transfer(Some(ALICE).into(), BOB, DOT, 60),
-				Error::<Runtime>::BalanceTooLow,
-			);
-			assert_noop!(
-				Tokens::transfer(Some(ALICE).into(), CHARLIE, DOT, 1),
-				Error::<Runtime>::ExistentialDeposit,
-			);
-			assert_ok!(Tokens::transfer(Some(ALICE).into(), CHARLIE, DOT, 2));
-		});
-}
-
-#[test]
-fn transfer_all_should_work() {
-	ExtBuilder::default()
-		.one_hundred_for_alice_n_bob()
-		.build()
-		.execute_with(|| {
-			System::set_block_number(1);
-
-			assert_ok!(Tokens::transfer_all(Some(ALICE).into(), BOB, DOT));
-			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
-			assert_eq!(Tokens::free_balance(DOT, &BOB), 200);
-
-			System::assert_last_event(Event::Tokens(crate::Event::Transfer(DOT, ALICE, BOB, 100)));
-		});
-}
-
-#[test]
-fn transfer_failed_when_allow_death_but_cannot_dec_provider() {
-	ExtBuilder::default()
-		.one_hundred_for_alice_n_bob()
-		.build()
-		.execute_with(|| {
-			assert_eq!(System::can_dec_provider(&ALICE), true);
-			assert_ok!(System::inc_consumers(&ALICE));
-			assert_eq!(System::can_dec_provider(&ALICE), false);
-			assert_noop!(
-				Tokens::transfer(Some(ALICE).into(), BOB, DOT, 100),
-				Error::<Runtime>::KeepAlive
-			);
-
-			assert_ok!(Tokens::deposit(BTC, &ALICE, 100));
-			assert_eq!(System::can_dec_provider(&ALICE), true);
-			assert_ok!(Tokens::transfer(Some(ALICE).into(), BOB, DOT, 100));
-		});
-}
-
-#[test]
-fn deposit_should_work() {
-	ExtBuilder::default()
-		.one_hundred_for_alice_n_bob()
-		.build()
-		.execute_with(|| {
-			assert_ok!(Tokens::deposit(DOT, &ALICE, 100));
-			assert_eq!(Tokens::free_balance(DOT, &ALICE), 200);
-			assert_eq!(Tokens::total_issuance(DOT), 300);
-
-			assert_noop!(
-				Tokens::deposit(DOT, &ALICE, Balance::max_value()),
-				ArithmeticError::Overflow,
-			);
-		});
-}
-
-#[test]
-fn withdraw_should_work() {
-	ExtBuilder::default()
-		.one_hundred_for_alice_n_bob()
-		.build()
-		.execute_with(|| {
-			assert_ok!(Tokens::withdraw(DOT, &ALICE, 50));
-			assert_eq!(Tokens::free_balance(DOT, &ALICE), 50);
-			assert_eq!(Tokens::total_issuance(DOT), 150);
-
-			assert_noop!(Tokens::withdraw(DOT, &ALICE, 60), Error::<Runtime>::BalanceTooLow);
-		});
-}
-
-#[test]
-fn slash_should_work() {
-	ExtBuilder::default()
-		.one_hundred_for_alice_n_bob()
-		.build()
-		.execute_with(|| {
-			// slashed_amount < amount
-			assert_eq!(Tokens::slash(DOT, &ALICE, 50), 0);
-			assert_eq!(Tokens::free_balance(DOT, &ALICE), 50);
-			assert_eq!(Tokens::total_issuance(DOT), 150);
-
-			// slashed_amount == amount
-			assert_eq!(Tokens::slash(DOT, &ALICE, 51), 1);
-			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
-			assert_eq!(Tokens::total_issuance(DOT), 100);
-		});
-}
-
-#[test]
-fn update_balance_should_work() {
-	ExtBuilder::default()
-		.one_hundred_for_alice_n_bob()
-		.build()
-		.execute_with(|| {
-			assert_ok!(Tokens::update_balance(DOT, &ALICE, 50));
-			assert_eq!(Tokens::free_balance(DOT, &ALICE), 150);
-			assert_eq!(Tokens::total_issuance(DOT), 250);
-
-			assert_ok!(Tokens::update_balance(DOT, &BOB, -50));
-			assert_eq!(Tokens::free_balance(DOT, &BOB), 50);
-			assert_eq!(Tokens::total_issuance(DOT), 200);
-
-			assert_noop!(Tokens::update_balance(DOT, &BOB, -60), Error::<Runtime>::BalanceTooLow);
-		});
-}
-
-#[test]
-fn ensure_can_withdraw_should_work() {
-	ExtBuilder::default()
-		.one_hundred_for_alice_n_bob()
-		.build()
-		.execute_with(|| {
-			assert_noop!(
-				Tokens::ensure_can_withdraw(DOT, &ALICE, 101),
-				Error::<Runtime>::BalanceTooLow
-			);
-
-			assert_ok!(Tokens::ensure_can_withdraw(DOT, &ALICE, 1));
-			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+			assert_eq!(Tokens::total_issuance(DOT), 102);
 		});
 }
 
@@ -482,13 +1091,17 @@ fn transfer_all_trait_should_work() {
 		});
 }
 
+// *************************************************
+// tests for CurrencyAdapter
+// *************************************************
+
 #[test]
 fn currency_adapter_ensure_currency_adapter_should_work() {
 	ExtBuilder::default()
 		.one_hundred_for_treasury_account()
 		.build()
 		.execute_with(|| {
-			assert_eq!(Tokens::total_issuance(DOT), 102);
+			assert_eq!(Tokens::total_issuance(DOT), 104);
 			assert_eq!(Tokens::total_balance(DOT, &Treasury::account_id()), 2);
 			assert_eq!(Tokens::total_balance(DOT, &TREASURY_ACCOUNT), 100);
 			assert_eq!(Tokens::reserved_balance(DOT, &TREASURY_ACCOUNT), 0);
@@ -503,7 +1116,7 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 			);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Config>::Currency::total_issuance(),
-				102
+				104
 			);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Config>::Currency::minimum_balance(),
@@ -518,24 +1131,24 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 			let imbalance = <Runtime as pallet_elections_phragmen::Config>::Currency::burn(10);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Config>::Currency::total_issuance(),
-				92
+				94
 			);
 			drop(imbalance);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Config>::Currency::total_issuance(),
-				102
+				104
 			);
 
 			// issue
 			let imbalance = <Runtime as pallet_elections_phragmen::Config>::Currency::issue(20);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Config>::Currency::total_issuance(),
-				122
+				124
 			);
 			drop(imbalance);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Config>::Currency::total_issuance(),
-				102
+				104
 			);
 
 			// transfer
@@ -565,7 +1178,7 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 			// deposit
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Config>::Currency::total_issuance(),
-				102
+				104
 			);
 			let imbalance = TreasuryCurrencyAdapter::deposit_creating(&TREASURY_ACCOUNT, 11);
 			assert_eq!(
@@ -574,7 +1187,7 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 			);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Config>::Currency::total_issuance(),
-				102
+				104
 			);
 			drop(imbalance);
 			assert_eq!(
@@ -583,7 +1196,7 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 			);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Config>::Currency::total_issuance(),
-				113
+				115
 			);
 
 			// withdraw
@@ -599,7 +1212,7 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 			);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Config>::Currency::total_issuance(),
-				113
+				115
 			);
 			drop(imbalance);
 			assert_eq!(
@@ -608,36 +1221,8 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 			);
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Config>::Currency::total_issuance(),
-				103
+				105
 			);
-		});
-}
-
-#[test]
-fn currency_adapter_withdraw_failed_when_allow_death_but_cannot_dec_provider() {
-	ExtBuilder::default()
-		.one_hundred_for_alice_n_bob()
-		.build()
-		.execute_with(|| {
-			assert_eq!(System::can_dec_provider(&ALICE), true);
-			assert_ok!(System::inc_consumers(&ALICE));
-			assert_eq!(System::can_dec_provider(&ALICE), false);
-			assert!(TreasuryCurrencyAdapter::withdraw(
-				&ALICE,
-				100,
-				WithdrawReasons::TRANSFER,
-				ExistenceRequirement::AllowDeath
-			)
-			.is_err());
-			assert_ok!(Tokens::deposit(BTC, &ALICE, 100));
-			assert_eq!(System::can_dec_provider(&ALICE), true);
-			assert!(TreasuryCurrencyAdapter::withdraw(
-				&ALICE,
-				100,
-				WithdrawReasons::TRANSFER,
-				ExistenceRequirement::AllowDeath
-			)
-			.is_ok());
 		});
 }
 
@@ -712,7 +1297,7 @@ fn currency_adapter_slashing_balance_should_work() {
 		assert!(TreasuryCurrencyAdapter::slash(&TREASURY_ACCOUNT, 69).1.is_zero());
 		assert_eq!(TreasuryCurrencyAdapter::free_balance(&TREASURY_ACCOUNT), 0);
 		assert_eq!(TreasuryCurrencyAdapter::reserved_balance(&TREASURY_ACCOUNT), 42);
-		assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 42);
+		assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 44);
 	});
 }
 
@@ -720,11 +1305,12 @@ fn currency_adapter_slashing_balance_should_work() {
 fn currency_adapter_slashing_incomplete_balance_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let _ = TreasuryCurrencyAdapter::deposit_creating(&TREASURY_ACCOUNT, 42);
+		assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 44);
 		assert_ok!(TreasuryCurrencyAdapter::reserve(&TREASURY_ACCOUNT, 21));
 		assert_eq!(TreasuryCurrencyAdapter::slash(&TREASURY_ACCOUNT, 69).1, 27);
 		assert_eq!(TreasuryCurrencyAdapter::free_balance(&TREASURY_ACCOUNT), 0);
 		assert_eq!(TreasuryCurrencyAdapter::reserved_balance(&TREASURY_ACCOUNT), 0);
-		assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 0);
+		assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 2);
 	});
 }
 
@@ -905,20 +1491,15 @@ fn currency_adapter_deposit_creating_should_work() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
-			assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 200);
-			assert_eq!(TreasuryCurrencyAdapter::total_balance(&TREASURY_ACCOUNT), 0);
-			let _ = TreasuryCurrencyAdapter::deposit_creating(&TREASURY_ACCOUNT, 1);
-			assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 200);
-			assert_eq!(TreasuryCurrencyAdapter::total_balance(&TREASURY_ACCOUNT), 0);
-
-			let _ = TreasuryCurrencyAdapter::deposit_creating(&TREASURY_ACCOUNT, 2);
 			assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 202);
+			assert_eq!(TreasuryCurrencyAdapter::total_balance(&TREASURY_ACCOUNT), 0);
+			let _ = TreasuryCurrencyAdapter::deposit_creating(&TREASURY_ACCOUNT, 2);
+			assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 204);
 			assert_eq!(TreasuryCurrencyAdapter::total_balance(&TREASURY_ACCOUNT), 2);
 
-			assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 202);
 			assert_eq!(TreasuryCurrencyAdapter::total_balance(&ALICE), 100);
 			let _ = TreasuryCurrencyAdapter::deposit_creating(&ALICE, 1);
-			assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 203);
+			assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 205);
 			assert_eq!(TreasuryCurrencyAdapter::total_balance(&ALICE), 101);
 		});
 }
@@ -935,10 +1516,10 @@ fn currency_adapter_deposit_into_existing_should_work() {
 				Error::<Runtime>::DeadAccount,
 			);
 
-			assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 200);
+			assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 202);
 			assert_eq!(TreasuryCurrencyAdapter::total_balance(&ALICE), 100);
 			assert_ok!(TreasuryCurrencyAdapter::deposit_into_existing(&ALICE, 10).map(drop));
-			assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 210);
+			assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 212);
 			assert_eq!(TreasuryCurrencyAdapter::total_balance(&ALICE), 110);
 		});
 }
@@ -949,12 +1530,12 @@ fn currency_adapter_reward_should_work() {
 		.one_hundred_for_treasury_account()
 		.build()
 		.execute_with(|| {
-			assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 102);
+			assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 104);
 			assert_eq!(TreasuryCurrencyAdapter::total_balance(&TREASURY_ACCOUNT), 100);
 			assert_eq!(TreasuryCurrencyAdapter::total_balance(&Treasury::account_id()), 2);
 			assert_ok!(TreasuryCurrencyAdapter::deposit_into_existing(&TREASURY_ACCOUNT, 10).map(drop));
 			assert_eq!(TreasuryCurrencyAdapter::total_balance(&TREASURY_ACCOUNT), 110);
-			assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 112);
+			assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 114);
 		});
 }
 
@@ -962,11 +1543,12 @@ fn currency_adapter_reward_should_work() {
 fn currency_adapter_slashing_reserved_balance_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let _ = TreasuryCurrencyAdapter::deposit_creating(&TREASURY_ACCOUNT, 111);
+		assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 113);
 		assert_ok!(TreasuryCurrencyAdapter::reserve(&TREASURY_ACCOUNT, 111));
 		assert_eq!(TreasuryCurrencyAdapter::slash_reserved(&TREASURY_ACCOUNT, 42).1, 0);
 		assert_eq!(TreasuryCurrencyAdapter::reserved_balance(&TREASURY_ACCOUNT), 69);
 		assert_eq!(TreasuryCurrencyAdapter::free_balance(&TREASURY_ACCOUNT), 0);
-		assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 69);
+		assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 71);
 	});
 }
 
@@ -974,11 +1556,12 @@ fn currency_adapter_slashing_reserved_balance_should_work() {
 fn currency_adapter_slashing_incomplete_reserved_balance_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let _ = TreasuryCurrencyAdapter::deposit_creating(&TREASURY_ACCOUNT, 111);
+		assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 113);
 		assert_ok!(TreasuryCurrencyAdapter::reserve(&TREASURY_ACCOUNT, 42));
 		assert_eq!(TreasuryCurrencyAdapter::slash_reserved(&TREASURY_ACCOUNT, 69).1, 27);
 		assert_eq!(TreasuryCurrencyAdapter::free_balance(&TREASURY_ACCOUNT), 69);
 		assert_eq!(TreasuryCurrencyAdapter::reserved_balance(&TREASURY_ACCOUNT), 0);
-		assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 69);
+		assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 71);
 	});
 }
 
@@ -1089,13 +1672,17 @@ fn exceeding_max_locks_should_fail() {
 		});
 }
 
+// *************************************************
+// tests for fungibles traits
+// *************************************************
+
 #[test]
 fn fungibles_inspect_trait_should_work() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
-			assert_eq!(<Tokens as fungibles::Inspect<_>>::total_issuance(DOT), 200);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::total_issuance(DOT), 202);
 			assert_eq!(<Tokens as fungibles::Inspect<_>>::minimum_balance(DOT), 2);
 			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 100);
 			assert_eq!(
@@ -1144,7 +1731,7 @@ fn fungibles_unbalanced_trait_should_work() {
 			assert_ok!(<Tokens as fungibles::Unbalanced<_>>::set_balance(DOT, &ALICE, 10));
 			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 10);
 
-			assert_eq!(<Tokens as fungibles::Inspect<_>>::total_issuance(DOT), 200);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::total_issuance(DOT), 202);
 			<Tokens as fungibles::Unbalanced<_>>::set_total_issuance(DOT, 10);
 			assert_eq!(<Tokens as fungibles::Inspect<_>>::total_issuance(DOT), 10);
 		});

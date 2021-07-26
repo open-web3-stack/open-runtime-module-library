@@ -23,7 +23,6 @@ pub type Balance = u64;
 
 pub const DOT: CurrencyId = 1;
 pub const BTC: CurrencyId = 2;
-pub const ETH: CurrencyId = 3;
 pub const ALICE: AccountId = AccountId32::new([0u8; 32]);
 pub const BOB: AccountId = AccountId32::new([1u8; 32]);
 pub const CHARLIE: AccountId = AccountId32::new([2u8; 32]);
@@ -253,15 +252,15 @@ pub struct ExtBuilder {
 impl Default for ExtBuilder {
 	fn default() -> Self {
 		Self {
-			balances: vec![],
+			balances: vec![(DustAccount::get(), DOT, ExistentialDeposits::get(&DOT))],
 			treasury_genesis: false,
 		}
 	}
 }
 
 impl ExtBuilder {
-	pub fn balances(mut self, balances: Vec<(AccountId, CurrencyId, Balance)>) -> Self {
-		self.balances = balances;
+	pub fn balances(mut self, mut balances: Vec<(AccountId, CurrencyId, Balance)>) -> Self {
+		self.balances.append(&mut balances);
 		self
 	}
 
