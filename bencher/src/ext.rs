@@ -120,12 +120,12 @@ where
 		self.ext.storage_commit_transaction()
 	}
 
-	fn storage_index_transaction(&mut self, _index: u32, _hash: &[u8], _size: u32) {
-		self.ext.storage_index_transaction(_index, _hash, _size);
+	fn storage_index_transaction(&mut self, index: u32, hash: &[u8], size: u32) {
+		self.ext.storage_index_transaction(index, hash, size);
 	}
 
-	fn storage_renew_transaction_index(&mut self, _index: u32, _hash: &[u8]) {
-		self.ext.storage_renew_transaction_index(_index, _hash);
+	fn storage_renew_transaction_index(&mut self, index: u32, hash: &[u8]) {
+		self.ext.storage_renew_transaction_index(index, hash);
 	}
 
 	fn wipe(&mut self) {
