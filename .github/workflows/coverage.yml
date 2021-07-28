@@ -1,4 +1,4 @@
-name: coverage
+name: Tests Coverage
 
 on:
   workflow_dispatch:
@@ -13,9 +13,12 @@ on:
     paths-ignore:
       - '**/README.md'
 
+env:
+  TARPAULIN_VERSION: 0.18.0
+
 jobs:
   test:
-    name: coverage
+    name: Coverage Report
     runs-on: ubuntu-latest
     steps:
       - name: Cancel Previous Runs
@@ -42,8 +45,9 @@ jobs:
           default: true
       - name: Generate code coverage
         run: |
+          wget https://github.com/xd009642/tarpaulin/releases/download/${{ env.TARPAULIN_VERSION }}/cargo-tarpaulin-${{ env.TARPAULIN_VERSION }}-travis.tar.gz
+          tar -zxvf cargo-tarpaulin-${{ env.TARPAULIN_VERSION }}-travis.tar.gz -C $HOME/.cargo/bin
           make Cargo.toml
-          cargo install cargo-tarpaulin
           # TODO: remove `--avoid-cfg-tarpaulin` after https://github.com/xd009642/tarpaulin/issues/756
           cargo tarpaulin --avoid-cfg-tarpaulin --verbose --no-fail-fast --workspace --timeout 300 --out Xml
       - name: Upload to codecov.io
