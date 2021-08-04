@@ -56,6 +56,7 @@ pub mod module {
 
 	#[derive(Encode, Decode, RuntimeDebug, Eq, PartialEq, Clone, Copy, Ord, PartialOrd)]
 	#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+	#[cfg_attr(feature = "std", serde(rename_all = "camelCase"))]
 	pub struct TimestampedValue<Value, Moment> {
 		pub value: Value,
 		pub timestamp: Moment,

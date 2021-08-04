@@ -62,6 +62,7 @@ pub enum Change<Value> {
 
 #[derive(Encode, Decode, RuntimeDebug, Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "std", serde(rename_all = "camelCase"))]
 pub struct TimestampedValue<Value: Ord + PartialOrd, Moment> {
 	pub value: Value,
 	pub timestamp: Moment,

@@ -16,6 +16,7 @@ struct Opts {
 }
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct BenchData {
 	pub name: String,
 	pub base_weight: u64,
@@ -24,6 +25,7 @@ pub struct BenchData {
 }
 
 #[derive(Serialize, Default, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 struct TemplateData {
 	pub header: String,
 	pub benchmarks: Vec<BenchData>,
