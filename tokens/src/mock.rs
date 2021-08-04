@@ -307,7 +307,7 @@ impl Trait for Runtime {
 pub type Tokens = Module<Runtime>;
 pub type TreasuryCurrencyAdapter = <Runtime as pallet_treasury::Trait>::Currency;
 
-pub const TEST_TOKEN_ID: CurrencyId = 1;
+pub const TEST_TOKEN_ID: CurrencyId = 0;
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const TREASURY_ACCOUNT: AccountId = 3;
@@ -315,7 +315,7 @@ pub const ID_1: LockIdentifier = *b"1       ";
 pub const ID_2: LockIdentifier = *b"2       ";
 
 pub struct ExtBuilder {
-	endowed_accounts: Vec<(AccountId, CurrencyId, Balance)>,
+	tokens_endowment: Vec<(AccountId, CurrencyId, Balance)>,
 	created_tokens_for_staking: Vec<(AccountId, CurrencyId, Balance)>,
 	treasury_genesis: bool,
 }
@@ -323,7 +323,7 @@ pub struct ExtBuilder {
 impl Default for ExtBuilder {
 	fn default() -> Self {
 		Self {
-			endowed_accounts: vec![],
+			tokens_endowment: vec![],
 			created_tokens_for_staking: vec![],
 			treasury_genesis: false,
 		}
@@ -331,8 +331,8 @@ impl Default for ExtBuilder {
 }
 
 impl ExtBuilder {
-	pub fn balances(mut self, endowed_accounts: Vec<(AccountId, CurrencyId, Balance)>) -> Self {
-		self.endowed_accounts = endowed_accounts;
+	pub fn balances(mut self, tokens_endowment: Vec<(AccountId, CurrencyId, Balance)>) -> Self {
+		self.tokens_endowment = tokens_endowment;
 		self
 	}
 
@@ -351,7 +351,7 @@ impl ExtBuilder {
 			.unwrap();
 
 		GenesisConfig::<Runtime> {
-			endowed_accounts: self.endowed_accounts,
+			tokens_endowment: self.tokens_endowment,
 			created_tokens_for_staking: self.created_tokens_for_staking,
 		}
 		.assimilate_storage(&mut t)
