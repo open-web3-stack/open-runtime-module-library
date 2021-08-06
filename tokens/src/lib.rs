@@ -198,7 +198,7 @@ pub mod module {
 
 		type MaxLocks: Get<u32>;
 
-		// The whitelist of accounts that will not be recycled even if its total
+		// The whitelist of accounts that will not be reaped even if its total
 		// is zero or below ED.
 		type NeverReapedWhitelist: Contains<Self::AccountId>;
 	}

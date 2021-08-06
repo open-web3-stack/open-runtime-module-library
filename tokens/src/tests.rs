@@ -706,7 +706,7 @@ fn never_reaped_account_do_withdraw() {
 			assert_eq!(Accounts::<Runtime>::contains_key(DAVE, DOT), true);
 			assert_eq!(Tokens::total_issuance(DOT), 202);
 
-			// the acccount in never reaped whitelist will not be recycled, so it's allowed
+			// the acccount in whitelist will not be reaped, so it's allowed
 			// to withdraw the amount which will cause the total is not zero but below ED.
 			assert_ok!(Tokens::do_withdraw(
 				DOT,
