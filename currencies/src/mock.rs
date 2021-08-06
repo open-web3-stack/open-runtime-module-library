@@ -3,7 +3,7 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{construct_runtime, parameter_types, traits::Contains, PalletId};
+use frame_support::{construct_runtime, parameter_types, PalletId};
 use orml_traits::parameter_type_with_key;
 use sp_core::H256;
 use sp_runtime::{
@@ -64,13 +64,6 @@ impl pallet_balances::Config for Runtime {
 	type WeightInfo = ();
 }
 
-pub struct MockNeverReapedWhitelist;
-impl Contains<AccountId> for MockNeverReapedWhitelist {
-	fn contains(_a: &AccountId) -> bool {
-		false
-	}
-}
-
 parameter_type_with_key! {
 	pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
 		Default::default()
@@ -91,7 +84,7 @@ impl orml_tokens::Config for Runtime {
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = orml_tokens::TransferDust<Runtime, DustAccount>;
 	type MaxLocks = MaxLocks;
-	type NeverReapedWhitelist = MockNeverReapedWhitelist;
+	type NeverReapedWhitelist = ();
 }
 
 pub const NATIVE_CURRENCY_ID: CurrencyId = 1;
