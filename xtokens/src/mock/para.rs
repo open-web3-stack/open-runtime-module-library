@@ -3,7 +3,7 @@ use crate as orml_xtokens;
 
 use frame_support::{
 	construct_runtime, parameter_types,
-	traits::{All, Get},
+	traits::{All, Contains, Get},
 	weights::{constants::WEIGHT_PER_SECOND, Weight},
 };
 use frame_system::EnsureRoot;
@@ -84,6 +84,13 @@ impl pallet_balances::Config for Runtime {
 	type ReserveIdentifier = [u8; 8];
 }
 
+pub struct MockNeverReapedWhitelist;
+impl Contains<AccountId> for MockNeverReapedWhitelist {
+	fn contains(_a: &AccountId) -> bool {
+		false
+	}
+}
+
 parameter_type_with_key! {
 	pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
 		Default::default()
@@ -99,6 +106,7 @@ impl orml_tokens::Config for Runtime {
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = ();
 	type MaxLocks = MaxLocks;
+	type NeverReapedWhitelist = MockNeverReapedWhitelist;
 }
 
 parameter_types! {

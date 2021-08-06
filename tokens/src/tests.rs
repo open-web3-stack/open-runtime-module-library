@@ -571,6 +571,57 @@ fn do_transfer_failed_when_allow_death_due_to_cannot_dec_provider() {
 }
 
 #[test]
+fn never_reaped_account_do_transfer_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_eq!(Tokens::free_balance(DOT, &DAVE), 0);
+			assert_eq!(System::providers(&DAVE), 0);
+			assert_eq!(Accounts::<Runtime>::contains_key(DAVE, DOT), false);
+
+			// can transfer amount below ED to the account in never reaped whitelist.
+			assert_ok!(Tokens::do_transfer(
+				DOT,
+				&ALICE,
+				&DAVE,
+				1,
+				ExistenceRequirement::KeepAlive
+			));
+			assert_eq!(Tokens::free_balance(DOT, &DAVE), 1);
+			assert_eq!(System::providers(&DAVE), 1);
+			assert_eq!(Accounts::<Runtime>::contains_key(DAVE, DOT), true);
+
+			assert_ok!(Tokens::do_transfer(
+				DOT,
+				&ALICE,
+				&DAVE,
+				2,
+				ExistenceRequirement::KeepAlive
+			));
+			assert_eq!(Tokens::free_balance(DOT, &DAVE), 3);
+			assert_eq!(Tokens::free_balance(DOT, &TREASURY_ACCOUNT), 0);
+			assert_eq!(System::providers(&DAVE), 1);
+			assert_eq!(Accounts::<Runtime>::contains_key(DAVE, DOT), true);
+
+			// account in never reaped whitelist still can do_transfer amount which will
+			// cause total is below ED when AllowDeath, the account storage will not be
+			// reaped and dust is still retained.
+			assert_ok!(Tokens::do_transfer(
+				DOT,
+				&DAVE,
+				&TREASURY_ACCOUNT,
+				2,
+				ExistenceRequirement::AllowDeath
+			));
+			assert_eq!(Tokens::free_balance(DOT, &DAVE), 1);
+			assert_eq!(Tokens::free_balance(DOT, &TREASURY_ACCOUNT), 2);
+			assert_eq!(System::providers(&DAVE), 1);
+			assert_eq!(Accounts::<Runtime>::contains_key(DAVE, DOT), true);
+		});
+}
+
+#[test]
 fn do_withdraw_when_keep_alive() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
@@ -638,6 +689,53 @@ fn do_withdraw_when_allow_death() {
 }
 
 #[test]
+fn never_reaped_account_do_withdraw() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_ok!(Tokens::do_transfer(
+				DOT,
+				&ALICE,
+				&DAVE,
+				3,
+				ExistenceRequirement::KeepAlive
+			));
+			assert_eq!(Tokens::free_balance(DOT, &DAVE), 3);
+			assert_eq!(System::providers(&DAVE), 1);
+			assert_eq!(Accounts::<Runtime>::contains_key(DAVE, DOT), true);
+			assert_eq!(Tokens::total_issuance(DOT), 202);
+
+			// the acccount in never reaped whitelist will not be recycled, so it's allowed
+			// to withdraw the amount which will cause the total is not zero but below ED.
+			assert_ok!(Tokens::do_withdraw(
+				DOT,
+				&DAVE,
+				2,
+				ExistenceRequirement::KeepAlive,
+				true
+			));
+			assert_eq!(Tokens::free_balance(DOT, &DAVE), 1);
+			assert_eq!(System::providers(&DAVE), 1);
+			assert_eq!(Accounts::<Runtime>::contains_key(DAVE, DOT), true);
+			assert_eq!(Tokens::total_issuance(DOT), 200);
+
+			//
+			assert_ok!(Tokens::do_withdraw(
+				DOT,
+				&DAVE,
+				1,
+				ExistenceRequirement::KeepAlive,
+				true
+			));
+			assert_eq!(Tokens::free_balance(DOT, &DAVE), 0);
+			assert_eq!(System::providers(&DAVE), 1);
+			assert_eq!(Accounts::<Runtime>::contains_key(DAVE, DOT), true);
+			assert_eq!(Tokens::total_issuance(DOT), 199);
+		});
+}
+
+#[test]
 fn do_deposit_should_work() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
@@ -677,6 +775,33 @@ fn do_deposit_should_work() {
 			assert_ok!(Tokens::do_deposit(DOT, &ALICE, 10, true, false));
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 120);
 			assert_eq!(Tokens::total_issuance(DOT), 222);
+		});
+}
+
+#[test]
+fn never_reaped_account_should_work() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			// still need already existed even if the account is in keep dust whitelist.
+			assert_noop!(
+				Tokens::do_deposit(DOT, &DAVE, 1, true, true),
+				Error::<Runtime>::DeadAccount
+			);
+
+			assert_eq!(Tokens::free_balance(DOT, &DAVE), 0);
+			assert_eq!(System::providers(&DAVE), 0);
+			assert_eq!(Accounts::<Runtime>::contains_key(DAVE, DOT), false);
+			assert_eq!(Tokens::total_issuance(DOT), 202);
+
+			// allowed to deposit amount below ED when do not require existed
+			// and the creating account is in keep dust whitelist
+			assert_ok!(Tokens::do_deposit(DOT, &DAVE, 1, false, true));
+			assert_eq!(Tokens::free_balance(DOT, &DAVE), 1);
+			assert_eq!(System::providers(&DAVE), 1);
+			assert_eq!(Accounts::<Runtime>::contains_key(DAVE, DOT), true);
+			assert_eq!(Tokens::total_issuance(DOT), 203);
 		});
 }
 

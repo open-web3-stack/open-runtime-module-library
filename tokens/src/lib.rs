@@ -45,7 +45,7 @@ use frame_support::{
 	pallet_prelude::*,
 	traits::{
 		tokens::{fungible, fungibles, DepositConsequence, WithdrawConsequence},
-		BalanceStatus as Status, Currency as PalletCurrency, ExistenceRequirement, Get, Imbalance,
+		BalanceStatus as Status, Contains, Currency as PalletCurrency, ExistenceRequirement, Get, Imbalance,
 		LockableCurrency as PalletLockableCurrency, MaxEncodedLen, ReservableCurrency as PalletReservableCurrency,
 		SignedImbalance, WithdrawReasons,
 	},
@@ -197,6 +197,10 @@ pub mod module {
 		type OnDust: OnDust<Self::AccountId, Self::CurrencyId, Self::Balance>;
 
 		type MaxLocks: Get<u32>;
+
+		// The whitelist of accounts that will not be recycled even if its total
+		// is zero or below ED.
+		type NeverReapedWhitelist: Contains<Self::AccountId>;
 	}
 
 	#[pallet::error]
@@ -614,10 +618,15 @@ impl<T: Config> Pallet<T> {
 				let mut maybe_dust: Option<T::Balance> = None;
 				let total = account.total();
 				*maybe_account = if total.is_zero() {
-					None
+					if T::NeverReapedWhitelist::contains(who) {
+						Some(account)
+					} else {
+						None
+					}
 				} else {
-					// if non_zero total is below existential deposit, should handle the dust.
-					if total < T::ExistentialDeposits::get(&currency_id) {
+					// if non_zero total is below existential deposit and account is not in
+					// ED whitelist, should handle the dust.
+					if total < T::ExistentialDeposits::get(&currency_id) && !T::NeverReapedWhitelist::contains(who) {
 						maybe_dust = Some(total);
 					}
 					Some(account)
@@ -728,8 +737,9 @@ impl<T: Config> Pallet<T> {
 	}
 
 	/// Transfer some free balance from `from` to `to`. Ensure from_account
-	/// allow death or new balance above existential deposit. Ensure to_account
-	/// new balance above existential deposit.
+	/// allow death or new balance above existential deposit, and ensure
+	/// to_account new balance above existential deposit, but except those
+	/// senders/receivers are in the never reaped whitelist.
 	///
 	/// Is a no-op if value to be transferred is zero or the `from` is the same
 	/// as `to`.
@@ -755,7 +765,11 @@ impl<T: Config> Pallet<T> {
 				let ed = T::ExistentialDeposits::get(&currency_id);
 				// if to_account non_zero total is below existential deposit, would return an
 				// error.
-				ensure!(to_account.total() >= ed, Error::<T>::ExistentialDeposit);
+				// Note: if to_account is in never reaped whitelist, can bypass this check.
+				ensure!(
+					to_account.total() >= ed || T::NeverReapedWhitelist::contains(to),
+					Error::<T>::ExistentialDeposit
+				);
 
 				Self::ensure_can_withdraw(currency_id, from, amount)?;
 
@@ -763,7 +777,11 @@ impl<T: Config> Pallet<T> {
 				let allow_death = allow_death && frame_system::Pallet::<T>::can_dec_provider(from);
 				// if from_account does not allow death and non_zero total is below existential
 				// deposit, would return an error.
-				ensure!(allow_death || from_account.total() >= ed, Error::<T>::KeepAlive);
+				// Note: if to_account is in never reaped whitelist, can bypass this check.
+				ensure!(
+					allow_death || from_account.total() >= ed || T::NeverReapedWhitelist::contains(from),
+					Error::<T>::KeepAlive
+				);
 
 				Ok(())
 			})?;
@@ -772,7 +790,12 @@ impl<T: Config> Pallet<T> {
 	}
 
 	/// Withdraw some free balance from an account, respecting existence
-	/// requirements, and if AllowDeath do not require ED.
+	/// requirements except for those accounts are in the never reaped
+	/// whitelist, and if AllowDeath do not require ED
+	///
+	/// `change_total_issuance`:
+	/// - true, decrease the total issuance by burned amount.
+	/// - false, do not update the total issuance.
 	///
 	/// Is a no-op if value to be withdrawn is zero.
 	pub(crate) fn do_withdraw(
@@ -793,7 +816,8 @@ impl<T: Config> Pallet<T> {
 
 			let ed = T::ExistentialDeposits::get(&currency_id);
 			let would_be_dead = account.total() < ed;
-			let would_kill = would_be_dead && previous_total >= ed;
+			// Note: if who is in never reaped whitelist, it wouldn't be killed.
+			let would_kill = would_be_dead && previous_total >= ed && !T::NeverReapedWhitelist::contains(who);
 			ensure!(
 				existence_requirement == ExistenceRequirement::AllowDeath || !would_kill,
 				Error::<T>::KeepAlive
@@ -812,9 +836,11 @@ impl<T: Config> Pallet<T> {
 	/// `require_existed`:
 	/// - true, the account must already exist, do not require ED.
 	/// - false, possibly creating a new account, require ED if the account does
-	///   not yet exist.
-	///
-	/// Is a no-op if value to be deposit is zero.
+	///   not yet exist, but except those accounts is in the never reaped
+	///   whitelist.
+	/// `change_total_issuance`:
+	/// - true, increase the issued amount to total issuance.
+	/// - false, do not update the total issuance.
 	pub(crate) fn do_deposit(
 		currency_id: T::CurrencyId,
 		who: &T::AccountId,
@@ -831,7 +857,12 @@ impl<T: Config> Pallet<T> {
 				ensure!(existed, Error::<T>::DeadAccount);
 			} else {
 				let ed = T::ExistentialDeposits::get(&currency_id);
-				ensure!(amount >= ed || existed, Error::<T>::ExistentialDeposit);
+				// Note: if who is in never reaped whitelist, allow to deposit the amount that
+				// below ED to it.
+				ensure!(
+					amount >= ed || existed || T::NeverReapedWhitelist::contains(who),
+					Error::<T>::ExistentialDeposit
+				);
 			}
 
 			let new_total_issuance = Self::total_issuance(currency_id)

@@ -26,7 +26,8 @@ pub const BTC: CurrencyId = 2;
 pub const ALICE: AccountId = AccountId32::new([0u8; 32]);
 pub const BOB: AccountId = AccountId32::new([1u8; 32]);
 pub const CHARLIE: AccountId = AccountId32::new([2u8; 32]);
-pub const TREASURY_ACCOUNT: AccountId = AccountId32::new([3u8; 32]);
+pub const DAVE: AccountId = AccountId32::new([3u8; 32]);
+pub const TREASURY_ACCOUNT: AccountId = AccountId32::new([4u8; 32]);
 pub const ID_1: LockIdentifier = *b"1       ";
 pub const ID_2: LockIdentifier = *b"2       ";
 pub const ID_3: LockIdentifier = *b"3       ";
@@ -201,6 +202,16 @@ impl pallet_elections_phragmen::Config for Runtime {
 	type WeightInfo = ();
 }
 
+pub struct MockNeverReapedWhitelist;
+impl Contains<AccountId> for MockNeverReapedWhitelist {
+	fn contains(a: &AccountId) -> bool {
+		match a {
+			&DAVE => true,
+			_ => false,
+		}
+	}
+}
+
 parameter_type_with_key! {
 	pub ExistentialDeposits: |currency_id: CurrencyId| -> Balance {
 		match currency_id {
@@ -225,6 +236,7 @@ impl Config for Runtime {
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = TransferDust<Runtime, DustAccount>;
 	type MaxLocks = MaxLocks;
+	type NeverReapedWhitelist = MockNeverReapedWhitelist;
 }
 pub type TreasuryCurrencyAdapter = <Runtime as pallet_treasury::Config>::Currency;
 
