@@ -967,6 +967,55 @@ fn remove_account_work() {
 }
 
 #[test]
+fn reap_account_will_dec_providers_work() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100), (ALICE, ETH, 100), (ALICE, BTC, 100)])
+		.build()
+		.execute_with(|| {
+			assert_eq!(System::providers(&ALICE), 3);
+			assert_eq!(System::account_exists(&ALICE), true);
+			assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), true);
+
+			assert_ok!(Tokens::do_transfer(
+				DOT,
+				&ALICE,
+				&BOB,
+				100,
+				ExistenceRequirement::AllowDeath
+			));
+			assert_eq!(System::providers(&ALICE), 2);
+			assert_eq!(System::account_exists(&ALICE), true);
+			assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), false);
+
+			// ED of ETH is zero, the account will retain even if the total is zero,
+			// will not dec_providers
+			assert_eq!(Accounts::<Runtime>::contains_key(ALICE, ETH), true);
+			assert_ok!(Tokens::do_transfer(
+				ETH,
+				&ALICE,
+				&BOB,
+				100,
+				ExistenceRequirement::AllowDeath
+			));
+			assert_eq!(System::providers(&ALICE), 2);
+			assert_eq!(System::account_exists(&ALICE), true);
+			assert_eq!(Accounts::<Runtime>::contains_key(ALICE, ETH), true);
+
+			assert_eq!(Accounts::<Runtime>::contains_key(ALICE, BTC), true);
+			assert_ok!(Tokens::do_transfer(
+				BTC,
+				&ALICE,
+				&BOB,
+				100,
+				ExistenceRequirement::AllowDeath
+			));
+			assert_eq!(System::providers(&ALICE), 1);
+			assert_eq!(System::account_exists(&ALICE), true);
+			assert_eq!(Accounts::<Runtime>::contains_key(ALICE, BTC), false);
+		});
+}
+
+#[test]
 fn dust_removal_work() {
 	ExtBuilder::default()
 		.balances(vec![(ALICE, DOT, 100)])
