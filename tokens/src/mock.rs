@@ -23,10 +23,12 @@ pub type Balance = u64;
 
 pub const DOT: CurrencyId = 1;
 pub const BTC: CurrencyId = 2;
+pub const ETH: CurrencyId = 3;
 pub const ALICE: AccountId = AccountId32::new([0u8; 32]);
 pub const BOB: AccountId = AccountId32::new([1u8; 32]);
 pub const CHARLIE: AccountId = AccountId32::new([2u8; 32]);
-pub const TREASURY_ACCOUNT: AccountId = AccountId32::new([3u8; 32]);
+pub const DAVE: AccountId = AccountId32::new([3u8; 32]);
+pub const TREASURY_ACCOUNT: AccountId = AccountId32::new([4u8; 32]);
 pub const ID_1: LockIdentifier = *b"1       ";
 pub const ID_2: LockIdentifier = *b"2       ";
 pub const ID_3: LockIdentifier = *b"3       ";
@@ -201,6 +203,13 @@ impl pallet_elections_phragmen::Config for Runtime {
 	type WeightInfo = ();
 }
 
+pub struct MockDustRemovalWhitelist;
+impl Contains<AccountId> for MockDustRemovalWhitelist {
+	fn contains(a: &AccountId) -> bool {
+		*a == DAVE || *a == DustReceiver::get()
+	}
+}
+
 parameter_type_with_key! {
 	pub ExistentialDeposits: |currency_id: CurrencyId| -> Balance {
 		match currency_id {
@@ -212,7 +221,7 @@ parameter_type_with_key! {
 }
 
 parameter_types! {
-	pub DustAccount: AccountId = PalletId(*b"orml/dst").into_account();
+	pub DustReceiver: AccountId = PalletId(*b"orml/dst").into_account();
 	pub MaxLocks: u32 = 2;
 }
 
@@ -223,8 +232,9 @@ impl Config for Runtime {
 	type CurrencyId = CurrencyId;
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
-	type OnDust = TransferDust<Runtime, DustAccount>;
+	type OnDust = TransferDust<Runtime, DustReceiver>;
 	type MaxLocks = MaxLocks;
+	type DustRemovalWhitelist = MockDustRemovalWhitelist;
 }
 pub type TreasuryCurrencyAdapter = <Runtime as pallet_treasury::Config>::Currency;
 
@@ -252,7 +262,7 @@ pub struct ExtBuilder {
 impl Default for ExtBuilder {
 	fn default() -> Self {
 		Self {
-			balances: vec![(DustAccount::get(), DOT, ExistentialDeposits::get(&DOT))],
+			balances: vec![],
 			treasury_genesis: false,
 		}
 	}
@@ -262,15 +272,6 @@ impl ExtBuilder {
 	pub fn balances(mut self, mut balances: Vec<(AccountId, CurrencyId, Balance)>) -> Self {
 		self.balances.append(&mut balances);
 		self
-	}
-
-	pub fn one_hundred_for_alice_n_bob(self) -> Self {
-		self.balances(vec![(ALICE, DOT, 100), (BOB, DOT, 100)])
-	}
-
-	pub fn one_hundred_for_treasury_account(mut self) -> Self {
-		self.treasury_genesis = true;
-		self.balances(vec![(TREASURY_ACCOUNT, DOT, 100)])
 	}
 
 	pub fn build(self) -> sp_io::TestExternalities {
