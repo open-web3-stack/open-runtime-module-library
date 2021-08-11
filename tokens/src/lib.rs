@@ -191,11 +191,16 @@ pub mod module {
 		type WeightInfo: WeightInfo;
 
 		/// The minimum amount required to keep an account.
+		/// It's deprecated to config 0 as ED for any currency_id,
+		/// zero ED will retain account even if its total is zero.
+		/// Since accounts of orml_tokens are also used as providers of
+		/// System::AccountInfo, zero ED may cause some problems.
 		type ExistentialDeposits: GetByKey<Self::CurrencyId, Self::Balance>;
 
 		/// Handler to burn or transfer account's dust
 		type OnDust: OnDust<Self::AccountId, Self::CurrencyId, Self::Balance>;
 
+		#[pallet::constant]
 		type MaxLocks: Get<u32>;
 
 		// The whitelist of accounts that will not be reaped even if its total
