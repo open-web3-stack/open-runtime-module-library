@@ -21,7 +21,7 @@ pub use get_by_key::GetByKey;
 pub use nft::NFT;
 pub use price::{DefaultPriceProvider, PriceProvider};
 pub use rewards::RewardHandler;
-pub use xcm_transfer::{XcmExecutionResult, XcmTransfer};
+pub use xcm_transfer::XcmTransfer;
 
 pub mod arithmetic;
 pub mod auction;
