@@ -22,12 +22,7 @@
 #![allow(clippy::unused_unit)]
 
 use codec::{Decode, Encode, MaxEncodedLen};
-use frame_support::{
-	ensure,
-	pallet_prelude::*,
-	traits::Get,
-	BoundedVec, Parameter,
-};
+use frame_support::{ensure, pallet_prelude::*, traits::Get, BoundedVec, Parameter};
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, One, Zero},
 	ArithmeticError, DispatchError, DispatchResult, RuntimeDebug,
