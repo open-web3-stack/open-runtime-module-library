@@ -4,8 +4,8 @@
 mod mock;
 mod tests;
 
-use codec::{FullCodec, HasCompact};
-use frame_support::{pallet_prelude::*, traits::MaxEncodedLen};
+use codec::{FullCodec, HasCompact, MaxEncodedLen};
+use frame_support::pallet_prelude::*;
 use orml_traits::RewardHandler;
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, Saturating, Zero},

@@ -27,24 +27,17 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 
-use codec::HasCompact;
+use codec::{HasCompact, MaxEncodedLen};
 use frame_support::{
 	ensure,
 	pallet_prelude::*,
-	traits::{
-		Currency, EnsureOrigin, ExistenceRequirement, Get, LockIdentifier, LockableCurrency, MaxEncodedLen,
-		WithdrawReasons,
-	},
+	traits::{Currency, EnsureOrigin, ExistenceRequirement, Get, LockIdentifier, LockableCurrency, WithdrawReasons},
 	transactional, BoundedVec,
 };
 use frame_system::{ensure_root, ensure_signed, pallet_prelude::*};
 use sp_runtime::{
-	// TODO: move after https://github.com/paritytech/substrate/pull/9209
-	offchain::storage_lock::BlockNumberProvider,
-	traits::{AtLeast32Bit, CheckedAdd, Saturating, StaticLookup, Zero},
-	ArithmeticError,
-	DispatchResult,
-	RuntimeDebug,
+	traits::{AtLeast32Bit, BlockNumberProvider, CheckedAdd, Saturating, StaticLookup, Zero},
+	ArithmeticError, DispatchResult, RuntimeDebug,
 };
 use sp_std::{
 	cmp::{Eq, PartialEq},

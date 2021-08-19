@@ -21,11 +21,11 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 
-use codec::{Decode, Encode};
+use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
 	ensure,
 	pallet_prelude::*,
-	traits::{Get, MaxEncodedLen},
+	traits::Get,
 	BoundedVec, Parameter,
 };
 use sp_runtime::{
