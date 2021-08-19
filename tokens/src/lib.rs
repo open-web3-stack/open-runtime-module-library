@@ -40,13 +40,14 @@
 
 pub use crate::imbalances::{NegativeImbalance, PositiveImbalance};
 
+use codec::MaxEncodedLen;
 use frame_support::{
 	ensure, log,
 	pallet_prelude::*,
 	traits::{
 		tokens::{fungible, fungibles, DepositConsequence, WithdrawConsequence},
 		BalanceStatus as Status, Contains, Currency as PalletCurrency, ExistenceRequirement, Get, Imbalance,
-		LockableCurrency as PalletLockableCurrency, MaxEncodedLen, ReservableCurrency as PalletReservableCurrency,
+		LockableCurrency as PalletLockableCurrency, ReservableCurrency as PalletReservableCurrency,
 		SignedImbalance, WithdrawReasons,
 	},
 	transactional, BoundedVec,

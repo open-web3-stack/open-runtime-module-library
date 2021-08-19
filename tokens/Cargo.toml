@@ -1,43 +1,40 @@
 [package]
-name = "orml-tokens"
+authors     = ["Laminar Developers <hello@laminar.one>"]
 description = "Fungible tokens module that implements `MultiCurrency` trait."
-repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/tokens"
-license = "Apache-2.0"
-version = "0.4.1-dev"
-authors = ["Laminar Developers <hello@laminar.one>"]
-edition = "2018"
+edition     = "2018"
+license     = "Apache-2.0"
+name        = "orml-tokens"
+repository  = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/tokens"
+version     = "0.4.1-dev"
 
 [dependencies]
-serde = { version = "1.0.124", optional = true }
-codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
-max-encoded-len = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.8", default-features = false }
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.8", default-features = false }
-sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.8", default-features = false }
-frame-support = {  git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.8", default-features = false }
-frame-system = {  git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.8", default-features = false }
-orml-traits = { path = "../traits", version = "0.4.1-dev", default-features = false }
+codec         = { package = "parity-scale-codec", version = "2.0.0", features = ["max-encoded-len"], default-features = false }
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+frame-system  = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+orml-traits   = { path = "../traits", version = "0.4.1-dev", default-features = false }
+serde         = { version = "1.0.124", optional = true }
+sp-runtime    = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+sp-std        = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 
 [dev-dependencies]
-sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.8" }
-sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.8" }
-pallet-treasury = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.8" }
-# Patch doesn't work as `pallet-elections-phragmen` is now 4.0.0 version. Revert `rev` to `statemint` branch after
-# other `statemint` dependencies upgraded.
-pallet-elections-phragmen = { git = "https://github.com/paritytech/substrate", rev = "1d04678e20555e623c974ee1127bc8a45abcf3d6" }
+pallet-elections-phragmen = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+pallet-treasury           = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+sp-core                   = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+sp-io                     = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 
 [features]
-default = ["std"]
-std = [
-	"serde",
-	"codec/std",
-	"sp-runtime/std",
-	"sp-std/std",
-	"frame-support/std",
-	"frame-system/std",
-	"orml-traits/std",
-]
+default            = ["std"]
 runtime-benchmarks = [
-	"frame-support/runtime-benchmarks",
-	"frame-system/runtime-benchmarks",
+  "frame-support/runtime-benchmarks",
+  "frame-system/runtime-benchmarks",
 ]
-try-runtime = ["frame-support/try-runtime"]
+std                = [
+  "serde",
+  "codec/std",
+  "sp-runtime/std",
+  "sp-std/std",
+  "frame-support/std",
+  "frame-system/std",
+  "orml-traits/std",
+]
+try-runtime        = ["frame-support/try-runtime"]

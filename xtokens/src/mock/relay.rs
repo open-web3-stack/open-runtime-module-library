@@ -1,6 +1,6 @@
 use frame_support::{
 	construct_runtime, parameter_types,
-	traits::All,
+	traits::Everything,
 	weights::{IdentityFee, Weight},
 };
 use sp_core::H256;
@@ -8,7 +8,7 @@ use sp_runtime::{testing::Header, traits::IdentityLookup, AccountId32};
 
 use cumulus_primitives_core::ParaId;
 use polkadot_runtime_parachains::{configuration, origin, shared, ump};
-use xcm::v0::{MultiAsset, MultiLocation, NetworkId};
+use xcm::v0::{MultiLocation, NetworkId};
 use xcm_builder::{
 	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, ChildParachainAsNative, ChildParachainConvertsVia,
 	CurrencyAdapter as XcmCurrencyAdapter, FixedWeightBounds, IsConcrete, LocationInverter, SignedAccountId32AsNative,
@@ -97,7 +97,7 @@ parameter_types! {
 }
 
 pub type XcmRouter = super::RelayChainXcmRouter;
-pub type Barrier = (TakeWeightCredit, AllowTopLevelPaidExecutionFrom<All<MultiLocation>>);
+pub type Barrier = (TakeWeightCredit, AllowTopLevelPaidExecutionFrom<Everything>);
 
 pub struct XcmConfig;
 impl Config for XcmConfig {
@@ -124,9 +124,10 @@ impl pallet_xcm::Config for Runtime {
 	type ExecuteXcmOrigin = xcm_builder::EnsureXcmOrigin<Origin, LocalOriginToLocation>;
 	type XcmExecuteFilter = ();
 	type XcmExecutor = XcmExecutor<XcmConfig>;
-	type XcmTeleportFilter = All<(MultiLocation, Vec<MultiAsset>)>;
-	type XcmReserveTransferFilter = All<(MultiLocation, Vec<MultiAsset>)>;
+	type XcmTeleportFilter = Everything;
+	type XcmReserveTransferFilter = Everything;
 	type Weigher = FixedWeightBounds<BaseXcmWeight, Call>;
+	type LocationInverter = LocationInverter<Ancestry>;
 }
 
 parameter_types! {
