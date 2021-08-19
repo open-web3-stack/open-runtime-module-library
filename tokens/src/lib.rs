@@ -47,8 +47,8 @@ use frame_support::{
 	traits::{
 		tokens::{fungible, fungibles, DepositConsequence, WithdrawConsequence},
 		BalanceStatus as Status, Contains, Currency as PalletCurrency, ExistenceRequirement, Get, Imbalance,
-		LockableCurrency as PalletLockableCurrency, ReservableCurrency as PalletReservableCurrency,
-		SignedImbalance, WithdrawReasons,
+		LockableCurrency as PalletLockableCurrency, ReservableCurrency as PalletReservableCurrency, SignedImbalance,
+		WithdrawReasons,
 	},
 	transactional, BoundedVec,
 };
