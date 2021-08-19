@@ -6,8 +6,8 @@
 mod tests;
 
 pub use frame_benchmarking::{
-	benchmarking, whitelisted_caller, BenchmarkBatch, BenchmarkConfig, BenchmarkParameter, BenchmarkResults,
-	Benchmarking, BenchmarkingSetup,
+	benchmarking, whitelisted_caller, BenchmarkBatch, BenchmarkConfig, BenchmarkMetadata, BenchmarkParameter,
+	BenchmarkResults, Benchmarking, BenchmarkingSetup,
 };
 #[cfg(feature = "std")]
 pub use frame_benchmarking::{Analysis, BenchmarkSelector};
@@ -666,7 +666,7 @@ macro_rules! impl_benchmark {
 		pub struct Benchmark;
 
 		impl $crate::Benchmarking<$crate::BenchmarkResults> for Benchmark {
-			fn benchmarks(extra: bool) -> $crate::Vec<&'static [u8]> {
+			fn benchmarks(extra: bool) -> $crate::Vec<BenchmarkMetadata> {
 				let mut all = $crate::vec![ $( stringify!($name).as_ref() ),* ];
 				if !extra {
 					let extra = [ $( stringify!($name_extra).as_ref() ),* ];
