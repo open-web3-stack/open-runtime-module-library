@@ -1,34 +1,34 @@
 [package]
-authors     = ["Laminar Developers <hello@laminar.one>"]
+authors = ["Laminar Developers <hello@laminar.one>"]
 description = "Fungible tokens module that implements `MultiCurrency` trait."
-edition     = "2018"
-license     = "Apache-2.0"
-name        = "orml-tokens"
-repository  = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/tokens"
-version     = "0.4.1-dev"
+edition = "2018"
+license = "Apache-2.0"
+name = "orml-tokens"
+repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/tokens"
+version = "0.4.1-dev"
 
 [dependencies]
-codec         = { package = "parity-scale-codec", version = "2.0.0", features = ["max-encoded-len"], default-features = false }
+codec = { package = "parity-scale-codec", version = "2.0.0", features = ["max-encoded-len"], default-features = false }
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
-frame-system  = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
-orml-traits   = { path = "../traits", version = "0.4.1-dev", default-features = false }
-serde         = { version = "1.0.124", optional = true }
-sp-runtime    = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
-sp-std        = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+orml-traits = { path = "../traits", version = "0.4.1-dev", default-features = false }
+serde = { version = "1.0.124", optional = true }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 
 [dev-dependencies]
 pallet-elections-phragmen = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
-pallet-treasury           = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
-sp-core                   = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
-sp-io                     = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+pallet-treasury = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 
 [features]
-default            = ["std"]
+default = ["std"]
 runtime-benchmarks = [
   "frame-support/runtime-benchmarks",
   "frame-system/runtime-benchmarks",
 ]
-std                = [
+std = [
   "serde",
   "codec/std",
   "sp-runtime/std",
@@ -37,4 +37,4 @@ std                = [
   "frame-system/std",
   "orml-traits/std",
 ]
-try-runtime        = ["frame-support/try-runtime"]
+try-runtime = ["frame-support/try-runtime"]
