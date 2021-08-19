@@ -1,11 +1,11 @@
 [package]
-authors = ["Laminar Developers <hello@laminar.one>"]
-description = "Fungible tokens module that implements `MultiCurrency` trait."
-edition = "2018"
-license = "Apache-2.0"
 name = "orml-tokens"
+description = "Fungible tokens module that implements `MultiCurrency` trait."
 repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/tokens"
+license = "Apache-2.0"
 version = "0.4.1-dev"
+authors = ["Laminar Developers <hello@laminar.one>"]
+edition = "2018"
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "2.0.0", features = ["max-encoded-len"], default-features = false }
@@ -24,17 +24,17 @@ sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0
 
 [features]
 default = ["std"]
-runtime-benchmarks = [
-  "frame-support/runtime-benchmarks",
-  "frame-system/runtime-benchmarks",
-]
 std = [
-  "serde",
-  "codec/std",
-  "sp-runtime/std",
-  "sp-std/std",
-  "frame-support/std",
-  "frame-system/std",
-  "orml-traits/std",
+	"serde",
+	"codec/std",
+	"sp-runtime/std",
+	"sp-std/std",
+	"frame-support/std",
+	"frame-system/std",
+	"orml-traits/std",
+]
+runtime-benchmarks = [
+	"frame-support/runtime-benchmarks",
+	"frame-system/runtime-benchmarks",
 ]
 try-runtime = ["frame-support/try-runtime"]
