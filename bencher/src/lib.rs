@@ -16,18 +16,19 @@ mod macros;
 mod utils;
 
 pub use bencher::*;
-pub use utils::bench;
+pub use utils::*;
 
 #[cfg(feature = "std")]
 pub mod bench_runner;
 #[cfg(feature = "std")]
 pub mod build_wasm;
 #[cfg(feature = "std")]
+pub mod handler;
+
+#[cfg(feature = "std")]
 mod colorize;
 #[cfg(feature = "std")]
 mod ext;
-#[cfg(feature = "std")]
-pub mod handler;
 #[cfg(feature = "std")]
 mod redundant_meter;
 #[cfg(feature = "std")]
