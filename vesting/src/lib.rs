@@ -36,12 +36,8 @@ use frame_support::{
 };
 use frame_system::{ensure_root, ensure_signed, pallet_prelude::*};
 use sp_runtime::{
-	// TODO: move after https://github.com/paritytech/substrate/pull/9209
-	offchain::storage_lock::BlockNumberProvider,
-	traits::{AtLeast32Bit, CheckedAdd, Saturating, StaticLookup, Zero},
-	ArithmeticError,
-	DispatchResult,
-	RuntimeDebug,
+	traits::{AtLeast32Bit, BlockNumberProvider, CheckedAdd, Saturating, StaticLookup, Zero},
+	ArithmeticError, DispatchResult, RuntimeDebug,
 };
 use sp_std::{
 	cmp::{Eq, PartialEq},

@@ -75,7 +75,6 @@ sp-std = { git = "https://github.com/paritytech//substrate", rev = "91061a7d925b
 sp-storage = { git = "https://github.com/paritytech//substrate", rev = "91061a7d925b5bc597804293da283477512ba4ff" }
 sp-tasks = { git = "https://github.com/paritytech//substrate", rev = "91061a7d925b5bc597804293da283477512ba4ff" }
 sp-timestamp = { git = "https://github.com/paritytech//substrate", rev = "91061a7d925b5bc597804293da283477512ba4ff" }
-sp-transaction-pool = { git = "https://github.com/paritytech//substrate", rev = "91061a7d925b5bc597804293da283477512ba4ff" }
 sp-trie = { git = "https://github.com/paritytech//substrate", rev = "91061a7d925b5bc597804293da283477512ba4ff" }
 sp-version = { git = "https://github.com/paritytech//substrate", rev = "91061a7d925b5bc597804293da283477512ba4ff" }
 sp-wasm-interface = { git = "https://github.com/paritytech//substrate", rev = "91061a7d925b5bc597804293da283477512ba4ff" }
@@ -83,7 +82,6 @@ sp-utils = { git = "https://github.com/paritytech//substrate", rev = "91061a7d92
 
 [patch.'https://github.com/paritytech/cumulus']
 cumulus-primitives-core = { git = "https://github.com/paritytech//cumulus", rev = "fd80849dde5c209c20a996cfcc5aaacd4666dcbe" }
-cumulus-pallet-parachain-system = { git = "https://github.com/paritytech//cumulus", rev = "fd80849dde5c209c20a996cfcc5aaacd4666dcbe" }
 parachain-info = { git = "https://github.com/paritytech//cumulus", rev = "fd80849dde5c209c20a996cfcc5aaacd4666dcbe" }
 
 [patch.'https://github.com/paritytech/polkadot']
