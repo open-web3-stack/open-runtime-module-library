@@ -4,9 +4,8 @@
 mod mock;
 mod tests;
 
-use codec::{FullCodec, HasCompact};
-use frame_support::{pallet_prelude::*, traits::MaxEncodedLen};
-use orml_traits::RewardHandler;
+use codec::{FullCodec, HasCompact, MaxEncodedLen};
+use frame_support::pallet_prelude::*;
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, Saturating, Zero},
 	FixedPointNumber, FixedPointOperand, FixedU128, RuntimeDebug,
@@ -15,6 +14,8 @@ use sp_std::{
 	cmp::{Eq, PartialEq},
 	fmt::Debug,
 };
+
+use orml_traits::RewardHandler;
 
 /// The Reward Pool Info.
 #[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug, Default, MaxEncodedLen)]
