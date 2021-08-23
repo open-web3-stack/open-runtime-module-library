@@ -27,14 +27,11 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 
-use codec::HasCompact;
+use codec::{HasCompact, MaxEncodedLen};
 use frame_support::{
 	ensure,
 	pallet_prelude::*,
-	traits::{
-		Currency, EnsureOrigin, ExistenceRequirement, Get, LockIdentifier, LockableCurrency, MaxEncodedLen,
-		WithdrawReasons,
-	},
+	traits::{Currency, EnsureOrigin, ExistenceRequirement, Get, LockIdentifier, LockableCurrency, WithdrawReasons},
 	transactional, BoundedVec,
 };
 use frame_system::{ensure_root, ensure_signed, pallet_prelude::*};
