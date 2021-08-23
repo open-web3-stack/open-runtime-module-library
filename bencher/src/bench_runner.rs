@@ -7,7 +7,8 @@ use sp_state_machine::{Ext, OverlayedChanges, StorageTransactionCache};
 pub fn run<B: Block>(wasm_code: Vec<u8>) -> std::result::Result<Vec<u8>, String> {
 	let mut overlay = OverlayedChanges::default();
 	let mut cache = StorageTransactionCache::default();
-	let state = sc_client_db::BenchmarkingState::<B>::new(Default::default(), Default::default(), false).unwrap();
+	let state =
+		sc_client_db::BenchmarkingState::<B>::new(Default::default(), Default::default(), false, false).unwrap();
 	let mut ext = Ext::<_, NumberFor<B>, _>::new(&mut overlay, &mut cache, &state, None, None);
 
 	let mut host_functions = sp_io::SubstrateHostFunctions::host_functions();
