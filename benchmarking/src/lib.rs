@@ -618,7 +618,6 @@ macro_rules! benchmark_backend {
 // Every variant must implement [`BenchmarkingSetup`].
 //
 // ```nocompile
-// 
 // struct Transfer;
 // impl BenchmarkingSetup for Transfer { ... }
 //
@@ -1093,7 +1092,8 @@ macro_rules! impl_benchmark_test_suite {
 
 					let mut anything_failed = false;
 					println!("failing benchmark tests:");
-					for benchmark_name in $path_to_benchmarks_invocation::Benchmark::benchmarks($extra) {
+					for benchmark_metadata in $path_to_benchmarks_invocation::Benchmark::benchmarks($extra) {
+						let benchmark_name = &benchmark_metadata.name;
 						match std::panic::catch_unwind(|| test_bench_by_name(benchmark_name)) {
 							Err(err) => {
 								println!("{}: {:?}", String::from_utf8_lossy(benchmark_name), err);
