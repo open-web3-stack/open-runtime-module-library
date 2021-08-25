@@ -6,8 +6,8 @@
 mod tests;
 
 pub use frame_benchmarking::{
-	benchmarking, whitelisted_caller, BenchmarkBatch, BenchmarkConfig, BenchmarkMetadata, BenchmarkParameter,
-	BenchmarkResults, Benchmarking, BenchmarkingSetup,
+	benchmarking, whitelisted_caller, BenchmarkBatch, BenchmarkConfig, BenchmarkList, BenchmarkMetadata,
+	BenchmarkParameter, BenchmarkResults, Benchmarking, BenchmarkingSetup,
 };
 #[cfg(feature = "std")]
 pub use frame_benchmarking::{Analysis, BenchmarkSelector};
@@ -1115,32 +1115,22 @@ macro_rules! impl_benchmark_test_suite {
 
 /// show error message and debugging info for the case of an error happening
 /// during a benchmark
-#[allow(clippy::too_many_arguments)]
 pub fn show_benchmark_debug_info(
 	instance_string: &[u8],
 	benchmark: &[u8],
-	lowest_range_values: &[u32],
-	highest_range_values: &[u32],
-	steps: &[u32],
-	repeat: &u32,
+	components: &[(BenchmarkParameter, u32)],
 	verify: &bool,
 	error_message: &str,
 ) -> sp_runtime::RuntimeString {
 	sp_runtime::format_runtime_string!(
 		"\n* Pallet: {}\n\
 		* Benchmark: {}\n\
-		* Lowest_range_values: {:?}\n\
-		* Highest_range_values: {:?}\n\
-		* Steps: {:?}\n\
-		* Repeat: {:?}\n\
+		* Components: {:?}\n\
 		* Verify: {:?}\n\
 		* Error message: {}",
 		sp_std::str::from_utf8(instance_string).expect("it's all just strings ran through the wasm interface. qed"),
 		sp_std::str::from_utf8(benchmark).expect("it's all just strings ran through the wasm interface. qed"),
-		lowest_range_values,
-		highest_range_values,
-		steps,
-		repeat,
+		components,
 		verify,
 		error_message,
 	)
@@ -1193,77 +1183,74 @@ pub fn show_benchmark_debug_info(
 /// At the end of `dispatch_benchmark`, you should return this batches object.
 #[macro_export]
 macro_rules! add_benchmark {
-	( $params:ident, $batches:ident, $name:ident, $( $location:tt )* ) => (
+	( $params:ident, $batches:ident, $name:path, $( $location:tt )* ) => (
 		let name_string = stringify!($name).as_bytes();
 		let instance_string = stringify!( $( $location )* ).as_bytes();
 		let (config, whitelist) = $params;
 		let $crate::BenchmarkConfig {
 			pallet,
 			benchmark,
-			lowest_range_values,
-			highest_range_values,
-			steps,
-			repeat,
+			selected_components,
 			verify,
-			extra,
+			internal_repeats,
 		} = config;
-		if &pallet[..] == &name_string[..] || &pallet[..] == &b"*"[..] {
-			if &pallet[..] == &b"*"[..] || &benchmark[..] == &b"*"[..] {
-				for benchmark in $( $location )*::Benchmark::benchmarks(*extra).into_iter() {
-					$batches.push($crate::BenchmarkBatch {
-						pallet: name_string.to_vec(),
-						instance: instance_string.to_vec(),
-						benchmark: benchmark.to_vec(),
-						results: $( $location )*::Benchmark::run_benchmark(
-							benchmark,
-							&lowest_range_values[..],
-							&highest_range_values[..],
-							&steps[..],
-							*repeat,
-							whitelist,
-							*verify,
-						).map_err(|e| {
-							$crate::show_benchmark_debug_info(
-								instance_string,
-								benchmark,
-								lowest_range_values,
-								highest_range_values,
-								steps,
-								repeat,
-								verify,
-								e,
-							)
-						})?,
-				});
-				}
-			} else {
-				$batches.push($crate::BenchmarkBatch {
-					pallet: name_string.to_vec(),
-					instance: instance_string.to_vec(),
-					benchmark: benchmark.clone(),
-					results: $( $location )*::Benchmark::run_benchmark(
-						&benchmark[..],
-						&lowest_range_values[..],
-						&highest_range_values[..],
-						&steps[..],
-						*repeat,
-						whitelist,
-						*verify,
-					).map_err(|e| {
-						$crate::show_benchmark_debug_info(
-							instance_string,
-							benchmark,
-							lowest_range_values,
-							highest_range_values,
-							steps,
-							repeat,
-							verify,
-							e,
-						)
-					})?,
-				});
-			}
+		if &pallet[..] == &name_string[..] {
+			$batches.push($crate::BenchmarkBatch {
+				pallet: name_string.to_vec(),
+				instance: instance_string.to_vec(),
+				benchmark: benchmark.clone(),
+				results: $( $location )*::Benchmark::run_benchmark(
+					&benchmark[..],
+					&selected_components[..],
+					whitelist,
+					*verify,
+					*internal_repeats,
+				).map_err(|e| {
+					$crate::show_benchmark_debug_info(
+						instance_string,
+						benchmark,
+						selected_components,
+						verify,
+						e,
+					)
+				})?
+			});
 		}
+	)
+}
+
+/// This macro allows users to easily generate a list of benchmarks for the
+/// pallets configured in the runtime.
+///
+/// To use this macro, first create a an object to store the list:
+///
+/// ```ignore
+/// let mut list = Vec::<BenchmarkList>::new();
+/// ```
+///
+/// Then pass this `list` to the macro, along with the `extra` boolean, the
+/// pallet crate, and pallet struct:
+///
+/// ```ignore
+/// list_benchmark!(list, extra, pallet_balances, Balances);
+/// list_benchmark!(list, extra, pallet_session, SessionBench::<Runtime>);
+/// list_benchmark!(list, extra, frame_system, SystemBench::<Runtime>);
+/// ```
+///
+/// This should match what exists with the `add_benchmark!` macro.
+
+#[macro_export]
+macro_rules! list_benchmark {
+	( $list:ident, $extra:ident, $name:path, $( $location:tt )* ) => (
+		let pallet_string = stringify!($name).as_bytes();
+		let instance_string = stringify!( $( $location )* ).as_bytes();
+		let benchmarks = $( $location )*::Benchmark::benchmarks($extra);
+		let pallet_benchmarks = $crate::BenchmarkList {
+			pallet: pallet_string.to_vec(),
+			instance: instance_string.to_vec(),
+			benchmarks: benchmarks.to_vec(),
+		};
+		$list.push(pallet_benchmarks)
 	)
 }
 
