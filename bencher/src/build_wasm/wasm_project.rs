@@ -385,7 +385,7 @@ fn create_project(
 
 	fs::create_dir_all(wasm_project_folder.join("src")).expect("Wasm project dir create can not fail; qed");
 
-	let mut enabled_features = project_enabled_features(&project_cargo_toml, &crate_metadata);
+	let mut enabled_features = project_enabled_features(project_cargo_toml, crate_metadata);
 
 	if has_runtime_wasm_feature_declared(project_cargo_toml, crate_metadata) {
 		enabled_features.push("runtime-wasm".into());
@@ -398,7 +398,7 @@ fn create_project(
 		&wasm_project_folder,
 		workspace_root_path,
 		&crate_name,
-		&crate_path,
+		crate_path,
 		&wasm_binary,
 		enabled_features.into_iter(),
 	);

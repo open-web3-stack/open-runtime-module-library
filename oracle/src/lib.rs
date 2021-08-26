@@ -240,7 +240,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 			RawValues::<T, I>::insert(&who, &key, timestamped);
 			IsUpdated::<T, I>::remove(&key);
 
-			T::OnNewData::on_new_data(&who, &key, &value);
+			T::OnNewData::on_new_data(&who, key, value);
 		}
 		Self::deposit_event(Event::NewFeedData(who, values));
 		Ok(())

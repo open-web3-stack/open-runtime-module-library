@@ -361,11 +361,10 @@ fn send_as_sovereign() {
 
 	Relay::execute_with(|| {
 		relay::System::events().iter().any(|r| {
-			if let relay::Event::System(frame_system::Event::<relay::Runtime>::Remarked(_, _)) = r.event {
-				true
-			} else {
-				false
-			}
+			matches!(
+				r.event,
+				relay::Event::System(frame_system::Event::<relay::Runtime>::Remarked(_, _))
+			)
 		});
 	})
 }

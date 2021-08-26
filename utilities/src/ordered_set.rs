@@ -42,7 +42,7 @@ impl<T: Ord, S: Get<u32>> OrderedSet<T, S> {
 	/// Remove an element.
 	/// Return true if removal happened.
 	pub fn remove(&mut self, value: &T) -> bool {
-		match self.0.binary_search(&value) {
+		match self.0.binary_search(value) {
 			Ok(loc) => {
 				self.0.remove(loc);
 				true
@@ -53,7 +53,7 @@ impl<T: Ord, S: Get<u32>> OrderedSet<T, S> {
 
 	/// Return if the set contains `value`
 	pub fn contains(&self, value: &T) -> bool {
-		self.0.binary_search(&value).is_ok()
+		self.0.binary_search(value).is_ok()
 	}
 
 	/// Clear the set

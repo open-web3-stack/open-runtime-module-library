@@ -71,7 +71,7 @@ pub fn handle(output: Vec<u8>) {
 		let stdout = ::std::io::stdout();
 		let mut handle = stdout.lock();
 
-		handle.write_all(&json.as_bytes()).unwrap();
+		handle.write_all(json.as_bytes()).unwrap();
 	} else {
 		eprintln!("Could not write benchdata to JSON");
 	}

@@ -22,7 +22,7 @@ fn dispatch_as_work() {
 		assert_ok!(Authority::dispatch_as(
 			Origin::root(),
 			MockAsOriginId::Root,
-			Box::new(ensure_root_call.clone())
+			Box::new(ensure_root_call)
 		));
 		assert_ok!(Authority::dispatch_as(
 			Origin::root(),
@@ -46,7 +46,7 @@ fn dispatch_as_work() {
 			Authority::dispatch_as(
 				Origin::signed(1),
 				MockAsOriginId::Account2,
-				Box::new(ensure_signed_call.clone())
+				Box::new(ensure_signed_call)
 			),
 			BadOrigin,
 		);
@@ -59,7 +59,7 @@ fn schedule_dispatch_at_work() {
 		let ensure_root_call = Call::System(frame_system::Call::fill_block(Perbill::one()));
 		let call = Call::Authority(authority::Call::dispatch_as(
 			MockAsOriginId::Root,
-			Box::new(ensure_root_call.clone()),
+			Box::new(ensure_root_call),
 		));
 		run_to_block(1);
 		assert_eq!(
@@ -95,7 +95,7 @@ fn schedule_dispatch_at_work() {
 			DispatchTime::At(3),
 			0,
 			false,
-			Box::new(call.clone())
+			Box::new(call)
 		));
 		System::assert_last_event(mock::Event::Authority(Event::Scheduled(
 			OriginCaller::system(RawOrigin::Root),
@@ -117,7 +117,7 @@ fn schedule_dispatch_after_work() {
 		let ensure_root_call = Call::System(frame_system::Call::fill_block(Perbill::one()));
 		let call = Call::Authority(authority::Call::dispatch_as(
 			MockAsOriginId::Root,
-			Box::new(ensure_root_call.clone()),
+			Box::new(ensure_root_call),
 		));
 		run_to_block(1);
 		assert_eq!(
@@ -153,7 +153,7 @@ fn schedule_dispatch_after_work() {
 			DispatchTime::After(0),
 			0,
 			false,
-			Box::new(call.clone())
+			Box::new(call)
 		));
 		System::assert_last_event(mock::Event::Authority(Event::Scheduled(
 			OriginCaller::system(RawOrigin::Root),
@@ -176,7 +176,7 @@ fn fast_track_scheduled_dispatch_work() {
 		let ensure_root_call = Call::System(frame_system::Call::fill_block(Perbill::one()));
 		let call = Call::Authority(authority::Call::dispatch_as(
 			MockAsOriginId::Root,
-			Box::new(ensure_root_call.clone()),
+			Box::new(ensure_root_call),
 		));
 		run_to_block(1);
 		assert_ok!(Authority::schedule_dispatch(
@@ -195,7 +195,7 @@ fn fast_track_scheduled_dispatch_work() {
 		)));
 
 		let schedule_origin = {
-			let origin: <Runtime as Config>::Origin = From::from(Origin::root());
+			let origin: <Runtime as Config>::Origin = Origin::root();
 			let origin: <Runtime as Config>::Origin =
 				From::from(DelayedOrigin::<BlockNumber, <Runtime as Config>::PalletsOrigin> {
 					delay: 1,
@@ -225,7 +225,7 @@ fn fast_track_scheduled_dispatch_work() {
 			DispatchTime::At(2),
 			0,
 			false,
-			Box::new(call.clone())
+			Box::new(call)
 		));
 		System::assert_last_event(mock::Event::Authority(Event::Scheduled(
 			OriginCaller::system(RawOrigin::Root),
@@ -253,7 +253,7 @@ fn delay_scheduled_dispatch_work() {
 		let ensure_root_call = Call::System(frame_system::Call::fill_block(Perbill::one()));
 		let call = Call::Authority(authority::Call::dispatch_as(
 			MockAsOriginId::Root,
-			Box::new(ensure_root_call.clone()),
+			Box::new(ensure_root_call),
 		));
 		run_to_block(1);
 		assert_ok!(Authority::schedule_dispatch(
@@ -272,7 +272,7 @@ fn delay_scheduled_dispatch_work() {
 		)));
 
 		let schedule_origin = {
-			let origin: <Runtime as Config>::Origin = From::from(Origin::root());
+			let origin: <Runtime as Config>::Origin = Origin::root();
 			let origin: <Runtime as Config>::Origin =
 				From::from(DelayedOrigin::<BlockNumber, <Runtime as Config>::PalletsOrigin> {
 					delay: 1,
@@ -302,7 +302,7 @@ fn delay_scheduled_dispatch_work() {
 			DispatchTime::At(2),
 			0,
 			false,
-			Box::new(call.clone())
+			Box::new(call)
 		));
 		System::assert_last_event(mock::Event::Authority(Event::Scheduled(
 			OriginCaller::system(RawOrigin::Root),
@@ -329,7 +329,7 @@ fn cancel_scheduled_dispatch_work() {
 		let ensure_root_call = Call::System(frame_system::Call::fill_block(Perbill::one()));
 		let call = Call::Authority(authority::Call::dispatch_as(
 			MockAsOriginId::Root,
-			Box::new(ensure_root_call.clone()),
+			Box::new(ensure_root_call),
 		));
 		run_to_block(1);
 		assert_ok!(Authority::schedule_dispatch(
@@ -348,7 +348,7 @@ fn cancel_scheduled_dispatch_work() {
 		)));
 
 		let schedule_origin = {
-			let origin: <Runtime as Config>::Origin = From::from(Origin::root());
+			let origin: <Runtime as Config>::Origin = Origin::root();
 			let origin: <Runtime as Config>::Origin =
 				From::from(DelayedOrigin::<BlockNumber, <Runtime as Config>::PalletsOrigin> {
 					delay: 1,
@@ -372,7 +372,7 @@ fn cancel_scheduled_dispatch_work() {
 			DispatchTime::At(2),
 			0,
 			false,
-			Box::new(call.clone())
+			Box::new(call)
 		));
 		System::assert_last_event(mock::Event::Authority(Event::Scheduled(
 			OriginCaller::system(RawOrigin::Root),
