@@ -16,7 +16,7 @@ orml-bencher = { path = "../bencher", default-features = false, optional = true 
 
 [dev-dependencies]
 serde = { version = "1.0.124" }
-codec = { package = "parity-scale-codec", version = "2.0.0" }
+codec = { package = "parity-scale-codec", version = "2.2.0" }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
