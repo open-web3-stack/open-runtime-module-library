@@ -201,7 +201,7 @@ macro_rules! runtime_benchmarks_instance {
 #[macro_export]
 #[doc(hidden)]
 macro_rules! benchmarks_iter {
-	// detect and extract extra tag:
+	// detect and extract `#[extra] tag:
 	(
 		{ $( $instance:ident )? }
 		$runtime:ident
@@ -267,13 +267,21 @@ macro_rules! benchmarks_iter {
 			( $( $names )* )
 			( $( $names_extra )* )
 			( $( $names_skip_meta )* )
-			$name { $( $code )* }: {
+			$name {
+				$( $code )*
+				let __benchmarked_call_encoded = $crate::frame_support::codec::Encode::encode(
+					&$pallet::Call::<$runtime $(, $instance )?>::$dispatch($( $arg ),*)
+				);
+			}: {
+				let call_decoded = <
+					$pallet::Call::<$runtime $(, $instance )?>
+					as $crate::frame_support::codec::Decode
+				>::decode(&mut &__benchmarked_call_encoded[..])
+					.expect("call is encoded above, encoding must be correct");
+
 				<
-					$pallet::Call<$runtime $(, $instance)? > as $crate::frame_support::traits::UnfilteredDispatchable
-				>
-				::dispatch_bypass_filter(
-					$pallet::Call::<$runtime $(, $instance)? >::$dispatch($($arg),*), $origin.into()
-				)?;
+					$pallet::Call::<$runtime $(, $instance )? > as $crate::frame_support::traits::UnfilteredDispatchable
+				>::dispatch_bypass_filter(call_decoded, $origin.into())?;
 			}
 			verify $postcode
 			$( $rest )*
@@ -819,25 +827,27 @@ macro_rules! impl_benchmark {
 			}
 		}
 
-		/// Test a particular benchmark by name.
-		///
-		/// This isn't called `test_benchmark_by_name` just in case some end-user eventually
-		/// writes a benchmark, itself called `by_name`; the function would be shadowed in
-		/// that case.
-		///
-		/// This is generally intended to be used by child test modules such as those created
-		/// by the `impl_benchmark_test_suite` macro. However, it is not an error if a pallet
-		/// author chooses not to implement benchmarks.
 		#[cfg(test)]
-		#[allow(unused)]
-		fn test_bench_by_name(name: &[u8]) -> Result<(), &'static str> {
-			let name = $crate::sp_std::str::from_utf8(name)
-				.map_err(|_| "`name` is not a valid utf8 string!")?;
-			match name {
-				$( stringify!($name) => {
-					$crate::paste::paste! { [< test_benchmark_ $name >]() }
-				} )*
-				_ => Err("Could not find test for requested benchmark."),
+		impl Benchmark {
+			/// Test a particular benchmark by name.
+			///
+			/// This isn't called `test_benchmark_by_name` just in case some end-user eventually
+			/// writes a benchmark, itself called `by_name`; the function would be shadowed in
+			/// that case.
+			///
+			/// This is generally intended to be used by child test modules such as those created
+			/// by the `impl_benchmark_test_suite` macro. However, it is not an error if a pallet
+			/// author chooses not to implement benchmarks.
+			#[allow(unused)]
+			fn test_bench_by_name(name: &[u8]) -> Result<(), &'static str> {
+				let name = $crate::sp_std::str::from_utf8(name)
+					.map_err(|_| "`name` is not a valid utf8 string!")?;
+				match name {
+					$( stringify!($name) => {
+						$crate::paste::paste! { Self::[< test_benchmark_ $name >]() }
+					} )*
+					_ => Err("Could not find test for requested benchmark."),
+				}
 			}
 		}
 	};
@@ -856,58 +866,61 @@ macro_rules! impl_benchmark_test {
 		$name:ident
 	) => {
 		$crate::paste::item! {
-			fn [<test_benchmark_ $name>] () -> Result<(), &'static str>
-			{
-				let selected_benchmark = SelectedBenchmark::$name;
-				let components = <
-					SelectedBenchmark as $crate::BenchmarkingSetup<$runtime, _>
-				>::components(&selected_benchmark);
-
-				let execute_benchmark = |
-					c: $crate::Vec<($crate::BenchmarkParameter, u32)>
-				| -> Result<(), &'static str> {
-					// Set up the benchmark, return execution + verification function.
-					let closure_to_verify = <
+			impl Benchmark {
+				#[allow(unused)]
+				fn [<test_benchmark_ $name>] () -> Result<(), &'static str> {
+					let selected_benchmark = SelectedBenchmark::$name;
+					let components = <
 						SelectedBenchmark as $crate::BenchmarkingSetup<$runtime, _>
-					>::instance(&selected_benchmark, &c, true)?;
+					>::components(&selected_benchmark);
 
-					// Set the block number to at least 1 so events are deposited.
-					if $crate::Zero::is_zero(&frame_system::Pallet::<$runtime>::block_number()) {
-						frame_system::Pallet::<$runtime>::set_block_number(1u32.into());
-					}
+					let execute_benchmark = |
+						c: $crate::Vec<($crate::BenchmarkParameter, u32)>
+					| -> Result<(), &'static str> {
+						// Set up the benchmark, return execution + verification function.
+						let closure_to_verify = <
+							SelectedBenchmark as $crate::BenchmarkingSetup<$runtime, _>
+						>::instance(&selected_benchmark, &c, true)?;
 
-					// Run execution + verification
-					closure_to_verify()?;
+						// Set the block number to at least 1 so events are deposited.
+						if $crate::Zero::is_zero(&frame_system::Pallet::<$runtime>::block_number()) {
+							frame_system::Pallet::<$runtime>::set_block_number(1u32.into());
+						}
 
-					// Reset the state
-					$crate::benchmarking::wipe_db();
+						// Run execution + verification
+						closure_to_verify()?;
 
-					Ok(())
-				};
+						// Reset the state
+						$crate::benchmarking::wipe_db();
 
-				if components.is_empty() {
-					execute_benchmark(Default::default())?;
-				} else {
-					for (_, (name, low, high)) in components.iter().enumerate() {
-						// Test only the low and high value, assuming values in the middle won't break
-						for component_value in $crate::vec![low, high] {
-							// Select the max value for all the other components.
-							let c: $crate::Vec<($crate::BenchmarkParameter, u32)> = components.iter()
-								.enumerate()
-								.map(|(_, (n, _, h))|
-									if n == name {
-										(*n, *component_value)
-									} else {
-										(*n, *h)
-									}
-								)
-								.collect();
+						Ok(())
+					};
 
-							execute_benchmark(c)?;
+					if components.is_empty() {
+						execute_benchmark(Default::default())?;
+					} else {
+						for (name, low, high) in components.iter() {
+							// Test only the low and high value, assuming values in the middle
+							// won't break
+							for component_value in $crate::vec![low, high] {
+								// Select the max value for all the other components.
+								let c: $crate::Vec<($crate::BenchmarkParameter, u32)> = components
+									.iter()
+									.map(|(n, _, h)|
+										if n == name {
+											(*n, *component_value)
+										} else {
+											(*n, *h)
+										}
+									)
+									.collect();
+
+								execute_benchmark(c)?;
+							}
 						}
 					}
+					Ok(())
 				}
-				Ok(())
 			}
 		}
 	};
@@ -998,7 +1011,7 @@ macro_rules! impl_benchmark_test_suite {
 		$new_test_ext:expr,
 		$(, $( $rest:tt )* )?
 	) => {
-		impl_benchmark_test_suite!(
+		$crate::impl_benchmark_test_suite!(
 			@selected:
 				$new_test_ext,
 				benchmarks_path = super,
@@ -1019,7 +1032,7 @@ macro_rules! impl_benchmark_test_suite {
 			benchmarks_path = $benchmarks_path:ident
 			$(, $( $rest:tt )* )?
 	) => {
-		impl_benchmark_test_suite!(
+		$crate::impl_benchmark_test_suite!(
 			@selected:
 				$new_test_ext,
 				benchmarks_path = $benchmarks_path,
@@ -1040,7 +1053,7 @@ macro_rules! impl_benchmark_test_suite {
 			extra = $extra:expr
 			$(, $( $rest:tt )* )?
 	) => {
-		impl_benchmark_test_suite!(
+		$crate::impl_benchmark_test_suite!(
 			@selected:
 				$new_test_ext,
 				benchmarks_path = $benchmarks_path,
@@ -1061,7 +1074,7 @@ macro_rules! impl_benchmark_test_suite {
 			exec_name = $exec_name:ident
 			$(, $( $rest:tt )* )?
 	) => {
-		impl_benchmark_test_suite!(
+		$crate::impl_benchmark_test_suite!(
 			@selected:
 				$new_test_ext,
 				benchmarks_path = $benchmarks_path,
@@ -1083,7 +1096,6 @@ macro_rules! impl_benchmark_test_suite {
 	) => {
 		#[cfg(test)]
 		mod benchmark_tests {
-			use $path_to_benchmarks_invocation::test_bench_by_name;
 			use super::*;
 
 			#[test]
@@ -1095,7 +1107,7 @@ macro_rules! impl_benchmark_test_suite {
 					println!("failing benchmark tests:");
 					for benchmark_metadata in $path_to_benchmarks_invocation::Benchmark::benchmarks($extra) {
 						let benchmark_name = &benchmark_metadata.name;
-						match std::panic::catch_unwind(|| test_bench_by_name(benchmark_name)) {
+						match std::panic::catch_unwind(|| Benchmark::test_bench_by_name(benchmark_name)) {
 							Err(err) => {
 								println!("{}: {:?}", String::from_utf8_lossy(benchmark_name), err);
 								anything_failed = true;
