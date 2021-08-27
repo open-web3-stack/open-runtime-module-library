@@ -1423,10 +1423,10 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 				<Runtime as pallet_elections_phragmen::Config>::Currency::total_balance(&TREASURY_ACCOUNT),
 				100
 			);
-			assert_eq!(
-				<Runtime as pallet_elections_phragmen::Config>::Currency::can_slash(&TREASURY_ACCOUNT, 10),
-				true
-			);
+			assert!(<Runtime as pallet_elections_phragmen::Config>::Currency::can_slash(
+				&TREASURY_ACCOUNT,
+				10
+			));
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Config>::Currency::total_issuance(),
 				100
@@ -1435,10 +1435,10 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 				<Runtime as pallet_elections_phragmen::Config>::Currency::minimum_balance(),
 				2
 			);
-			assert_eq!(
-				<Runtime as pallet_elections_phragmen::Config>::Currency::can_reserve(&TREASURY_ACCOUNT, 5),
-				true
-			);
+			assert!(<Runtime as pallet_elections_phragmen::Config>::Currency::can_reserve(
+				&TREASURY_ACCOUNT,
+				5
+			));
 
 			// burn
 			let imbalance = <Runtime as pallet_elections_phragmen::Config>::Currency::burn(10);

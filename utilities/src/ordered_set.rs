@@ -172,6 +172,6 @@ mod tests {
 		let mut set: OrderedSet<i32, Five> = OrderedSet::from(vec![1, 2, 3, 4, 5].try_into().unwrap());
 		let inserted = set.insert(6);
 
-		assert_eq!(inserted, false)
+		assert!(!inserted)
 	}
 }
