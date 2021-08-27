@@ -218,7 +218,7 @@ fn claim_works() {
 		assert!(PalletBalances::transfer(Origin::signed(BOB), ALICE, 10).is_err());
 		// unlocked after claiming
 		assert_ok!(Vesting::claim(Origin::signed(BOB)));
-		assert_eq!(VestingSchedules::<Runtime>::contains_key(BOB), true);
+		assert!(VestingSchedules::<Runtime>::contains_key(BOB));
 		assert_ok!(PalletBalances::transfer(Origin::signed(BOB), ALICE, 10));
 		// more are still locked
 		assert!(PalletBalances::transfer(Origin::signed(BOB), ALICE, 1).is_err());
@@ -226,7 +226,7 @@ fn claim_works() {
 		MockBlockNumberProvider::set(21);
 		// claim more
 		assert_ok!(Vesting::claim(Origin::signed(BOB)));
-		assert_eq!(VestingSchedules::<Runtime>::contains_key(BOB), false);
+		assert!(!VestingSchedules::<Runtime>::contains_key(BOB));
 		assert_ok!(PalletBalances::transfer(Origin::signed(BOB), ALICE, 10));
 		// all used up
 		assert_eq!(PalletBalances::free_balance(BOB), 0);
@@ -257,7 +257,7 @@ fn claim_for_works() {
 				reasons: Reasons::All,
 			})
 		);
-		assert_eq!(VestingSchedules::<Runtime>::contains_key(&BOB), true);
+		assert!(VestingSchedules::<Runtime>::contains_key(&BOB));
 
 		MockBlockNumberProvider::set(21);
 
@@ -265,7 +265,7 @@ fn claim_for_works() {
 
 		// no locks anymore
 		assert_eq!(PalletBalances::locks(&BOB), vec![]);
-		assert_eq!(VestingSchedules::<Runtime>::contains_key(&BOB), false);
+		assert!(!VestingSchedules::<Runtime>::contains_key(&BOB));
 	});
 }
 
@@ -301,7 +301,7 @@ fn update_vesting_schedules_works() {
 		assert_ok!(PalletBalances::transfer(Origin::signed(BOB), ALICE, 10));
 
 		// empty vesting schedules cleanup the storage and unlock the fund
-		assert_eq!(VestingSchedules::<Runtime>::contains_key(BOB), true);
+		assert!(VestingSchedules::<Runtime>::contains_key(BOB));
 		assert_eq!(
 			PalletBalances::locks(&BOB).get(0),
 			Some(&BalanceLock {
@@ -311,7 +311,7 @@ fn update_vesting_schedules_works() {
 			})
 		);
 		assert_ok!(Vesting::update_vesting_schedules(Origin::root(), BOB, vec![]));
-		assert_eq!(VestingSchedules::<Runtime>::contains_key(BOB), false);
+		assert!(!VestingSchedules::<Runtime>::contains_key(BOB));
 		assert_eq!(PalletBalances::locks(&BOB), vec![]);
 	});
 }
@@ -371,7 +371,7 @@ fn multiple_vesting_schedule_claim_works() {
 
 		assert_ok!(Vesting::claim(Origin::signed(BOB)));
 
-		assert_eq!(VestingSchedules::<Runtime>::contains_key(&BOB), false);
+		assert!(!VestingSchedules::<Runtime>::contains_key(&BOB));
 
 		assert_eq!(PalletBalances::locks(&BOB), vec![]);
 	});
