@@ -201,7 +201,7 @@ macro_rules! runtime_benchmarks_instance {
 #[macro_export]
 #[doc(hidden)]
 macro_rules! benchmarks_iter {
-	// detect and extract extra tag:
+	// detect and extract `#[extra] tag:
 	(
 		{ $( $instance:ident )? }
 		$runtime:ident
@@ -267,13 +267,21 @@ macro_rules! benchmarks_iter {
 			( $( $names )* )
 			( $( $names_extra )* )
 			( $( $names_skip_meta )* )
-			$name { $( $code )* }: {
+			$name {
+				$( $code )*
+				let __benchmarked_call_encoded = $crate::frame_support::codec::Encode::encode(
+					&$pallet::Call::<$runtime $(, $instance )?>::$dispatch($( $arg ),*)
+				);
+			}: {
+				let call_decoded = <
+					$pallet::Call::<$runtime $(, $instance )?>
+					as $crate::frame_support::codec::Decode
+				>::decode(&mut &__benchmarked_call_encoded[..])
+					.expect("call is encoded above, encoding must be correct");
+
 				<
-					$pallet::Call<$runtime $(, $instance)? > as $crate::frame_support::traits::UnfilteredDispatchable
-				>
-				::dispatch_bypass_filter(
-					$pallet::Call::<$runtime $(, $instance)? >::$dispatch($($arg),*), $origin.into()
-				)?;
+					$pallet::Call::<$runtime $(, $instance )? > as $crate::frame_support::traits::UnfilteredDispatchable
+				>::dispatch_bypass_filter(call_decoded, $origin.into())?;
 			}
 			verify $postcode
 			$( $rest )*
