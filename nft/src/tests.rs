@@ -148,8 +148,8 @@ fn destroy_class_should_work() {
 		assert_ok!(NonFungibleTokenModule::mint(&BOB, CLASS_ID, vec![1], ()));
 		assert_ok!(NonFungibleTokenModule::burn(&BOB, (CLASS_ID, TOKEN_ID)));
 		assert_ok!(NonFungibleTokenModule::destroy_class(&ALICE, CLASS_ID));
-		assert_eq!(Classes::<Runtime>::contains_key(CLASS_ID), false);
-		assert_eq!(NextTokenId::<Runtime>::contains_key(CLASS_ID), false);
+		assert!(!Classes::<Runtime>::contains_key(CLASS_ID));
+		assert!(!NextTokenId::<Runtime>::contains_key(CLASS_ID));
 	});
 }
 
@@ -175,7 +175,7 @@ fn destroy_class_should_fail() {
 
 		assert_ok!(NonFungibleTokenModule::burn(&BOB, (CLASS_ID, TOKEN_ID)));
 		assert_ok!(NonFungibleTokenModule::destroy_class(&ALICE, CLASS_ID));
-		assert_eq!(Classes::<Runtime>::contains_key(CLASS_ID), false);
+		assert!(!Classes::<Runtime>::contains_key(CLASS_ID));
 	});
 }
 

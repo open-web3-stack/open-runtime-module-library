@@ -118,14 +118,14 @@ runtime_benchmarks! {
 	set_value {
 		let b in 1 .. 1000;
 		let caller = account::<AccountId>("caller", 0, 0);
-	}: _ (RawOrigin::Signed(caller), b.into())
+	}: _ (RawOrigin::Signed(caller), b)
 	verify {
 		assert_eq!(Pallet::value(), Some(b));
 	}
 
 	other_name {
 		let b in 1 .. 1000;
-	}: dummy (RawOrigin::None, b.into())
+	}: dummy (RawOrigin::None, b)
 
 	sort_vector {
 		let x in 1 .. 10000;
@@ -134,7 +134,7 @@ runtime_benchmarks! {
 			m.push(i);
 		}
 	}: {
-		m.sort();
+		m.sort_unstable();
 	} verify {
 		ensure!(m[0] == 0, "You forgot to sort!")
 	}
@@ -142,7 +142,7 @@ runtime_benchmarks! {
 	bad_origin {
 		let b in 1 .. 1000;
 		let caller = account::<AccountId>("caller", 0, 0);
-	}: dummy (RawOrigin::Signed(caller), b.into())
+	}: dummy (RawOrigin::Signed(caller), b)
 
 	bad_verify {
 		let x in 1 .. 10000;

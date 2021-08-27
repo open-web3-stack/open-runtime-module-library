@@ -134,7 +134,11 @@ impl AsOriginId<Origin, OriginCaller> for MockAsOriginId {
 				MockAsOriginId::Account1 => ensure_signed(origin)? == 1,
 				MockAsOriginId::Account2 => ensure_signed(origin)? == 2,
 			};
-			return if ok { Ok(()) } else { Err(BadOrigin.into()) };
+			if ok {
+				Ok(())
+			} else {
+				Err(BadOrigin.into())
+			}
 		})
 	}
 }

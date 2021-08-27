@@ -96,14 +96,11 @@ fn multi_native_asset() {
 		},
 		&X2(Parent, Parachain(1)),
 	));
-	assert_eq!(
-		MultiNativeAsset::filter_asset_location(
-			&ConcreteFungible {
-				id: X3(Parent, Parachain(1), GeneralKey("TokenA".into())),
-				amount: 10,
-			},
-			&X1(Parent),
-		),
-		false
-	);
+	assert!(!MultiNativeAsset::filter_asset_location(
+		&ConcreteFungible {
+			id: X3(Parent, Parachain(1), GeneralKey("TokenA".into())),
+			amount: 10,
+		},
+		&X1(Parent),
+	));
 }

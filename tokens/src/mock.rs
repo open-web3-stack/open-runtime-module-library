@@ -212,6 +212,7 @@ impl Contains<AccountId> for MockDustRemovalWhitelist {
 
 parameter_type_with_key! {
 	pub ExistentialDeposits: |currency_id: CurrencyId| -> Balance {
+		#[allow(clippy::match_ref_pats)] // false positive
 		match currency_id {
 			&BTC => 1,
 			&DOT => 2,

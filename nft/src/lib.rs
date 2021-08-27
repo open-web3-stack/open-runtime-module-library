@@ -179,7 +179,7 @@ pub mod module {
 				let class_id = Pallet::<T>::create_class(&token_class.0, token_class.1.to_vec(), token_class.2.clone())
 					.expect("Create class cannot fail while building genesis");
 				for (account_id, token_metadata, token_data) in &token_class.3 {
-					Pallet::<T>::mint(&account_id, class_id, token_metadata.to_vec(), token_data.clone())
+					Pallet::<T>::mint(account_id, class_id, token_metadata.to_vec(), token_data.clone())
 						.expect("Token mint cannot fail during genesis");
 				}
 			})

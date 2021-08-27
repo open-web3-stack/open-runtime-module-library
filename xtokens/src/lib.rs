@@ -142,7 +142,7 @@ pub mod module {
 		/// received. Receiving depends on if the XCM message could be delivered
 		/// by the network, and if the receiving chain would handle
 		/// messages correctly.
-		#[pallet::weight(Pallet::<T>::weight_of_transfer(currency_id.clone(), *amount, &dest))]
+		#[pallet::weight(Pallet::<T>::weight_of_transfer(currency_id.clone(), *amount, dest))]
 		#[transactional]
 		pub fn transfer(
 			origin: OriginFor<T>,
@@ -167,7 +167,7 @@ pub mod module {
 		/// received. Receiving depends on if the XCM message could be delivered
 		/// by the network, and if the receiving chain would handle
 		/// messages correctly.
-		#[pallet::weight(Pallet::<T>::weight_of_transfer_multiasset(&asset, &dest))]
+		#[pallet::weight(Pallet::<T>::weight_of_transfer_multiasset(asset, dest))]
 		#[transactional]
 		pub fn transfer_multiasset(
 			origin: OriginFor<T>,
@@ -409,7 +409,7 @@ pub mod module {
 					id,
 					amount: amount.into(),
 				};
-				Self::weight_of_transfer_multiasset(&asset, &dest)
+				Self::weight_of_transfer_multiasset(&asset, dest)
 			} else {
 				0
 			}
