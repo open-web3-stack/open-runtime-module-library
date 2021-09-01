@@ -153,7 +153,7 @@ impl<T: Config> Pallet<T> {
 				});
 
 				share = share.saturating_sub(remove_amount);
-				if share != Zero::zero() {
+				if !share.is_zero() {
 					*share_info = Some((share, withdrawn_rewards));
 				}
 			}
