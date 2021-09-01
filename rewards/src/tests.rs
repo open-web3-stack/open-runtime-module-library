@@ -361,7 +361,7 @@ fn share_to_zero_removes_storage() {
 			}
 		);
 
-		// chescks if key is removed
+		// checks if key is removed
 		assert_eq!(ShareAndWithdrawnReward::<Runtime>::contains_key(DOT_POOL, ALICE), true);
 		RewardsModule::remove_share(&ALICE, &DOT_POOL, 100);
 		assert_eq!(ShareAndWithdrawnReward::<Runtime>::contains_key(DOT_POOL, ALICE), false);
