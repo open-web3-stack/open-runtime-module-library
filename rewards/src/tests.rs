@@ -341,3 +341,35 @@ fn accumulate_reward_should_work() {
 		);
 	});
 }
+
+#[test]
+fn share_to_zero_removes_storage() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_eq!(ShareAndWithdrawnReward::<Runtime>::contains_key(DOT_POOL, ALICE), false);
+		RewardsModule::add_share(&ALICE, &DOT_POOL, 100);
+		RewardsModule::add_share(&BOB, &DOT_POOL, 100);
+		Pools::<Runtime>::mutate(DOT_POOL, |pool_info| {
+			pool_info.total_rewards += 10000;
+		});
+
+		assert_eq!(
+			RewardsModule::pools(DOT_POOL),
+			PoolInfo {
+				total_shares: 200,
+				total_rewards: 10000,
+				total_withdrawn_rewards: 0,
+			}
+		);
+
+		// checks if key is removed
+		assert_eq!(ShareAndWithdrawnReward::<Runtime>::contains_key(DOT_POOL, ALICE), true);
+		RewardsModule::remove_share(&ALICE, &DOT_POOL, 100);
+		assert_eq!(ShareAndWithdrawnReward::<Runtime>::contains_key(DOT_POOL, ALICE), false);
+
+		RewardsModule::remove_share(&BOB, &DOT_POOL, 50);
+		assert_eq!(ShareAndWithdrawnReward::<Runtime>::contains_key(DOT_POOL, BOB), true);
+
+		RewardsModule::remove_share(&BOB, &DOT_POOL, 100);
+		assert_eq!(ShareAndWithdrawnReward::<Runtime>::contains_key(DOT_POOL, BOB), false);
+	});
+}
