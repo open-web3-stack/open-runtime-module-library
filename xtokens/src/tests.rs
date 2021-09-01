@@ -47,14 +47,13 @@ fn send_relay_chain_asset_to_relay_chain() {
 			Some(ALICE).into(),
 			CurrencyId::R,
 			500,
-			(
+			Box::new((
 				Parent,
 				Junction::AccountId32 {
 					network: NetworkId::Kusama,
 					id: BOB.into(),
 				},
-			)
-				.into(),
+			).into()),
 			30,
 		));
 		assert_eq!(ParaTokens::free_balance(CurrencyId::R, &ALICE), 500);
@@ -77,15 +76,14 @@ fn cannot_lost_fund_on_send_failed() {
 				Some(ALICE).into(),
 				CurrencyId::A,
 				500,
-				(
+				Box::new((
 					Parent,
 					Parachain(100),
 					Junction::AccountId32 {
 						network: NetworkId::Kusama,
 						id: BOB.into(),
 					},
-				)
-					.into(),
+				).into()),
 				30,
 			),
 			Error::<para::Runtime>::XcmExecutionFailed
@@ -108,15 +106,14 @@ fn send_relay_chain_asset_to_sibling() {
 			Some(ALICE).into(),
 			CurrencyId::R,
 			500,
-			(
+			Box::new((
 				Parent,
 				Parachain(2),
 				Junction::AccountId32 {
 					network: NetworkId::Any,
 					id: BOB.into(),
 				},
-			)
-				.into(),
+			).into()),
 			30,
 		));
 		assert_eq!(ParaTokens::free_balance(CurrencyId::R, &ALICE), 500);
@@ -149,15 +146,14 @@ fn send_sibling_asset_to_reserve_sibling() {
 			Some(ALICE).into(),
 			CurrencyId::B,
 			500,
-			(
+			Box::new((
 				Parent,
 				Parachain(2),
 				Junction::AccountId32 {
 					network: NetworkId::Any,
 					id: BOB.into(),
 				},
-			)
-				.into(),
+			).into()),
 			30,
 		));
 
@@ -187,15 +183,14 @@ fn send_sibling_asset_to_non_reserve_sibling() {
 			Some(ALICE).into(),
 			CurrencyId::B,
 			500,
-			(
+			Box::new((
 				Parent,
 				Parachain(3),
 				Junction::AccountId32 {
 					network: NetworkId::Any,
 					id: BOB.into(),
 				},
-			)
-				.into(),
+			).into()),
 			30
 		));
 		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &ALICE), 500);
@@ -223,15 +218,14 @@ fn send_self_parachain_asset_to_sibling() {
 			Some(ALICE).into(),
 			CurrencyId::A,
 			500,
-			(
+			Box::new((
 				Parent,
 				Parachain(2),
 				Junction::AccountId32 {
 					network: NetworkId::Any,
 					id: BOB.into(),
 				},
-			)
-				.into(),
+			).into()),
 			30,
 		));
 
@@ -252,19 +246,18 @@ fn transfer_no_reserve_assets_fails() {
 		assert_noop!(
 			ParaXTokens::transfer_multiasset(
 				Some(ALICE).into(),
-				MultiAsset::ConcreteFungible {
+				Box::new(MultiAsset::ConcreteFungible {
 					id: GeneralKey("B".into()).into(),
 					amount: 100
-				},
-				(
+				}),
+				Box::new((
 					Parent,
 					Parachain(2),
 					Junction::AccountId32 {
 						network: NetworkId::Any,
 						id: BOB.into()
 					}
-				)
-					.into(),
+				).into()),
 				50,
 			),
 			Error::<para::Runtime>::AssetHasNoReserve
@@ -280,19 +273,18 @@ fn transfer_to_self_chain_fails() {
 		assert_noop!(
 			ParaXTokens::transfer_multiasset(
 				Some(ALICE).into(),
-				MultiAsset::ConcreteFungible {
+				Box::new(MultiAsset::ConcreteFungible {
 					id: (Parent, Parachain(1), GeneralKey("A".into())).into(),
 					amount: 100
-				},
-				(
+				}),
+				Box::new((
 					Parent,
 					Parachain(1),
 					Junction::AccountId32 {
 						network: NetworkId::Any,
 						id: BOB.into()
 					}
-				)
-					.into(),
+				).into()),
 				50,
 			),
 			Error::<para::Runtime>::NotCrossChainTransfer
@@ -308,15 +300,14 @@ fn transfer_to_invalid_dest_fails() {
 		assert_noop!(
 			ParaXTokens::transfer_multiasset(
 				Some(ALICE).into(),
-				MultiAsset::ConcreteFungible {
+				Box::new(MultiAsset::ConcreteFungible {
 					id: (Parent, Parachain(1), GeneralKey("A".into())).into(),
 					amount: 100,
-				},
-				(Junction::AccountId32 {
+				}),
+				Box::new((Junction::AccountId32 {
 					network: NetworkId::Any,
 					id: BOB.into()
-				})
-				.into(),
+				}).into()),
 				50,
 			),
 			Error::<para::Runtime>::InvalidDest
@@ -406,4 +397,13 @@ fn send_as_sovereign_fails_if_bad_origin() {
 			DispatchError::BadOrigin,
 		);
 	});
+}
+
+#[test]
+fn call_size_limit() {
+	assert!(core::mem::size_of::<crate::Call::<crate::tests::para::Runtime>>() <= 230, 
+		"size of Call is more than 230 bytes: some calls have too big arguments, use Box to \
+		reduce the size of Call.
+		If the limit is too strong, maybe consider increasing the limit",
+	);
 }
