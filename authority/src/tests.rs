@@ -390,3 +390,13 @@ fn cancel_scheduled_dispatch_work() {
 		)));
 	});
 }
+
+#[test]
+fn call_size_limit() {
+	assert!(
+		core::mem::size_of::<authority::Call::<Runtime>>() <= 200,
+		"size of Call is more than 200 bytes: some calls have too big arguments, use Box to \
+		reduce the size of Call.
+		If the limit is too strong, maybe consider increasing the limit",
+	);
+}
