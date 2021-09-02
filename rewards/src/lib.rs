@@ -5,6 +5,8 @@ mod migrations;
 mod mock;
 mod tests;
 
+pub use migrations::migrate_to_multi_currency_reward;
+
 use codec::{FullCodec, HasCompact, MaxEncodedLen};
 use frame_support::{pallet_prelude::*, weights::Weight};
 use orml_traits::RewardHandler;
@@ -136,26 +138,7 @@ pub mod module {
 	pub struct Pallet<T>(_);
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-		fn on_runtime_upgrade() -> Weight {
-			if StorageVersion::<T>::get() == Releases::V0 {
-				StorageVersion::<T>::put(Releases::V1);
-				migrations::v1::migrate::<T>().saturating_add(T::DbWeight::get().reads_writes(1, 1))
-			} else {
-				T::DbWeight::get().reads(1)
-			}
-		}
-
-		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<(), &'static str> {
-			migrations::v1::pre_migrate::<T>()
-		}
-
-		#[cfg(feature = "try-runtime")]
-		fn post_upgrade() -> Result<(), &'static str> {
-			migrations::v1::post_migrate::<T>()
-		}
-	}
+	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {}
