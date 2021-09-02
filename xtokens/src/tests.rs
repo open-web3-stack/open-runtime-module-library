@@ -428,16 +428,8 @@ fn send_as_sovereign_fails_if_bad_origin() {
 
 #[test]
 fn call_size_limit() {
-	// Ensures Call enum doesn't allocate more than 200 bytes in runtime
 	assert!(
 		core::mem::size_of::<crate::Call::<crate::tests::para::Runtime>>() <= 200,
-		"size of Call is more than 200 bytes: some calls have too big arguments, use Box to \
-		reduce the size of Call.
-		If the limit is too strong, maybe consider increasing the limit",
-	);
-
-	assert!(
-		core::mem::size_of::<orml_xcm::Call::<crate::tests::para::Runtime>>() <= 200,
 		"size of Call is more than 200 bytes: some calls have too big arguments, use Box to \
 		reduce the size of Call.
 		If the limit is too strong, maybe consider increasing the limit",
