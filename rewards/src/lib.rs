@@ -58,24 +58,11 @@ where
 	}
 }
 
-#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, MaxEncodedLen)]
-enum Releases {
-	V0,
-	V1,
-}
-
-impl Default for Releases {
-	fn default() -> Self {
-		Releases::V0
-	}
-}
-
 pub use module::*;
 
 #[frame_support::pallet]
 pub mod module {
 	use super::*;
-	use orml_traits::GetByKey;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -106,8 +93,6 @@ pub mod module {
 
 		/// The `RewardHandler`
 		type Handler: RewardHandler<Self::AccountId, Self::CurrencyId, Balance = Self::Balance, PoolId = Self::PoolId>;
-
-		type V0Migration: GetByKey<Self::PoolId, Self::CurrencyId>;
 	}
 
 	/// Stores reward pool info.
@@ -129,10 +114,6 @@ pub mod module {
 		(T::Share, BTreeMap<T::CurrencyId, T::Balance>),
 		ValueQuery,
 	>;
-
-	/// The current version of the pallet.
-	#[pallet::storage]
-	pub(crate) type StorageVersion<T: Config> = StorageValue<_, Releases, ValueQuery>;
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);

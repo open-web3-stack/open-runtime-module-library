@@ -1,6 +1,8 @@
 use super::*;
 
-pub fn migrate_to_multi_currency_reward<T: Config>(get_reward_currency: impl Fn(&T::PoolId) -> T::CurrencyId) -> Weight {
+pub fn migrate_to_multi_currency_reward<T: Config>(
+	get_reward_currency: impl Fn(&T::PoolId) -> T::CurrencyId,
+) -> Weight {
 	let mut reads_writes: Weight = 0;
 	Pools::<T>::translate::<PoolInfoV0<T::Share, T::Balance>, _>(|pool_id, old_pool_info| {
 		reads_writes += 1;

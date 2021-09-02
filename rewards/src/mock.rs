@@ -4,7 +4,6 @@
 
 use super::*;
 use frame_support::{construct_runtime, parameter_types};
-use orml_traits::parameter_type_with_key;
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 use sp_std::cell::RefCell;
@@ -80,19 +79,12 @@ impl RewardHandler<AccountId, CurrencyId> for Handler {
 	}
 }
 
-parameter_type_with_key! {
-	pub MockV0Migration: |_pool_id: PoolId| -> CurrencyId {
-		NATIVE_COIN
-	};
-}
-
 impl Config for Runtime {
 	type Share = Share;
 	type Balance = Balance;
 	type PoolId = PoolId;
 	type CurrencyId = CurrencyId;
 	type Handler = Handler;
-	type V0Migration = MockV0Migration;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
