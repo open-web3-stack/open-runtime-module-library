@@ -10,10 +10,6 @@ use sp_std::prelude::*;
 
 /// Utility to iterate through items in a storage map.
 /// Forks from substrate, expose previous_key field
-#[deprecated(
-	since = "0.4.1",
-	note = "StorageMapIterator functionality is now available in substrate's frame-support"
-)]
 pub struct StorageMapIterator<K, V, Hasher> {
 	prefix: Vec<u8>,
 	pub previous_key: Vec<u8>,
@@ -54,10 +50,6 @@ impl<K: Decode + Sized, V: Decode + Sized, Hasher: ReversibleStorageHasher> Iter
 }
 
 /// Shim for StorageMapIterator, add more features
-#[deprecated(
-	since = "0.4.1",
-	note = "StorageMapIteratorShim functionality is now available in substrate's frame-support"
-)]
 pub struct StorageMapIteratorShim<K, V, H> {
 	pub storage_map_iterator: StorageMapIterator<K, V, H>,
 	pub remain_iterator_count: Option<u32>,
@@ -86,10 +78,6 @@ impl<K: Decode + Sized, V: Decode + Sized, H: ReversibleStorageHasher> Iterator 
 }
 
 /// A strongly-typed map in storage whose keys and values can be iterated over.
-#[deprecated(
-	since = "0.4.1",
-	note = "IterableStorageMapExtended functionality is now available in substrate's frame-support"
-)]
 pub trait IterableStorageMapExtended<K: FullEncode, V: FullCodec>: StorageMap<K, V> {
 	/// The type that iterates over all `(key, value)`.
 	type Iterator: Iterator<Item = (K, V)>;
@@ -154,10 +142,6 @@ where
 
 /// Iterate over a prefix and decode raw_key and raw_value into `T`.
 /// Forks from substrate, expose previous_key field
-#[deprecated(
-	since = "0.4.1",
-	note = "MapIterator functionality is now available in substrate's frame-support"
-)]
 pub struct MapIterator<T> {
 	prefix: Vec<u8>,
 	pub previous_key: Vec<u8>,
@@ -207,10 +191,6 @@ impl<T> Iterator for MapIterator<T> {
 }
 
 /// Shim for MapIterator, add more features
-#[deprecated(
-	since = "0.4.1",
-	note = "MapIteratorShim functionality is now available in substrate's frame-support"
-)]
 pub struct MapIteratorShim<T> {
 	pub map_iterator: MapIterator<T>,
 	pub remain_iterator_count: Option<u32>,
@@ -239,10 +219,6 @@ impl<T> Iterator for MapIteratorShim<T> {
 }
 
 /// A strongly-typed map in storage whose keys and values can be iterated over.
-#[deprecated(
-	since = "0.4.1",
-	note = "IterableStorageDoubleMapExtended functionality is now available in substrate's frame-support"
-)]
 pub trait IterableStorageDoubleMapExtended<K1: FullCodec, K2: FullCodec, V: FullCodec>:
 	StorageDoubleMap<K1, K2, V>
 {
