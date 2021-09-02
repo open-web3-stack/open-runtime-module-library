@@ -356,8 +356,8 @@ fn send_as_sovereign() {
 		let call = relay::Call::System(frame_system::Call::<relay::Runtime>::remark_with_event(vec![1, 1, 1]));
 		assert_ok!(para::OrmlXcm::send_as_sovereign(
 			para::Origin::root(),
-			Junction::Parent.into(),
-			WithdrawAsset {
+			Box::new(Junction::Parent.into()),
+			Box::new(WithdrawAsset {
 				assets: vec![MultiAsset::ConcreteFungible {
 					id: MultiLocation::Null,
 					amount: 1_000_000_000_000
@@ -373,7 +373,7 @@ fn send_as_sovereign() {
 						call: call.encode().into(),
 					}],
 				}]
-			}
+			})
 		));
 	});
 
@@ -402,8 +402,8 @@ fn send_as_sovereign_fails_if_bad_origin() {
 		assert_err!(
 			para::OrmlXcm::send_as_sovereign(
 				para::Origin::signed(ALICE),
-				Junction::Parent.into(),
-				WithdrawAsset {
+				Box::new(Junction::Parent.into()),
+				Box::new(WithdrawAsset {
 					assets: vec![MultiAsset::ConcreteFungible {
 						id: MultiLocation::Null,
 						amount: 1_000_000_000_000
@@ -419,7 +419,7 @@ fn send_as_sovereign_fails_if_bad_origin() {
 							call: call.encode().into(),
 						}],
 					}]
-				}
+				})
 			),
 			DispatchError::BadOrigin,
 		);
