@@ -206,7 +206,11 @@ pub mod module {
 			let info = call.get_dispatch_info();
 			(T::WeightInfo::dispatch_as().saturating_add(info.weight), info.class)
 		})]
-		pub fn dispatch_as(origin: OriginFor<T>, as_origin: T::AsOriginId, call: Box<CallOf<T>>) -> DispatchResult {
+		pub fn dispatch_as(
+			origin: OriginFor<T>,
+			as_origin: Box<T::AsOriginId>,
+			call: Box<CallOf<T>>,
+		) -> DispatchResult {
 			as_origin.check_dispatch_from(origin)?;
 
 			let e = call.dispatch(as_origin.into_origin().into());

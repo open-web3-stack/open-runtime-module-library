@@ -21,31 +21,31 @@ fn dispatch_as_work() {
 		let ensure_signed_call = Call::System(frame_system::Call::remark(vec![]));
 		assert_ok!(Authority::dispatch_as(
 			Origin::root(),
-			MockAsOriginId::Root,
+			Box::new(MockAsOriginId::Root),
 			Box::new(ensure_root_call)
 		));
 		assert_ok!(Authority::dispatch_as(
 			Origin::root(),
-			MockAsOriginId::Account1,
+			Box::new(MockAsOriginId::Account1),
 			Box::new(ensure_signed_call.clone())
 		));
 		assert_noop!(
 			Authority::dispatch_as(
 				Origin::signed(1),
-				MockAsOriginId::Root,
+				Box::new(MockAsOriginId::Root),
 				Box::new(ensure_signed_call.clone())
 			),
 			BadOrigin,
 		);
 		assert_ok!(Authority::dispatch_as(
 			Origin::signed(1),
-			MockAsOriginId::Account1,
+			Box::new(MockAsOriginId::Account1),
 			Box::new(ensure_signed_call.clone())
 		));
 		assert_noop!(
 			Authority::dispatch_as(
 				Origin::signed(1),
-				MockAsOriginId::Account2,
+				Box::new(MockAsOriginId::Account2),
 				Box::new(ensure_signed_call)
 			),
 			BadOrigin,
@@ -58,7 +58,7 @@ fn schedule_dispatch_at_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let ensure_root_call = Call::System(frame_system::Call::fill_block(Perbill::one()));
 		let call = Call::Authority(authority::Call::dispatch_as(
-			MockAsOriginId::Root,
+			Box::new(MockAsOriginId::Root),
 			Box::new(ensure_root_call),
 		));
 		run_to_block(1);
@@ -116,7 +116,7 @@ fn schedule_dispatch_after_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let ensure_root_call = Call::System(frame_system::Call::fill_block(Perbill::one()));
 		let call = Call::Authority(authority::Call::dispatch_as(
-			MockAsOriginId::Root,
+			Box::new(MockAsOriginId::Root),
 			Box::new(ensure_root_call),
 		));
 		run_to_block(1);
@@ -175,7 +175,7 @@ fn fast_track_scheduled_dispatch_work() {
 		System::set_block_number(1);
 		let ensure_root_call = Call::System(frame_system::Call::fill_block(Perbill::one()));
 		let call = Call::Authority(authority::Call::dispatch_as(
-			MockAsOriginId::Root,
+			Box::new(MockAsOriginId::Root),
 			Box::new(ensure_root_call),
 		));
 		run_to_block(1);
@@ -252,7 +252,7 @@ fn delay_scheduled_dispatch_work() {
 		System::set_block_number(1);
 		let ensure_root_call = Call::System(frame_system::Call::fill_block(Perbill::one()));
 		let call = Call::Authority(authority::Call::dispatch_as(
-			MockAsOriginId::Root,
+			Box::new(MockAsOriginId::Root),
 			Box::new(ensure_root_call),
 		));
 		run_to_block(1);
@@ -328,7 +328,7 @@ fn cancel_scheduled_dispatch_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let ensure_root_call = Call::System(frame_system::Call::fill_block(Perbill::one()));
 		let call = Call::Authority(authority::Call::dispatch_as(
-			MockAsOriginId::Root,
+			Box::new(MockAsOriginId::Root),
 			Box::new(ensure_root_call),
 		));
 		run_to_block(1);
