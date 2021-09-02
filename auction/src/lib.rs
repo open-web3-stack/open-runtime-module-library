@@ -68,6 +68,7 @@ pub mod module {
 
 	#[pallet::event]
 	#[pallet::generate_deposit(fn deposit_event)]
+	#[pallet::metadata(T::AuctionId = "AuctionId", T::AccountId = "AccountId", T::Balance = "Balance")]
 	pub enum Event<T: Config> {
 		/// A bid is placed. [auction_id, bidder, bidding_amount]
 		Bid(T::AuctionId, T::AccountId, T::Balance),

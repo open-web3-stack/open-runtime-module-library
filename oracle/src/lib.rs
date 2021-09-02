@@ -104,6 +104,7 @@ pub mod module {
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
+	#[pallet::metadata(T::AccountId = "AccountId", Vec<(T::OracleKey, T::OracleValue)> = "Vec<(OracleKey, OracleValue)>")]
 	pub enum Event<T: Config<I>, I: 'static = ()> {
 		/// New feed data is submitted. [sender, values]
 		NewFeedData(T::AccountId, Vec<(T::OracleKey, T::OracleValue)>),
