@@ -8,6 +8,7 @@ pub mod iterator;
 pub mod offchain_worker;
 pub mod ordered_set;
 
+pub use iterator::{IterableStorageDoubleMapExtended, IterableStorageMapExtended};
 pub use offchain_worker::OffchainErr;
 pub use ordered_set::OrderedSet;
 
