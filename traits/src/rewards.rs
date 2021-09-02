@@ -3,7 +3,7 @@ use sp_runtime::traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize};
 use sp_std::fmt::Debug;
 
 /// Hooks to manage reward pool
-pub trait RewardHandler<AccountId> {
+pub trait RewardHandler<AccountId, CurrencyId> {
 	/// The reward balance type
 	type Balance: AtLeast32BitUnsigned + Default + Copy + MaybeSerializeDeserialize + Debug;
 
@@ -11,5 +11,5 @@ pub trait RewardHandler<AccountId> {
 	type PoolId: FullCodec;
 
 	/// Payout the reward to `who`
-	fn payout(who: &AccountId, pool: &Self::PoolId, amount: Self::Balance);
+	fn payout(who: &AccountId, pool: &Self::PoolId, currency_id: CurrencyId, amount: Self::Balance);
 }
