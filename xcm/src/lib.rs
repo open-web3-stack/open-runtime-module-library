@@ -48,7 +48,11 @@ pub mod module {
 	impl<T: Config> Pallet<T> {
 		/// Send an XCM message as parachain sovereign.
 		#[pallet::weight(100_000_000)]
-		pub fn send_as_sovereign(origin: OriginFor<T>, dest: Box<MultiLocation>, message: Box<Xcm<()>>) -> DispatchResult {
+		pub fn send_as_sovereign(
+			origin: OriginFor<T>,
+			dest: Box<MultiLocation>,
+			message: Box<Xcm<()>>,
+		) -> DispatchResult {
 			let _ = T::SovereignOrigin::ensure_origin(origin)?;
 			pallet_xcm::Pallet::<T>::send_xcm(MultiLocation::Null, *dest.clone(), *message.clone()).map_err(
 				|e| match e {
