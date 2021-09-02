@@ -5,6 +5,7 @@
 
 use frame_support::{pallet_prelude::*, traits::EnsureOrigin};
 use frame_system::pallet_prelude::*;
+use sp_std::boxed::Box;
 
 use xcm::v0::prelude::*;
 
@@ -48,15 +49,19 @@ pub mod module {
 	impl<T: Config> Pallet<T> {
 		/// Send an XCM message as parachain sovereign.
 		#[pallet::weight(100_000_000)]
-		pub fn send_as_sovereign(origin: OriginFor<T>, dest: MultiLocation, message: Xcm<()>) -> DispatchResult {
+		pub fn send_as_sovereign(
+			origin: OriginFor<T>,
+			dest: Box<MultiLocation>,
+			message: Box<Xcm<()>>,
+		) -> DispatchResult {
 			let _ = T::SovereignOrigin::ensure_origin(origin)?;
-			pallet_xcm::Pallet::<T>::send_xcm(MultiLocation::Null, dest.clone(), message.clone()).map_err(
+			pallet_xcm::Pallet::<T>::send_xcm(MultiLocation::Null, *dest.clone(), *message.clone()).map_err(
 				|e| match e {
 					XcmError::CannotReachDestination(..) => Error::<T>::Unreachable,
 					_ => Error::<T>::SendFailure,
 				},
 			)?;
-			Self::deposit_event(Event::Sent(MultiLocation::Null, dest, message));
+			Self::deposit_event(Event::Sent(MultiLocation::Null, *dest, *message));
 			Ok(())
 		}
 	}

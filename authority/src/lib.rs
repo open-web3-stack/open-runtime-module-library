@@ -267,7 +267,7 @@ pub mod module {
 		#[pallet::weight(T::WeightInfo::fast_track_scheduled_dispatch())]
 		pub fn fast_track_scheduled_dispatch(
 			origin: OriginFor<T>,
-			initial_origin: T::PalletsOrigin,
+			initial_origin: Box<T::PalletsOrigin>,
 			task_id: ScheduleTaskIndex,
 			when: DispatchTime<T::BlockNumber>,
 		) -> DispatchResult {
@@ -285,7 +285,7 @@ pub mod module {
 			T::Scheduler::reschedule_named((&initial_origin, task_id).encode(), when)
 				.map_err(|_| Error::<T>::FailedToFastTrack)?;
 
-			Self::deposit_event(Event::FastTracked(initial_origin, task_id, dispatch_at));
+			Self::deposit_event(Event::FastTracked(*initial_origin, task_id, dispatch_at));
 			Ok(())
 		}
 
@@ -293,7 +293,7 @@ pub mod module {
 		#[pallet::weight(T::WeightInfo::delay_scheduled_dispatch())]
 		pub fn delay_scheduled_dispatch(
 			origin: OriginFor<T>,
-			initial_origin: T::PalletsOrigin,
+			initial_origin: Box<T::PalletsOrigin>,
 			task_id: ScheduleTaskIndex,
 			additional_delay: T::BlockNumber,
 		) -> DispatchResult {
@@ -308,7 +308,7 @@ pub mod module {
 			let now = frame_system::Pallet::<T>::block_number();
 			let dispatch_at = now.saturating_add(additional_delay);
 
-			Self::deposit_event(Event::Delayed(initial_origin, task_id, dispatch_at));
+			Self::deposit_event(Event::Delayed(*initial_origin, task_id, dispatch_at));
 			Ok(())
 		}
 
@@ -316,13 +316,13 @@ pub mod module {
 		#[pallet::weight(T::WeightInfo::cancel_scheduled_dispatch())]
 		pub fn cancel_scheduled_dispatch(
 			origin: OriginFor<T>,
-			initial_origin: T::PalletsOrigin,
+			initial_origin: Box<T::PalletsOrigin>,
 			task_id: ScheduleTaskIndex,
 		) -> DispatchResult {
 			T::AuthorityConfig::check_cancel_schedule(origin, &initial_origin)?;
 			T::Scheduler::cancel_named((&initial_origin, task_id).encode()).map_err(|_| Error::<T>::FailedToCancel)?;
 
-			Self::deposit_event(Event::Cancelled(initial_origin, task_id));
+			Self::deposit_event(Event::Cancelled(*initial_origin, task_id));
 			Ok(())
 		}
 	}

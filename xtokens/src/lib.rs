@@ -148,11 +148,11 @@ pub mod module {
 			origin: OriginFor<T>,
 			currency_id: T::CurrencyId,
 			amount: T::Balance,
-			dest: MultiLocation,
+			dest: Box<MultiLocation>,
 			dest_weight: Weight,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			Self::do_transfer(who, currency_id, amount, dest, dest_weight)
+			Self::do_transfer(who, currency_id, amount, *dest, dest_weight)
 		}
 
 		/// Transfer `MultiAsset`.
@@ -171,12 +171,12 @@ pub mod module {
 		#[transactional]
 		pub fn transfer_multiasset(
 			origin: OriginFor<T>,
-			asset: MultiAsset,
-			dest: MultiLocation,
+			asset: Box<MultiAsset>,
+			dest: Box<MultiLocation>,
 			dest_weight: Weight,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			Self::do_transfer_multiasset(who, asset, dest, dest_weight, true)
+			Self::do_transfer_multiasset(who, *asset, *dest, dest_weight, true)
 		}
 	}
 
