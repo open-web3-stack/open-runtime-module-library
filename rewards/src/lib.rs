@@ -102,8 +102,10 @@ pub mod module {
 	pub type Pools<T: Config> =
 		StorageMap<_, Twox64Concat, T::PoolId, PoolInfo<T::Share, T::Balance, T::CurrencyId>, ValueQuery>;
 
-	/// Record share amount and withdrawn reward amount for specific `AccountId`
-	/// under `PoolId`.
+	/// Record share amount, reward currency and withdrawn reward amount for
+	/// specific `AccountId` under `PoolId`.
+	///
+	/// double_map (PoolId, AccountId) => (Share, BTreeMap<CurrencyId, Balance>)
 	#[pallet::storage]
 	#[pallet::getter(fn share_and_withdrawn_reward)]
 	pub type ShareAndWithdrawnReward<T: Config> = StorageDoubleMap<
