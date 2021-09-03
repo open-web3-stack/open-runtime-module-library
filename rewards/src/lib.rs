@@ -15,10 +15,11 @@ use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize, Member, Saturating, UniqueSaturatedInto, Zero},
 	FixedPointOperand, RuntimeDebug, SaturatedConversion,
 };
-use sp_std::collections::btree_map::BTreeMap;
 use sp_std::{
 	cmp::{Eq, PartialEq},
+	collections::btree_map::BTreeMap,
 	fmt::Debug,
+	vec::Vec,
 };
 
 /// The Reward Pool Info.
