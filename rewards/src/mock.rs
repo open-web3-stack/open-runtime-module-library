@@ -23,8 +23,7 @@ pub const BOB: AccountId = 2;
 pub const CAROL: AccountId = 3;
 pub const DOT_POOL: PoolId = 1;
 pub const NATIVE_COIN: CurrencyId = 0;
-// pub const STABLE_COIN: CurrencyId = 1;
-// pub const LIQUID_COIN: CurrencyId = 2;
+pub const STABLE_COIN: CurrencyId = 1;
 
 parameter_types! {
 	pub const BlockHashCount: u64 = 250;

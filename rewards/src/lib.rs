@@ -10,9 +10,10 @@ pub use migrations::migrate_to_multi_currency_reward;
 use codec::{FullCodec, HasCompact, MaxEncodedLen};
 use frame_support::{pallet_prelude::*, weights::Weight};
 use orml_traits::RewardHandler;
+use sp_core::U256;
 use sp_runtime::{
-	traits::{AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, Saturating, Zero},
-	FixedPointNumber, FixedPointOperand, FixedU128, RuntimeDebug,
+	traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize, Member, Saturating, UniqueSaturatedInto, Zero},
+	FixedPointOperand, RuntimeDebug, SaturatedConversion,
 };
 use sp_std::collections::btree_map::BTreeMap;
 use sp_std::{
@@ -38,9 +39,8 @@ pub struct PoolInfoV0<Share: HasCompact, Balance: HasCompact> {
 #[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug)]
 pub struct PoolInfo<Share: HasCompact, Balance: HasCompact, CurrencyId: Ord> {
 	/// Total shares amount
-	#[codec(compact)]
 	pub total_shares: Share,
-	/// Reward infos
+	/// Reward infos <reward_currency, (total_reward, total_withdrawn_reward)>
 	pub rewards: BTreeMap<CurrencyId, (Balance, Balance)>,
 }
 
@@ -127,17 +127,18 @@ pub mod module {
 
 impl<T: Config> Pallet<T> {
 	pub fn accumulate_reward(pool: &T::PoolId, reward_currency: T::CurrencyId, reward_increment: T::Balance) {
-		if !reward_increment.is_zero() {
-			Pools::<T>::mutate(pool, |pool_info| {
-				if let Some((total_rewards, _)) = pool_info.rewards.get_mut(&reward_currency) {
-					*total_rewards = total_rewards.saturating_add(reward_increment);
-				} else {
-					pool_info
-						.rewards
-						.insert(reward_currency, (reward_increment, Zero::zero()));
-				}
-			});
+		if reward_increment.is_zero() {
+			return;
 		}
+		Pools::<T>::mutate(pool, |pool_info| {
+			if let Some((total_reward, _)) = pool_info.rewards.get_mut(&reward_currency) {
+				*total_reward = total_reward.saturating_add(reward_increment);
+			} else {
+				pool_info
+					.rewards
+					.insert(reward_currency, (reward_increment, Zero::zero()));
+			}
+		});
 	}
 
 	pub fn add_share(who: &T::AccountId, pool: &T::PoolId, add_amount: T::Share) {
@@ -146,39 +147,44 @@ impl<T: Config> Pallet<T> {
 		}
 
 		Pools::<T>::mutate(pool, |pool_info| {
-			let total_shares = pool_info.total_shares;
+			let initial_total_shares = pool_info.total_shares;
 			pool_info.total_shares = pool_info.total_shares.saturating_add(add_amount);
 
-			let mut withdrawn_inflations = Vec::<(&T::CurrencyId, T::Balance)>::new();
+			let mut withdrawn_inflation = Vec::<(T::CurrencyId, T::Balance)>::new();
 
 			pool_info
 				.rewards
 				.iter_mut()
-				.for_each(|(reward_currency, (total_rewards, total_withdrawn_rewards))| {
-					let reward_inflation = if total_shares.is_zero() {
+				.for_each(|(reward_currency, (total_reward, total_withdrawn_reward))| {
+					let reward_inflation = if initial_total_shares.is_zero() {
 						Zero::zero()
 					} else {
-						let proportion = FixedU128::checked_from_rational(add_amount, total_shares)
-							.unwrap_or_else(FixedU128::max_value);
-						proportion.saturating_mul_int(*total_rewards)
+						U256::from(add_amount.to_owned().saturated_into::<u128>())
+							.saturating_mul(total_reward.to_owned().saturated_into::<u128>().into())
+							.checked_div(initial_total_shares.to_owned().saturated_into::<u128>().into())
+							.unwrap_or_default()
+							.as_u128()
+							.saturated_into()
 					};
-					*total_rewards = total_rewards.saturating_add(reward_inflation);
-					*total_withdrawn_rewards = total_withdrawn_rewards.saturating_add(reward_inflation);
+					*total_reward = total_reward.saturating_add(reward_inflation);
+					*total_withdrawn_reward = total_withdrawn_reward.saturating_add(reward_inflation);
 
-					withdrawn_inflations.push((reward_currency, reward_inflation));
+					withdrawn_inflation.push((*reward_currency, reward_inflation));
 				});
 
 			ShareAndWithdrawnReward::<T>::mutate(pool, who, |(share, withdrawn_rewards)| {
 				*share = share.saturating_add(add_amount);
-				withdrawn_inflations
+				// update withdrawn inflation for each reward currency
+				withdrawn_inflation
 					.into_iter()
 					.for_each(|(reward_currency, reward_inflation)| {
-						let withdrawn = if let Some(withdrawn_rewards) = withdrawn_rewards.get(reward_currency) {
-							withdrawn_rewards.saturating_add(reward_inflation)
-						} else {
-							reward_inflation
-						};
-						withdrawn_rewards.insert(*reward_currency, withdrawn);
+						let withdrawn_reward = withdrawn_rewards
+							.get(&reward_currency)
+							.copied()
+							.unwrap_or_default()
+							.saturating_add(reward_inflation);
+
+						withdrawn_rewards.insert(reward_currency, withdrawn_reward);
 					});
 			});
 		});
@@ -201,23 +207,29 @@ impl<T: Config> Pallet<T> {
 				}
 
 				Pools::<T>::mutate(pool, |pool_info| {
-					let proportion = FixedU128::checked_from_rational(remove_amount, share)
-						.expect("share is gte remove_amount and not zero which checked before; qed");
+					let removing_share = U256::from(remove_amount.saturated_into::<u128>());
 
 					pool_info.total_shares = pool_info.total_shares.saturating_sub(remove_amount);
 
+					// update withdrawn rewards for each reward currency
 					withdrawn_rewards
 						.iter_mut()
-						.for_each(|(reward_currency, withdrawn_rewards)| {
-							let withdrawn_rewards_to_remove = proportion.saturating_mul_int(*withdrawn_rewards);
-							if let Some((total_rewards, total_withdrawn_rewards)) =
+						.for_each(|(reward_currency, withdrawn_reward)| {
+							let withdrawn_reward_to_remove: T::Balance = removing_share
+								.saturating_mul(withdrawn_reward.to_owned().saturated_into::<u128>().into())
+								.checked_div(share.saturated_into::<u128>().into())
+								.unwrap_or_default()
+								.as_u128()
+								.saturated_into();
+
+							if let Some((total_reward, total_withdrawn_reward)) =
 								pool_info.rewards.get_mut(reward_currency)
 							{
-								*total_rewards = total_rewards.saturating_sub(withdrawn_rewards_to_remove);
-								*total_withdrawn_rewards =
-									total_withdrawn_rewards.saturating_sub(withdrawn_rewards_to_remove);
+								*total_reward = total_reward.saturating_sub(withdrawn_reward_to_remove);
+								*total_withdrawn_reward =
+									total_withdrawn_reward.saturating_sub(withdrawn_reward_to_remove);
 							}
-							*withdrawn_rewards = withdrawn_rewards.saturating_sub(withdrawn_rewards_to_remove);
+							*withdrawn_reward = withdrawn_reward.saturating_sub(withdrawn_reward_to_remove);
 						});
 				});
 
@@ -246,28 +258,30 @@ impl<T: Config> Pallet<T> {
 			}
 
 			Pools::<T>::mutate(pool, |pool_info| {
-				let proportion = FixedU128::checked_from_rational(*share, pool_info.total_shares).unwrap_or_default();
+				let total_shares = U256::from(pool_info.total_shares.to_owned().saturated_into::<u128>());
 				pool_info
 					.rewards
 					.iter_mut()
-					.for_each(|(reward_currency, (total_rewards, total_withdrawn_rewards))| {
-						let current_withdrawn_rewards =
-							withdrawn_rewards.get(reward_currency).copied().unwrap_or_default();
+					.for_each(|(reward_currency, (total_reward, total_withdrawn_reward))| {
+						let withdrawn_reward = withdrawn_rewards.get(reward_currency).copied().unwrap_or_default();
 
-						let reward_to_withdraw = proportion
-							.saturating_mul_int(*total_rewards)
-							.saturating_sub(current_withdrawn_rewards)
-							.min(total_rewards.saturating_sub(*total_withdrawn_rewards));
+						let total_reward_proportion: T::Balance = U256::from(share.to_owned().saturated_into::<u128>())
+							.saturating_mul(U256::from(total_reward.to_owned().saturated_into::<u128>()))
+							.checked_div(total_shares)
+							.unwrap_or_default()
+							.as_u128()
+							.unique_saturated_into();
+
+						let reward_to_withdraw = total_reward_proportion
+							.saturating_sub(withdrawn_reward)
+							.min(total_reward.saturating_sub(*total_withdrawn_reward));
 
 						if reward_to_withdraw.is_zero() {
 							return;
 						}
 
-						*total_withdrawn_rewards = total_withdrawn_rewards.saturating_add(reward_to_withdraw);
-						withdrawn_rewards.insert(
-							*reward_currency,
-							current_withdrawn_rewards.saturating_add(reward_to_withdraw),
-						);
+						*total_withdrawn_reward = total_withdrawn_reward.saturating_add(reward_to_withdraw);
+						withdrawn_rewards.insert(*reward_currency, withdrawn_reward.saturating_add(reward_to_withdraw));
 
 						// pay reward to `who`
 						T::Handler::payout(who, pool, *reward_currency, reward_to_withdraw);
