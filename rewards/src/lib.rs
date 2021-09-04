@@ -139,15 +139,13 @@ impl<T: Config> Pallet<T> {
 			return Ok(());
 		}
 		Pools::<T>::mutate_exists(pool, |maybe_pool_info| -> DispatchResult {
-			ensure!(maybe_pool_info.is_some(), Error::<T>::PoolDoesNotExist);
-			if let Some(pool_info) = maybe_pool_info {
-				if let Some((total_reward, _)) = pool_info.rewards.get_mut(&reward_currency) {
-					*total_reward = total_reward.saturating_add(reward_increment);
-				} else {
-					pool_info
-						.rewards
-						.insert(reward_currency, (reward_increment, Zero::zero()));
-				}
+			let pool_info = maybe_pool_info.as_mut().ok_or(Error::<T>::PoolDoesNotExist)?;
+			if let Some((total_reward, _)) = pool_info.rewards.get_mut(&reward_currency) {
+				*total_reward = total_reward.saturating_add(reward_increment);
+			} else {
+				pool_info
+					.rewards
+					.insert(reward_currency, (reward_increment, Zero::zero()));
 			}
 			Ok(())
 		})
