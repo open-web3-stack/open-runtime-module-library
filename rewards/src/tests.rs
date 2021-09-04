@@ -107,6 +107,23 @@ fn add_share_should_work() {
 }
 
 #[test]
+fn claim_rewards_should_not_create_empty_records() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_eq!(Pools::<Runtime>::contains_key(&DOT_POOL), false);
+		assert_eq!(
+			ShareAndWithdrawnReward::<Runtime>::contains_key(&DOT_POOL, &ALICE),
+			false
+		);
+		RewardsModule::claim_rewards(&ALICE, &DOT_POOL);
+		assert_eq!(Pools::<Runtime>::contains_key(&DOT_POOL), false);
+		assert_eq!(
+			ShareAndWithdrawnReward::<Runtime>::contains_key(&DOT_POOL, &ALICE),
+			false
+		);
+	})
+}
+
+#[test]
 fn claim_rewards_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		RewardsModule::add_share(&ALICE, &DOT_POOL, 100);
@@ -282,9 +299,22 @@ fn remove_share_should_work() {
 			(0, Default::default())
 		);
 		assert_eq!(
+			ShareAndWithdrawnReward::<Runtime>::contains_key(&DOT_POOL, &ALICE),
+			false
+		);
+
+		assert_eq!(
 			RECEIVED_PAYOUT.with(|v| *v.borrow().get(&(DOT_POOL, ALICE, NATIVE_COIN)).unwrap_or(&0)),
 			5_000
 		);
+
+		// remove all shares will remove entries
+		RewardsModule::remove_share(&BOB, &DOT_POOL, 100);
+		assert_eq!(RewardsModule::pools(DOT_POOL), PoolInfo::default());
+		assert_eq!(Pools::<Runtime>::contains_key(DOT_POOL), false);
+		assert_eq!(Pools::<Runtime>::iter().count(), 0);
+		assert_eq!(ShareAndWithdrawnReward::<Runtime>::contains_key(&DOT_POOL, &BOB), false);
+		assert_eq!(ShareAndWithdrawnReward::<Runtime>::iter().count(), 0);
 	});
 }
 
@@ -403,12 +433,18 @@ fn accumulate_reward_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_eq!(RewardsModule::pools(DOT_POOL), Default::default());
 
+		// should not accumulate if pool doesn't exist
+		RewardsModule::accumulate_reward(&DOT_POOL, NATIVE_COIN, 100);
+		assert_eq!(RewardsModule::pools(DOT_POOL), PoolInfo::default());
+
+		RewardsModule::add_share(&ALICE, &DOT_POOL, 100);
+
 		RewardsModule::accumulate_reward(&DOT_POOL, NATIVE_COIN, 100);
 		assert_eq!(
 			RewardsModule::pools(DOT_POOL),
 			PoolInfo {
+				total_shares: 100,
 				rewards: vec![(NATIVE_COIN, (100, 0))].into_iter().collect(),
-				..Default::default()
 			}
 		);
 
@@ -416,10 +452,10 @@ fn accumulate_reward_should_work() {
 		assert_eq!(
 			RewardsModule::pools(DOT_POOL),
 			PoolInfo {
+				total_shares: 100,
 				rewards: vec![(NATIVE_COIN, (100, 0)), (STABLE_COIN, (200, 0))]
 					.into_iter()
 					.collect(),
-				..Default::default()
 			}
 		);
 	});
