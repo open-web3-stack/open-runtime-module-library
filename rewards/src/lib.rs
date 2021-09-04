@@ -15,13 +15,7 @@ use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize, Member, Saturating, UniqueSaturatedInto, Zero},
 	FixedPointOperand, RuntimeDebug, SaturatedConversion,
 };
-use sp_std::{
-	borrow::ToOwned,
-	cmp::{Eq, PartialEq},
-	collections::btree_map::BTreeMap,
-	fmt::Debug,
-	prelude::*,
-};
+use sp_std::{borrow::ToOwned, collections::btree_map::BTreeMap, fmt::Debug, prelude::*};
 
 /// The Reward Pool Info.
 #[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug, Default, MaxEncodedLen)]
