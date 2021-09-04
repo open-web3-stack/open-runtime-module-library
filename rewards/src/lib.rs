@@ -140,13 +140,15 @@ impl<T: Config> Pallet<T> {
 		}
 		Pools::<T>::mutate_exists(pool, |maybe_pool_info| -> DispatchResult {
 			let pool_info = maybe_pool_info.as_mut().ok_or(Error::<T>::PoolDoesNotExist)?;
-			if let Some((total_reward, _)) = pool_info.rewards.get_mut(&reward_currency) {
-				*total_reward = total_reward.saturating_add(reward_increment);
-			} else {
-				pool_info
-					.rewards
-					.insert(reward_currency, (reward_increment, Zero::zero()));
-			}
+
+			pool_info
+				.rewards
+				.entry(reward_currency)
+				.and_modify(|(total_reward, _)| {
+					*total_reward = total_reward.saturating_add(reward_increment);
+				})
+				.or_insert((reward_increment, Zero::zero()));
+
 			Ok(())
 		})
 	}
@@ -188,13 +190,12 @@ impl<T: Config> Pallet<T> {
 				withdrawn_inflation
 					.into_iter()
 					.for_each(|(reward_currency, reward_inflation)| {
-						let withdrawn_reward = withdrawn_rewards
-							.get(&reward_currency)
-							.copied()
-							.unwrap_or_default()
-							.saturating_add(reward_inflation);
-
-						withdrawn_rewards.insert(reward_currency, withdrawn_reward);
+						withdrawn_rewards
+							.entry(reward_currency)
+							.and_modify(|withdrawn_reward| {
+								*withdrawn_reward = withdrawn_reward.saturating_add(reward_inflation);
+							})
+							.or_insert(reward_inflation);
 					});
 			});
 		});
