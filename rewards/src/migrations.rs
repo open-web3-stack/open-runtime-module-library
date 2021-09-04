@@ -1,5 +1,19 @@
 use super::*;
 
+/// The Reward Pool Info.
+#[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug, Default, MaxEncodedLen)]
+pub struct PoolInfoV0<Share: HasCompact, Balance: HasCompact> {
+	/// Total shares amount
+	#[codec(compact)]
+	pub total_shares: Share,
+	/// Total rewards amount
+	#[codec(compact)]
+	pub total_rewards: Balance,
+	/// Total withdrawn rewards amount
+	#[codec(compact)]
+	pub total_withdrawn_rewards: Balance,
+}
+
 pub fn migrate_to_multi_currency_reward<T: Config>(
 	get_reward_currency: impl Fn(&T::PoolId) -> T::CurrencyId,
 ) -> Weight {
