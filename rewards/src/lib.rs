@@ -91,7 +91,7 @@ pub mod module {
 		/// The reward pool ID type.
 		type PoolId: Parameter + Member + Clone + FullCodec;
 
-		type CurrencyId: Parameter + Member + Default + Copy + MaybeSerializeDeserialize + Ord;
+		type CurrencyId: Parameter + Member + Copy + MaybeSerializeDeserialize + Ord;
 
 		/// The `RewardHandler`
 		type Handler: RewardHandler<Self::AccountId, Self::CurrencyId, Balance = Self::Balance, PoolId = Self::PoolId>;
