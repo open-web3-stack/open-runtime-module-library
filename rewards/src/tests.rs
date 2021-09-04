@@ -3,6 +3,7 @@
 #![cfg(test)]
 
 use super::*;
+use frame_support::{assert_noop, assert_ok};
 use mock::*;
 
 #[test]
@@ -434,12 +435,15 @@ fn accumulate_reward_should_work() {
 		assert_eq!(RewardsModule::pools(DOT_POOL), Default::default());
 
 		// should not accumulate if pool doesn't exist
-		RewardsModule::accumulate_reward(&DOT_POOL, NATIVE_COIN, 100);
+		assert_noop!(
+			RewardsModule::accumulate_reward(&DOT_POOL, NATIVE_COIN, 100),
+			Error::<Runtime>::PoolDoesNotExist
+		);
 		assert_eq!(RewardsModule::pools(DOT_POOL), PoolInfo::default());
 
 		RewardsModule::add_share(&ALICE, &DOT_POOL, 100);
 
-		RewardsModule::accumulate_reward(&DOT_POOL, NATIVE_COIN, 100);
+		assert_ok!(RewardsModule::accumulate_reward(&DOT_POOL, NATIVE_COIN, 100));
 		assert_eq!(
 			RewardsModule::pools(DOT_POOL),
 			PoolInfo {
@@ -448,7 +452,7 @@ fn accumulate_reward_should_work() {
 			}
 		);
 
-		RewardsModule::accumulate_reward(&DOT_POOL, STABLE_COIN, 200);
+		assert_ok!(RewardsModule::accumulate_reward(&DOT_POOL, STABLE_COIN, 200));
 		assert_eq!(
 			RewardsModule::pools(DOT_POOL),
 			PoolInfo {

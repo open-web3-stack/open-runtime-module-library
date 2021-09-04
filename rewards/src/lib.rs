@@ -91,6 +91,12 @@ pub mod module {
 		type Handler: RewardHandler<Self::AccountId, Self::CurrencyId, Balance = Self::Balance, PoolId = Self::PoolId>;
 	}
 
+	#[pallet::error]
+	pub enum Error<T> {
+		/// Pool does not exist
+		PoolDoesNotExist,
+	}
+
 	/// Stores reward pool info.
 	#[pallet::storage]
 	#[pallet::getter(fn pools)]
@@ -124,11 +130,16 @@ pub mod module {
 }
 
 impl<T: Config> Pallet<T> {
-	pub fn accumulate_reward(pool: &T::PoolId, reward_currency: T::CurrencyId, reward_increment: T::Balance) {
+	pub fn accumulate_reward(
+		pool: &T::PoolId,
+		reward_currency: T::CurrencyId,
+		reward_increment: T::Balance,
+	) -> DispatchResult {
 		if reward_increment.is_zero() {
-			return;
+			return Ok(());
 		}
-		Pools::<T>::mutate_exists(pool, |maybe_pool_info| {
+		Pools::<T>::mutate_exists(pool, |maybe_pool_info| -> DispatchResult {
+			ensure!(maybe_pool_info.is_some(), Error::<T>::PoolDoesNotExist);
 			if let Some(pool_info) = maybe_pool_info {
 				if let Some((total_reward, _)) = pool_info.rewards.get_mut(&reward_currency) {
 					*total_reward = total_reward.saturating_add(reward_increment);
@@ -138,7 +149,8 @@ impl<T: Config> Pallet<T> {
 						.insert(reward_currency, (reward_increment, Zero::zero()));
 				}
 			}
-		});
+			Ok(())
+		})
 	}
 
 	pub fn add_share(who: &T::AccountId, pool: &T::PoolId, add_amount: T::Share) {
