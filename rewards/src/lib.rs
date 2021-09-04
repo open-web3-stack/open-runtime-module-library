@@ -20,7 +20,7 @@ use sp_std::{
 	cmp::{Eq, PartialEq},
 	collections::btree_map::BTreeMap,
 	fmt::Debug,
-	vec::Vec,
+	prelude::*,
 };
 
 /// The Reward Pool Info.
