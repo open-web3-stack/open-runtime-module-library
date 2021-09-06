@@ -1,11 +1,9 @@
 #![allow(clippy::unused_unit)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
-mod migrations;
+pub mod migrations;
 mod mock;
 mod tests;
-
-pub use migrations::migrate_to_multi_currency_reward;
 
 use codec::{FullCodec, HasCompact, MaxEncodedLen};
 use frame_support::{pallet_prelude::*, weights::Weight};
