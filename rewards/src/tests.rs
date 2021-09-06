@@ -495,3 +495,43 @@ fn share_to_zero_removes_storage() {
 		assert_eq!(ShareAndWithdrawnReward::<Runtime>::contains_key(DOT_POOL, BOB), false);
 	});
 }
+
+#[test]
+fn migrate_to_multi_currency_reward_works() {
+	use super::migrations::PoolInfoV0;
+
+	ExtBuilder::default().build().execute_with(|| {
+		PoolInfoV0 {
+			total_shares: 100u64,
+			total_rewards: 1000u64,
+			total_withdrawn_rewards: 500u64,
+		}
+		.using_encoded(|data| {
+			let key = Pools::<Runtime>::hashed_key_for(&DOT_POOL);
+			sp_io::storage::set(&key[..], data);
+		});
+
+		(100u64, 500u64).using_encoded(|data| {
+			let key = ShareAndWithdrawnReward::<Runtime>::hashed_key_for(&DOT_POOL, &ALICE);
+			sp_io::storage::set(&key[..], data);
+		});
+
+		let weight = migrate_to_multi_currency_reward::<Runtime>(Box::new(|_| STABLE_COIN));
+		assert_eq!(weight, 700);
+
+		assert_eq!(Pools::<Runtime>::iter_keys().count(), 1);
+		assert_eq!(ShareAndWithdrawnReward::<Runtime>::iter_keys().count(), 1);
+
+		assert_eq!(
+			Pools::<Runtime>::get(&DOT_POOL),
+			PoolInfo {
+				total_shares: 100,
+				rewards: vec![(STABLE_COIN, (1000, 500))].into_iter().collect(),
+			}
+		);
+		assert_eq!(
+			ShareAndWithdrawnReward::<Runtime>::get(&DOT_POOL, &ALICE),
+			(100, vec![(STABLE_COIN, 500u64)].into_iter().collect()),
+		);
+	});
+}

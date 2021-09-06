@@ -3,7 +3,7 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{construct_runtime, parameter_types};
+use frame_support::{construct_runtime, parameter_types, weights::RuntimeDbWeight};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 use sp_std::cell::RefCell;
@@ -27,6 +27,7 @@ pub const STABLE_COIN: CurrencyId = 1;
 
 parameter_types! {
 	pub const BlockHashCount: u64 = 250;
+	pub const DbWeight: RuntimeDbWeight = RuntimeDbWeight { read: 100, write: 250 };
 }
 
 impl frame_system::Config for Runtime {
@@ -48,7 +49,7 @@ impl frame_system::Config for Runtime {
 	type AccountData = ();
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
-	type DbWeight = ();
+	type DbWeight = DbWeight;
 	type BaseCallFilter = ();
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
