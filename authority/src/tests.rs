@@ -419,9 +419,14 @@ fn authorize_call_works() {
 		// works without account
 		assert_ok!(Authority::authorize_call(Origin::root(), Box::new(call.clone()), None));
 		assert_eq!(Authority::saved_calls(&hash), Some((call.clone(), None)));
-		
+		System::assert_last_event(mock::Event::Authority(Event::AuthorizedCall(hash, None)));
+
 		// works with account
-		assert_ok!(Authority::authorize_call(Origin::root(), Box::new(call.clone()), Some(1)));
+		assert_ok!(Authority::authorize_call(
+			Origin::root(),
+			Box::new(call.clone()),
+			Some(1)
+		));
 		assert_eq!(Authority::saved_calls(&hash), Some((call.clone(), Some(1))));
 		System::assert_last_event(mock::Event::Authority(Event::AuthorizedCall(hash, Some(1))));
 	});
@@ -439,20 +444,32 @@ fn trigger_call_works() {
 		let hash = <Runtime as frame_system::Config>::Hashing::hash_of(&call);
 
 		// call not authorized yet
-		assert_noop!(Authority::trigger_call(Origin::signed(1), hash), Error::<Runtime>::CallNotAuthorized);
+		assert_noop!(
+			Authority::trigger_call(Origin::signed(1), hash),
+			Error::<Runtime>::CallNotAuthorized
+		);
 
 		// works without caller
 		assert_ok!(Authority::authorize_call(Origin::root(), Box::new(call.clone()), None));
 		assert_ok!(Authority::trigger_call(Origin::signed(1), hash));
+		System::assert_has_event(mock::Event::Authority(Event::TriggeredCallBy(hash, 1)));
 		System::assert_last_event(mock::Event::Authority(Event::Dispatched(Ok(()))));
 
 		// works with caller 1
-		assert_ok!(Authority::authorize_call(Origin::root(), Box::new(call.clone()), Some(1)));
+		assert_ok!(Authority::authorize_call(
+			Origin::root(),
+			Box::new(call.clone()),
+			Some(1)
+		));
 		// caller 2 is not permitted to trigger the call
-		assert_noop!(Authority::trigger_call(Origin::signed(2), hash), Error::<Runtime>::TriggerCallNotPermitted);
+		assert_noop!(
+			Authority::trigger_call(Origin::signed(2), hash),
+			Error::<Runtime>::TriggerCallNotPermitted
+		);
 
 		// caller 1 triggering the call
 		assert_ok!(Authority::trigger_call(Origin::signed(1), hash));
+		System::assert_has_event(mock::Event::Authority(Event::TriggeredCallBy(hash, 1)));
 		System::assert_last_event(mock::Event::Authority(Event::Dispatched(Ok(()))));
 	});
 }

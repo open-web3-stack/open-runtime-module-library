@@ -203,7 +203,8 @@ pub mod module {
 
 	#[pallet::storage]
 	#[pallet::getter(fn saved_calls)]
-	pub type SavedCalls<T: Config> = StorageMap<_, Twox64Concat, T::Hash, (CallOf<T>, Option<T::AccountId>), OptionQuery>;
+	pub type SavedCalls<T: Config> =
+		StorageMap<_, Twox64Concat, T::Hash, (CallOf<T>, Option<T::AccountId>), OptionQuery>;
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
@@ -339,7 +340,11 @@ pub mod module {
 		}
 
 		#[pallet::weight(0)]
-		pub fn authorize_call(origin: OriginFor<T>, call: Box<CallOf<T>>, caller: Option<T::AccountId>) -> DispatchResult {
+		pub fn authorize_call(
+			origin: OriginFor<T>,
+			call: Box<CallOf<T>>,
+			caller: Option<T::AccountId>,
+		) -> DispatchResult {
 			ensure_root(origin)?;
 			let hash = T::Hashing::hash_of(&call);
 			SavedCalls::<T>::insert(hash, (call, caller.clone()));
@@ -349,7 +354,7 @@ pub mod module {
 
 		#[pallet::weight(0)]
 		pub fn trigger_call(origin: OriginFor<T>, hash: T::Hash) -> DispatchResult {
-			let who = ensure_signed(origin.clone())?;
+			let who = ensure_signed(origin)?;
 			let (call, maybe_account) = Self::saved_calls(&hash).ok_or(Error::<T>::CallNotAuthorized)?;
 			if let Some(account) = maybe_account {
 				ensure!(who == account, Error::<T>::TriggerCallNotPermitted);
