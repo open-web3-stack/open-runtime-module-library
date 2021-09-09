@@ -404,3 +404,55 @@ fn call_size_limit() {
 		If the limit is too strong, maybe consider increasing the limit",
 	);
 }
+
+#[test]
+fn authorize_call_works() {
+	ExtBuilder::default().build().execute_with(|| {
+		run_to_block(1);
+		let ensure_root_call = Call::System(frame_system::Call::fill_block(Perbill::one()));
+		let call = Call::Authority(authority::Call::dispatch_as(
+			MockAsOriginId::Root,
+			Box::new(ensure_root_call),
+		));
+		let hash = <Runtime as frame_system::Config>::Hashing::hash_of(&call);
+
+		// works without account
+		assert_ok!(Authority::authorize_call(Origin::root(), Box::new(call.clone()), None));
+		assert_eq!(Authority::saved_calls(&hash), Some((call.clone(), None)));
+		
+		// works with account
+		assert_ok!(Authority::authorize_call(Origin::root(), Box::new(call.clone()), Some(1)));
+		assert_eq!(Authority::saved_calls(&hash), Some((call.clone(), Some(1))));
+		System::assert_last_event(mock::Event::Authority(Event::AuthorizedCall(hash, Some(1))));
+	});
+}
+
+#[test]
+fn trigger_call_works() {
+	ExtBuilder::default().build().execute_with(|| {
+		run_to_block(1);
+		let ensure_root_call = Call::System(frame_system::Call::fill_block(Perbill::one()));
+		let call = Call::Authority(authority::Call::dispatch_as(
+			MockAsOriginId::Root,
+			Box::new(ensure_root_call),
+		));
+		let hash = <Runtime as frame_system::Config>::Hashing::hash_of(&call);
+
+		// call not authorized yet
+		assert_noop!(Authority::trigger_call(Origin::signed(1), hash), Error::<Runtime>::CallNotAuthorized);
+
+		// works without caller
+		assert_ok!(Authority::authorize_call(Origin::root(), Box::new(call.clone()), None));
+		assert_ok!(Authority::trigger_call(Origin::signed(1), hash));
+		System::assert_last_event(mock::Event::Authority(Event::Dispatched(Ok(()))));
+
+		// works with caller 1
+		assert_ok!(Authority::authorize_call(Origin::root(), Box::new(call.clone()), Some(1)));
+		// caller 2 is not permitted to trigger the call
+		assert_noop!(Authority::trigger_call(Origin::signed(2), hash), Error::<Runtime>::TriggerCallNotPermitted);
+
+		// caller 1 triggering the call
+		assert_ok!(Authority::trigger_call(Origin::signed(1), hash));
+		System::assert_last_event(mock::Event::Authority(Event::Dispatched(Ok(()))));
+	});
+}

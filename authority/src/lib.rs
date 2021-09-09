@@ -30,7 +30,7 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use sp_runtime::{
-	traits::{CheckedSub, Dispatchable, Saturating},
+	traits::{CheckedSub, Dispatchable, Hash, Saturating},
 	ArithmeticError, DispatchError, DispatchResult, RuntimeDebug,
 };
 use sp_std::prelude::*;
@@ -172,6 +172,10 @@ pub mod module {
 		FailedToFastTrack,
 		/// Failed to delay a task.
 		FailedToDelay,
+		/// Call is not authorized.
+		CallNotAuthorized,
+		/// Triggering the call is not permitted.
+		TriggerCallNotPermitted,
 	}
 
 	#[pallet::event]
@@ -187,11 +191,19 @@ pub mod module {
 		Delayed(T::PalletsOrigin, ScheduleTaskIndex, T::BlockNumber),
 		/// A scheduled call is cancelled. [origin, index]
 		Cancelled(T::PalletsOrigin, ScheduleTaskIndex),
+		/// A call is authorized. \[hash, caller\]
+		AuthorizedCall(T::Hash, Option<T::AccountId>),
+		/// Saved call is triggered. \[hash, caller\]
+		TriggeredCallBy(T::Hash, T::AccountId),
 	}
 
 	#[pallet::storage]
 	#[pallet::getter(fn next_task_index)]
 	pub type NextTaskIndex<T: Config> = StorageValue<_, ScheduleTaskIndex, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn saved_calls)]
+	pub type SavedCalls<T: Config> = StorageMap<_, Twox64Concat, T::Hash, (CallOf<T>, Option<T::AccountId>), OptionQuery>;
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
@@ -323,6 +335,28 @@ pub mod module {
 			T::Scheduler::cancel_named((&initial_origin, task_id).encode()).map_err(|_| Error::<T>::FailedToCancel)?;
 
 			Self::deposit_event(Event::Cancelled(*initial_origin, task_id));
+			Ok(())
+		}
+
+		#[pallet::weight(0)]
+		pub fn authorize_call(origin: OriginFor<T>, call: Box<CallOf<T>>, caller: Option<T::AccountId>) -> DispatchResult {
+			ensure_root(origin)?;
+			let hash = T::Hashing::hash_of(&call);
+			SavedCalls::<T>::insert(hash, (call, caller.clone()));
+			Self::deposit_event(Event::AuthorizedCall(hash, caller));
+			Ok(())
+		}
+
+		#[pallet::weight(0)]
+		pub fn trigger_call(origin: OriginFor<T>, hash: T::Hash) -> DispatchResult {
+			let who = ensure_signed(origin.clone())?;
+			let (call, maybe_account) = Self::saved_calls(&hash).ok_or(Error::<T>::CallNotAuthorized)?;
+			if let Some(account) = maybe_account {
+				ensure!(who == account, Error::<T>::TriggerCallNotPermitted);
+			}
+			let result = call.dispatch(OriginFor::<T>::root());
+			Self::deposit_event(Event::TriggeredCallBy(hash, who));
+			Self::deposit_event(Event::Dispatched(result.map(|_| ()).map_err(|e| e.error)));
 			Ok(())
 		}
 	}
