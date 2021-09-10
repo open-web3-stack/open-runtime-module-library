@@ -28,10 +28,10 @@ use frame_support::{
 	},
 	weights::GetDispatchInfo,
 };
-use frame_system::pallet_prelude::*;
+use frame_system::{pallet_prelude::*, EnsureOneOf, EnsureRoot, EnsureSigned};
 use sp_runtime::{
 	traits::{CheckedSub, Dispatchable, Hash, Saturating},
-	ArithmeticError, DispatchError, DispatchResult, RuntimeDebug,
+	ArithmeticError, DispatchError, DispatchResult, Either, RuntimeDebug,
 };
 use sp_std::prelude::*;
 
@@ -193,6 +193,8 @@ pub mod module {
 		Cancelled(T::PalletsOrigin, ScheduleTaskIndex),
 		/// A call is authorized. \[hash, caller\]
 		AuthorizedCall(T::Hash, Option<T::AccountId>),
+		/// An authorized call was removed. \[hash\]
+		RemovedAuthorizedCall(T::Hash),
 		/// Saved call is triggered. \[hash, caller\]
 		TriggeredCallBy(T::Hash, T::AccountId),
 	}
@@ -203,8 +205,7 @@ pub mod module {
 
 	#[pallet::storage]
 	#[pallet::getter(fn saved_calls)]
-	pub type SavedCalls<T: Config> =
-		StorageMap<_, Twox64Concat, T::Hash, (CallOf<T>, Option<T::AccountId>), OptionQuery>;
+	pub type SavedCalls<T: Config> = StorageMap<_, Identity, T::Hash, (CallOf<T>, Option<T::AccountId>), OptionQuery>;
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
@@ -353,12 +354,36 @@ pub mod module {
 		}
 
 		#[pallet::weight(0)]
+		pub fn remove_authorized_call(origin: OriginFor<T>, hash: T::Hash) -> DispatchResult {
+			let root_or_sigend =
+				EnsureOneOf::<T::AccountId, EnsureRoot<T::AccountId>, EnsureSigned<T::AccountId>>::ensure_origin(
+					origin,
+				)?;
+
+			SavedCalls::<T>::try_mutate_exists(hash, |maybe_call| {
+				let (_, maybe_caller) = maybe_call.take().ok_or(Error::<T>::CallNotAuthorized)?;
+				match root_or_sigend {
+					Either::Left(_) => {} // root, do nothing
+					Either::Right(who) => {
+						// signed, ensure it's the caller
+						let caller = maybe_caller.ok_or(Error::<T>::CallNotAuthorized)?;
+						ensure!(who == caller, Error::<T>::CallNotAuthorized);
+					}
+				}
+				Self::deposit_event(Event::RemovedAuthorizedCall(hash));
+				*maybe_call = None;
+				Ok(())
+			})
+		}
+
+		#[pallet::weight(0)]
 		pub fn trigger_call(origin: OriginFor<T>, hash: T::Hash) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let (call, maybe_account) = Self::saved_calls(&hash).ok_or(Error::<T>::CallNotAuthorized)?;
 			if let Some(account) = maybe_account {
 				ensure!(who == account, Error::<T>::TriggerCallNotPermitted);
 			}
+			SavedCalls::<T>::remove(&hash);
 			let result = call.dispatch(OriginFor::<T>::root());
 			Self::deposit_event(Event::TriggeredCallBy(hash, who));
 			Self::deposit_event(Event::Dispatched(result.map(|_| ()).map_err(|e| e.error)));

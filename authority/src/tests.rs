@@ -452,6 +452,7 @@ fn trigger_call_works() {
 		// works without caller
 		assert_ok!(Authority::authorize_call(Origin::root(), Box::new(call.clone()), None));
 		assert_ok!(Authority::trigger_call(Origin::signed(1), hash));
+		assert_eq!(Authority::saved_calls(&hash), None);
 		System::assert_has_event(mock::Event::Authority(Event::TriggeredCallBy(hash, 1)));
 		System::assert_last_event(mock::Event::Authority(Event::Dispatched(Ok(()))));
 
@@ -469,7 +470,54 @@ fn trigger_call_works() {
 
 		// caller 1 triggering the call
 		assert_ok!(Authority::trigger_call(Origin::signed(1), hash));
+		assert_eq!(Authority::saved_calls(&hash), None);
 		System::assert_has_event(mock::Event::Authority(Event::TriggeredCallBy(hash, 1)));
 		System::assert_last_event(mock::Event::Authority(Event::Dispatched(Ok(()))));
+	});
+}
+
+#[test]
+fn remove_authorized_call_works() {
+	ExtBuilder::default().build().execute_with(|| {
+		run_to_block(1);
+		let ensure_root_call = Call::System(frame_system::Call::fill_block(Perbill::one()));
+		let call = Call::Authority(authority::Call::dispatch_as(
+			MockAsOriginId::Root,
+			Box::new(ensure_root_call),
+		));
+		let hash = <Runtime as frame_system::Config>::Hashing::hash_of(&call);
+
+		assert_noop!(
+			Authority::remove_authorized_call(Origin::root(), hash),
+			Error::<Runtime>::CallNotAuthorized
+		);
+
+		assert_ok!(Authority::authorize_call(Origin::root(), Box::new(call.clone()), None));
+		assert_noop!(
+			Authority::remove_authorized_call(Origin::signed(1), hash),
+			Error::<Runtime>::CallNotAuthorized
+		);
+		assert_ok!(Authority::remove_authorized_call(Origin::root(), hash));
+		assert_eq!(Authority::saved_calls(&hash), None);
+
+		assert_ok!(Authority::authorize_call(
+			Origin::root(),
+			Box::new(call.clone()),
+			Some(1)
+		));
+		assert_ok!(Authority::remove_authorized_call(Origin::root(), hash));
+		assert_eq!(Authority::saved_calls(&hash), None);
+
+		assert_ok!(Authority::authorize_call(
+			Origin::root(),
+			Box::new(call.clone()),
+			Some(1)
+		));
+		assert_noop!(
+			Authority::remove_authorized_call(Origin::signed(2), hash),
+			Error::<Runtime>::CallNotAuthorized
+		);
+		assert_ok!(Authority::remove_authorized_call(Origin::signed(1), hash));
+		assert_eq!(Authority::saved_calls(&hash), None);
 	});
 }
