@@ -467,6 +467,7 @@ fn trigger_call_works() {
 			Authority::trigger_call(Origin::signed(2), hash),
 			Error::<Runtime>::TriggerCallNotPermitted
 		);
+		assert_eq!(Authority::saved_calls(&hash), Some((call.clone(), Some(1))));
 
 		// caller 1 triggering the call
 		assert_ok!(Authority::trigger_call(Origin::signed(1), hash));
@@ -497,6 +498,7 @@ fn remove_authorized_call_works() {
 			Authority::remove_authorized_call(Origin::signed(1), hash),
 			Error::<Runtime>::CallNotAuthorized
 		);
+		assert_eq!(Authority::saved_calls(&hash), Some((call.clone(), None)));
 		assert_ok!(Authority::remove_authorized_call(Origin::root(), hash));
 		assert_eq!(Authority::saved_calls(&hash), None);
 
@@ -517,6 +519,7 @@ fn remove_authorized_call_works() {
 			Authority::remove_authorized_call(Origin::signed(2), hash),
 			Error::<Runtime>::CallNotAuthorized
 		);
+		assert_eq!(Authority::saved_calls(&hash), Some((call.clone(), Some(1))));
 		assert_ok!(Authority::remove_authorized_call(Origin::signed(1), hash));
 		assert_eq!(Authority::saved_calls(&hash), None);
 	});

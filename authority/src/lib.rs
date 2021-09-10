@@ -195,7 +195,7 @@ pub mod module {
 		AuthorizedCall(T::Hash, Option<T::AccountId>),
 		/// An authorized call was removed. \[hash\]
 		RemovedAuthorizedCall(T::Hash),
-		/// Saved call is triggered. \[hash, caller\]
+		/// An authorized call was triggered. \[hash, caller\]
 		TriggeredCallBy(T::Hash, T::AccountId),
 	}
 
@@ -371,7 +371,6 @@ pub mod module {
 					}
 				}
 				Self::deposit_event(Event::RemovedAuthorizedCall(hash));
-				*maybe_call = None;
 				Ok(())
 			})
 		}
@@ -379,15 +378,16 @@ pub mod module {
 		#[pallet::weight(0)]
 		pub fn trigger_call(origin: OriginFor<T>, hash: T::Hash) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			let (call, maybe_account) = Self::saved_calls(&hash).ok_or(Error::<T>::CallNotAuthorized)?;
-			if let Some(account) = maybe_account {
-				ensure!(who == account, Error::<T>::TriggerCallNotPermitted);
-			}
-			SavedCalls::<T>::remove(&hash);
-			let result = call.dispatch(OriginFor::<T>::root());
-			Self::deposit_event(Event::TriggeredCallBy(hash, who));
-			Self::deposit_event(Event::Dispatched(result.map(|_| ()).map_err(|e| e.error)));
-			Ok(())
+			SavedCalls::<T>::try_mutate_exists(hash, |maybe_call| {
+				let (call, maybe_caller) = maybe_call.take().ok_or(Error::<T>::CallNotAuthorized)?;
+				if let Some(caller) = maybe_caller {
+					ensure!(who == caller, Error::<T>::TriggerCallNotPermitted);
+				}
+				let result = call.dispatch(OriginFor::<T>::root());
+				Self::deposit_event(Event::TriggeredCallBy(hash, who));
+				Self::deposit_event(Event::Dispatched(result.map(|_| ()).map_err(|e| e.error)));
+				Ok(())
+			})
 		}
 	}
 }
