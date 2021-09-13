@@ -66,6 +66,14 @@ pub mod module {
 			+ Debug
 			+ FixedPointOperand;
 
+		/// The old version of reward pool ID type.
+		/// NOTE: remove it after migration
+		type PoolIdV0: Parameter + Member + Clone + FullCodec;
+
+		/// The convertor to convert PoolIdV0 to PoolId
+		/// NOTE: remove it after migration
+		type PoolIdConvertor: Convert<PoolIdV0, PoolId>;
+
 		/// The reward pool ID type.
 		type PoolId: Parameter + Member + Clone + FullCodec;
 
@@ -82,18 +90,32 @@ pub mod module {
 	}
 
 	/// Stores reward pool info.
+	/// NOTE: remove it after migration
 	#[pallet::storage]
 	#[pallet::getter(fn pools)]
-	pub type Pools<T: Config> =
+	pub type Pools<T: Config> = StorageMap<_, Twox64Concat, T::PoolIdV0, PoolInfoV0<T::Share, T::Balance>, ValueQuery>;
+
+	/// Stores reward pool info.
+	#[pallet::storage]
+	#[pallet::getter(fn pool_infos)]
+	pub type PoolInfos<T: Config> =
 		StorageMap<_, Twox64Concat, T::PoolId, PoolInfo<T::Share, T::Balance, T::CurrencyId>, ValueQuery>;
+
+	/// Record share amount and withdrawn reward amount for specific `AccountId`
+	/// under `PoolId`.
+	/// NOTE: remove it after migration
+	#[pallet::storage]
+	#[pallet::getter(fn share_and_withdrawn_reward)]
+	pub type ShareAndWithdrawnReward<T: Config> =
+		StorageDoubleMap<_, Twox64Concat, T::PoolIdV0, Twox64Concat, T::AccountId, (T::Share, T::Balance), ValueQuery>;
 
 	/// Record share amount, reward currency and withdrawn reward amount for
 	/// specific `AccountId` under `PoolId`.
 	///
 	/// double_map (PoolId, AccountId) => (Share, BTreeMap<CurrencyId, Balance>)
 	#[pallet::storage]
-	#[pallet::getter(fn share_and_withdrawn_reward)]
-	pub type ShareAndWithdrawnReward<T: Config> = StorageDoubleMap<
+	#[pallet::getter(fn shares_and_withdrawn_rewards)]
+	pub type SharesAndWithdrawnRewards<T: Config> = StorageDoubleMap<
 		_,
 		Twox64Concat,
 		T::PoolId,
@@ -122,7 +144,7 @@ impl<T: Config> Pallet<T> {
 		if reward_increment.is_zero() {
 			return Ok(());
 		}
-		Pools::<T>::mutate_exists(pool, |maybe_pool_info| -> DispatchResult {
+		PoolInfos::<T>::mutate_exists(pool, |maybe_pool_info| -> DispatchResult {
 			let pool_info = maybe_pool_info.as_mut().ok_or(Error::<T>::PoolDoesNotExist)?;
 
 			pool_info
@@ -142,7 +164,7 @@ impl<T: Config> Pallet<T> {
 			return;
 		}
 
-		Pools::<T>::mutate(pool, |pool_info| {
+		PoolInfos::<T>::mutate(pool, |pool_info| {
 			let initial_total_shares = pool_info.total_shares;
 			pool_info.total_shares = pool_info.total_shares.saturating_add(add_amount);
 
@@ -168,7 +190,7 @@ impl<T: Config> Pallet<T> {
 					withdrawn_inflation.push((*reward_currency, reward_inflation));
 				});
 
-			ShareAndWithdrawnReward::<T>::mutate(pool, who, |(share, withdrawn_rewards)| {
+			SharesAndWithdrawnRewards::<T>::mutate(pool, who, |(share, withdrawn_rewards)| {
 				*share = share.saturating_add(add_amount);
 				// update withdrawn inflation for each reward currency
 				withdrawn_inflation
@@ -193,7 +215,7 @@ impl<T: Config> Pallet<T> {
 		// claim rewards firstly
 		Self::claim_rewards(who, pool);
 
-		ShareAndWithdrawnReward::<T>::mutate_exists(pool, who, |share_info| {
+		SharesAndWithdrawnRewards::<T>::mutate_exists(pool, who, |share_info| {
 			if let Some((mut share, mut withdrawn_rewards)) = share_info.take() {
 				let remove_amount = remove_amount.min(share);
 
@@ -201,7 +223,7 @@ impl<T: Config> Pallet<T> {
 					return;
 				}
 
-				Pools::<T>::mutate_exists(pool, |maybe_pool_info| {
+				PoolInfos::<T>::mutate_exists(pool, |maybe_pool_info| {
 					if let Some(mut pool_info) = maybe_pool_info.take() {
 						let removing_share = U256::from(remove_amount.saturated_into::<u128>());
 
@@ -248,7 +270,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn set_share(who: &T::AccountId, pool: &T::PoolId, new_share: T::Share) {
-		let (share, _) = Self::share_and_withdrawn_reward(pool, who);
+		let (share, _) = Self::shares_and_withdrawn_rewards(pool, who);
 
 		if new_share > share {
 			Self::add_share(who, pool, new_share.saturating_sub(share));
@@ -258,13 +280,13 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn claim_rewards(who: &T::AccountId, pool: &T::PoolId) {
-		ShareAndWithdrawnReward::<T>::mutate_exists(pool, who, |maybe_share_withdrawn| {
+		SharesAndWithdrawnRewards::<T>::mutate_exists(pool, who, |maybe_share_withdrawn| {
 			if let Some((share, withdrawn_rewards)) = maybe_share_withdrawn {
 				if share.is_zero() {
 					return;
 				}
 
-				Pools::<T>::mutate(pool, |pool_info| {
+				PoolInfos::<T>::mutate(pool, |pool_info| {
 					let total_shares = U256::from(pool_info.total_shares.to_owned().saturated_into::<u128>());
 					pool_info.rewards.iter_mut().for_each(
 						|(reward_currency, (total_reward, total_withdrawn_reward))| {
