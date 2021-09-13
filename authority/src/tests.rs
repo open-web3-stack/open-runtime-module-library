@@ -207,7 +207,7 @@ fn fast_track_scheduled_dispatch_work() {
 		let pallets_origin = schedule_origin.caller().clone();
 		assert_ok!(Authority::fast_track_scheduled_dispatch(
 			Origin::root(),
-			pallets_origin,
+			Box::new(pallets_origin),
 			0,
 			DispatchTime::At(4),
 		));
@@ -234,7 +234,7 @@ fn fast_track_scheduled_dispatch_work() {
 
 		assert_ok!(Authority::fast_track_scheduled_dispatch(
 			Origin::root(),
-			frame_system::RawOrigin::Root.into(),
+			Box::new(frame_system::RawOrigin::Root.into()),
 			1,
 			DispatchTime::At(4),
 		));
@@ -284,7 +284,7 @@ fn delay_scheduled_dispatch_work() {
 		let pallets_origin = schedule_origin.caller().clone();
 		assert_ok!(Authority::delay_scheduled_dispatch(
 			Origin::root(),
-			pallets_origin,
+			Box::new(pallets_origin),
 			0,
 			4,
 		));
@@ -311,7 +311,7 @@ fn delay_scheduled_dispatch_work() {
 
 		assert_ok!(Authority::delay_scheduled_dispatch(
 			Origin::root(),
-			frame_system::RawOrigin::Root.into(),
+			Box::new(frame_system::RawOrigin::Root.into()),
 			1,
 			4,
 		));
@@ -358,7 +358,11 @@ fn cancel_scheduled_dispatch_work() {
 		};
 
 		let pallets_origin = schedule_origin.caller().clone();
-		assert_ok!(Authority::cancel_scheduled_dispatch(Origin::root(), pallets_origin, 0));
+		assert_ok!(Authority::cancel_scheduled_dispatch(
+			Origin::root(),
+			Box::new(pallets_origin),
+			0
+		));
 		System::assert_last_event(mock::Event::Authority(Event::Cancelled(
 			OriginCaller::Authority(DelayedOrigin {
 				delay: 1,
@@ -381,7 +385,7 @@ fn cancel_scheduled_dispatch_work() {
 
 		assert_ok!(Authority::cancel_scheduled_dispatch(
 			Origin::root(),
-			frame_system::RawOrigin::Root.into(),
+			Box::new(frame_system::RawOrigin::Root.into()),
 			1
 		));
 		System::assert_last_event(mock::Event::Authority(Event::Cancelled(
@@ -389,4 +393,14 @@ fn cancel_scheduled_dispatch_work() {
 			1,
 		)));
 	});
+}
+
+#[test]
+fn call_size_limit() {
+	assert!(
+		core::mem::size_of::<authority::Call::<Runtime>>() <= 200,
+		"size of Call is more than 200 bytes: some calls have too big arguments, use Box to \
+		reduce the size of Call.
+		If the limit is too strong, maybe consider increasing the limit",
+	);
 }
