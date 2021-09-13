@@ -4,8 +4,6 @@
 
 use super::*;
 
-use xcm::v0::{Junction::*, MultiAsset::ConcreteFungible, MultiLocation::*};
-
 #[derive(Debug, PartialEq, Eq)]
 pub enum TestCurrencyId {
 	TokenA,
@@ -19,12 +17,17 @@ impl Convert<MultiLocation, Option<TestCurrencyId>> for CurrencyIdConvert {
 		use TestCurrencyId::*;
 		let token_a: Vec<u8> = "TokenA".into();
 		let token_b: Vec<u8> = "TokenB".into();
-		match l {
-			X1(Parent) => Some(RelayChainToken),
-			X3(Parent, Parachain(1), GeneralKey(k)) if k == token_a => Some(TokenA),
-			X3(Parent, Parachain(2), GeneralKey(k)) if k == token_b => Some(TokenB),
-			_ => None,
+
+		if l == MultiLocation::parent() {
+			return Some(RelayChainToken);
 		}
+		if l == MultiLocation::new(1, X2(Parachain(1), GeneralKey(token_a))) {
+			return Some(TokenA);
+		}
+		if l == MultiLocation::new(1, X2(Parachain(2), GeneralKey(token_b))) {
+			return Some(TokenB);
+		}
+		None
 	}
 }
 
@@ -33,23 +36,24 @@ type MatchesCurrencyId = IsNativeConcrete<TestCurrencyId, CurrencyIdConvert>;
 #[test]
 fn is_native_concrete_matches_native_currencies() {
 	assert_eq!(
-		MatchesCurrencyId::matches_fungible(&ConcreteFungible {
-			id: X1(Parent),
-			amount: 100
+		MatchesCurrencyId::matches_fungible(&MultiAsset {
+			fun: Fungible(100),
+			id: Concrete(MultiLocation::parent()),
+		}),
+		Some(100),
+	);
+
+	assert_eq!(
+		MatchesCurrencyId::matches_fungible(&MultiAsset {
+			fun: Fungible(100),
+			id: Concrete(MultiLocation::new(1, X2(Parachain(1), GeneralKey("TokenA".into())))),
 		}),
 		Some(100),
 	);
 	assert_eq!(
-		MatchesCurrencyId::matches_fungible(&ConcreteFungible {
-			id: X3(Parent, Parachain(1), GeneralKey("TokenA".into())),
-			amount: 100
-		}),
-		Some(100),
-	);
-	assert_eq!(
-		MatchesCurrencyId::matches_fungible(&ConcreteFungible {
-			id: X3(Parent, Parachain(2), GeneralKey("TokenB".into())),
-			amount: 100
+		MatchesCurrencyId::matches_fungible(&MultiAsset {
+			fun: Fungible(100),
+			id: Concrete(MultiLocation::new(1, X2(Parachain(2), GeneralKey("TokenB".into())))),
 		}),
 		Some(100),
 	);
@@ -58,23 +62,23 @@ fn is_native_concrete_matches_native_currencies() {
 #[test]
 fn is_native_concrete_does_not_matches_non_native_currencies() {
 	assert!(
-		<MatchesCurrencyId as MatchesFungible<u128>>::matches_fungible(&ConcreteFungible {
-			id: X3(Parent, Parachain(2), GeneralKey("TokenC".into())),
-			amount: 100
+		<MatchesCurrencyId as MatchesFungible<u128>>::matches_fungible(&MultiAsset {
+			fun: Fungible(100),
+			id: Concrete(MultiLocation::new(1, X2(Parachain(2), GeneralKey("TokenC".into())))),
 		})
 		.is_none()
 	);
 	assert!(
-		<MatchesCurrencyId as MatchesFungible<u128>>::matches_fungible(&ConcreteFungible {
-			id: X3(Parent, Parachain(1), GeneralKey("TokenB".into())),
-			amount: 100
+		<MatchesCurrencyId as MatchesFungible<u128>>::matches_fungible(&MultiAsset {
+			fun: Fungible(100),
+			id: Concrete(MultiLocation::new(1, X2(Parachain(1), GeneralKey("TokenB".into())))),
 		})
 		.is_none()
 	);
 	assert!(
-		<MatchesCurrencyId as MatchesFungible<u128>>::matches_fungible(&ConcreteFungible {
-			id: X1(GeneralKey("TokenB".into())),
-			amount: 100
+		<MatchesCurrencyId as MatchesFungible<u128>>::matches_fungible(&MultiAsset {
+			fun: Fungible(100),
+			id: Concrete(MultiLocation::new(1, X1(GeneralKey("TokenB".into())))),
 		})
 		.is_none()
 	);
@@ -83,24 +87,24 @@ fn is_native_concrete_does_not_matches_non_native_currencies() {
 #[test]
 fn multi_native_asset() {
 	assert!(MultiNativeAsset::filter_asset_location(
-		&ConcreteFungible {
-			id: Parent.into(),
-			amount: 10,
+		&MultiAsset {
+			fun: Fungible(10),
+			id: Concrete(MultiLocation::parent())
 		},
 		&Parent.into()
 	));
 	assert!(MultiNativeAsset::filter_asset_location(
-		&ConcreteFungible {
-			id: X3(Parent, Parachain(1), GeneralKey("TokenA".into())),
-			amount: 10,
+		&MultiAsset {
+			fun: Fungible(100),
+			id: Concrete(MultiLocation::new(1, X2(Parachain(1), GeneralKey("TokenA".into())))),
 		},
-		&X2(Parent, Parachain(1)),
+		&MultiLocation::new(1, X1(Parachain(1))),
 	));
 	assert!(!MultiNativeAsset::filter_asset_location(
-		&ConcreteFungible {
-			id: X3(Parent, Parachain(1), GeneralKey("TokenA".into())),
-			amount: 10,
+		&MultiAsset {
+			fun: Fungible(100),
+			id: Concrete(MultiLocation::new(1, X2(Parachain(1), GeneralKey("TokenA".into())))),
 		},
-		&X1(Parent),
+		&MultiLocation::parent(),
 	));
 }
