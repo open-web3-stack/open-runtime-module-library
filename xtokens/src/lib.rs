@@ -28,10 +28,10 @@ use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, Convert, MaybeSerializeDeserialize, Member, Zero},
 	DispatchError,
 };
-use sp_std::prelude::*;
+use sp_std::{prelude::*, result::Result};
 
 use xcm::latest::prelude::*;
-use xcm_executor::traits::WeightBounds;
+use xcm_executor::traits::{InvertLocation, WeightBounds};
 
 pub use module::*;
 use orml_traits::{
@@ -94,6 +94,9 @@ pub mod module {
 		/// T::Weigher::weight(&msg)`.
 		#[pallet::constant]
 		type BaseXcmWeight: Get<Weight>;
+
+		/// Means of inverting a location.
+		type LocationInverter: InvertLocation;
 	}
 
 	#[pallet::event]
@@ -120,6 +123,13 @@ pub mod module {
 		UnweighableMessage,
 		/// XCM execution failed.
 		XcmExecutionFailed,
+		/// Could not re-anchor the assets to declare the fees for the
+		/// destination chain.
+		CannotReanchor,
+		/// Could not get ancestry of asset reserve location.
+		InvalidAncestry,
+		/// Not fungible asset.
+		NotFungible,
 	}
 
 	#[pallet::hooks]
@@ -208,28 +218,22 @@ pub mod module {
 			dest_weight: Weight,
 			deposit_event: bool,
 		) -> DispatchResult {
-			if Self::is_zero_amount(&asset) {
+			if !asset.is_fungible(None) {
+				return Err(Error::<T>::NotFungible.into());
+			}
+
+			if fungible_amount(&asset).is_zero() {
 				return Ok(());
 			}
 
 			let (transfer_kind, dest, reserve, recipient) = Self::transfer_kind(&asset, &dest)?;
-			// let all: MultiAssets = All.into();
-			let buy_order = BuyExecution {
-				// TODO: fix this
-				fees: asset.clone(),
-				// Zero weight for additional XCM (since there are none to execute)
-				weight: 0,
-				debt: dest_weight,
-				halt_on_error: false,
-				instructions: vec![],
-			};
 			let mut msg = match transfer_kind {
 				SelfReserveAsset => {
-					Self::transfer_self_reserve_asset(asset.clone(), dest.clone(), recipient, buy_order)
+					Self::transfer_self_reserve_asset(asset.clone(), dest.clone(), recipient, dest_weight)?
 				}
-				ToReserve => Self::transfer_to_reserve(asset.clone(), dest.clone(), recipient, buy_order),
+				ToReserve => Self::transfer_to_reserve(asset.clone(), dest.clone(), recipient, dest_weight)?,
 				ToNonReserve => {
-					Self::transfer_to_non_reserve(asset.clone(), reserve, dest.clone(), recipient, buy_order)
+					Self::transfer_to_non_reserve(asset.clone(), reserve, dest.clone(), recipient, dest_weight)?
 				}
 			};
 
@@ -250,33 +254,37 @@ pub mod module {
 			asset: MultiAsset,
 			dest: MultiLocation,
 			recipient: MultiLocation,
-			buy_order: Order<()>,
-		) -> Xcm<T::Call> {
-			WithdrawAsset {
+			dest_weight: u64,
+		) -> Result<Xcm<T::Call>, DispatchError> {
+			let buy_execution = Self::buy_execution(asset.clone(), &dest, dest_weight)?;
+			Ok(WithdrawAsset {
 				assets: asset.into(),
 				effects: vec![DepositReserveAsset {
 					assets: All.into(),
 					dest,
-					effects: vec![buy_order, Self::deposit_asset(recipient)],
+					effects: vec![buy_execution, Self::deposit_asset(recipient)],
 					max_assets: u32::max_value(),
 				}],
-			}
+			})
 		}
 
 		fn transfer_to_reserve(
 			asset: MultiAsset,
 			reserve: MultiLocation,
 			recipient: MultiLocation,
-			buy_order: Order<()>,
-		) -> Xcm<T::Call> {
-			WithdrawAsset {
-				assets: asset.into(),
+			dest_weight: u64,
+		) -> Result<Xcm<T::Call>, DispatchError> {
+			Ok(WithdrawAsset {
+				assets: asset.clone().into(),
 				effects: vec![InitiateReserveWithdraw {
 					assets: All.into(),
-					reserve,
-					effects: vec![buy_order, Self::deposit_asset(recipient)],
+					reserve: reserve.clone(),
+					effects: vec![
+						Self::buy_execution(asset, &reserve, dest_weight)?,
+						Self::deposit_asset(recipient),
+					],
 				}],
-			}
+			})
 		}
 
 		fn transfer_to_non_reserve(
@@ -284,8 +292,8 @@ pub mod module {
 			reserve: MultiLocation,
 			dest: MultiLocation,
 			recipient: MultiLocation,
-			buy_order: Order<()>,
-		) -> Xcm<T::Call> {
+			dest_weight: u64,
+		) -> Result<Xcm<T::Call>, DispatchError> {
 			let mut reanchored_dest = dest.clone();
 			if reserve == MultiLocation::parent() {
 				match dest {
@@ -299,22 +307,25 @@ pub mod module {
 				}
 			}
 
-			WithdrawAsset {
-				assets: asset.into(),
+			let reserve_buy_execution = Self::buy_execution(asset.clone(), &reserve, dest_weight)?;
+			let dest_buy_execution =
+				Self::buy_execution_with_middle_reserve(asset.clone(), &reserve, &reanchored_dest, dest_weight)?;
+			Ok(WithdrawAsset {
+				assets: asset.clone().into(),
 				effects: vec![InitiateReserveWithdraw {
 					assets: All.into(),
 					reserve,
 					effects: vec![
-						buy_order.clone(),
+						reserve_buy_execution,
 						DepositReserveAsset {
 							assets: All.into(),
 							dest: reanchored_dest,
-							effects: vec![buy_order, Self::deposit_asset(recipient)],
+							effects: vec![dest_buy_execution, Self::deposit_asset(recipient)],
 							max_assets: u32::max_value(),
 						},
 					],
 				}],
-			}
+			})
 		}
 
 		fn deposit_asset(recipient: MultiLocation) -> Order<()> {
@@ -325,20 +336,53 @@ pub mod module {
 			}
 		}
 
-		fn is_zero_amount(asset: &MultiAsset) -> bool {
-			if let Fungible(amount) = &asset.fun {
-				if amount.is_zero() {
-					return true;
-				}
-			}
+		fn buy_execution(
+			asset: MultiAsset,
+			dest: &MultiLocation,
+			dest_weight: u64,
+		) -> Result<Order<()>, DispatchError> {
+			let inv_dest = T::LocationInverter::invert_location(dest);
+			let fees = asset.reanchored(&inv_dest).map_err(|_| Error::<T>::CannotReanchor)?;
+			Ok(BuyExecution {
+				fees,
+				weight: 0,
+				debt: dest_weight,
+				halt_on_error: false,
+				instructions: vec![],
+			})
+		}
 
-			false
+		fn buy_execution_with_middle_reserve(
+			asset: MultiAsset,
+			reserve: &MultiLocation,
+			dest: &MultiLocation,
+			dest_weight: u64,
+		) -> Result<Order<()>, DispatchError> {
+			let inv_reserve = T::LocationInverter::invert_location(reserve);
+			let half_asset = MultiAsset {
+				fun: Fungible(fungible_amount(&asset) / 2),
+				id: asset.id,
+			};
+			let reserve_reanchored = half_asset
+				.reanchored(&inv_reserve)
+				.map_err(|_| Error::<T>::CannotReanchor)?;
+
+			let reserve_ancestry = relative_ancestry(reserve).ok_or(Error::<T>::InvalidAncestry)?;
+			let inv_dest = invert_location(reserve_ancestry, dest);
+			let fees = reserve_reanchored
+				.reanchored(&inv_dest)
+				.map_err(|_| Error::<T>::CannotReanchor)?;
+			Ok(BuyExecution {
+				fees,
+				weight: 0,
+				debt: dest_weight,
+				halt_on_error: false,
+				instructions: vec![],
+			})
 		}
 
 		/// Ensure has the `dest` has chain part and recipient part.
-		fn ensure_valid_dest(
-			dest: &MultiLocation,
-		) -> sp_std::result::Result<(MultiLocation, MultiLocation), DispatchError> {
+		fn ensure_valid_dest(dest: &MultiLocation) -> Result<(MultiLocation, MultiLocation), DispatchError> {
 			if let (Some(dest), Some(recipient)) = (dest.chain_part(), dest.non_chain_part()) {
 				Ok((dest, recipient))
 			} else {
@@ -357,7 +401,7 @@ pub mod module {
 		fn transfer_kind(
 			asset: &MultiAsset,
 			dest: &MultiLocation,
-		) -> sp_std::result::Result<(TransferKind, MultiLocation, MultiLocation, MultiLocation), DispatchError> {
+		) -> Result<(TransferKind, MultiLocation, MultiLocation, MultiLocation), DispatchError> {
 			let (dest, recipient) = Self::ensure_valid_dest(dest)?;
 
 			let self_location = T::SelfLocation::get();
@@ -443,5 +487,41 @@ pub mod module {
 		) -> DispatchResult {
 			Self::do_transfer_multiasset(who, asset, dest, dest_weight, true)
 		}
+	}
+}
+
+fn relative_ancestry(location: &MultiLocation) -> Option<MultiLocation> {
+	if location == &MultiLocation::parent() {
+		return Some(Here.into());
+	}
+
+	match location {
+		MultiLocation {
+			parents,
+			interior: X1(Parachain(id)),
+		} if *parents == 1 => Some(MultiLocation::new(0, X1(Parachain(*id)))),
+		_ => None,
+	}
+}
+
+// from https://github.com/paritytech/polkadot/blob/48122d0220555bfd59d46e2971522cc4e7c9edf9/xcm/xcm-builder/src/location_conversion.rs#L183
+fn invert_location(ancestry: MultiLocation, location: &MultiLocation) -> MultiLocation {
+	let mut ancestry = ancestry;
+	let mut junctions = Here;
+	for _ in 0..location.parent_count() {
+		junctions = junctions
+			.pushed_with(ancestry.take_first_interior().unwrap_or(OnlyChild))
+			.expect("ancestry is well-formed and has less than 8 non-parent junctions; qed");
+	}
+	let parents = location.interior().len() as u8;
+	MultiLocation::new(parents, junctions)
+}
+
+/// Returns amount if `asset` is fungible, or zero.
+fn fungible_amount(asset: &MultiAsset) -> u128 {
+	if let Fungible(amount) = &asset.fun {
+		*amount
+	} else {
+		Zero::zero()
 	}
 }

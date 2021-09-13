@@ -164,7 +164,7 @@ impl WeightTrader for AllTokensAreCreatedEqualToWeight {
 		};
 
 		if let MultiAsset {
-			fun,
+			fun: _,
 			id: Concrete(ref id),
 		} = &required
 		{
@@ -264,6 +264,7 @@ impl orml_xtokens::Config for Runtime {
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
 	type BaseXcmWeight = BaseXcmWeight;
+	type LocationInverter = LocationInverter<Ancestry>;
 }
 
 impl orml_xcm::Config for Runtime {

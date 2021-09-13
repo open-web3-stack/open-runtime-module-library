@@ -56,7 +56,7 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
 impl Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert {
 	fn convert(a: MultiAsset) -> Option<CurrencyId> {
 		if let MultiAsset {
-			fun: Fungible(amount),
+			fun: Fungible(_),
 			id: Concrete(id),
 		} = a
 		{

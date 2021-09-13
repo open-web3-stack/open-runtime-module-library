@@ -118,28 +118,32 @@ fn send_relay_chain_asset_to_sibling() {
 			Some(ALICE).into(),
 			CurrencyId::R,
 			500,
-			Box::new(
-				(
-					Parent,
+			Box::new(MultiLocation::new(
+				1,
+				X2(
 					Parachain(2),
 					Junction::AccountId32 {
 						network: NetworkId::Any,
 						id: BOB.into(),
-					},
+					}
 				)
-					.into()
-			),
+			)),
 			30,
 		));
 		assert_eq!(ParaTokens::free_balance(CurrencyId::R, &ALICE), 500);
+
+		print_events::<para::Runtime>("ParaA");
 	});
 
 	Relay::execute_with(|| {
+		print_events::<relay::Runtime>("Relay");
+
 		assert_eq!(RelayBalances::free_balance(&para_a_account()), 500);
 		assert_eq!(RelayBalances::free_balance(&para_b_account()), 470);
 	});
 
 	ParaB::execute_with(|| {
+		print_events::<para::Runtime>("ParaB");
 		assert_eq!(ParaTokens::free_balance(CurrencyId::R, &BOB), 440);
 	});
 }
@@ -251,11 +255,13 @@ fn send_self_parachain_asset_to_sibling() {
 			30,
 		));
 
+		print_events::<para::Runtime>("ParaA");
 		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &ALICE), 500);
 		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &sibling_b_account()), 500);
 	});
 
 	ParaB::execute_with(|| {
+		print_events::<para::Runtime>("ParaB");
 		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &BOB), 470);
 	});
 }
