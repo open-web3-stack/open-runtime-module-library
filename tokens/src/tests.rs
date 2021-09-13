@@ -2101,9 +2101,18 @@ fn sweep_dust_works() {
 				reserved: 0,
 			},
 		);
+		Accounts::<Runtime>::insert(
+			DAVE,
+			DOT,
+			AccountData {
+				free: 0,
+				frozen: 1,
+				reserved: 0,
+			},
+		);
 		TotalIssuance::<Runtime>::insert(DOT, 3);
 
-		let accounts = vec![BOB, CHARLIE];
+		let accounts = vec![BOB, CHARLIE, DAVE];
 
 		// cannot be called by root or anyone expect SweepOrigin
 		assert_noop!(

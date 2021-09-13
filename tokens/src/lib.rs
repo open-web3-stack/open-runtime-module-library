@@ -521,10 +521,16 @@ pub mod module {
 		) -> DispatchResult {
 			T::SweepOrigin::ensure_origin(origin)?;
 			for account in accounts {
-				let balance = Self::free_balance(currency_id, &account);
-				if balance < T::ExistentialDeposits::get(&currency_id) {
-					T::OnDust::on_dust(&account, currency_id, balance);
-					Self::deposit_event(Event::DustLost(currency_id, account, balance));
+				let account_data = Accounts::<T>::get(&account, &currency_id);
+				if account_data.free.is_zero() {
+					continue;
+				}
+				if !account_data.reserved.is_zero() {
+					continue;
+				}
+				if account_data.free < T::ExistentialDeposits::get(&currency_id) {
+					T::OnDust::on_dust(&account, currency_id, account_data.free);
+					Self::deposit_event(Event::DustLost(currency_id, account, account_data.free));
 				}
 			}
 			Ok(())
