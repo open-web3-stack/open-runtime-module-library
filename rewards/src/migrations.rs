@@ -14,12 +14,9 @@ pub struct PoolInfoV0<Share: HasCompact, Balance: HasCompact> {
 	pub total_withdrawn_rewards: Balance,
 }
 
-pub fn migrate_to_multi_currency_reward<T: Config>(
-	get_reward_currency: Box<dyn Fn(&T::PoolIdV0) -> T::CurrencyId>,
-) -> Weight {
+pub fn migrate_to_pool_infos<T: Config>(get_reward_currency: Box<dyn Fn(&T::PoolIdV0) -> T::CurrencyId>) -> Weight {
 	let mut reads_writes = 0;
 
-	// migrate `Pools` to `PoolInfos`
 	for (old_pool_id, old_pool_info) in Pools::<T>::drain() {
 		if let Some(pool_id) = T::PoolIdConvertor::convert(old_pool_id.clone()) {
 			PoolInfos::<T>::mutate(&pool_id, |pool_info| {
@@ -30,9 +27,10 @@ pub fn migrate_to_multi_currency_reward<T: Config>(
 				pool_info
 					.rewards
 					.entry(currency_id)
-					// .and_modify(|v| {
-					// 	*v = new_rewards;
-					// })
+					.and_modify(|v| {
+						v.0 = v.0.saturating_add(new_rewards.0);
+						v.1 = v.1.saturating_add(new_rewards.1);
+					})
 					.or_insert(new_rewards);
 
 				reads_writes += 1;
@@ -41,7 +39,15 @@ pub fn migrate_to_multi_currency_reward<T: Config>(
 		reads_writes += 1;
 	}
 
-	// migrate `ShareAndWithdrawnReward` to `SharesAndWithdrawnRewards`
+	// Return the weight consumed by the migration.
+	T::DbWeight::get().reads_writes(reads_writes, reads_writes)
+}
+
+pub fn migrate_to_shares_and_withdrawn_rewards<T: Config>(
+	get_reward_currency: Box<dyn Fn(&T::PoolIdV0) -> T::CurrencyId>,
+) -> Weight {
+	let mut reads_writes = 0;
+
 	for (old_pool_id, who, (share_amount, withdrawn_reward)) in ShareAndWithdrawnReward::<T>::drain() {
 		if let Some(pool_id) = T::PoolIdConvertor::convert(old_pool_id.clone()) {
 			SharesAndWithdrawnRewards::<T>::mutate(&pool_id, who, |(share, multi_withdrawn)| {
@@ -50,9 +56,9 @@ pub fn migrate_to_multi_currency_reward<T: Config>(
 				*share = share_amount;
 				multi_withdrawn
 					.entry(currency_id)
-					// .and_modify(|v| {
-					// 	*v = withdrawn_reward;
-					// })
+					.and_modify(|v| {
+						*v = v.saturating_add(withdrawn_reward);
+					})
 					.or_insert(withdrawn_reward);
 			});
 		}

@@ -96,7 +96,7 @@ pub mod module {
 	#[pallet::getter(fn pools)]
 	pub type Pools<T: Config> = StorageMap<_, Twox64Concat, T::PoolIdV0, PoolInfoV0<T::Share, T::Balance>, ValueQuery>;
 
-	/// Stores reward pool info.
+	/// Record reward pool info.
 	#[pallet::storage]
 	#[pallet::getter(fn pool_infos)]
 	pub type PoolInfos<T: Config> =
