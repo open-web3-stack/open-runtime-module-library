@@ -14,41 +14,50 @@ pub struct PoolInfoV0<Share: HasCompact, Balance: HasCompact> {
 	pub total_withdrawn_rewards: Balance,
 }
 
-// pub fn migrate_to_multi_currency_reward<T: Config>(
-// 	get_reward_currency: Box<dyn Fn(&T::PoolId) -> T::CurrencyId>,
-// ) -> Weight {
-// 	let mut reads_writes = 0;
-// 	Pools::<T>::translate::<PoolInfoV0<T::Share, T::Balance>, _>(|pool_id,
-// old_pool_info| { 		reads_writes += 1;
-// 		let currency_id = get_reward_currency(&pool_id);
+pub fn migrate_to_multi_currency_reward<T: Config>(
+	get_reward_currency: Box<dyn Fn(&T::PoolId) -> T::CurrencyId>,
+) -> Weight {
+	let mut reads_writes = 0;
 
-// 		let mut rewards = BTreeMap::new();
-// 		rewards.insert(
-// 			currency_id,
-// 			(old_pool_info.total_rewards, old_pool_info.total_withdrawn_rewards),
-// 		);
+	// migrate `Pools` to `PoolInfos`
+	for (old_pool_id, old_pool_info) in Pools::<T>::drain() {
+		if let Some(pool_id) = T::PoolIdConvertor::convert(old_pool_id) {
+			PoolInfos::<T>::mutate(&pool_id, |pool_info| {
+				let currency_id = get_reward_currency(&pool_id);
+				let new_rewards = (old_pool_info.total_rewards, old_pool_info.total_withdrawn_rewards);
 
-// 		Some(PoolInfo {
-// 			total_shares: old_pool_info.total_shares,
-// 			rewards,
-// 		})
-// 	});
+				pool_info.total_shares = old_pool_info.total_shares;
+				pool_info
+					.rewards
+					.entry(currency_id)
+					.and_modify(|v| {
+						*v = new_rewards;
+					})
+					.or_insert(new_rewards);
+			});
+		}
+	}
 
-// 	ShareAndWithdrawnReward::<T>::translate::<(T::Share, T::Balance), _>(
-// 		|pool_id, _who, (shares, withdrawn_rewards)| {
-// 			reads_writes += 1;
-// 			let currency_id = get_reward_currency(&pool_id);
+	// migrate `ShareAndWithdrawnReward` to `SharesAndWithdrawnRewards`
+	for (old_pool_id, who, (share_amount, withdrawn_reward)) in ShareAndWithdrawnReward::<T>::drain() {
+		if let Some(pool_id) = T::PoolIdConvertor::convert(old_pool_id) {
+			SharesAndWithdrawnRewards::<T>::mutate(&pool_id, who, |(share, multi_withdrawn)| {
+				let currency_id = get_reward_currency(&pool_id);
 
-// 			let mut withdrawn = BTreeMap::new();
-// 			withdrawn.insert(currency_id, withdrawn_rewards);
+				*share = share_amount;
+				*multi_withdrawn
+					.entry(currency_id)
+					.and_modify(|v| {
+						*v = withdrawn_reward;
+					})
+					.or_insert(withdrawn_reward);
+			});
+		}
+	}
 
-// 			Some((shares, withdrawn))
-// 		},
-// 	);
-
-// 	// Return the weight consumed by the migration.
-// 	T::DbWeight::get().reads_writes(reads_writes, reads_writes)
-// }
+	// Return the weight consumed by the migration.
+	T::DbWeight::get().reads_writes(reads_writes, reads_writes)
+}
 
 // #[test]
 // fn migrate_to_multi_currency_reward_works() {

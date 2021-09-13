@@ -7,10 +7,11 @@ mod tests;
 
 use codec::{FullCodec, HasCompact, MaxEncodedLen};
 use frame_support::{pallet_prelude::*, weights::Weight};
+pub use migrations::PoolInfoV0;
 use orml_traits::RewardHandler;
 use sp_core::U256;
 use sp_runtime::{
-	traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize, Member, Saturating, UniqueSaturatedInto, Zero},
+	traits::{AtLeast32BitUnsigned, Convert, MaybeSerializeDeserialize, Member, Saturating, UniqueSaturatedInto, Zero},
 	FixedPointOperand, RuntimeDebug, SaturatedConversion,
 };
 use sp_std::{borrow::ToOwned, collections::btree_map::BTreeMap, fmt::Debug, prelude::*};
@@ -72,7 +73,7 @@ pub mod module {
 
 		/// The convertor to convert PoolIdV0 to PoolId
 		/// NOTE: remove it after migration
-		type PoolIdConvertor: Convert<PoolIdV0, PoolId>;
+		type PoolIdConvertor: Convert<Self::PoolIdV0, Option<Self::PoolId>>;
 
 		/// The reward pool ID type.
 		type PoolId: Parameter + Member + Clone + FullCodec;
