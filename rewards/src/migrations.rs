@@ -15,44 +15,48 @@ pub struct PoolInfoV0<Share: HasCompact, Balance: HasCompact> {
 }
 
 pub fn migrate_to_multi_currency_reward<T: Config>(
-	get_reward_currency: Box<dyn Fn(&T::PoolId) -> T::CurrencyId>,
+	get_reward_currency: Box<dyn Fn(&T::PoolIdV0) -> T::CurrencyId>,
 ) -> Weight {
 	let mut reads_writes = 0;
 
 	// migrate `Pools` to `PoolInfos`
 	for (old_pool_id, old_pool_info) in Pools::<T>::drain() {
-		if let Some(pool_id) = T::PoolIdConvertor::convert(old_pool_id) {
+		if let Some(pool_id) = T::PoolIdConvertor::convert(old_pool_id.clone()) {
 			PoolInfos::<T>::mutate(&pool_id, |pool_info| {
-				let currency_id = get_reward_currency(&pool_id);
+				let currency_id = get_reward_currency(&old_pool_id);
 				let new_rewards = (old_pool_info.total_rewards, old_pool_info.total_withdrawn_rewards);
 
 				pool_info.total_shares = old_pool_info.total_shares;
 				pool_info
 					.rewards
 					.entry(currency_id)
-					.and_modify(|v| {
-						*v = new_rewards;
-					})
+					// .and_modify(|v| {
+					// 	*v = new_rewards;
+					// })
 					.or_insert(new_rewards);
+
+				reads_writes += 1;
 			});
 		}
+		reads_writes += 1;
 	}
 
 	// migrate `ShareAndWithdrawnReward` to `SharesAndWithdrawnRewards`
 	for (old_pool_id, who, (share_amount, withdrawn_reward)) in ShareAndWithdrawnReward::<T>::drain() {
-		if let Some(pool_id) = T::PoolIdConvertor::convert(old_pool_id) {
+		if let Some(pool_id) = T::PoolIdConvertor::convert(old_pool_id.clone()) {
 			SharesAndWithdrawnRewards::<T>::mutate(&pool_id, who, |(share, multi_withdrawn)| {
-				let currency_id = get_reward_currency(&pool_id);
+				let currency_id = get_reward_currency(&old_pool_id);
 
 				*share = share_amount;
-				*multi_withdrawn
+				multi_withdrawn
 					.entry(currency_id)
-					.and_modify(|v| {
-						*v = withdrawn_reward;
-					})
+					// .and_modify(|v| {
+					// 	*v = withdrawn_reward;
+					// })
 					.or_insert(withdrawn_reward);
 			});
 		}
+		reads_writes += 1;
 	}
 
 	// Return the weight consumed by the migration.
