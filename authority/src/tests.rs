@@ -443,6 +443,12 @@ fn trigger_call_works() {
 		));
 		let hash = <Runtime as frame_system::Config>::Hashing::hash_of(&call);
 
+		// trigger_call_weight + call_weight
+		let mut weight = Call::Authority(authority::Call::trigger_call(hash))
+			.get_dispatch_info()
+			.weight;
+		weight = weight.saturating_add(call.get_dispatch_info().weight);
+
 		// call not authorized yet
 		assert_noop!(
 			Authority::trigger_call(Origin::signed(1), hash),
@@ -451,7 +457,10 @@ fn trigger_call_works() {
 
 		// works without caller
 		assert_ok!(Authority::authorize_call(Origin::root(), Box::new(call.clone()), None));
-		assert_ok!(Authority::trigger_call(Origin::signed(1), hash));
+		assert_eq!(
+			Authority::trigger_call(Origin::signed(1), hash),
+			Ok(Some(weight).into())
+		);
 		assert_eq!(Authority::saved_calls(&hash), None);
 		System::assert_has_event(mock::Event::Authority(Event::TriggeredCallBy(hash, 1)));
 		System::assert_last_event(mock::Event::Authority(Event::Dispatched(Ok(()))));
@@ -470,7 +479,10 @@ fn trigger_call_works() {
 		assert_eq!(Authority::saved_calls(&hash), Some((call.clone(), Some(1))));
 
 		// caller 1 triggering the call
-		assert_ok!(Authority::trigger_call(Origin::signed(1), hash));
+		assert_eq!(
+			Authority::trigger_call(Origin::signed(1), hash),
+			Ok(Some(weight).into())
+		);
 		assert_eq!(Authority::saved_calls(&hash), None);
 		System::assert_has_event(mock::Event::Authority(Event::TriggeredCallBy(hash, 1)));
 		System::assert_last_event(mock::Event::Authority(Event::Dispatched(Ok(()))));

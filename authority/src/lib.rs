@@ -348,7 +348,7 @@ pub mod module {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 			let hash = T::Hashing::hash_of(&call);
-			SavedCalls::<T>::insert(hash, (call, caller.clone()));
+			SavedCalls::<T>::insert(hash, (call, &caller));
 			Self::deposit_event(Event::AuthorizedCall(hash, caller));
 			Ok(())
 		}
@@ -376,17 +376,30 @@ pub mod module {
 		}
 
 		#[pallet::weight(T::WeightInfo::trigger_call())]
-		pub fn trigger_call(origin: OriginFor<T>, hash: T::Hash) -> DispatchResult {
+		pub fn trigger_call(origin: OriginFor<T>, hash: T::Hash) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 			SavedCalls::<T>::try_mutate_exists(hash, |maybe_call| {
 				let (call, maybe_caller) = maybe_call.take().ok_or(Error::<T>::CallNotAuthorized)?;
 				if let Some(caller) = maybe_caller {
 					ensure!(who == caller, Error::<T>::TriggerCallNotPermitted);
 				}
-				let result = call.dispatch(OriginFor::<T>::root());
+
 				Self::deposit_event(Event::TriggeredCallBy(hash, who));
-				Self::deposit_event(Event::Dispatched(result.map(|_| ()).map_err(|e| e.error)));
-				Ok(())
+
+				let mut weight = T::WeightInfo::trigger_call();
+				let dispatch_info = call.get_dispatch_info();
+
+				let (post_info, result) = match call.dispatch(OriginFor::<T>::root()) {
+					Ok(post_info) => ((post_info, Ok(()))),
+					Err(e) => ((e.post_info, Err(e.error))),
+				};
+
+				Self::deposit_event(Event::Dispatched(result));
+
+				if post_info.pays_fee(&dispatch_info) == Pays::Yes {
+					weight = weight.saturating_add(post_info.calc_actual_weight(&dispatch_info))
+				}
+				Ok(Some(weight).into())
 			})
 		}
 	}
