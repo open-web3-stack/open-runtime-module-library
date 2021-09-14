@@ -390,8 +390,8 @@ pub mod module {
 				let dispatch_info = call.get_dispatch_info();
 
 				let (post_info, result) = match call.dispatch(OriginFor::<T>::root()) {
-					Ok(post_info) => ((post_info, Ok(()))),
-					Err(e) => ((e.post_info, Err(e.error))),
+					Ok(post_info) => (post_info, Ok(())),
+					Err(e) => (e.post_info, Err(e.error)),
 				};
 
 				Self::deposit_event(Event::Dispatched(result));
