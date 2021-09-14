@@ -81,7 +81,7 @@ impl RewardHandler<AccountId, CurrencyId> for Handler {
 pub struct MockConvert;
 impl Convert<PoolId, Option<PoolId>> for MockConvert {
 	fn convert(a: PoolId) -> Option<PoolId> {
-		Some(a)
+		Some(a / 2)
 	}
 }
 
