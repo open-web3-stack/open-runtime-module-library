@@ -34,8 +34,11 @@ fn sibling_c_account() -> AccountId32 {
 	Sibling::from(3).into_account()
 }
 
+// Not used in any unit tests, but it's super helpful for debugging. Let's
+// keep it here.
+#[allow(dead_code)]
 fn print_events<Runtime: frame_system::Config>(name: &'static str) {
-	println!("------ {:?} -------", name);
+	println!("------ {:?} events -------", name);
 	frame_system::Pallet::<Runtime>::events()
 		.iter()
 		.for_each(|r| println!("> {:?}", r.event));
@@ -64,11 +67,9 @@ fn send_relay_chain_asset_to_relay_chain() {
 			30,
 		));
 		assert_eq!(ParaTokens::free_balance(CurrencyId::R, &ALICE), 500);
-		print_events::<para::Runtime>("ParaA")
 	});
 
 	Relay::execute_with(|| {
-		print_events::<relay::Runtime>("Relay");
 		assert_eq!(RelayBalances::free_balance(&para_a_account()), 500);
 		assert_eq!(RelayBalances::free_balance(&BOB), 470);
 	});
@@ -131,19 +132,14 @@ fn send_relay_chain_asset_to_sibling() {
 			30,
 		));
 		assert_eq!(ParaTokens::free_balance(CurrencyId::R, &ALICE), 500);
-
-		print_events::<para::Runtime>("ParaA");
 	});
 
 	Relay::execute_with(|| {
-		print_events::<relay::Runtime>("Relay");
-
 		assert_eq!(RelayBalances::free_balance(&para_a_account()), 500);
 		assert_eq!(RelayBalances::free_balance(&para_b_account()), 470);
 	});
 
 	ParaB::execute_with(|| {
-		print_events::<para::Runtime>("ParaB");
 		assert_eq!(ParaTokens::free_balance(CurrencyId::R, &BOB), 440);
 	});
 }
@@ -255,13 +251,11 @@ fn send_self_parachain_asset_to_sibling() {
 			30,
 		));
 
-		print_events::<para::Runtime>("ParaA");
 		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &ALICE), 500);
 		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &sibling_b_account()), 500);
 	});
 
 	ParaB::execute_with(|| {
-		print_events::<para::Runtime>("ParaB");
 		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &BOB), 470);
 	});
 }

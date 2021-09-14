@@ -308,8 +308,7 @@ pub mod module {
 			}
 
 			let reserve_buy_execution = Self::buy_execution(half(&asset), &reserve, dest_weight)?;
-			let dest_buy_execution =
-				Self::buy_execution_with_middle_reserve(half(&asset), &reserve, &reanchored_dest, dest_weight)?;
+			let dest_buy_execution = Self::buy_execution(half(&asset), &dest, dest_weight)?;
 			Ok(WithdrawAsset {
 				assets: asset.clone().into(),
 				effects: vec![InitiateReserveWithdraw {
@@ -336,40 +335,13 @@ pub mod module {
 			}
 		}
 
-		fn buy_execution(
-			asset: MultiAsset,
-			dest: &MultiLocation,
-			dest_weight: u64,
-		) -> Result<Order<()>, DispatchError> {
-			let inv_dest = T::LocationInverter::invert_location(dest);
-			let fees = asset.reanchored(&inv_dest).map_err(|_| Error::<T>::CannotReanchor)?;
+		fn buy_execution(asset: MultiAsset, at: &MultiLocation, weight: u64) -> Result<Order<()>, DispatchError> {
+			let inv_at = T::LocationInverter::invert_location(at);
+			let fees = asset.reanchored(&inv_at).map_err(|_| Error::<T>::CannotReanchor)?;
 			Ok(BuyExecution {
 				fees,
 				weight: 0,
-				debt: dest_weight,
-				halt_on_error: false,
-				instructions: vec![],
-			})
-		}
-
-		fn buy_execution_with_middle_reserve(
-			asset: MultiAsset,
-			reserve: &MultiLocation,
-			dest: &MultiLocation,
-			dest_weight: u64,
-		) -> Result<Order<()>, DispatchError> {
-			let inv_reserve = T::LocationInverter::invert_location(reserve);
-			let reserve_reanchored = asset.reanchored(&inv_reserve).map_err(|_| Error::<T>::CannotReanchor)?;
-
-			let reserve_ancestry = relative_ancestry(reserve).ok_or(Error::<T>::InvalidAncestry)?;
-			let inv_dest = invert_location(reserve_ancestry, dest);
-			let fees = reserve_reanchored
-				.reanchored(&inv_dest)
-				.map_err(|_| Error::<T>::CannotReanchor)?;
-			Ok(BuyExecution {
-				fees,
-				weight: 0,
-				debt: dest_weight,
+				debt: weight,
 				halt_on_error: false,
 				instructions: vec![],
 			})
@@ -482,33 +454,6 @@ pub mod module {
 			Self::do_transfer_multiasset(who, asset, dest, dest_weight, true)
 		}
 	}
-}
-
-fn relative_ancestry(location: &MultiLocation) -> Option<MultiLocation> {
-	if location == &MultiLocation::parent() {
-		return Some(Here.into());
-	}
-
-	match location {
-		MultiLocation {
-			parents,
-			interior: X1(Parachain(id)),
-		} if *parents == 1 => Some(MultiLocation::new(0, X1(Parachain(*id)))),
-		_ => None,
-	}
-}
-
-// from https://github.com/paritytech/polkadot/blob/48122d0220555bfd59d46e2971522cc4e7c9edf9/xcm/xcm-builder/src/location_conversion.rs#L183
-fn invert_location(ancestry: MultiLocation, location: &MultiLocation) -> MultiLocation {
-	let mut ancestry = ancestry;
-	let mut junctions = Here;
-	for _ in 0..location.parent_count() {
-		junctions = junctions
-			.pushed_with(ancestry.take_first_interior().unwrap_or(OnlyChild))
-			.expect("ancestry is well-formed and has less than 8 non-parent junctions; qed");
-	}
-	let parents = location.interior().len() as u8;
-	MultiLocation::new(parents, junctions)
 }
 
 /// Returns amount if `asset` is fungible, or zero.
