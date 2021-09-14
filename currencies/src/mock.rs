@@ -3,7 +3,7 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{construct_runtime, parameter_types, PalletId};
+use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
 use orml_traits::parameter_type_with_key;
 use sp_core::H256;
 use sp_runtime::{
@@ -75,11 +75,16 @@ parameter_types! {
 	pub MaxLocks: u32 = 100_000;
 }
 
+ord_parameter_types! {
+	pub const Admin: AccountId = ALICE;
+}
+
 impl orml_tokens::Config for Runtime {
 	type Event = Event;
 	type Balance = Balance;
 	type Amount = i64;
 	type CurrencyId = CurrencyId;
+	type SweepOrigin = frame_system::EnsureSignedBy<Admin, AccountId>;
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = orml_tokens::TransferDust<Runtime, DustAccount>;

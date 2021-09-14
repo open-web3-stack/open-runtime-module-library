@@ -1,8 +1,8 @@
-use super::{Amount, Balance, CurrencyId, CurrencyIdConvert, ParachainXcmRouter};
+use super::{Amount, Balance, CurrencyId, CurrencyIdConvert, ParachainXcmRouter, ALICE};
 use crate as orml_xtokens;
 
 use frame_support::{
-	construct_runtime, parameter_types,
+	construct_runtime, ord_parameter_types, parameter_types,
 	traits::{Everything, Get},
 	weights::{constants::WEIGHT_PER_SECOND, Weight},
 };
@@ -90,11 +90,16 @@ parameter_type_with_key! {
 	};
 }
 
+ord_parameter_types! {
+	pub const Admin: AccountId = ALICE;
+}
+
 impl orml_tokens::Config for Runtime {
 	type Event = Event;
 	type Balance = Balance;
 	type Amount = Amount;
 	type CurrencyId = CurrencyId;
+	type SweepOrigin = frame_system::EnsureSignedBy<Admin, AccountId>;
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = ();
