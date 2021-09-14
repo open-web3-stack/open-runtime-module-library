@@ -340,7 +340,7 @@ pub mod module {
 			Ok(())
 		}
 
-		#[pallet::weight(0)]
+		#[pallet::weight(T::WeightInfo::authorize_call())]
 		pub fn authorize_call(
 			origin: OriginFor<T>,
 			call: Box<CallOf<T>>,
@@ -353,7 +353,7 @@ pub mod module {
 			Ok(())
 		}
 
-		#[pallet::weight(0)]
+		#[pallet::weight(T::WeightInfo::remove_authorized_call())]
 		pub fn remove_authorized_call(origin: OriginFor<T>, hash: T::Hash) -> DispatchResult {
 			let root_or_sigend =
 				EnsureOneOf::<T::AccountId, EnsureRoot<T::AccountId>, EnsureSigned<T::AccountId>>::ensure_origin(
@@ -375,7 +375,7 @@ pub mod module {
 			})
 		}
 
-		#[pallet::weight(0)]
+		#[pallet::weight(T::WeightInfo::trigger_call())]
 		pub fn trigger_call(origin: OriginFor<T>, hash: T::Hash) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			SavedCalls::<T>::try_mutate_exists(hash, |maybe_call| {
