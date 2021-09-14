@@ -22,7 +22,6 @@ pub fn migrate_to_pool_infos<T: Config>(
 ) -> Weight {
 	let mut remove_items = 0;
 	let mut insert_items = 0;
-	let start = std::time::Instant::now();
 
 	for (old_pool_id, old_pool_info) in Pools::<T>::drain().take(maybe_limit.unwrap_or(usize::MAX)) {
 		remove_items += 1;
@@ -40,8 +39,8 @@ pub fn migrate_to_pool_infos<T: Config>(
 
 	log::info!(
 		target: "rewards-migration",
-		"migrate orml-rewards Pools: migrate {:?} items, spend {:?}",
-		remove_items, std::time::Instant::now() - start,
+		"migrate orml-rewards Pools: migrate {:?} items",
+		remove_items,
 	);
 
 	// Return the weight consumed by the migration.
@@ -56,7 +55,6 @@ pub fn migrate_to_shares_and_withdrawn_rewards<T: Config>(
 ) -> Weight {
 	let mut remove_items = 0;
 	let mut insert_items = 0;
-	let start = std::time::Instant::now();
 
 	for (old_pool_id, who, (share_amount, withdrawn_reward)) in
 		ShareAndWithdrawnReward::<T>::drain().take(maybe_limit.unwrap_or(usize::MAX))
@@ -74,8 +72,8 @@ pub fn migrate_to_shares_and_withdrawn_rewards<T: Config>(
 
 	log::info!(
 		target: "rewards-migration",
-		"migrate orml-rewards ShareAndWithdrawnReward: migrate {:?} items, spend {:?}",
-		remove_items, std::time::Instant::now() - start,
+		"migrate orml-rewards ShareAndWithdrawnReward: migrate {:?} items",
+		remove_items,
 	);
 
 	// Return the weight consumed by the migration.
