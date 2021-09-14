@@ -513,7 +513,7 @@ pub mod module {
 			})
 		}
 
-		#[pallet::weight(0)]
+		#[pallet::weight(T::WeightInfo::sweep_dust(accounts.len() as u32))]
 		pub fn sweep_dust(
 			origin: OriginFor<T>,
 			currency_id: T::CurrencyId,
