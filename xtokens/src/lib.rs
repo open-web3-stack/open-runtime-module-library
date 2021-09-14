@@ -307,9 +307,9 @@ pub mod module {
 				}
 			}
 
-			let reserve_buy_execution = Self::buy_execution(asset.clone(), &reserve, dest_weight)?;
+			let reserve_buy_execution = Self::buy_execution(half(&asset), &reserve, dest_weight)?;
 			let dest_buy_execution =
-				Self::buy_execution_with_middle_reserve(asset.clone(), &reserve, &reanchored_dest, dest_weight)?;
+				Self::buy_execution_with_middle_reserve(half(&asset), &reserve, &reanchored_dest, dest_weight)?;
 			Ok(WithdrawAsset {
 				assets: asset.clone().into(),
 				effects: vec![InitiateReserveWithdraw {
@@ -359,13 +359,7 @@ pub mod module {
 			dest_weight: u64,
 		) -> Result<Order<()>, DispatchError> {
 			let inv_reserve = T::LocationInverter::invert_location(reserve);
-			let half_asset = MultiAsset {
-				fun: Fungible(fungible_amount(&asset) / 2),
-				id: asset.id,
-			};
-			let reserve_reanchored = half_asset
-				.reanchored(&inv_reserve)
-				.map_err(|_| Error::<T>::CannotReanchor)?;
+			let reserve_reanchored = asset.reanchored(&inv_reserve).map_err(|_| Error::<T>::CannotReanchor)?;
 
 			let reserve_ancestry = relative_ancestry(reserve).ok_or(Error::<T>::InvalidAncestry)?;
 			let inv_dest = invert_location(reserve_ancestry, dest);
@@ -523,5 +517,15 @@ fn fungible_amount(asset: &MultiAsset) -> u128 {
 		*amount
 	} else {
 		Zero::zero()
+	}
+}
+
+fn half(asset: &MultiAsset) -> MultiAsset {
+	let half_amount = fungible_amount(asset)
+		.checked_div(2)
+		.expect("div 2 can't overflow; qed");
+	MultiAsset {
+		fun: Fungible(half_amount),
+		id: asset.id.clone(),
 	}
 }

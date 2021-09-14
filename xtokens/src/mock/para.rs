@@ -10,7 +10,7 @@ use frame_system::EnsureRoot;
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
-	traits::{Convert, IdentityLookup},
+	traits::{Convert, IdentityLookup, Zero},
 	AccountId32,
 };
 
@@ -176,7 +176,14 @@ impl WeightTrader for AllTokensAreCreatedEqualToWeight {
 	}
 
 	fn refund_weight(&mut self, weight: Weight) -> Option<MultiAsset> {
-		Some((self.0.clone(), weight as u128).into())
+		if weight.is_zero() {
+			None
+		} else {
+			Some(MultiAsset {
+				fun: Fungible(weight as u128),
+				id: Concrete(self.0.clone()),
+			})
+		}
 	}
 }
 
