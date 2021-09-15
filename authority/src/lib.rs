@@ -176,6 +176,8 @@ pub mod module {
 		CallNotAuthorized,
 		/// Triggering the call is not permitted.
 		TriggerCallNotPermitted,
+		/// Call weight bound is greater than limit.
+		CallWeightBoundExceeded,
 	}
 
 	#[pallet::event]
@@ -375,14 +377,22 @@ pub mod module {
 			})
 		}
 
-		#[pallet::weight(T::WeightInfo::trigger_call())]
-		pub fn trigger_call(origin: OriginFor<T>, hash: T::Hash) -> DispatchResult {
+		#[pallet::weight(T::WeightInfo::trigger_call().saturating_add(*call_weight_bound))]
+		pub fn trigger_call(
+			origin: OriginFor<T>,
+			hash: T::Hash,
+			#[pallet::compact] call_weight_bound: Weight,
+		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			SavedCalls::<T>::try_mutate_exists(hash, |maybe_call| {
 				let (call, maybe_caller) = maybe_call.take().ok_or(Error::<T>::CallNotAuthorized)?;
 				if let Some(caller) = maybe_caller {
 					ensure!(who == caller, Error::<T>::TriggerCallNotPermitted);
 				}
+				ensure!(
+					call_weight_bound <= call.get_dispatch_info().weight,
+					Error::<T>::CallWeightBoundExceeded
+				);
 				let result = call.dispatch(OriginFor::<T>::root());
 				Self::deposit_event(Event::TriggeredCallBy(hash, who));
 				Self::deposit_event(Event::Dispatched(result.map(|_| ()).map_err(|e| e.error)));

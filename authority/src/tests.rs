@@ -443,15 +443,24 @@ fn trigger_call_works() {
 		));
 		let hash = <Runtime as frame_system::Config>::Hashing::hash_of(&call);
 
+		let call_weight_bound = call.get_dispatch_info().weight;
+
 		// call not authorized yet
 		assert_noop!(
-			Authority::trigger_call(Origin::signed(1), hash),
+			Authority::trigger_call(Origin::signed(1), hash, call_weight_bound),
 			Error::<Runtime>::CallNotAuthorized
 		);
 
-		// works without caller
 		assert_ok!(Authority::authorize_call(Origin::root(), Box::new(call.clone()), None));
-		assert_ok!(Authority::trigger_call(Origin::signed(1), hash));
+
+		// call weight bound excided limit
+		assert_noop!(
+			Authority::trigger_call(Origin::signed(1), hash, call_weight_bound + 1),
+			Error::<Runtime>::CallWeightBoundExceeded
+		);
+
+		// works without caller
+		assert_ok!(Authority::trigger_call(Origin::signed(1), hash, call_weight_bound));
 		assert_eq!(Authority::saved_calls(&hash), None);
 		System::assert_has_event(mock::Event::Authority(Event::TriggeredCallBy(hash, 1)));
 		System::assert_last_event(mock::Event::Authority(Event::Dispatched(Ok(()))));
@@ -464,13 +473,13 @@ fn trigger_call_works() {
 		));
 		// caller 2 is not permitted to trigger the call
 		assert_noop!(
-			Authority::trigger_call(Origin::signed(2), hash),
+			Authority::trigger_call(Origin::signed(2), hash, call_weight_bound),
 			Error::<Runtime>::TriggerCallNotPermitted
 		);
 		assert_eq!(Authority::saved_calls(&hash), Some((call.clone(), Some(1))));
 
 		// caller 1 triggering the call
-		assert_ok!(Authority::trigger_call(Origin::signed(1), hash));
+		assert_ok!(Authority::trigger_call(Origin::signed(1), hash, call_weight_bound));
 		assert_eq!(Authority::saved_calls(&hash), None);
 		System::assert_has_event(mock::Event::Authority(Event::TriggeredCallBy(hash, 1)));
 		System::assert_last_event(mock::Event::Authority(Event::Dispatched(Ok(()))));
