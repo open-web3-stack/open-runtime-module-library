@@ -5,7 +5,7 @@ members = [
 	"auction",
 	"authority",
 	"bencher",
-	"benchmarking",
+	# "benchmarking",
 	"currencies",
 	"gradually-update",
 	"oracle",
@@ -64,7 +64,6 @@ sp-inherents = { git = "https://github.com/paritytech//substrate", rev = "7e4462
 sp-io = { git = "https://github.com/paritytech//substrate", rev = "7e44628a345137872ac7be5f88a383f5c45329ea" }
 sp-keystore = { git = "https://github.com/paritytech//substrate", rev = "7e44628a345137872ac7be5f88a383f5c45329ea" }
 sp-npos-elections = { git = "https://github.com/paritytech//substrate", rev = "7e44628a345137872ac7be5f88a383f5c45329ea" }
-
 sp-panic-handler = { git = "https://github.com/paritytech//substrate", rev = "7e44628a345137872ac7be5f88a383f5c45329ea" }
 sp-runtime = { git = "https://github.com/paritytech//substrate", rev = "7e44628a345137872ac7be5f88a383f5c45329ea" }
 sp-runtime-interface = { git = "https://github.com/paritytech//substrate", rev = "7e44628a345137872ac7be5f88a383f5c45329ea" }
