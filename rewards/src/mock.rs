@@ -3,7 +3,7 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{construct_runtime, parameter_types};
+use frame_support::{construct_runtime, parameter_types, weights::constants::RocksDbWeight};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 use sp_std::cell::RefCell;
@@ -16,11 +16,14 @@ pub type Balance = u64;
 pub type Share = u64;
 pub type PoolId = u32;
 pub type BlockNumber = u64;
+pub type CurrencyId = u32;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const CAROL: AccountId = 3;
 pub const DOT_POOL: PoolId = 1;
+pub const NATIVE_COIN: CurrencyId = 0;
+pub const STABLE_COIN: CurrencyId = 1;
 
 parameter_types! {
 	pub const BlockHashCount: u64 = 250;
@@ -45,7 +48,7 @@ impl frame_system::Config for Runtime {
 	type AccountData = ();
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
-	type DbWeight = ();
+	type DbWeight = RocksDbWeight;
 	type BaseCallFilter = ();
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
@@ -53,21 +56,21 @@ impl frame_system::Config for Runtime {
 }
 
 thread_local! {
-	pub static RECEIVED_PAYOUT: RefCell<HashMap<(PoolId, AccountId), Balance>> = RefCell::new(HashMap::new());
+	pub static RECEIVED_PAYOUT: RefCell<HashMap<(PoolId, AccountId, CurrencyId), Balance>> = RefCell::new(HashMap::new());
 }
 
 pub struct Handler;
-impl RewardHandler<AccountId> for Handler {
+impl RewardHandler<AccountId, CurrencyId> for Handler {
 	type Balance = Balance;
 	type PoolId = PoolId;
 
-	fn payout(who: &AccountId, pool: &Self::PoolId, amount: Self::Balance) {
+	fn payout(who: &AccountId, pool: &Self::PoolId, currency_id: CurrencyId, amount: Self::Balance) {
 		RECEIVED_PAYOUT.with(|v| {
 			let mut old_map = v.borrow().clone();
-			if let Some(before) = old_map.get_mut(&(*pool, *who)) {
+			if let Some(before) = old_map.get_mut(&(*pool, *who, currency_id)) {
 				*before += amount;
 			} else {
-				old_map.insert((*pool, *who), amount);
+				old_map.insert((*pool, *who, currency_id), amount);
 			};
 
 			*v.borrow_mut() = old_map;
@@ -75,10 +78,20 @@ impl RewardHandler<AccountId> for Handler {
 	}
 }
 
+pub struct MockConvert;
+impl Convert<PoolId, Option<PoolId>> for MockConvert {
+	fn convert(a: PoolId) -> Option<PoolId> {
+		Some(a / 2)
+	}
+}
+
 impl Config for Runtime {
 	type Share = Share;
 	type Balance = Balance;
+	type PoolIdV0 = PoolId;
+	type PoolIdConvertor = MockConvert;
 	type PoolId = PoolId;
+	type CurrencyId = CurrencyId;
 	type Handler = Handler;
 }
 
