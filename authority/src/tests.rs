@@ -453,10 +453,10 @@ fn trigger_call_works() {
 
 		assert_ok!(Authority::authorize_call(Origin::root(), Box::new(call.clone()), None));
 
-		// call weight bound excided limit
+		// wrong call weight bound
 		assert_noop!(
-			Authority::trigger_call(Origin::signed(1), hash, call_weight_bound + 1),
-			Error::<Runtime>::CallWeightBoundExceeded
+			Authority::trigger_call(Origin::signed(1), hash, call_weight_bound - 1),
+			Error::<Runtime>::WrongCallWeightBound
 		);
 
 		// works without caller

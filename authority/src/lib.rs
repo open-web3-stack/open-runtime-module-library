@@ -176,8 +176,8 @@ pub mod module {
 		CallNotAuthorized,
 		/// Triggering the call is not permitted.
 		TriggerCallNotPermitted,
-		/// Call weight bound is greater than limit.
-		CallWeightBoundExceeded,
+		/// Call weight bound is wrong.
+		WrongCallWeightBound,
 	}
 
 	#[pallet::event]
@@ -390,8 +390,8 @@ pub mod module {
 					ensure!(who == caller, Error::<T>::TriggerCallNotPermitted);
 				}
 				ensure!(
-					call_weight_bound <= call.get_dispatch_info().weight,
-					Error::<T>::CallWeightBoundExceeded
+					call_weight_bound >= call.get_dispatch_info().weight,
+					Error::<T>::WrongCallWeightBound
 				);
 				let result = call.dispatch(OriginFor::<T>::root());
 				Self::deposit_event(Event::TriggeredCallBy(hash, who));
