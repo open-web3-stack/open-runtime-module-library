@@ -28,10 +28,10 @@ use frame_support::{
 	},
 	weights::GetDispatchInfo,
 };
-use frame_system::pallet_prelude::*;
+use frame_system::{pallet_prelude::*, EnsureOneOf, EnsureRoot, EnsureSigned};
 use sp_runtime::{
-	traits::{CheckedSub, Dispatchable, Saturating},
-	ArithmeticError, DispatchError, DispatchResult, RuntimeDebug,
+	traits::{CheckedSub, Dispatchable, Hash, Saturating},
+	ArithmeticError, DispatchError, DispatchResult, Either, RuntimeDebug,
 };
 use sp_std::prelude::*;
 
@@ -172,6 +172,12 @@ pub mod module {
 		FailedToFastTrack,
 		/// Failed to delay a task.
 		FailedToDelay,
+		/// Call is not authorized.
+		CallNotAuthorized,
+		/// Triggering the call is not permitted.
+		TriggerCallNotPermitted,
+		/// Call weight bound is wrong.
+		WrongCallWeightBound,
 	}
 
 	#[pallet::event]
@@ -187,11 +193,21 @@ pub mod module {
 		Delayed(T::PalletsOrigin, ScheduleTaskIndex, T::BlockNumber),
 		/// A scheduled call is cancelled. [origin, index]
 		Cancelled(T::PalletsOrigin, ScheduleTaskIndex),
+		/// A call is authorized. \[hash, caller\]
+		AuthorizedCall(T::Hash, Option<T::AccountId>),
+		/// An authorized call was removed. \[hash\]
+		RemovedAuthorizedCall(T::Hash),
+		/// An authorized call was triggered. \[hash, caller\]
+		TriggeredCallBy(T::Hash, T::AccountId),
 	}
 
 	#[pallet::storage]
 	#[pallet::getter(fn next_task_index)]
 	pub type NextTaskIndex<T: Config> = StorageValue<_, ScheduleTaskIndex, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn saved_calls)]
+	pub type SavedCalls<T: Config> = StorageMap<_, Identity, T::Hash, (CallOf<T>, Option<T::AccountId>), OptionQuery>;
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
@@ -324,6 +340,64 @@ pub mod module {
 
 			Self::deposit_event(Event::Cancelled(*initial_origin, task_id));
 			Ok(())
+		}
+
+		#[pallet::weight(T::WeightInfo::authorize_call())]
+		pub fn authorize_call(
+			origin: OriginFor<T>,
+			call: Box<CallOf<T>>,
+			caller: Option<T::AccountId>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+			let hash = T::Hashing::hash_of(&call);
+			SavedCalls::<T>::insert(hash, (call, caller.clone()));
+			Self::deposit_event(Event::AuthorizedCall(hash, caller));
+			Ok(())
+		}
+
+		#[pallet::weight(T::WeightInfo::remove_authorized_call())]
+		pub fn remove_authorized_call(origin: OriginFor<T>, hash: T::Hash) -> DispatchResult {
+			let root_or_sigend =
+				EnsureOneOf::<T::AccountId, EnsureRoot<T::AccountId>, EnsureSigned<T::AccountId>>::ensure_origin(
+					origin,
+				)?;
+
+			SavedCalls::<T>::try_mutate_exists(hash, |maybe_call| {
+				let (_, maybe_caller) = maybe_call.take().ok_or(Error::<T>::CallNotAuthorized)?;
+				match root_or_sigend {
+					Either::Left(_) => {} // root, do nothing
+					Either::Right(who) => {
+						// signed, ensure it's the caller
+						let caller = maybe_caller.ok_or(Error::<T>::CallNotAuthorized)?;
+						ensure!(who == caller, Error::<T>::CallNotAuthorized);
+					}
+				}
+				Self::deposit_event(Event::RemovedAuthorizedCall(hash));
+				Ok(())
+			})
+		}
+
+		#[pallet::weight(T::WeightInfo::trigger_call().saturating_add(*call_weight_bound))]
+		pub fn trigger_call(
+			origin: OriginFor<T>,
+			hash: T::Hash,
+			#[pallet::compact] call_weight_bound: Weight,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			SavedCalls::<T>::try_mutate_exists(hash, |maybe_call| {
+				let (call, maybe_caller) = maybe_call.take().ok_or(Error::<T>::CallNotAuthorized)?;
+				if let Some(caller) = maybe_caller {
+					ensure!(who == caller, Error::<T>::TriggerCallNotPermitted);
+				}
+				ensure!(
+					call_weight_bound >= call.get_dispatch_info().weight,
+					Error::<T>::WrongCallWeightBound
+				);
+				let result = call.dispatch(OriginFor::<T>::root());
+				Self::deposit_event(Event::TriggeredCallBy(hash, who));
+				Self::deposit_event(Event::Dispatched(result.map(|_| ()).map_err(|e| e.error)));
+				Ok(())
+			})
 		}
 	}
 }
