@@ -413,18 +413,26 @@ fn authorize_call_should_be_free_and_operational() {
 		let authorize_call = Call::Authority(authority::Call::authorize_call(Box::new(call), None));
 
 		assert_eq!(
-			authorize_call.get_dispatch_info(),
+			authorize_call.clone().get_dispatch_info(),
 			DispatchInfo {
 				weight: <Runtime as authority::Config>::WeightInfo::authorize_call(),
 				class: DispatchClass::Operational,
-				pays_fee: Pays::No,
+				pays_fee: Pays::Yes,
 			}
 		);
 
-		// failed call should pay fee
-		let result = authorize_call.dispatch(Origin::signed(1));
+		// successfull call doesn't pay fee
 		assert_eq!(
-			result,
+			authorize_call.clone().dispatch(Origin::root()),
+			Ok(PostDispatchInfo {
+				actual_weight: None,
+				pays_fee: Pays::No
+			})
+		);
+
+		// bad origin pays fee
+		assert_eq!(
+			authorize_call.dispatch(Origin::signed(1)),
 			Err(DispatchErrorWithPostInfo {
 				post_info: PostDispatchInfo {
 					actual_weight: None,

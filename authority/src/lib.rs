@@ -20,7 +20,7 @@
 #![allow(clippy::unused_unit)]
 
 use frame_support::{
-	dispatch::PostDispatchInfo,
+	dispatch::{DispatchResultWithPostInfo, PostDispatchInfo},
 	pallet_prelude::*,
 	traits::{
 		schedule::{DispatchTime, Named as ScheduleNamed, Priority},
@@ -342,21 +342,17 @@ pub mod module {
 			Ok(())
 		}
 
-		#[pallet::weight((
-			T::WeightInfo::authorize_call(),
-			DispatchClass::Operational,
-			Pays::No,
-		))]
+		#[pallet::weight((T::WeightInfo::authorize_call(), DispatchClass::Operational))]
 		pub fn authorize_call(
 			origin: OriginFor<T>,
 			call: Box<CallOf<T>>,
 			caller: Option<T::AccountId>,
-		) -> DispatchResult {
+		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 			let hash = T::Hashing::hash_of(&call);
 			SavedCalls::<T>::insert(hash, (call, caller.clone()));
 			Self::deposit_event(Event::AuthorizedCall(hash, caller));
-			Ok(())
+			Ok(Pays::No.into())
 		}
 
 		#[pallet::weight(T::WeightInfo::remove_authorized_call())]
