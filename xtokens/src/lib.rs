@@ -310,7 +310,7 @@ pub mod module {
 			let reserve_buy_execution = Self::buy_execution(half(&asset), &reserve, dest_weight)?;
 			let dest_buy_execution = Self::buy_execution(half(&asset), &dest, dest_weight)?;
 			Ok(WithdrawAsset {
-				assets: asset.clone().into(),
+				assets: asset.into(),
 				effects: vec![InitiateReserveWithdraw {
 					assets: All.into(),
 					reserve,
