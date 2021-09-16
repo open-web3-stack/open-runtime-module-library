@@ -26,7 +26,7 @@ use frame_support::{
 		schedule::{DispatchTime, Named as ScheduleNamed, Priority},
 		EnsureOrigin, Get, IsType, OriginTrait,
 	},
-	weights::GetDispatchInfo,
+	weights::{DispatchClass, GetDispatchInfo, Pays},
 };
 use frame_system::{pallet_prelude::*, EnsureOneOf, EnsureRoot, EnsureSigned};
 use sp_runtime::{
@@ -342,7 +342,11 @@ pub mod module {
 			Ok(())
 		}
 
-		#[pallet::weight(T::WeightInfo::authorize_call())]
+		#[pallet::weight((
+			T::WeightInfo::authorize_call(),
+			DispatchClass::Operational,
+			Pays::No,
+		))]
 		pub fn authorize_call(
 			origin: OriginFor<T>,
 			call: Box<CallOf<T>>,

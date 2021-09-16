@@ -5,6 +5,7 @@
 use super::*;
 use frame_support::{
 	assert_noop, assert_ok,
+	dispatch::DispatchInfo,
 	traits::{schedule::DispatchTime, OriginTrait},
 };
 use frame_system::RawOrigin;
@@ -403,6 +404,22 @@ fn call_size_limit() {
 		reduce the size of Call.
 		If the limit is too strong, maybe consider increasing the limit",
 	);
+}
+
+#[test]
+fn authorize_call_should_be_free_and_operational() {
+	ExtBuilder::default().build().execute_with(|| {
+		let call = Call::System(frame_system::Call::fill_block(Perbill::one()));
+		let dispatch_info = Call::Authority(authority::Call::authorize_call(Box::new(call), None)).get_dispatch_info();
+		assert_eq!(
+			dispatch_info,
+			DispatchInfo {
+				weight: <Runtime as authority::Config>::WeightInfo::authorize_call(),
+				class: DispatchClass::Operational,
+				pays_fee: Pays::No,
+			}
+		);
+	});
 }
 
 #[test]
