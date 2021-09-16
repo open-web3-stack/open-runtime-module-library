@@ -8,7 +8,6 @@ use mock::*;
 use orml_traits::MultiCurrency;
 use polkadot_parachain::primitives::{AccountIdConversion, Sibling};
 use sp_runtime::AccountId32;
-use xcm::latest::{Junction, NetworkId, Order};
 use xcm_simulator::TestExt;
 
 fn para_a_account() -> AccountId32 {
