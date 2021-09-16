@@ -200,6 +200,7 @@ impl Config for XcmConfig {
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
 	type Trader = AllTokensAreCreatedEqualToWeight;
 	type ResponseHandler = ();
+	type SubscriptionService = PolkadotXcm;
 }
 
 pub struct ChannelInfo;
