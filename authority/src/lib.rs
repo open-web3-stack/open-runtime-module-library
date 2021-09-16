@@ -26,7 +26,7 @@ use frame_support::{
 		schedule::{DispatchTime, Named as ScheduleNamed, Priority},
 		EnsureOrigin, Get, IsType, OriginTrait,
 	},
-	weights::GetDispatchInfo,
+	weights::{DispatchClass, GetDispatchInfo, Pays},
 };
 use frame_system::{pallet_prelude::*, EnsureOneOf, EnsureRoot, EnsureSigned};
 use sp_runtime::{
@@ -377,12 +377,15 @@ pub mod module {
 			})
 		}
 
-		#[pallet::weight(T::WeightInfo::trigger_call().saturating_add(*call_weight_bound))]
+		#[pallet::weight((
+			T::WeightInfo::trigger_call().saturating_add(*call_weight_bound),
+			DispatchClass::Operational,
+		))]
 		pub fn trigger_call(
 			origin: OriginFor<T>,
 			hash: T::Hash,
 			#[pallet::compact] call_weight_bound: Weight,
-		) -> DispatchResult {
+		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 			SavedCalls::<T>::try_mutate_exists(hash, |maybe_call| {
 				let (call, maybe_caller) = maybe_call.take().ok_or(Error::<T>::CallNotAuthorized)?;
@@ -396,7 +399,7 @@ pub mod module {
 				let result = call.dispatch(OriginFor::<T>::root());
 				Self::deposit_event(Event::TriggeredCallBy(hash, who));
 				Self::deposit_event(Event::Dispatched(result.map(|_| ()).map_err(|e| e.error)));
-				Ok(())
+				Ok(Pays::No.into())
 			})
 		}
 	}
