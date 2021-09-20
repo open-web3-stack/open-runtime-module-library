@@ -78,18 +78,9 @@ impl RewardHandler<AccountId, CurrencyId> for Handler {
 	}
 }
 
-pub struct MockConvert;
-impl Convert<PoolId, Option<PoolId>> for MockConvert {
-	fn convert(a: PoolId) -> Option<PoolId> {
-		Some(a / 2)
-	}
-}
-
 impl Config for Runtime {
 	type Share = Share;
 	type Balance = Balance;
-	type PoolIdV0 = PoolId;
-	type PoolIdConvertor = MockConvert;
 	type PoolId = PoolId;
 	type CurrencyId = CurrencyId;
 	type Handler = Handler;

@@ -5,6 +5,7 @@
 use super::*;
 use frame_support::{
 	assert_noop, assert_ok,
+	dispatch::DispatchErrorWithPostInfo,
 	traits::{schedule::DispatchTime, OriginTrait},
 };
 use frame_system::RawOrigin;
@@ -531,5 +532,38 @@ fn remove_authorized_call_works() {
 		assert_eq!(Authority::saved_calls(&hash), Some((call.clone(), Some(1))));
 		assert_ok!(Authority::remove_authorized_call(Origin::signed(1), hash));
 		assert_eq!(Authority::saved_calls(&hash), None);
+	});
+}
+
+#[test]
+fn trigger_call_should_be_free_and_operational() {
+	ExtBuilder::default().build().execute_with(|| {
+		let call = Call::System(frame_system::Call::fill_block(Perbill::one()));
+		let hash = <Runtime as frame_system::Config>::Hashing::hash_of(&call);
+		let call_weight_bound = call.get_dispatch_info().weight;
+		let trigger_call = Call::Authority(authority::Call::trigger_call(hash, call_weight_bound));
+
+		assert_ok!(Authority::authorize_call(Origin::root(), Box::new(call), Some(1)));
+
+		// bad caller pays fee
+		assert_eq!(
+			trigger_call.clone().dispatch(Origin::signed(2)),
+			Err(DispatchErrorWithPostInfo {
+				post_info: PostDispatchInfo {
+					actual_weight: None,
+					pays_fee: Pays::Yes
+				},
+				error: Error::<Runtime>::TriggerCallNotPermitted.into()
+			})
+		);
+
+		// successfull call doesn't pay fee
+		assert_eq!(
+			trigger_call.clone().dispatch(Origin::signed(1)),
+			Ok(PostDispatchInfo {
+				actual_weight: None,
+				pays_fee: Pays::No
+			})
+		);
 	});
 }

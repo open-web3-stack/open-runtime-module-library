@@ -1,17 +1,15 @@
 #![allow(clippy::unused_unit)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
-pub mod migrations;
 mod mock;
 mod tests;
 
-use codec::{FullCodec, HasCompact, MaxEncodedLen};
-use frame_support::{pallet_prelude::*, weights::Weight};
-pub use migrations::PoolInfoV0;
+use codec::{FullCodec, HasCompact};
+use frame_support::pallet_prelude::*;
 use orml_traits::RewardHandler;
 use sp_core::U256;
 use sp_runtime::{
-	traits::{AtLeast32BitUnsigned, Convert, MaybeSerializeDeserialize, Member, Saturating, UniqueSaturatedInto, Zero},
+	traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize, Member, Saturating, UniqueSaturatedInto, Zero},
 	FixedPointOperand, RuntimeDebug, SaturatedConversion,
 };
 use sp_std::{borrow::ToOwned, collections::btree_map::BTreeMap, fmt::Debug, prelude::*};
@@ -67,14 +65,6 @@ pub mod module {
 			+ Debug
 			+ FixedPointOperand;
 
-		/// The old version of reward pool ID type.
-		/// NOTE: remove it after migration
-		type PoolIdV0: Parameter + Member + Clone + FullCodec;
-
-		/// The convertor to convert PoolIdV0 to PoolId
-		/// NOTE: remove it after migration
-		type PoolIdConvertor: Convert<Self::PoolIdV0, Option<Self::PoolId>>;
-
 		/// The reward pool ID type.
 		type PoolId: Parameter + Member + Clone + FullCodec;
 
@@ -90,25 +80,13 @@ pub mod module {
 		PoolDoesNotExist,
 	}
 
-	/// Stores reward pool info.
-	/// NOTE: remove it after migration
-	#[pallet::storage]
-	#[pallet::getter(fn pools)]
-	pub type Pools<T: Config> = StorageMap<_, Twox64Concat, T::PoolIdV0, PoolInfoV0<T::Share, T::Balance>, ValueQuery>;
-
 	/// Record reward pool info.
+	///
+	/// map PoolId => PoolInfo
 	#[pallet::storage]
 	#[pallet::getter(fn pool_infos)]
 	pub type PoolInfos<T: Config> =
 		StorageMap<_, Twox64Concat, T::PoolId, PoolInfo<T::Share, T::Balance, T::CurrencyId>, ValueQuery>;
-
-	/// Record share amount and withdrawn reward amount for specific `AccountId`
-	/// under `PoolId`.
-	/// NOTE: remove it after migration
-	#[pallet::storage]
-	#[pallet::getter(fn share_and_withdrawn_reward)]
-	pub type ShareAndWithdrawnReward<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, T::PoolIdV0, Twox64Concat, T::AccountId, (T::Share, T::Balance), ValueQuery>;
 
 	/// Record share amount, reward currency and withdrawn reward amount for
 	/// specific `AccountId` under `PoolId`.
