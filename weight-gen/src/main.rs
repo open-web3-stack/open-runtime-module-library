@@ -88,21 +88,11 @@ impl handlebars::HelperDef for JoinHelper {
 
 fn parse_stdio() -> Option<Vec<BenchData>> {
 	let mut buffer = String::new();
-	let stdin = std::io::stdin();
-	let mut handle = stdin.lock();
-
-	handle.read_to_string(&mut buffer).expect("Unable to read from stdin");
-
-	let lines: Vec<&str> = buffer.split('\n').collect();
-	for line in lines {
-		let json = serde_json::from_str(line);
-
-		if let Ok(data) = json {
-			return Some(data);
-		}
-	}
-
-	None
+	std::io::stdin()
+		.read_to_string(&mut buffer)
+		.expect("Unable to read from stdin");
+	let reader = std::fs::File::open(std::path::Path::new(&buffer.trim())).unwrap();
+	serde_json::from_reader(&reader).ok()
 }
 
 fn main() {
@@ -114,8 +104,8 @@ fn main() {
 			Arg::with_name("input")
 				.short("i")
 				.long("input")
-				.value_name("INPUT")
-				.help("Input JSON data")
+				.value_name("PATH")
+				.help("Input JSON data file")
 				.takes_value(true),
 		)
 		.arg(
@@ -128,7 +118,6 @@ fn main() {
 		)
 		.arg(
 			Arg::with_name("header")
-				.short("h")
 				.long("header")
 				.value_name("PATH")
 				.help("Header file path")
@@ -145,8 +134,9 @@ fn main() {
 		.get_matches();
 
 	let benchmarks: Vec<BenchData> = {
-		if let Some(data) = matches.value_of("input") {
-			serde_json::from_str(&data).expect("Could not parse JSON data")
+		if let Some(input_path) = matches.value_of("input") {
+			let reader = std::fs::File::open(std::path::Path::new(&input_path.trim())).unwrap();
+			serde_json::from_reader(&reader).expect("Could not parse JSON data")
 		} else {
 			parse_stdio().expect("Could not parse JSON data")
 		}
