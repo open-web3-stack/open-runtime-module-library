@@ -189,9 +189,6 @@ pub mod module {
 		/// The currency ID type
 		type CurrencyId: Parameter + Member + Copy + MaybeSerializeDeserialize + Ord;
 
-		/// The AccountId that can perform a sweep dust.
-		type SweepOrigin: EnsureOrigin<Self::Origin>;
-
 		/// Weight information for extrinsics in this module.
 		type WeightInfo: WeightInfo;
 
@@ -511,29 +508,6 @@ pub mod module {
 				Self::deposit_event(Event::BalanceSet(currency_id, who.clone(), new_free, new_reserved));
 				Ok(())
 			})
-		}
-
-		#[pallet::weight(T::WeightInfo::sweep_dust(accounts.len() as u32))]
-		pub fn sweep_dust(
-			origin: OriginFor<T>,
-			currency_id: T::CurrencyId,
-			accounts: Vec<T::AccountId>,
-		) -> DispatchResult {
-			T::SweepOrigin::ensure_origin(origin)?;
-			for account in accounts {
-				let account_data = Accounts::<T>::get(&account, &currency_id);
-				if account_data.free.is_zero() {
-					continue;
-				}
-				if !account_data.reserved.is_zero() {
-					continue;
-				}
-				if account_data.free < T::ExistentialDeposits::get(&currency_id) {
-					T::OnDust::on_dust(&account, currency_id, account_data.free);
-					Self::deposit_event(Event::DustLost(currency_id, account, account_data.free));
-				}
-			}
-			Ok(())
 		}
 	}
 }
