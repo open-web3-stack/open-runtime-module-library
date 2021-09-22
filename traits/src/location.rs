@@ -1,3 +1,4 @@
+use sp_std::prelude::*;
 use xcm::latest::prelude::*;
 
 pub trait Parse {
@@ -54,6 +55,16 @@ impl Reserve for MultiAsset {
 	}
 }
 
+pub trait RelativeLocations {
+	fn sibling_parachain_general_key(para_id: u32, general_key: Vec<u8>) -> MultiLocation;
+}
+
+impl RelativeLocations for MultiLocation {
+	fn sibling_parachain_general_key(para_id: u32, general_key: Vec<u8>) -> MultiLocation {
+		MultiLocation::new(1, X2(Parachain(para_id), GeneralKey(general_key)))
+	}
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -62,10 +73,7 @@ mod tests {
 	const GENERAL_INDEX: Junction = GeneralIndex(1);
 
 	fn concrete_fungible(id: MultiLocation) -> MultiAsset {
-		MultiAsset {
-			fun: Fungible(1),
-			id: Concrete(id),
-		}
+		(id, 1).into()
 	}
 
 	#[test]

@@ -4,6 +4,8 @@
 
 use super::*;
 
+use orml_traits::ConcreteFungibleAsset;
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum TestCurrencyId {
 	TokenA,
@@ -36,25 +38,17 @@ type MatchesCurrencyId = IsNativeConcrete<TestCurrencyId, CurrencyIdConvert>;
 #[test]
 fn is_native_concrete_matches_native_currencies() {
 	assert_eq!(
-		MatchesCurrencyId::matches_fungible(&MultiAsset {
-			fun: Fungible(100),
-			id: Concrete(MultiLocation::parent()),
-		}),
+		MatchesCurrencyId::matches_fungible(&MultiAsset::parent_asset(100)),
 		Some(100),
 	);
 
 	assert_eq!(
-		MatchesCurrencyId::matches_fungible(&MultiAsset {
-			fun: Fungible(100),
-			id: Concrete(MultiLocation::new(1, X2(Parachain(1), GeneralKey("TokenA".into())))),
-		}),
+		MatchesCurrencyId::matches_fungible(&MultiAsset::sibling_parachain_asset(1, "TokenA".into(), 100)),
 		Some(100),
 	);
+
 	assert_eq!(
-		MatchesCurrencyId::matches_fungible(&MultiAsset {
-			fun: Fungible(100),
-			id: Concrete(MultiLocation::new(1, X2(Parachain(2), GeneralKey("TokenB".into())))),
-		}),
+		MatchesCurrencyId::matches_fungible(&MultiAsset::sibling_parachain_asset(2, "TokenB".into(), 100)),
 		Some(100),
 	);
 }
@@ -62,17 +56,19 @@ fn is_native_concrete_matches_native_currencies() {
 #[test]
 fn is_native_concrete_does_not_matches_non_native_currencies() {
 	assert!(
-		<MatchesCurrencyId as MatchesFungible<u128>>::matches_fungible(&MultiAsset {
-			fun: Fungible(100),
-			id: Concrete(MultiLocation::new(1, X2(Parachain(2), GeneralKey("TokenC".into())))),
-		})
+		<MatchesCurrencyId as MatchesFungible<u128>>::matches_fungible(&MultiAsset::sibling_parachain_asset(
+			2,
+			"TokenC".into(),
+			100
+		))
 		.is_none()
 	);
 	assert!(
-		<MatchesCurrencyId as MatchesFungible<u128>>::matches_fungible(&MultiAsset {
-			fun: Fungible(100),
-			id: Concrete(MultiLocation::new(1, X2(Parachain(1), GeneralKey("TokenB".into())))),
-		})
+		<MatchesCurrencyId as MatchesFungible<u128>>::matches_fungible(&MultiAsset::sibling_parachain_asset(
+			1,
+			"TokenB".into(),
+			100
+		))
 		.is_none()
 	);
 	assert!(
@@ -94,17 +90,11 @@ fn multi_native_asset() {
 		&Parent.into()
 	));
 	assert!(MultiNativeAsset::filter_asset_location(
-		&MultiAsset {
-			fun: Fungible(100),
-			id: Concrete(MultiLocation::new(1, X2(Parachain(1), GeneralKey("TokenA".into())))),
-		},
+		&MultiAsset::sibling_parachain_asset(1, "TokenA".into(), 100),
 		&MultiLocation::new(1, X1(Parachain(1))),
 	));
 	assert!(!MultiNativeAsset::filter_asset_location(
-		&MultiAsset {
-			fun: Fungible(100),
-			id: Concrete(MultiLocation::new(1, X2(Parachain(1), GeneralKey("TokenA".into())))),
-		},
+		&MultiAsset::sibling_parachain_asset(1, "TokenA".into(), 100),
 		&MultiLocation::parent(),
 	));
 }

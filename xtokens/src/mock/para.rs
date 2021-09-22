@@ -184,10 +184,7 @@ impl WeightTrader for AllTokensAreCreatedEqualToWeight {
 		if weight.is_zero() {
 			None
 		} else {
-			Some(MultiAsset {
-				fun: Fungible(weight as u128),
-				id: Concrete(self.0.clone()),
-			})
+			Some((self.0.clone(), weight as u128).into())
 		}
 	}
 }

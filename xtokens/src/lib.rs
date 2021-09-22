@@ -201,10 +201,7 @@ pub mod module {
 			let location: MultiLocation = T::CurrencyIdConvert::convert(currency_id.clone())
 				.ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
 
-			let asset = MultiAsset {
-				fun: Fungible(amount.into()),
-				id: Concrete(location),
-			};
+			let asset = (location, amount.into()).into();
 			Self::do_transfer_multiasset(who.clone(), asset, dest.clone(), dest_weight, false)?;
 
 			Self::deposit_event(Event::<T>::Transferred(who, currency_id, amount, dest));
@@ -421,10 +418,7 @@ pub mod module {
 		/// Returns weight of `transfer` call.
 		fn weight_of_transfer(currency_id: T::CurrencyId, amount: T::Balance, dest: &MultiLocation) -> Weight {
 			if let Some(location) = T::CurrencyIdConvert::convert(currency_id) {
-				let asset = MultiAsset {
-					fun: Fungible(amount.into()),
-					id: Concrete(location),
-				};
+				let asset = (location, amount.into()).into();
 				Self::weight_of_transfer_multiasset(&asset, dest)
 			} else {
 				0

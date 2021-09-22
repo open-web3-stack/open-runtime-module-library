@@ -5,7 +5,7 @@ use codec::Encode;
 use cumulus_primitives_core::ParaId;
 use frame_support::{assert_err, assert_noop, assert_ok, traits::Currency};
 use mock::*;
-use orml_traits::MultiCurrency;
+use orml_traits::{ConcreteFungibleAsset, MultiCurrency};
 use polkadot_parachain::primitives::{AccountIdConversion, Sibling};
 use sp_runtime::AccountId32;
 use xcm_simulator::TestExt;
@@ -294,7 +294,7 @@ fn transfer_to_self_chain_fails() {
 		assert_noop!(
 			ParaXTokens::transfer_multiasset(
 				Some(ALICE).into(),
-				Box::new((MultiLocation::new(1, X2(Parachain(1), GeneralKey("A".into()))), 100).into()),
+				Box::new(MultiAsset::sibling_parachain_asset(1, "A".into(), 100)),
 				Box::new(MultiLocation::new(
 					1,
 					X2(
@@ -320,7 +320,7 @@ fn transfer_to_invalid_dest_fails() {
 		assert_noop!(
 			ParaXTokens::transfer_multiasset(
 				Some(ALICE).into(),
-				Box::new((MultiLocation::new(1, X2(Parachain(1), GeneralKey("A".into()))), 100).into()),
+				Box::new(MultiAsset::sibling_parachain_asset(1, "A".into(), 100)),
 				Box::new(MultiLocation::new(
 					0,
 					X1(Junction::AccountId32 {
