@@ -8,6 +8,7 @@ pub struct BenchData {
 	pub weight: u64,
 	pub reads: u32,
 	pub writes: u32,
+	pub comments: Vec<String>,
 }
 
 #[derive(Serialize, Default, Debug, Clone)]
@@ -138,7 +139,7 @@ fn main() {
 		)
 		.get_matches();
 
-	let benchmarks: Vec<BenchData> = {
+	let mut benchmarks: Vec<BenchData> = {
 		if let Some(input_path) = matches.value_of("input") {
 			let reader = std::fs::File::open(std::path::Path::new(&input_path.trim())).unwrap();
 			serde_json::from_reader(&reader).expect("Could not parse JSON data")
@@ -146,6 +147,11 @@ fn main() {
 			parse_stdio().expect("Could not parse JSON data")
 		}
 	};
+
+	// Sort comments
+	benchmarks.iter_mut().for_each(|x| {
+		x.comments.sort();
+	});
 
 	let mut handlebars = handlebars::Handlebars::new();
 	handlebars.register_helper("underscore", Box::new(UnderscoreHelper));
@@ -182,6 +188,8 @@ fn main() {
 		handlebars
 			.render_template_to_write(&template, &hbs_data, &mut output_file)
 			.expect("Unable to render template");
+		println!();
+		println!("Weights file `{}` was generated.", path);
 	} else {
 		let template_string = handlebars
 			.render_template(&template, &hbs_data)

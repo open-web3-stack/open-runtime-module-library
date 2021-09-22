@@ -1,5 +1,6 @@
 {{header}}
 
+#![cfg_attr(rustfmt, rustfmt_skip)]
 #![allow(unused_parens)]
 #![allow(unused_imports)]
 #![allow(dead_code)]
@@ -10,6 +11,11 @@ use sp_std::marker::PhantomData;
 pub struct ModuleWeights<T>(PhantomData<T>);
 impl<T: frame_system::Config> ModuleWeights<T> {
 	{{#each benchmarks as |benchmark|}}
+	// Storage access info
+	//
+	{{#each benchmark.comments as |c|}}
+	// {{c}}
+	{{/each}}
 	pub fn {{benchmark.name~}} () -> Weight {
 		({{underscore benchmark.weight}} as Weight)
 			{{#if (ne benchmark.reads 0)}}
