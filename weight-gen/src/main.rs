@@ -91,7 +91,12 @@ fn parse_stdio() -> Option<Vec<BenchData>> {
 	std::io::stdin()
 		.read_to_string(&mut buffer)
 		.expect("Unable to read from stdin");
-	let reader = std::fs::File::open(std::path::Path::new(&buffer.trim())).unwrap();
+
+	let file_path = buffer
+		.split_ascii_whitespace()
+		.last()
+		.expect("Last line must be JOSN file path.");
+	let reader = std::fs::File::open(std::path::Path::new(file_path)).unwrap();
 	serde_json::from_reader(&reader).ok()
 }
 
