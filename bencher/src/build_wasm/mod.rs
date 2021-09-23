@@ -40,7 +40,7 @@ pub fn build() -> std::io::Result<Vec<u8>> {
 
 	let (wasm_binary, bloaty) = wasm_project::create_and_compile(
 		&project_cargo_toml,
-		&default_rustflags,
+		default_rustflags,
 		cargo_cmd,
 		vec!["bench".to_string()],
 		None,

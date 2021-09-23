@@ -1,6 +1,6 @@
 use super::{
 	ext::BenchExt,
-	tracker::{ChangesTracker, ChangesTrackerExt},
+	tracker::{BenchTracker, BenchTrackerExt},
 };
 use frame_benchmarking::frame_support::sp_runtime::traits::{Block, NumberFor};
 use sc_executor::{sp_wasm_interface::HostFunctions, WasmExecutionMethod, WasmExecutor};
@@ -13,10 +13,10 @@ use sp_std::sync::Arc;
 pub fn run<B: Block>(wasm_code: Vec<u8>) -> std::result::Result<Vec<u8>, String> {
 	let mut overlay = OverlayedChanges::default();
 	let mut cache = StorageTransactionCache::default();
-	let state = sc_client_db::BenchmarkingState::<B>::new(Default::default(), Default::default(), false).unwrap();
+	let state = sc_client_db::BenchmarkingState::<B>::new(Default::default(), Default::default(), false, true).unwrap();
 
-	let tracker = Arc::new(ChangesTracker::new());
-	let tracker_ext = ChangesTrackerExt(Arc::clone(&tracker));
+	let tracker = Arc::new(BenchTracker::new());
+	let tracker_ext = BenchTrackerExt(Arc::clone(&tracker));
 
 	let mut extensions = Extensions::default();
 	extensions.register(tracker_ext);

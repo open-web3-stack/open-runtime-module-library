@@ -7,6 +7,7 @@ pub struct BenchResult {
 	pub elapses: Vec<u128>,
 	pub reads: u32,
 	pub writes: u32,
+	pub keys: Vec<u8>,
 }
 
 pub struct Bencher {
@@ -80,6 +81,9 @@ impl Bencher {
 		// Warm up the DB
 		frame_benchmarking::benchmarking::commit_db();
 		frame_benchmarking::benchmarking::wipe_db();
+		// Warm up
+		(self.prepare)();
+		(self.bench)();
 
 		let mut result = BenchResult {
 			method: self.name.clone(),
@@ -87,32 +91,43 @@ impl Bencher {
 		};
 
 		for _ in 0..50 {
+			// Reset the DB
+			frame_benchmarking::benchmarking::wipe_db();
+
 			// Execute prepare block
 			(self.prepare)();
 
 			frame_benchmarking::benchmarking::commit_db();
 			frame_benchmarking::benchmarking::reset_read_write_count();
-			crate::bench::reset();
+			crate::bench::reset_redundant();
 
-			let start_time = frame_benchmarking::benchmarking::current_time();
+			crate::bench::instant();
 			// Execute bench block
 			(self.bench)();
-			let end_time = frame_benchmarking::benchmarking::current_time();
-			frame_benchmarking::benchmarking::commit_db();
+			let elapsed = crate::bench::elapsed().saturating_sub(crate::bench::redundant_time());
+			assert!(elapsed > 0);
+			result.elapses.push(elapsed);
+		}
+		// used for comparison
+		frame_benchmarking::benchmarking::commit_db();
+		let (reads, _, written, _) = frame_benchmarking::benchmarking::read_write_count();
 
-			let (elapsed, reads, writes) = crate::bench::finalized_results(end_time - start_time);
+		result.reads = reads;
+		result.writes = written;
+		// changed keys
+		result.keys = crate::bench::read_written_keys();
+		self.results.push(result);
 
-			// Execute verify block
-			(self.verify)();
-
+		// Verify
+		{
 			// Reset the DB
 			frame_benchmarking::benchmarking::wipe_db();
-
-			result.elapses.push(elapsed);
-
-			result.reads = sp_std::cmp::max(result.reads, reads);
-			result.writes = sp_std::cmp::max(result.writes, writes);
+			// Execute prepare block
+			(self.prepare)();
+			// Execute bench block
+			(self.bench)();
+			// Execute verify block
+			(self.verify)();
 		}
-		self.results.push(result);
 	}
 }

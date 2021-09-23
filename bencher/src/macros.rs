@@ -27,7 +27,7 @@
 /// #![allow(dead_code)]
 ///
 /// use orml_bencher::{Bencher, bench};
-/// use your_module::mock::{Block, YourModule};
+/// use your_module::mock::{Block, YourModule, AllPalletsWithSystem};
 ///
 /// fn foo(b: &mut Bencher) {
 ///     b.prepare(|| {
@@ -51,7 +51,7 @@
 ///     });
 /// }
 ///
-/// bench!(Block, foo, bar); // Tests are generated automatically
+/// bench!(AllPalletsWithSystem, Block, foo, bar); // Tests are generated automatically
 /// ```
 /// Update `src/lib.rs`:
 /// ```.ignore
@@ -67,6 +67,7 @@
 #[macro_export]
 macro_rules! bench {
     (
+        $all_pallets_with_system:ident,
         $block:tt,
         $($method:path),+
     ) => {
@@ -93,34 +94,39 @@ macro_rules! bench {
         fn panic_handler(info: &::core::panic::PanicInfo) -> ! {
             unsafe {
                 let message = $crate::sp_std::alloc::format!("{}", info);
-                $crate::bench::panic(message.as_bytes().to_vec());
+                $crate::bench::print_error(message.as_bytes().to_vec());
                 core::arch::wasm32::unreachable();
             }
         }
 
         #[cfg(all(feature = "std", feature = "bench"))]
+        #[main]
         pub fn main() -> std::io::Result<()> {
+            use $crate::frame_benchmarking::frame_support::traits::StorageInfoTrait;
             let wasm = $crate::build_wasm::build()?;
+            let storage_info = $all_pallets_with_system::storage_info();
             match $crate::bench_runner::run::<$block>(wasm) {
-                Ok(output) => { $crate::handler::handle(output); }
+                Ok(output) => { $crate::handler::handle(output, storage_info); }
                 Err(e) => { eprintln!("{:?}", e); }
             };
             Ok(())
         }
 
         // Tests
-        $(
-            $crate::paste::item! {
-                #[test]
-                fn [<test_ $method>] () {
-                    $crate::sp_io::TestExternalities::new_empty().execute_with(|| {
-                        let mut bencher = $crate::Bencher::default();
-                        $method(&mut bencher);
-                        bencher.run();
-                    });
+        mod tests {
+            $(
+                $crate::paste::item! {
+                    #[test]
+                    fn [<bench_ $method>] () {
+                        $crate::sp_io::TestExternalities::new_empty().execute_with(|| {
+                            let mut bencher = $crate::Bencher::default();
+                            super::$method(&mut bencher);
+                            bencher.run();
+                        });
+                    }
                 }
-            }
-        )+
+            )+
+        }
 
     }
 }

@@ -5,7 +5,7 @@ use sp_state_machine::{Backend, ChangesTrieBlockNumber, Ext};
 use sp_std::sync::Arc;
 use sp_storage::{ChildInfo, TrackedStorageKey};
 
-use super::tracker::ChangesTracker;
+use super::tracker::BenchTracker;
 
 pub struct BenchExt<'a, H, N, B>
 where
@@ -14,7 +14,7 @@ where
 	N: ChangesTrieBlockNumber,
 {
 	ext: Ext<'a, H, N, B>,
-	tracker: Arc<ChangesTracker>,
+	tracker: Arc<BenchTracker>,
 }
 
 impl<'a, H, N, B> BenchExt<'a, H, N, B>
@@ -23,7 +23,7 @@ where
 	B: 'a + Backend<H>,
 	N: ChangesTrieBlockNumber,
 {
-	pub fn new(ext: Ext<'a, H, N, B>, tracker: Arc<ChangesTracker>) -> Self {
+	pub fn new(ext: Ext<'a, H, N, B>, tracker: Arc<BenchTracker>) -> Self {
 		BenchExt { ext, tracker }
 	}
 }
@@ -40,54 +40,57 @@ where
 	}
 
 	fn storage(&self, key: &[u8]) -> Option<Vec<u8>> {
+		self.tracker.reading_key(key.to_vec());
 		self.ext.storage(key)
 	}
 
 	fn storage_hash(&self, key: &[u8]) -> Option<Vec<u8>> {
+		self.tracker.reading_key(key.to_vec());
 		self.ext.storage_hash(key)
 	}
 
 	fn child_storage_hash(&self, child_info: &ChildInfo, key: &[u8]) -> Option<Vec<u8>> {
+		self.tracker.reading_child_key(child_info, key.to_vec());
 		self.ext.child_storage_hash(child_info, key)
 	}
 
 	fn child_storage(&self, child_info: &ChildInfo, key: &[u8]) -> Option<Vec<u8>> {
+		self.tracker.reading_child_key(child_info, key.to_vec());
 		self.ext.child_storage(child_info, key)
 	}
 
 	fn next_storage_key(&self, key: &[u8]) -> Option<Vec<u8>> {
+		self.tracker.reading_key(key.to_vec());
 		self.ext.next_storage_key(key)
 	}
 
 	fn next_child_storage_key(&self, child_info: &ChildInfo, key: &[u8]) -> Option<Vec<u8>> {
+		self.tracker.reading_child_key(child_info, key.to_vec());
 		self.ext.next_child_storage_key(child_info, key)
 	}
 
 	fn kill_child_storage(&mut self, child_info: &ChildInfo, limit: Option<u32>) -> (bool, u32) {
-		let (all_deleted, num_deleted) = self.ext.kill_child_storage(child_info, limit);
-		self.tracker.add_deleted(num_deleted);
-		(all_deleted, num_deleted)
+		// TODO: print warning
+		self.ext.kill_child_storage(child_info, limit)
 	}
 
 	fn clear_prefix(&mut self, prefix: &[u8], limit: Option<u32>) -> (bool, u32) {
-		let (all_deleted, num_deleted) = self.ext.clear_prefix(prefix, limit);
-		self.tracker.add_deleted(num_deleted);
-		(all_deleted, num_deleted)
+		// TODO: print warning
+		self.ext.clear_prefix(prefix, limit)
 	}
 
 	fn clear_child_prefix(&mut self, child_info: &ChildInfo, prefix: &[u8], limit: Option<u32>) -> (bool, u32) {
-		let (all_deleted, num_deleted) = self.ext.clear_child_prefix(child_info, prefix, limit);
-		self.tracker.add_deleted(num_deleted);
-		(all_deleted, num_deleted)
+		// TODO: print warning
+		self.ext.clear_child_prefix(child_info, prefix, limit)
 	}
 
 	fn place_storage(&mut self, key: Vec<u8>, value: Option<Vec<u8>>) {
-		self.tracker.add_main_change(key.clone());
+		self.tracker.changing_key(key.clone());
 		self.ext.place_storage(key, value);
 	}
 
 	fn place_child_storage(&mut self, child_info: &ChildInfo, key: Vec<u8>, value: Option<Vec<u8>>) {
-		self.tracker.add_child_change(child_info, key.clone());
+		self.tracker.changing_child_key(child_info, key.clone());
 		self.ext.place_child_storage(child_info, key, value);
 	}
 
@@ -100,7 +103,7 @@ where
 	}
 
 	fn storage_append(&mut self, key: Vec<u8>, value: Vec<u8>) {
-		self.tracker.add_main_change(key.clone());
+		self.tracker.changing_key(key.clone());
 		self.ext.storage_append(key, value);
 	}
 
@@ -141,7 +144,7 @@ where
 	}
 
 	fn reset_read_write_count(&mut self) {
-		self.tracker.reset();
+		self.tracker.reset_storage_tracker();
 		self.ext.reset_read_write_count()
 	}
 
@@ -155,6 +158,10 @@ where
 
 	fn proof_size(&self) -> Option<u32> {
 		self.ext.proof_size()
+	}
+
+	fn get_read_and_written_keys(&self) -> Vec<(Vec<u8>, u32, u32, bool)> {
+		self.ext.get_read_and_written_keys()
 	}
 }
 

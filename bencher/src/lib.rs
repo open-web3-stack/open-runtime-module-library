@@ -30,6 +30,6 @@ mod colorize;
 #[cfg(feature = "std")]
 mod ext;
 #[cfg(feature = "std")]
-mod redundant_meter;
-#[cfg(feature = "std")]
 mod tracker;
+
+pub use bencher_procedural::benchmarkable;

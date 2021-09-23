@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #![allow(clippy::option_map_unit_fn)]
+#![allow(dead_code)]
 
 use super::{
 	color_output_enabled,
@@ -153,7 +154,8 @@ pub fn create_and_compile(
 		.as_ref()
 		.map(|wasm_binary_compressed| copy_wasm_to_target_directory(project_cargo_toml, wasm_binary_compressed));
 
-	generate_rerun_if_changed_instructions(project_cargo_toml, &project, &wasm_workspace);
+	//generate_rerun_if_changed_instructions(project_cargo_toml, &project,
+	// &wasm_workspace);
 
 	(wasm_binary_compressed.or(wasm_binary), bloaty)
 }
@@ -385,7 +387,7 @@ fn create_project(
 
 	fs::create_dir_all(wasm_project_folder.join("src")).expect("Wasm project dir create can not fail; qed");
 
-	let mut enabled_features = project_enabled_features(&project_cargo_toml, &crate_metadata);
+	let mut enabled_features = project_enabled_features(project_cargo_toml, crate_metadata);
 
 	if has_runtime_wasm_feature_declared(project_cargo_toml, crate_metadata) {
 		enabled_features.push("runtime-wasm".into());
@@ -398,7 +400,7 @@ fn create_project(
 		&wasm_project_folder,
 		workspace_root_path,
 		&crate_name,
-		&crate_path,
+		crate_path,
 		&wasm_binary,
 		enabled_features.into_iter(),
 	);
@@ -461,17 +463,6 @@ fn build_project(project: &Path, default_rustflags: &str, cargo_cmd: CargoComman
 	if is_release_build() {
 		build_cmd.arg("--release");
 	};
-
-	println!(
-		"{}",
-		colorize_info_message("Information that should be included in a bug report.")
-	);
-	println!("{} {:?}", colorize_info_message("Executing build command:"), build_cmd);
-	println!(
-		"{} {}",
-		colorize_info_message("Using rustc version:"),
-		cargo_cmd.rustc_version()
-	);
 
 	match build_cmd.status().map(|s| s.success()) {
 		Ok(true) => {}

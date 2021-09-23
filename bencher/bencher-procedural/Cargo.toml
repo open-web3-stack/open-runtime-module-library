@@ -1,5 +1,5 @@
 [package]
-name = "weight-meter-procedural"
+name = "bencher-procedural"
 version = "0.1.0"
 license = "Apache-2.0"
 authors = ["Laminar Developers <hello@laminar.one>"]
@@ -16,3 +16,4 @@ syn = { version = "1.0.58", features = ["full"] }
 [features]
 default = ["std"]
 std = []
+bench = []
