@@ -85,8 +85,8 @@ pub fn handle(output: Vec<u8>, storage_infos: Vec<StorageInfo>) {
 	let json_path = format!("{}/target/release/tmp/{}_bench_data.json", outdir, pkg_name);
 	let mut writer = std::io::BufWriter::new(std::fs::File::create(std::path::Path::new(&json_path)).unwrap());
 	serde_json::to_writer_pretty(&mut writer, &data).unwrap();
-	writer.write(b"\n").unwrap();
+	writer.write_all(b"\n").unwrap();
 	writer.flush().unwrap();
 
-	std::io::stdout().lock().write_all(&json_path.as_bytes()).unwrap();
+	std::io::stdout().lock().write_all(json_path.as_bytes()).unwrap();
 }
