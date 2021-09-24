@@ -3,12 +3,14 @@ use quote::quote;
 use syn::ItemFn;
 
 #[proc_macro_attribute]
-pub fn start(_attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn start(attr: TokenStream, item: TokenStream) -> TokenStream {
+	let weight: syn::Expr = syn::parse(attr).unwrap();
 	let ItemFn { attrs, vis, sig, block } = syn::parse(item).unwrap();
 	(quote! {
 		#(#attrs)*
+		#[cfg_attr(feature = "bench", ::orml_bencher::benchmarkable)]
 		#vis #sig {
-			::orml_weight_meter::start();
+			::orml_weight_meter::start(#weight);
 			let result = #block;
 			::orml_weight_meter::finish();
 			result
@@ -23,7 +25,7 @@ pub fn weight(attr: TokenStream, item: TokenStream) -> TokenStream {
 	let ItemFn { attrs, vis, sig, block } = syn::parse(item).unwrap();
 	(quote! {
 		#(#attrs)*
-		#[::orml_bencher::benchmarkable]
+		#[cfg_attr(feature = "bench", ::orml_bencher::benchmarkable)]
 		#vis #sig {
 			::orml_weight_meter::using(#weight);
 			#block

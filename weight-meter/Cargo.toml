@@ -11,7 +11,6 @@ targets = ["x86_64-unknown-linux-gnu"]
 [dependencies]
 frame-support = { git = "https://github.com/paritytech//substrate", branch = "polkadot-v0.9.9", default-features = false }
 weight-meter-procedural = { path = "weight-meter-procedural", default-features = false }
-orml-bencher = { path = "../bencher", default-features = false, optional = true }
 
 [dev-dependencies]
 serde = { version = "1.0.124" }
@@ -29,5 +28,5 @@ std = [
     "weight-meter-procedural/std",
 ]
 bench = [
-    "orml-bencher",
+    "weight-meter-procedural/bench",
 ]

@@ -1,11 +1,11 @@
 #![cfg(any(test, feature = "bench"))]
 
 use frame_support::parameter_types;
-use sp_runtime::{
-	MultiSignature,
-	traits::{BlakeTwo256, IdentityLookup}
-};
 use sp_core::H256;
+use sp_runtime::{
+	traits::{BlakeTwo256, IdentityLookup},
+	MultiSignature,
+};
 use sp_std::prelude::*;
 
 pub type Signature = MultiSignature;
@@ -14,9 +14,7 @@ pub type AccountId = u32;
 pub type Address = sp_runtime::MultiAddress<AccountId, u32>;
 pub type Header = sp_runtime::generic::Header<BlockNumber, BlakeTwo256>;
 
-pub type SignedExtra = (
-	frame_system::CheckWeight<Runtime>,
-);
+pub type SignedExtra = (frame_system::CheckWeight<Runtime>,);
 
 pub type UncheckedExtrinsic = sp_runtime::generic::UncheckedExtrinsic<Address, Call, Signature, SignedExtra>;
 
@@ -72,4 +70,25 @@ impl crate::pallet_test::Config for Runtime {
 
 impl crate::pallet_test::OtherConfig for Runtime {
 	type OtherEvent = Event;
+}
+
+#[cfg(test)]
+pub struct ExtBuilder;
+
+#[cfg(test)]
+impl Default for ExtBuilder {
+	fn default() -> Self {
+		Self {}
+	}
+}
+
+#[cfg(test)]
+impl ExtBuilder {
+	pub fn build(self) -> sp_io::TestExternalities {
+		let t = frame_system::GenesisConfig::default()
+			.build_storage::<Runtime>()
+			.unwrap();
+
+		t.into()
+	}
 }

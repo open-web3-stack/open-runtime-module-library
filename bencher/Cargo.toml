@@ -69,6 +69,5 @@ std = [
     "sp-storage/std",
 ]
 bench = [
-    "bencher-procedural/bench",
     "sp-io/disable_panic_handler",
 ]

@@ -16,4 +16,3 @@ syn = { version = "1.0.58", features = ["full"] }
 [features]
 default = ["std"]
 std = []
-bench = []

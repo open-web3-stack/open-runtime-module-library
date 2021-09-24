@@ -23,6 +23,9 @@ sp-std = { git = "https://github.com/paritytech//substrate", branch = "polkadot-
 orml-bencher = { path = "..", default-features = false }
 orml-weight-meter = { path = "../../weight-meter", default-features = false }
 
+[dev-dependencies]
+sp-io = { git = "https://github.com/paritytech//substrate", branch = "polkadot-v0.9.9" }
+
 [features]
 default = ["std"]
 std = [
