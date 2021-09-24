@@ -20,9 +20,7 @@ orml-traits = { path = "../traits", version = "0.4.1-dev", default-features = fa
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 pallet-treasury = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
-# Patch doesn't work as `pallet-elections-phragmen` is now 4.0.0 version. Revert `rev` to `statemint` branch after
-# other `statemint` dependencies upgraded.
-pallet-elections-phragmen = { git = "https://github.com/paritytech/substrate", rev = "1d04678e20555e623c974ee1127bc8a45abcf3d6" }
+pallet-elections-phragmen = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 
 [features]
 default = ["std"]
