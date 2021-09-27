@@ -26,9 +26,9 @@
 //! ```
 //!
 //! 3. Use WeightMeter on your calls by adding macro
-//! `#[orml_weight_meter::start(weight)]` and at the end use
-//! `orml_weight_meter::used_weight()` to get used weight.
-//!```ignore
+//! `#[orml_weight_meter::start(weight)]` or `#[orml_weight_meter::start]` if
+//! starts with zero and at the end use `orml_weight_meter::used_weight()` to
+//! get used weight. ```ignore
 //! #[pallet::call]
 //! impl<T: Config> Pallet<T> {
 //!     #[pallet::weight(T::WeightInfo::do_something())]

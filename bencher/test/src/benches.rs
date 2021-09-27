@@ -1,10 +1,9 @@
 #![cfg(feature = "bench")]
 #![allow(dead_code)]
-#![allow(unused_imports)]
 
+use crate::mock::*;
 use frame_support::assert_ok;
-use orml_bencher::{bench, Bencher};
-use orml_bencher_test::mock::{AllPalletsWithSystem, Block, Origin, TestPallet};
+use orml_bencher::{benches, Bencher};
 
 fn set_value(b: &mut Bencher) {
 	b.bench(|| {
@@ -21,4 +20,4 @@ fn set_foo(b: &mut Bencher) {
 	});
 }
 
-bench!(AllPalletsWithSystem, Block, set_value, set_foo);
+benches!(set_value, set_foo);

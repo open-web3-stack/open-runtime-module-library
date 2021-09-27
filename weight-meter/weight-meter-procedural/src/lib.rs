@@ -1,11 +1,15 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::ItemFn;
+use syn::{Expr, ItemFn, parse};
 
 #[proc_macro_attribute]
 pub fn start(attr: TokenStream, item: TokenStream) -> TokenStream {
-	let weight: syn::Expr = syn::parse(attr).unwrap();
-	let ItemFn { attrs, vis, sig, block } = syn::parse(item).unwrap();
+	let weight: Expr = if attr.is_empty() {
+		parse((quote!{ 0 }).into()).unwrap()
+	} else {
+		parse(attr).unwrap()
+	};
+	let ItemFn { attrs, vis, sig, block } = parse(item).unwrap();
 	(quote! {
 		#(#attrs)*
 		#[cfg_attr(feature = "bench", ::orml_bencher::benchmarkable)]
@@ -21,8 +25,8 @@ pub fn start(attr: TokenStream, item: TokenStream) -> TokenStream {
 
 #[proc_macro_attribute]
 pub fn weight(attr: TokenStream, item: TokenStream) -> TokenStream {
-	let weight: syn::Expr = syn::parse(attr).unwrap();
-	let ItemFn { attrs, vis, sig, block } = syn::parse(item).unwrap();
+	let weight: Expr = parse(attr).unwrap();
+	let ItemFn { attrs, vis, sig, block } = parse(item).unwrap();
 	(quote! {
 		#(#attrs)*
 		#[cfg_attr(feature = "bench", ::orml_bencher::benchmarkable)]

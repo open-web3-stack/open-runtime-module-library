@@ -5,8 +5,6 @@ pub mod mock;
 mod tests;
 mod weights;
 
-extern crate self as orml_bencher_test;
-
 mod pallet_test {
 	use crate::weights::ModuleWeights;
 	use frame_support::{pallet_prelude::Get, transactional};

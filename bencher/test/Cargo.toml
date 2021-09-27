@@ -9,7 +9,6 @@ edition = "2018"
 [[bench]]
 name = "foo"
 harness = false
-path = "src/benches.rs"
 required-features = ["bench"]
 
 [dependencies]

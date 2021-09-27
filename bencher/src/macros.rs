@@ -7,9 +7,8 @@
 /// name = "your-module"
 /// ..
 /// [[bench]]
-/// name = 'your-module-benches'
+/// name = 'module_benches'
 /// harness = false
-/// path = 'src/benches.rs'
 /// required-features = ['bench']
 ///
 /// [features]
@@ -20,14 +19,20 @@
 /// ..
 /// ```
 ///
+/// Create a file `benches/module_benches.rs` must be the same as bench name.
+/// ```.ignore
+/// use your_module::mock::{AllPalletsWithSystem, Block};
+/// orml_bencher::run_benches!(AllPalletsWithSystem, Block);
+/// ```
+///
 /// Define benches
 ///
 /// Create a file `src/benches.rs`:
 /// ```.ignore
-/// #![allow(dead_code)]
+/// #!#[cfg(feature = "bench")]
 ///
-/// use orml_bencher::{Bencher, bench};
-/// use your_module::mock::{Block, YourModule, AllPalletsWithSystem};
+/// use orml_bencher::{Bencher, benches};
+/// use crate::mock::*;
 ///
 /// fn foo(b: &mut Bencher) {
 ///     b.prepare(|| {
@@ -51,26 +56,19 @@
 ///     });
 /// }
 ///
-/// bench!(AllPalletsWithSystem, Block, foo, bar); // Tests are generated automatically
+/// benches!(foo, bar); // Tests are generated automatically
 /// ```
 /// Update `src/lib.rs`:
 /// ```.ignore
 /// #[cfg(any(feature = "bench", test))]
 /// pub mod mock; /* mock runtime needs to be compiled into wasm */
-/// #[cfg(any(feature = "bench", test))]
 /// pub mod benches;
-///
-/// extern crate self as your_module;
 /// ```
 ///
 /// Run benchmarking: `cargo bench --features=bench`
 #[macro_export]
-macro_rules! bench {
-    (
-        $all_pallets_with_system:ident,
-        $block:tt,
-        $($method:path),+
-    ) => {
+macro_rules! benches {
+    ($($method:path),+) => {
         #[cfg(feature = "bench")]
         $crate::sp_core::wasm_export_functions! {
             fn run_benches() -> $crate::sp_std::vec::Vec<$crate::BenchResult> {
@@ -99,19 +97,6 @@ macro_rules! bench {
             }
         }
 
-        #[cfg(all(feature = "std", feature = "bench"))]
-        #[main]
-        pub fn main() -> std::io::Result<()> {
-            use $crate::frame_benchmarking::frame_support::traits::StorageInfoTrait;
-            let wasm = $crate::build_wasm::build()?;
-            let storage_info = $all_pallets_with_system::storage_info();
-            match $crate::bench_runner::run::<$block>(wasm) {
-                Ok(output) => { $crate::handler::handle(output, storage_info); }
-                Err(e) => { eprintln!("{:?}", e); }
-            };
-            Ok(())
-        }
-
         // Tests
         mod tests {
             $(
@@ -129,4 +114,29 @@ macro_rules! bench {
         }
 
     }
+}
+
+#[macro_export]
+macro_rules! run_benches {
+	(
+        $all_pallets_with_system:ident,
+        $block:tt
+    ) => {
+		#[cfg(all(feature = "std", feature = "bench"))]
+		#[main]
+		pub fn main() -> std::io::Result<()> {
+			use $crate::frame_benchmarking::frame_support::traits::StorageInfoTrait;
+			let wasm = $crate::build_wasm::build()?;
+			let storage_info = $all_pallets_with_system::storage_info();
+			match $crate::bench_runner::run::<$block>(wasm) {
+				Ok(output) => {
+					$crate::handler::handle(output, storage_info);
+				}
+				Err(e) => {
+					eprintln!("{:?}", e);
+				}
+			};
+			Ok(())
+		}
+	};
 }
