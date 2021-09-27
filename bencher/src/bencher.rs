@@ -118,6 +118,8 @@ impl Bencher {
 		result.keys = crate::bench::read_written_keys();
 		self.results.push(result);
 
+		crate::bench::print_warnings(self.name.encode());
+
 		// Verify
 		{
 			// Reset the DB

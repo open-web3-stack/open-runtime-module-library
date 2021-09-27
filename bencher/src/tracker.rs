@@ -71,6 +71,7 @@ pub struct BenchTracker {
 	results: RwLock<Vec<u128>>,
 	main_keys: RwLock<HashMap<StorageKey, AccessInfo>>,
 	child_keys: RwLock<HashMap<StorageKey, HashMap<StorageKey, AccessInfo>>>,
+	warn_child_prefix_remove: RwLock<bool>,
 }
 
 impl BenchTracker {
@@ -82,7 +83,12 @@ impl BenchTracker {
 			results: RwLock::new(Vec::new()),
 			main_keys: RwLock::new(HashMap::new()),
 			child_keys: RwLock::new(HashMap::new()),
+			warn_child_prefix_remove: RwLock::new(false),
 		}
+	}
+
+	pub fn has_warn_child_prefix_removal(&self) -> bool {
+		*self.warn_child_prefix_remove.read()
 	}
 
 	pub fn instant(&self) {
@@ -270,6 +276,10 @@ impl BenchTracker {
 			self.results.write().push(elapsed);
 		}
 		*depth -= 1;
+	}
+
+	pub fn warn_child_prefix_removal(&self) {
+		*self.warn_child_prefix_remove.write() = true;
 	}
 
 	pub fn redundant_time(&self) -> u128 {

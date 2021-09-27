@@ -70,17 +70,17 @@ where
 	}
 
 	fn kill_child_storage(&mut self, child_info: &ChildInfo, limit: Option<u32>) -> (bool, u32) {
-		// TODO: print warning
+		self.tracker.warn_child_prefix_removal();
 		self.ext.kill_child_storage(child_info, limit)
 	}
 
 	fn clear_prefix(&mut self, prefix: &[u8], limit: Option<u32>) -> (bool, u32) {
-		// TODO: print warning
+		self.tracker.warn_child_prefix_removal();
 		self.ext.clear_prefix(prefix, limit)
 	}
 
 	fn clear_child_prefix(&mut self, child_info: &ChildInfo, prefix: &[u8], limit: Option<u32>) -> (bool, u32) {
-		// TODO: print warning
+		self.tracker.warn_child_prefix_removal();
 		self.ext.clear_child_prefix(child_info, prefix, limit)
 	}
 

@@ -58,9 +58,9 @@ pub fn handle(output: Vec<u8>, storage_infos: Vec<StorageInfo>) {
 			});
 
 			println!(
-				"{} {:<60} {:>20}  {:<20}  {:<20}",
+				"{} {:<40} {:>20}  {:<20}  {:<20}",
 				green_bold("Bench"),
-				cyan(&format!("{}::{}", pkg_name, name)),
+				cyan(&name),
 				green_bold(&format!(
 					"{:?}",
 					Duration::from_nanos(model.parameters.intercept_value as u64)

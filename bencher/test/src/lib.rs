@@ -64,6 +64,11 @@ mod pallet_test {
 			Bar::<I>::get(1);
 			Ok(())
 		}
+
+		#[orml_weight_meter::weight(0)]
+		pub(crate) fn remove_all_bar() {
+			Bar::<I>::remove_all(None);
+		}
 	}
 
 	pub trait OtherConfig {
