@@ -8,7 +8,7 @@ use mock::*;
 use orml_traits::MultiCurrency;
 use polkadot_parachain::primitives::{AccountIdConversion, Sibling};
 use sp_runtime::AccountId32;
-use xcm::v0::{Error as XcmError, Junction, NetworkId, Order};
+use xcm::v0::{Junction, NetworkId, Order};
 use xcm_simulator::TestExt;
 
 fn para_a_account() -> AccountId32 {
@@ -47,14 +47,16 @@ fn send_relay_chain_asset_to_relay_chain() {
 			Some(ALICE).into(),
 			CurrencyId::R,
 			500,
-			(
-				Parent,
-				Junction::AccountId32 {
-					network: NetworkId::Kusama,
-					id: BOB.into(),
-				},
-			)
-				.into(),
+			Box::new(
+				(
+					Parent,
+					Junction::AccountId32 {
+						network: NetworkId::Kusama,
+						id: BOB.into(),
+					},
+				)
+					.into()
+			),
 			30,
 		));
 		assert_eq!(ParaTokens::free_balance(CurrencyId::R, &ALICE), 500);
@@ -72,31 +74,26 @@ fn cannot_lost_fund_on_send_failed() {
 
 	ParaA::execute_with(|| {
 		assert_ok!(ParaTokens::deposit(CurrencyId::A, &ALICE, 1_000));
-		assert_ok!(ParaXTokens::transfer(
-			Some(ALICE).into(),
-			CurrencyId::A,
-			500,
-			(
-				Parent,
-				Parachain(100),
-				Junction::AccountId32 {
-					network: NetworkId::Kusama,
-					id: BOB.into(),
-				},
-			)
-				.into(),
-			30,
-		));
-		assert!(para::System::events().iter().any(|r| matches!(
-			r.event,
-			para::Event::XTokens(Event::<para::Runtime>::TransferFailed(
-				_,
-				_,
-				_,
-				_,
-				XcmError::CannotReachDestination(_, _)
-			))
-		)));
+		assert_noop!(
+			ParaXTokens::transfer(
+				Some(ALICE).into(),
+				CurrencyId::A,
+				500,
+				Box::new(
+					(
+						Parent,
+						Parachain(100),
+						Junction::AccountId32 {
+							network: NetworkId::Kusama,
+							id: BOB.into(),
+						},
+					)
+						.into()
+				),
+				30,
+			),
+			Error::<para::Runtime>::XcmExecutionFailed
+		);
 
 		assert_eq!(ParaTokens::free_balance(CurrencyId::R, &ALICE), 1_000);
 	});
@@ -115,15 +112,17 @@ fn send_relay_chain_asset_to_sibling() {
 			Some(ALICE).into(),
 			CurrencyId::R,
 			500,
-			(
-				Parent,
-				Parachain(2),
-				Junction::AccountId32 {
-					network: NetworkId::Any,
-					id: BOB.into(),
-				},
-			)
-				.into(),
+			Box::new(
+				(
+					Parent,
+					Parachain(2),
+					Junction::AccountId32 {
+						network: NetworkId::Any,
+						id: BOB.into(),
+					},
+				)
+					.into()
+			),
 			30,
 		));
 		assert_eq!(ParaTokens::free_balance(CurrencyId::R, &ALICE), 500);
@@ -156,15 +155,17 @@ fn send_sibling_asset_to_reserve_sibling() {
 			Some(ALICE).into(),
 			CurrencyId::B,
 			500,
-			(
-				Parent,
-				Parachain(2),
-				Junction::AccountId32 {
-					network: NetworkId::Any,
-					id: BOB.into(),
-				},
-			)
-				.into(),
+			Box::new(
+				(
+					Parent,
+					Parachain(2),
+					Junction::AccountId32 {
+						network: NetworkId::Any,
+						id: BOB.into(),
+					},
+				)
+					.into()
+			),
 			30,
 		));
 
@@ -194,15 +195,17 @@ fn send_sibling_asset_to_non_reserve_sibling() {
 			Some(ALICE).into(),
 			CurrencyId::B,
 			500,
-			(
-				Parent,
-				Parachain(3),
-				Junction::AccountId32 {
-					network: NetworkId::Any,
-					id: BOB.into(),
-				},
-			)
-				.into(),
+			Box::new(
+				(
+					Parent,
+					Parachain(3),
+					Junction::AccountId32 {
+						network: NetworkId::Any,
+						id: BOB.into(),
+					},
+				)
+					.into()
+			),
 			30
 		));
 		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &ALICE), 500);
@@ -230,15 +233,17 @@ fn send_self_parachain_asset_to_sibling() {
 			Some(ALICE).into(),
 			CurrencyId::A,
 			500,
-			(
-				Parent,
-				Parachain(2),
-				Junction::AccountId32 {
-					network: NetworkId::Any,
-					id: BOB.into(),
-				},
-			)
-				.into(),
+			Box::new(
+				(
+					Parent,
+					Parachain(2),
+					Junction::AccountId32 {
+						network: NetworkId::Any,
+						id: BOB.into(),
+					},
+				)
+					.into()
+			),
 			30,
 		));
 
@@ -259,19 +264,21 @@ fn transfer_no_reserve_assets_fails() {
 		assert_noop!(
 			ParaXTokens::transfer_multiasset(
 				Some(ALICE).into(),
-				MultiAsset::ConcreteFungible {
+				Box::new(MultiAsset::ConcreteFungible {
 					id: GeneralKey("B".into()).into(),
 					amount: 100
-				},
-				(
-					Parent,
-					Parachain(2),
-					Junction::AccountId32 {
-						network: NetworkId::Any,
-						id: BOB.into()
-					}
-				)
-					.into(),
+				}),
+				Box::new(
+					(
+						Parent,
+						Parachain(2),
+						Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: BOB.into()
+						}
+					)
+						.into()
+				),
 				50,
 			),
 			Error::<para::Runtime>::AssetHasNoReserve
@@ -287,19 +294,21 @@ fn transfer_to_self_chain_fails() {
 		assert_noop!(
 			ParaXTokens::transfer_multiasset(
 				Some(ALICE).into(),
-				MultiAsset::ConcreteFungible {
+				Box::new(MultiAsset::ConcreteFungible {
 					id: (Parent, Parachain(1), GeneralKey("A".into())).into(),
 					amount: 100
-				},
-				(
-					Parent,
-					Parachain(1),
-					Junction::AccountId32 {
-						network: NetworkId::Any,
-						id: BOB.into()
-					}
-				)
-					.into(),
+				}),
+				Box::new(
+					(
+						Parent,
+						Parachain(1),
+						Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: BOB.into()
+						}
+					)
+						.into()
+				),
 				50,
 			),
 			Error::<para::Runtime>::NotCrossChainTransfer
@@ -315,15 +324,17 @@ fn transfer_to_invalid_dest_fails() {
 		assert_noop!(
 			ParaXTokens::transfer_multiasset(
 				Some(ALICE).into(),
-				MultiAsset::ConcreteFungible {
+				Box::new(MultiAsset::ConcreteFungible {
 					id: (Parent, Parachain(1), GeneralKey("A".into())).into(),
 					amount: 100,
-				},
-				(Junction::AccountId32 {
-					network: NetworkId::Any,
-					id: BOB.into()
-				})
-				.into(),
+				}),
+				Box::new(
+					(Junction::AccountId32 {
+						network: NetworkId::Any,
+						id: BOB.into()
+					})
+					.into()
+				),
 				50,
 			),
 			Error::<para::Runtime>::InvalidDest
@@ -345,8 +356,8 @@ fn send_as_sovereign() {
 		let call = relay::Call::System(frame_system::Call::<relay::Runtime>::remark_with_event(vec![1, 1, 1]));
 		assert_ok!(para::OrmlXcm::send_as_sovereign(
 			para::Origin::root(),
-			Junction::Parent.into(),
-			WithdrawAsset {
+			Box::new(Junction::Parent.into()),
+			Box::new(WithdrawAsset {
 				assets: vec![MultiAsset::ConcreteFungible {
 					id: MultiLocation::Null,
 					amount: 1_000_000_000_000
@@ -362,17 +373,16 @@ fn send_as_sovereign() {
 						call: call.encode().into(),
 					}],
 				}]
-			}
+			})
 		));
 	});
 
 	Relay::execute_with(|| {
 		relay::System::events().iter().any(|r| {
-			if let relay::Event::System(frame_system::Event::<relay::Runtime>::Remarked(_, _)) = r.event {
-				true
-			} else {
-				false
-			}
+			matches!(
+				r.event,
+				relay::Event::System(frame_system::Event::<relay::Runtime>::Remarked(_, _))
+			)
 		});
 	})
 }
@@ -392,8 +402,8 @@ fn send_as_sovereign_fails_if_bad_origin() {
 		assert_err!(
 			para::OrmlXcm::send_as_sovereign(
 				para::Origin::signed(ALICE),
-				Junction::Parent.into(),
-				WithdrawAsset {
+				Box::new(Junction::Parent.into()),
+				Box::new(WithdrawAsset {
 					assets: vec![MultiAsset::ConcreteFungible {
 						id: MultiLocation::Null,
 						amount: 1_000_000_000_000
@@ -409,9 +419,27 @@ fn send_as_sovereign_fails_if_bad_origin() {
 							call: call.encode().into(),
 						}],
 					}]
-				}
+				})
 			),
 			DispatchError::BadOrigin,
 		);
 	});
+}
+
+#[test]
+fn call_size_limit() {
+	// Ensures Call enum doesn't allocate more than 200 bytes in runtime
+	assert!(
+		core::mem::size_of::<crate::Call::<crate::tests::para::Runtime>>() <= 200,
+		"size of Call is more than 200 bytes: some calls have too big arguments, use Box to \
+		reduce the size of Call.
+		If the limit is too strong, maybe consider increasing the limit",
+	);
+
+	assert!(
+		core::mem::size_of::<orml_xcm::Call::<crate::tests::para::Runtime>>() <= 200,
+		"size of Call is more than 200 bytes: some calls have too big arguments, use Box to \
+		reduce the size of Call.
+		If the limit is too strong, maybe consider increasing the limit",
+	);
 }

@@ -76,7 +76,7 @@ impl<
 		match (
 			AccountIdConvert::convert_ref(location),
 			CurrencyIdConvert::convert(asset.clone()),
-			Match::matches_fungible(&asset),
+			Match::matches_fungible(asset),
 		) {
 			// known asset
 			(Ok(who), Some(currency_id), Some(amount)) => {
@@ -93,7 +93,7 @@ impl<
 				.map_err(|_| XcmError::from(Error::AccountIdConversionFailed))?;
 			let currency_id = CurrencyIdConvert::convert(asset.clone())
 				.ok_or_else(|| XcmError::from(Error::CurrencyIdConversionFailed))?;
-			let amount: MultiCurrency::Balance = Match::matches_fungible(&asset)
+			let amount: MultiCurrency::Balance = Match::matches_fungible(asset)
 				.ok_or_else(|| XcmError::from(Error::FailedToMatchFungible))?
 				.saturated_into();
 			MultiCurrency::withdraw(currency_id, &who, amount).map_err(|e| XcmError::FailedToTransactAsset(e.into()))

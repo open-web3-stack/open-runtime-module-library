@@ -48,7 +48,7 @@ fn gradually_update_should_fail() {
 			per_block: 1u64.encode().try_into().unwrap(),
 		};
 		assert_noop!(
-			GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()),
+			GraduallyUpdateModule::gradually_update(Origin::root(), update),
 			Error::<Runtime>::InvalidPerBlockOrTargetValue
 		);
 
@@ -67,12 +67,12 @@ fn gradually_update_should_fail() {
 			per_block: 1u64.encode().try_into().unwrap(),
 		};
 		assert_noop!(
-			GraduallyUpdateModule::gradually_update(Origin::root(), new_update.clone()),
+			GraduallyUpdateModule::gradually_update(Origin::root(), new_update),
 			Error::<Runtime>::InvalidTargetValue
 		);
 
 		assert_noop!(
-			GraduallyUpdateModule::gradually_update(Origin::root(), update.clone()),
+			GraduallyUpdateModule::gradually_update(Origin::root(), update),
 			Error::<Runtime>::GraduallyUpdateHasExisted
 		);
 	});
@@ -100,7 +100,7 @@ fn cancel_gradually_update_should_work() {
 			update.key.clone()
 		));
 		System::assert_last_event(Event::GraduallyUpdateModule(crate::Event::GraduallyUpdateCancelled(
-			update.key.clone(),
+			update.key,
 		)));
 	});
 }
@@ -122,7 +122,7 @@ fn cancel_gradually_update_should_fail() {
 
 		assert_ok!(GraduallyUpdateModule::cancel_gradually_update(
 			Origin::root(),
-			update.key.clone()
+			update.key
 		));
 	});
 }
@@ -167,7 +167,7 @@ fn add_on_finalize_should_work() {
 		assert_eq!(storage_get(&update.key), vec![30]);
 		System::assert_last_event(Event::GraduallyUpdateModule(crate::Event::Updated(
 			40,
-			update.key.clone(),
+			update.key,
 			vec![30].try_into().unwrap(),
 		)));
 	});
@@ -214,7 +214,7 @@ fn sub_on_finalize_should_work() {
 		assert_eq!(storage_get(&update.key), vec![5]);
 		System::assert_last_event(Event::GraduallyUpdateModule(crate::Event::Updated(
 			40,
-			update.key.clone(),
+			update.key,
 			vec![5].try_into().unwrap(),
 		)));
 	});

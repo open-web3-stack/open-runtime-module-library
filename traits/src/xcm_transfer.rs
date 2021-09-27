@@ -1,8 +1,6 @@
-use frame_support::dispatch::DispatchError;
+use frame_support::dispatch::DispatchResult;
 use frame_support::weights::Weight;
-use xcm::opaque::v0::{MultiAsset, MultiLocation, Outcome};
-
-pub type XcmExecutionResult = sp_std::result::Result<Outcome, DispatchError>;
+use xcm::opaque::v0::{MultiAsset, MultiLocation};
 
 /// Abstraction over cross-chain token transfers.
 pub trait XcmTransfer<AccountId, Balance, CurrencyId> {
@@ -13,7 +11,7 @@ pub trait XcmTransfer<AccountId, Balance, CurrencyId> {
 		amount: Balance,
 		dest: MultiLocation,
 		dest_weight: Weight,
-	) -> XcmExecutionResult;
+	) -> DispatchResult;
 
 	/// Transfer `MultiAsset`
 	fn transfer_multi_asset(
@@ -21,5 +19,5 @@ pub trait XcmTransfer<AccountId, Balance, CurrencyId> {
 		asset: MultiAsset,
 		dest: MultiLocation,
 		dest_weight: Weight,
-	) -> XcmExecutionResult;
+	) -> DispatchResult;
 }

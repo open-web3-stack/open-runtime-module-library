@@ -79,6 +79,8 @@ pub type Amount = i128;
 decl_test_parachain! {
 	pub struct ParaA {
 		Runtime = para::Runtime,
+		XcmpMessageHandler = para::XcmpQueue,
+		DmpMessageHandler = para::DmpQueue,
 		new_ext = para_ext(1),
 	}
 }
@@ -86,6 +88,8 @@ decl_test_parachain! {
 decl_test_parachain! {
 	pub struct ParaB {
 		Runtime = para::Runtime,
+		XcmpMessageHandler = para::XcmpQueue,
+		DmpMessageHandler = para::DmpQueue,
 		new_ext = para_ext(2),
 	}
 }
@@ -93,6 +97,8 @@ decl_test_parachain! {
 decl_test_parachain! {
 	pub struct ParaC {
 		Runtime = para::Runtime,
+		XcmpMessageHandler = para::XcmpQueue,
+		DmpMessageHandler = para::DmpQueue,
 		new_ext = para_ext(3),
 	}
 }

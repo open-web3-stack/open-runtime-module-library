@@ -4,7 +4,7 @@
 
 use super::*;
 use codec::{Decode, Encode};
-use frame_support::{parameter_types, weights::Weight};
+use frame_support::{parameter_types, traits::Everything, weights::Weight};
 use frame_system::{ensure_root, ensure_signed, EnsureRoot};
 use sp_core::H256;
 use sp_runtime::{
@@ -44,7 +44,7 @@ impl frame_system::Config for Runtime {
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type DbWeight = ();
-	type BaseCallFilter = ();
+	type BaseCallFilter = Everything;
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
 	type OnSetCode = ();
@@ -134,7 +134,11 @@ impl AsOriginId<Origin, OriginCaller> for MockAsOriginId {
 				MockAsOriginId::Account1 => ensure_signed(origin)? == 1,
 				MockAsOriginId::Account2 => ensure_signed(origin)? == 2,
 			};
-			return if ok { Ok(()) } else { Err(BadOrigin.into()) };
+			if ok {
+				Ok(())
+			} else {
+				Err(BadOrigin.into())
+			}
 		})
 	}
 }

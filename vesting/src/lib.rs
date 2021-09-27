@@ -27,24 +27,17 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 
-use codec::HasCompact;
+use codec::{HasCompact, MaxEncodedLen};
 use frame_support::{
 	ensure,
 	pallet_prelude::*,
-	traits::{
-		Currency, EnsureOrigin, ExistenceRequirement, Get, LockIdentifier, LockableCurrency, MaxEncodedLen,
-		WithdrawReasons,
-	},
+	traits::{Currency, EnsureOrigin, ExistenceRequirement, Get, LockIdentifier, LockableCurrency, WithdrawReasons},
 	transactional, BoundedVec,
 };
 use frame_system::{ensure_root, ensure_signed, pallet_prelude::*};
 use sp_runtime::{
-	// TODO: move after https://github.com/paritytech/substrate/pull/9209
-	offchain::storage_lock::BlockNumberProvider,
-	traits::{AtLeast32Bit, CheckedAdd, Saturating, StaticLookup, Zero},
-	ArithmeticError,
-	DispatchResult,
-	RuntimeDebug,
+	traits::{AtLeast32Bit, BlockNumberProvider, CheckedAdd, Saturating, StaticLookup, Zero},
+	ArithmeticError, DispatchResult, RuntimeDebug,
 };
 use sp_std::{
 	cmp::{Eq, PartialEq},
@@ -274,6 +267,16 @@ pub mod module {
 			Self::do_update_vesting_schedules(&account, vesting_schedules)?;
 
 			Self::deposit_event(Event::VestingSchedulesUpdated(account));
+			Ok(())
+		}
+
+		#[pallet::weight(T::WeightInfo::claim((<T as Config>::MaxVestingSchedules::get() / 2) as u32))]
+		pub fn claim_for(origin: OriginFor<T>, dest: <T::Lookup as StaticLookup>::Source) -> DispatchResult {
+			let _ = ensure_signed(origin)?;
+			let who = T::Lookup::lookup(dest)?;
+			let locked_amount = Self::do_claim(&who);
+
+			Self::deposit_event(Event::Claimed(who, locked_amount));
 			Ok(())
 		}
 	}

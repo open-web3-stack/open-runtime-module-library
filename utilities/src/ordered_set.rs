@@ -42,7 +42,7 @@ impl<T: Ord, S: Get<u32>> OrderedSet<T, S> {
 	/// Remove an element.
 	/// Return true if removal happened.
 	pub fn remove(&mut self, value: &T) -> bool {
-		match self.0.binary_search(&value) {
+		match self.0.binary_search(value) {
 			Ok(loc) => {
 				self.0.remove(loc);
 				true
@@ -53,7 +53,7 @@ impl<T: Ord, S: Get<u32>> OrderedSet<T, S> {
 
 	/// Return if the set contains `value`
 	pub fn contains(&self, value: &T) -> bool {
-		self.0.binary_search(&value).is_ok()
+		self.0.binary_search(value).is_ok()
 	}
 
 	/// Clear the set
@@ -107,16 +107,16 @@ mod tests {
 		let mut set: OrderedSet<i32, Eight> = OrderedSet::new();
 		assert_eq!(set, OrderedSet::<i32, Eight>::from(vec![].try_into().unwrap()));
 
-		assert_eq!(set.insert(1), true);
+		assert!(set.insert(1));
 		assert_eq!(set, OrderedSet::<i32, Eight>::from(vec![1].try_into().unwrap()));
 
-		assert_eq!(set.insert(5), true);
+		assert!(set.insert(5));
 		assert_eq!(set, OrderedSet::<i32, Eight>::from(vec![1, 5].try_into().unwrap()));
 
-		assert_eq!(set.insert(3), true);
+		assert!(set.insert(3));
 		assert_eq!(set, OrderedSet::<i32, Eight>::from(vec![1, 3, 5].try_into().unwrap()));
 
-		assert_eq!(set.insert(3), false);
+		assert!(!set.insert(3));
 		assert_eq!(set, OrderedSet::<i32, Eight>::from(vec![1, 3, 5].try_into().unwrap()));
 	}
 
@@ -124,28 +124,28 @@ mod tests {
 	fn remove() {
 		let mut set: OrderedSet<i32, Eight> = OrderedSet::from(vec![1, 2, 3, 4].try_into().unwrap());
 
-		assert_eq!(set.remove(&5), false);
+		assert!(!set.remove(&5));
 		assert_eq!(
 			set,
 			OrderedSet::<i32, Eight>::from(vec![1, 2, 3, 4].try_into().unwrap())
 		);
 
-		assert_eq!(set.remove(&1), true);
+		assert!(set.remove(&1));
 		assert_eq!(set, OrderedSet::<i32, Eight>::from(vec![2, 3, 4].try_into().unwrap()));
 
-		assert_eq!(set.remove(&3), true);
+		assert!(set.remove(&3));
 		assert_eq!(set, OrderedSet::<i32, Eight>::from(vec![2, 4].try_into().unwrap()));
 
-		assert_eq!(set.remove(&3), false);
+		assert!(!set.remove(&3));
 		assert_eq!(set, OrderedSet::<i32, Eight>::from(vec![2, 4].try_into().unwrap()));
 
-		assert_eq!(set.remove(&4), true);
+		assert!(set.remove(&4));
 		assert_eq!(set, OrderedSet::<i32, Eight>::from(vec![2].try_into().unwrap()));
 
-		assert_eq!(set.remove(&2), true);
+		assert!(set.remove(&2));
 		assert_eq!(set, OrderedSet::<i32, Eight>::from(vec![].try_into().unwrap()));
 
-		assert_eq!(set.remove(&2), false);
+		assert!(!set.remove(&2));
 		assert_eq!(set, OrderedSet::<i32, Eight>::from(vec![].try_into().unwrap()));
 	}
 
@@ -153,11 +153,11 @@ mod tests {
 	fn contains() {
 		let set: OrderedSet<i32, Eight> = OrderedSet::from(vec![1, 2, 3, 4].try_into().unwrap());
 
-		assert_eq!(set.contains(&5), false);
+		assert!(!set.contains(&5));
 
-		assert_eq!(set.contains(&1), true);
+		assert!(set.contains(&1));
 
-		assert_eq!(set.contains(&3), true);
+		assert!(set.contains(&3));
 	}
 
 	#[test]
@@ -172,6 +172,6 @@ mod tests {
 		let mut set: OrderedSet<i32, Five> = OrderedSet::from(vec![1, 2, 3, 4, 5].try_into().unwrap());
 		let inserted = set.insert(6);
 
-		assert_eq!(inserted, false)
+		assert!(!inserted)
 	}
 }
