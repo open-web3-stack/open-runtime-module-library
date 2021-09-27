@@ -1,8 +1,9 @@
 use codec::FullCodec;
+use frame_support::dispatch::{DispatchError, DispatchResult};
 use frame_support::traits::{
 	fungible, fungibles,
 	tokens::{DepositConsequence, WithdrawConsequence},
-	Contains,
+	Contains, Get,
 };
 use sp_runtime::traits::AtLeast32BitUnsigned;
 use sp_std::fmt::Debug;
@@ -71,44 +72,93 @@ where
 	}
 }
 
+impl<AccountId, TestKey, A, B> fungibles::Transfer<AccountId> for Combiner<AccountId, TestKey, A, B>
+where
+	TestKey: Contains<<B as fungibles::Inspect<AccountId>>::AssetId>,
+	A: fungible::Transfer<AccountId, Balance = <B as fungibles::Inspect<AccountId>>::Balance>,
+	B: fungibles::Transfer<AccountId>,
+{
+	fn transfer(
+		asset: Self::AssetId,
+		source: &AccountId,
+		dest: &AccountId,
+		amount: Self::Balance,
+		keep_alive: bool,
+	) -> Result<Self::Balance, DispatchError> {
+		if TestKey::contains(&asset) {
+			A::transfer(source, dest, amount, keep_alive)
+		} else {
+			B::transfer(asset, source, dest, amount, keep_alive)
+		}
+	}
+}
+
+impl<AccountId, TestKey, A, B> fungibles::Mutate<AccountId> for Combiner<AccountId, TestKey, A, B>
+where
+	TestKey: Contains<<B as fungibles::Inspect<AccountId>>::AssetId>,
+	A: fungible::Mutate<AccountId, Balance = <B as fungibles::Inspect<AccountId>>::Balance>,
+	B: fungibles::Mutate<AccountId>,
+{
+	fn mint_into(asset: Self::AssetId, dest: &AccountId, amount: Self::Balance) -> DispatchResult {
+		if TestKey::contains(&asset) {
+			A::mint_into(dest, amount)
+		} else {
+			B::mint_into(asset, dest, amount)
+		}
+	}
+
+	fn burn_from(
+		asset: Self::AssetId,
+		dest: &AccountId,
+		amount: Self::Balance,
+	) -> Result<Self::Balance, DispatchError> {
+		if TestKey::contains(&asset) {
+			A::burn_from(dest, amount)
+		} else {
+			B::burn_from(asset, dest, amount)
+		}
+	}
+}
+
 pub trait ConvertBalance<A, B> {
 	fn convert_balance(amount: A) -> B;
 	fn convert_balance_back(amount: B) -> A;
 }
 
-pub struct Mapper<AccountId, T, C, B>(sp_std::marker::PhantomData<(AccountId, T, C, B)>);
-impl<AccountId, T, C, B> fungible::Inspect<AccountId> for Mapper<AccountId, T, C, B>
+pub struct Mapper<AccountId, T, C, B, GetCurrencyId>(sp_std::marker::PhantomData<(AccountId, T, C, B, GetCurrencyId)>);
+impl<AccountId, T, C, B, GetCurrencyId> fungible::Inspect<AccountId> for Mapper<AccountId, T, C, B, GetCurrencyId>
 where
-	T: fungible::Inspect<AccountId>,
-	C: ConvertBalance<<T as fungible::Inspect<AccountId>>::Balance, B>,
+	T: fungibles::Inspect<AccountId>,
+	C: ConvertBalance<<T as fungibles::Inspect<AccountId>>::Balance, B>,
 	// TOOD: use trait Balance after https://github.com/paritytech/substrate/pull/9863 is available
 	B: AtLeast32BitUnsigned + FullCodec + Copy + Default + Debug,
+	GetCurrencyId: Get<<T as fungibles::Inspect<AccountId>>::AssetId>,
 {
 	type Balance = B;
 
 	fn total_issuance() -> Self::Balance {
-		C::convert_balance(T::total_issuance())
+		C::convert_balance(T::total_issuance(GetCurrencyId::get()))
 	}
 
 	fn minimum_balance() -> Self::Balance {
-		C::convert_balance(T::minimum_balance())
+		C::convert_balance(T::minimum_balance(GetCurrencyId::get()))
 	}
 
 	fn balance(who: &AccountId) -> Self::Balance {
-		C::convert_balance(T::balance(who))
+		C::convert_balance(T::balance(GetCurrencyId::get(), who))
 	}
 
 	fn reducible_balance(who: &AccountId, keep_alive: bool) -> Self::Balance {
-		C::convert_balance(T::reducible_balance(who, keep_alive))
+		C::convert_balance(T::reducible_balance(GetCurrencyId::get(), who, keep_alive))
 	}
 
 	fn can_deposit(who: &AccountId, amount: Self::Balance) -> DepositConsequence {
-		T::can_deposit(who, C::convert_balance_back(amount))
+		T::can_deposit(GetCurrencyId::get(), who, C::convert_balance_back(amount))
 	}
 
 	fn can_withdraw(who: &AccountId, amount: Self::Balance) -> WithdrawConsequence<Self::Balance> {
 		use WithdrawConsequence::*;
-		let res = T::can_withdraw(who, C::convert_balance_back(amount));
+		let res = T::can_withdraw(GetCurrencyId::get(), who, C::convert_balance_back(amount));
 		match res {
 			WithdrawConsequence::ReducedToZero(b) => WithdrawConsequence::ReducedToZero(C::convert_balance(b)),
 			NoFunds => NoFunds,
@@ -119,5 +169,41 @@ where
 			Frozen => Frozen,
 			Success => Success,
 		}
+	}
+}
+
+impl<AccountId, T, C, B, GetCurrencyId> fungible::Transfer<AccountId> for Mapper<AccountId, T, C, B, GetCurrencyId>
+where
+	T: fungibles::Transfer<AccountId, Balance = B>,
+	C: ConvertBalance<<T as fungibles::Inspect<AccountId>>::Balance, B>,
+	// TOOD: use trait Balance after https://github.com/paritytech/substrate/pull/9863 is available
+	B: AtLeast32BitUnsigned + FullCodec + Copy + Default + Debug,
+	GetCurrencyId: Get<<T as fungibles::Inspect<AccountId>>::AssetId>,
+{
+	fn transfer(source: &AccountId, dest: &AccountId, amount: B, keep_alive: bool) -> Result<B, DispatchError> {
+		T::transfer(
+			GetCurrencyId::get(),
+			source,
+			dest,
+			C::convert_balance_back(amount),
+			keep_alive,
+		)
+	}
+}
+
+impl<AccountId, T, C, B, GetCurrencyId> fungible::Mutate<AccountId> for Mapper<AccountId, T, C, B, GetCurrencyId>
+where
+	T: fungibles::Mutate<AccountId, Balance = B>,
+	C: ConvertBalance<<T as fungibles::Inspect<AccountId>>::Balance, B>,
+	// TOOD: use trait Balance after https://github.com/paritytech/substrate/pull/9863 is available
+	B: AtLeast32BitUnsigned + FullCodec + Copy + Default + Debug,
+	GetCurrencyId: Get<<T as fungibles::Inspect<AccountId>>::AssetId>,
+{
+	fn mint_into(dest: &AccountId, amount: Self::Balance) -> DispatchResult {
+		T::mint_into(GetCurrencyId::get(), dest, C::convert_balance_back(amount))
+	}
+
+	fn burn_from(dest: &AccountId, amount: Self::Balance) -> Result<Self::Balance, DispatchError> {
+		T::burn_from(GetCurrencyId::get(), dest, C::convert_balance_back(amount))
 	}
 }
