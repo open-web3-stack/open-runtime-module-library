@@ -16,7 +16,6 @@
 // limitations under the License.
 
 #![allow(clippy::option_map_unit_fn)]
-#![allow(dead_code)]
 
 use super::{
 	color_output_enabled,
@@ -34,8 +33,6 @@ use std::{
 };
 
 use toml::value::Table;
-
-use build_helper::rerun_if_changed;
 
 use cargo_metadata::{Metadata, MetadataCommand};
 
@@ -57,17 +54,6 @@ const WASM_BUILD_RUSTFLAGS_ENV: &str = "WASM_BUILD_RUSTFLAGS";
 ///
 /// The directory needs to be an absolute path.
 const WASM_TARGET_DIRECTORY: &str = "WASM_TARGET_DIRECTORY";
-
-/// Colorize an info message.
-///
-/// Returns the colorized message.
-fn colorize_info_message(message: &str) -> String {
-	if color_output_enabled() {
-		ansi_term::Color::Yellow.bold().paint(message).to_string()
-	} else {
-		message.into()
-	}
-}
 
 /// Holds the path to the bloaty WASM binary.
 pub struct WasmBinaryBloaty(PathBuf);
@@ -153,9 +139,6 @@ pub fn create_and_compile(
 	wasm_binary_compressed
 		.as_ref()
 		.map(|wasm_binary_compressed| copy_wasm_to_target_directory(project_cargo_toml, wasm_binary_compressed));
-
-	//generate_rerun_if_changed_instructions(project_cargo_toml, &project,
-	// &wasm_workspace);
 
 	(wasm_binary_compressed.or(wasm_binary), bloaty)
 }
@@ -584,94 +567,6 @@ impl<'a> Deref for DeduplicatePackage<'a> {
 	fn deref(&self) -> &Self::Target {
 		self.package
 	}
-}
-
-/// Generate the `rerun-if-changed` instructions for cargo to make sure that the
-/// WASM binary is rebuilt when needed.
-fn generate_rerun_if_changed_instructions(cargo_manifest: &Path, project_folder: &Path, wasm_workspace: &Path) {
-	// Rerun `build.rs` if the `Cargo.lock` changes
-	if let Some(cargo_lock) = find_cargo_lock(cargo_manifest) {
-		rerun_if_changed(cargo_lock);
-	}
-
-	let metadata = MetadataCommand::new()
-		.manifest_path(project_folder.join("Cargo.toml"))
-		.exec()
-		.expect("`cargo metadata` can not fail!");
-
-	let package = metadata
-		.packages
-		.iter()
-		.find(|p| p.manifest_path == cargo_manifest)
-		.expect("The crate package is contained in its own metadata; qed");
-
-	// Start with the dependencies of the crate we want to compile for wasm.
-	let mut dependencies = package.dependencies.iter().collect::<Vec<_>>();
-
-	// Collect all packages by follow the dependencies of all packages we find.
-	let mut packages = HashSet::new();
-	packages.insert(DeduplicatePackage::from(package));
-
-	while let Some(dependency) = dependencies.pop() {
-		let path_or_git_dep = dependency
-			.source
-			.as_ref()
-			.map(|s| s.starts_with("git+"))
-			.unwrap_or(true);
-
-		let package = metadata
-			.packages
-			.iter()
-			.filter(|p| !p.manifest_path.starts_with(wasm_workspace))
-			.find(|p| {
-				// Check that the name matches and that the version matches or this is
-				// a git or path dep. A git or path dependency can only occur once, so we don't
-				// need to check the version.
-				(path_or_git_dep || dependency.req.matches(&p.version)) && dependency.name == p.name
-			});
-
-		if let Some(package) = package {
-			if packages.insert(DeduplicatePackage::from(package)) {
-				dependencies.extend(package.dependencies.iter());
-			}
-		}
-	}
-
-	// Make sure that if any file/folder of a dependency change, we need to rerun
-	// the `build.rs`
-	packages.iter().for_each(package_rerun_if_changed);
-
-	// Register our env variables
-	println!("cargo:rerun-if-env-changed={}", SKIP_BUILD_ENV);
-	println!("cargo:rerun-if-env-changed={}", WASM_BUILD_TYPE_ENV);
-	println!("cargo:rerun-if-env-changed={}", WASM_BUILD_RUSTFLAGS_ENV);
-	println!("cargo:rerun-if-env-changed={}", WASM_TARGET_DIRECTORY);
-	println!(
-		"cargo:rerun-if-env-changed={}",
-		super::prerequisites::WASM_BUILD_TOOLCHAIN
-	);
-}
-
-/// Track files and paths related to the given package to rerun `build.rs` on
-/// any relevant change.
-fn package_rerun_if_changed(package: &DeduplicatePackage) {
-	let mut manifest_path = package.manifest_path.clone();
-	if manifest_path.ends_with("Cargo.toml") {
-		manifest_path.pop();
-	}
-
-	walkdir::WalkDir::new(&manifest_path)
-		.into_iter()
-		.filter_entry(|p| {
-			// Ignore this entry if it is a directory that contains a `Cargo.toml` that is
-			// not the `Cargo.toml` related to the current package. This is done to ignore
-			// sub-crates of a crate. If such a sub-crate is a dependency, it will be
-			// processed independently anyway.
-			p.path() == manifest_path || !p.path().is_dir() || !p.path().join("Cargo.toml").exists()
-		})
-		.filter_map(|p| p.ok().map(|p| p.into_path()))
-		.filter(|p| p.is_dir() || p.extension().map(|e| e == "rs" || e == "toml").unwrap_or_default())
-		.for_each(rerun_if_changed);
 }
 
 /// Copy the WASM binary to the target directory set in `WASM_TARGET_DIRECTORY`
