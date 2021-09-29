@@ -3,6 +3,7 @@
 #![cfg(test)]
 
 use super::*;
+use frame_support::traits::Everything;
 use frame_support::{
 	construct_runtime, parameter_types,
 	traits::{ChangeMembers, ContainsLengthBound, GenesisBuild, SaturatingCurrencyToVote, SortedMembers},
@@ -59,7 +60,7 @@ impl frame_system::Config for Runtime {
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type DbWeight = ();
-	type BaseCallFilter = ();
+	type BaseCallFilter = Everything;
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
 	type OnSetCode = ();
