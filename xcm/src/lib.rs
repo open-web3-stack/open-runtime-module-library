@@ -7,7 +7,7 @@ use frame_support::{pallet_prelude::*, traits::EnsureOrigin};
 use frame_system::pallet_prelude::*;
 use sp_std::boxed::Box;
 
-use xcm::v0::prelude::*;
+use xcm::latest::prelude::*;
 
 pub use module::*;
 
@@ -31,8 +31,8 @@ pub mod module {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// XCM message sent. \[from, to, message\]
-		Sent(MultiLocation, MultiLocation, Xcm<()>),
+		/// XCM message sent. \[to, message\]
+		Sent(MultiLocation, Xcm<()>),
 	}
 
 	#[pallet::error]
@@ -55,13 +55,11 @@ pub mod module {
 			message: Box<Xcm<()>>,
 		) -> DispatchResult {
 			let _ = T::SovereignOrigin::ensure_origin(origin)?;
-			pallet_xcm::Pallet::<T>::send_xcm(MultiLocation::Null, *dest.clone(), *message.clone()).map_err(
-				|e| match e {
-					XcmError::CannotReachDestination(..) => Error::<T>::Unreachable,
-					_ => Error::<T>::SendFailure,
-				},
-			)?;
-			Self::deposit_event(Event::Sent(MultiLocation::Null, *dest, *message));
+			pallet_xcm::Pallet::<T>::send_xcm(Here, *dest.clone(), *message.clone()).map_err(|e| match e {
+				XcmError::CannotReachDestination(..) => Error::<T>::Unreachable,
+				_ => Error::<T>::SendFailure,
+			})?;
+			Self::deposit_event(Event::Sent(*dest, *message));
 			Ok(())
 		}
 	}

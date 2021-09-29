@@ -7,7 +7,6 @@ use serde::{Deserialize, Serialize};
 use sp_io::TestExternalities;
 use sp_runtime::AccountId32;
 
-use xcm::v0::{Junction, MultiLocation};
 use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain};
 
 pub mod para;
@@ -31,23 +30,9 @@ pub struct CurrencyIdConvert;
 impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
 	fn convert(id: CurrencyId) -> Option<MultiLocation> {
 		match id {
-			CurrencyId::R => Some(Junction::Parent.into()),
-			CurrencyId::A => Some(
-				(
-					Junction::Parent,
-					Junction::Parachain(1),
-					Junction::GeneralKey("A".into()),
-				)
-					.into(),
-			),
-			CurrencyId::B => Some(
-				(
-					Junction::Parent,
-					Junction::Parachain(2),
-					Junction::GeneralKey("B".into()),
-				)
-					.into(),
-			),
+			CurrencyId::R => Some(Parent.into()),
+			CurrencyId::A => Some((Parent, Parachain(1), GeneralKey("A".into())).into()),
+			CurrencyId::B => Some((Parent, Parachain(2), GeneralKey("B".into())).into()),
 		}
 	}
 }
@@ -55,17 +40,26 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
 	fn convert(l: MultiLocation) -> Option<CurrencyId> {
 		let a: Vec<u8> = "A".into();
 		let b: Vec<u8> = "B".into();
+		if l == MultiLocation::parent() {
+			return Some(CurrencyId::R);
+		}
 		match l {
-			X1(Parent) => Some(CurrencyId::R),
-			X3(Junction::Parent, Junction::Parachain(1), Junction::GeneralKey(k)) if k == a => Some(CurrencyId::A),
-			X3(Junction::Parent, Junction::Parachain(2), Junction::GeneralKey(k)) if k == b => Some(CurrencyId::B),
-			_ => Option::None,
+			MultiLocation { parents, interior } if parents == 1 => match interior {
+				X2(Parachain(1), GeneralKey(k)) if k == a => Some(CurrencyId::A),
+				X2(Parachain(2), GeneralKey(k)) if k == b => Some(CurrencyId::B),
+				_ => None,
+			},
+			_ => None,
 		}
 	}
 }
 impl Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert {
 	fn convert(a: MultiAsset) -> Option<CurrencyId> {
-		if let MultiAsset::ConcreteFungible { id, amount: _ } = a {
+		if let MultiAsset {
+			fun: Fungible(_),
+			id: Concrete(id),
+		} = a
+		{
 			Self::convert(id)
 		} else {
 			Option::None
