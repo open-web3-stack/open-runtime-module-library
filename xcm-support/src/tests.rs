@@ -4,7 +4,7 @@
 
 use super::*;
 
-use orml_traits::ConcreteFungibleAsset;
+use orml_traits::{location::RelativeLocations, ConcreteFungibleAsset};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum TestCurrencyId {
@@ -23,10 +23,10 @@ impl Convert<MultiLocation, Option<TestCurrencyId>> for CurrencyIdConvert {
 		if l == MultiLocation::parent() {
 			return Some(RelayChainToken);
 		}
-		if l == MultiLocation::new(1, X2(Parachain(1), GeneralKey(token_a))) {
+		if l == MultiLocation::sibling_parachain_general_key(1, token_a) {
 			return Some(TokenA);
 		}
-		if l == MultiLocation::new(1, X2(Parachain(2), GeneralKey(token_b))) {
+		if l == MultiLocation::sibling_parachain_general_key(2, token_b) {
 			return Some(TokenB);
 		}
 		None

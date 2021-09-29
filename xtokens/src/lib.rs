@@ -251,7 +251,7 @@ pub mod module {
 			asset: MultiAsset,
 			dest: MultiLocation,
 			recipient: MultiLocation,
-			dest_weight: u64,
+			dest_weight: Weight,
 		) -> Result<Xcm<T::Call>, DispatchError> {
 			let buy_execution = Self::buy_execution(asset.clone(), &dest, dest_weight)?;
 			Ok(WithdrawAsset {
@@ -269,7 +269,7 @@ pub mod module {
 			asset: MultiAsset,
 			reserve: MultiLocation,
 			recipient: MultiLocation,
-			dest_weight: u64,
+			dest_weight: Weight,
 		) -> Result<Xcm<T::Call>, DispatchError> {
 			Ok(WithdrawAsset {
 				assets: asset.clone().into(),
@@ -289,7 +289,7 @@ pub mod module {
 			reserve: MultiLocation,
 			dest: MultiLocation,
 			recipient: MultiLocation,
-			dest_weight: u64,
+			dest_weight: Weight,
 		) -> Result<Xcm<T::Call>, DispatchError> {
 			let mut reanchored_dest = dest.clone();
 			if reserve == MultiLocation::parent() {
@@ -332,7 +332,7 @@ pub mod module {
 			}
 		}
 
-		fn buy_execution(asset: MultiAsset, at: &MultiLocation, weight: u64) -> Result<Order<()>, DispatchError> {
+		fn buy_execution(asset: MultiAsset, at: &MultiLocation, weight: Weight) -> Result<Order<()>, DispatchError> {
 			let inv_at = T::LocationInverter::invert_location(at);
 			let fees = asset.reanchored(&inv_at).map_err(|_| Error::<T>::CannotReanchor)?;
 			Ok(BuyExecution {
