@@ -2079,3 +2079,162 @@ fn fungibles_mutate_hold_trait_should_work() {
 			);
 		});
 }
+
+#[test]
+fn fungibles_inspect_convert_should_work() {
+	pub struct ConvertBalanceTest;
+	impl ConvertBalance<Balance, Balance> for ConvertBalanceTest {
+		type AssetId = CurrencyId;
+		fn convert_balance(balance: Balance, _asset_id: CurrencyId) -> Balance {
+			balance * 100
+		}
+
+		fn convert_balance_back(balance: Balance, _asset_id: CurrencyId) -> Balance {
+			balance / 100
+		}
+	}
+
+	pub struct IsLiquidToken;
+	impl Contains<CurrencyId> for IsLiquidToken {
+		fn contains(currency_id: &CurrencyId) -> bool {
+			matches!(currency_id, &DOT)
+		}
+	}
+
+	pub struct GetCurrencyId;
+	impl Get<CurrencyId> for GetCurrencyId {
+		fn get() -> CurrencyId {
+			DOT
+		}
+	}
+
+	type RebaseTokens = Combiner<
+		AccountId,
+		IsLiquidToken,
+		Mapper<AccountId, Tokens, ConvertBalanceTest, Balance, GetCurrencyId>,
+		Tokens,
+	>;
+
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100), (BOB, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			assert_eq!(
+				<RebaseTokens as fungibles::Inspect<AccountId>>::balance(DOT, &ALICE),
+				10000
+			);
+			assert_eq!(
+				<RebaseTokens as fungibles::Inspect<AccountId>>::total_issuance(DOT),
+				20000
+			);
+		});
+}
+
+#[test]
+fn fungibles_transfers_convert_should_work() {
+	pub struct ConvertBalanceTest;
+	impl ConvertBalance<Balance, Balance> for ConvertBalanceTest {
+		type AssetId = CurrencyId;
+		fn convert_balance(balance: Balance, _asset_id: CurrencyId) -> Balance {
+			balance * 100
+		}
+
+		fn convert_balance_back(balance: Balance, _asset_id: CurrencyId) -> Balance {
+			balance / 100
+		}
+	}
+
+	pub struct IsLiquidToken;
+	impl Contains<CurrencyId> for IsLiquidToken {
+		fn contains(currency_id: &CurrencyId) -> bool {
+			matches!(currency_id, &DOT)
+		}
+	}
+
+	pub struct GetCurrencyId;
+	impl Get<CurrencyId> for GetCurrencyId {
+		fn get() -> CurrencyId {
+			DOT
+		}
+	}
+
+	type RebaseTokens = Combiner<
+		AccountId,
+		IsLiquidToken,
+		Mapper<AccountId, Tokens, ConvertBalanceTest, Balance, GetCurrencyId>,
+		Tokens,
+	>;
+
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 300), (BOB, DOT, 200)])
+		.build()
+		.execute_with(|| {
+			assert_ok!(<RebaseTokens as fungibles::Transfer<AccountId>>::transfer(
+				DOT, &ALICE, &BOB, 10000, true
+			));
+			assert_eq!(
+				<RebaseTokens as fungibles::Inspect<AccountId>>::balance(DOT, &ALICE),
+				20000
+			);
+			assert_eq!(
+				<RebaseTokens as fungibles::Inspect<AccountId>>::balance(DOT, &BOB),
+				30000
+			);
+		});
+}
+
+#[test]
+fn fungibles_mutate_convert_should_work() {
+	pub struct ConvertBalanceTest;
+	impl ConvertBalance<Balance, Balance> for ConvertBalanceTest {
+		type AssetId = CurrencyId;
+		fn convert_balance(balance: Balance, _asset_id: CurrencyId) -> Balance {
+			balance * 100
+		}
+
+		fn convert_balance_back(balance: Balance, _asset_id: CurrencyId) -> Balance {
+			balance / 100
+		}
+	}
+
+	pub struct IsLiquidToken;
+	impl Contains<CurrencyId> for IsLiquidToken {
+		fn contains(currency_id: &CurrencyId) -> bool {
+			matches!(currency_id, &DOT)
+		}
+	}
+
+	pub struct GetCurrencyId;
+	impl Get<CurrencyId> for GetCurrencyId {
+		fn get() -> CurrencyId {
+			DOT
+		}
+	}
+
+	type RebaseTokens = Combiner<
+		AccountId,
+		IsLiquidToken,
+		Mapper<AccountId, Tokens, ConvertBalanceTest, Balance, GetCurrencyId>,
+		Tokens,
+	>;
+
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 300), (BOB, DOT, 200)])
+		.build()
+		.execute_with(|| {
+			assert_ok!(<RebaseTokens as fungibles::Mutate<AccountId>>::mint_into(
+				DOT, &ALICE, 10000
+			));
+			assert_ok!(<RebaseTokens as fungibles::Mutate<AccountId>>::burn_from(
+				DOT, &BOB, 10000
+			));
+			assert_eq!(
+				<RebaseTokens as fungibles::Inspect<AccountId>>::balance(DOT, &ALICE),
+				40000
+			);
+			assert_eq!(
+				<RebaseTokens as fungibles::Inspect<AccountId>>::balance(DOT, &BOB),
+				10000
+			);
+		});
+}
