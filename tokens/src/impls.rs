@@ -121,15 +121,20 @@ where
 }
 
 pub trait ConvertBalance<A, B> {
-	fn convert_balance(amount: A) -> B;
-	fn convert_balance_back(amount: B) -> A;
+	type AssetId;
+	fn convert_balance(amount: A, asset_id: Self::AssetId) -> B;
+	fn convert_balance_back(amount: B, asset_id: Self::AssetId) -> A;
 }
 
 pub struct Mapper<AccountId, T, C, B, GetCurrencyId>(sp_std::marker::PhantomData<(AccountId, T, C, B, GetCurrencyId)>);
 impl<AccountId, T, C, B, GetCurrencyId> fungible::Inspect<AccountId> for Mapper<AccountId, T, C, B, GetCurrencyId>
 where
 	T: fungibles::Inspect<AccountId>,
-	C: ConvertBalance<<T as fungibles::Inspect<AccountId>>::Balance, B>,
+	C: ConvertBalance<
+		<T as fungibles::Inspect<AccountId>>::Balance,
+		B,
+		AssetId = <T as fungibles::Inspect<AccountId>>::AssetId,
+	>,
 	// TOOD: use trait Balance after https://github.com/paritytech/substrate/pull/9863 is available
 	B: AtLeast32BitUnsigned + FullCodec + Copy + Default + Debug,
 	GetCurrencyId: Get<<T as fungibles::Inspect<AccountId>>::AssetId>,
@@ -137,30 +142,43 @@ where
 	type Balance = B;
 
 	fn total_issuance() -> Self::Balance {
-		C::convert_balance(T::total_issuance(GetCurrencyId::get()))
+		C::convert_balance(T::total_issuance(GetCurrencyId::get()), GetCurrencyId::get())
 	}
 
 	fn minimum_balance() -> Self::Balance {
-		C::convert_balance(T::minimum_balance(GetCurrencyId::get()))
+		C::convert_balance(T::minimum_balance(GetCurrencyId::get()), GetCurrencyId::get())
 	}
 
 	fn balance(who: &AccountId) -> Self::Balance {
-		C::convert_balance(T::balance(GetCurrencyId::get(), who))
+		C::convert_balance(T::balance(GetCurrencyId::get(), who), GetCurrencyId::get())
 	}
 
 	fn reducible_balance(who: &AccountId, keep_alive: bool) -> Self::Balance {
-		C::convert_balance(T::reducible_balance(GetCurrencyId::get(), who, keep_alive))
+		C::convert_balance(
+			T::reducible_balance(GetCurrencyId::get(), who, keep_alive),
+			GetCurrencyId::get(),
+		)
 	}
 
 	fn can_deposit(who: &AccountId, amount: Self::Balance) -> DepositConsequence {
-		T::can_deposit(GetCurrencyId::get(), who, C::convert_balance_back(amount))
+		T::can_deposit(
+			GetCurrencyId::get(),
+			who,
+			C::convert_balance_back(amount, GetCurrencyId::get()),
+		)
 	}
 
 	fn can_withdraw(who: &AccountId, amount: Self::Balance) -> WithdrawConsequence<Self::Balance> {
 		use WithdrawConsequence::*;
-		let res = T::can_withdraw(GetCurrencyId::get(), who, C::convert_balance_back(amount));
+		let res = T::can_withdraw(
+			GetCurrencyId::get(),
+			who,
+			C::convert_balance_back(amount, GetCurrencyId::get()),
+		);
 		match res {
-			WithdrawConsequence::ReducedToZero(b) => WithdrawConsequence::ReducedToZero(C::convert_balance(b)),
+			WithdrawConsequence::ReducedToZero(b) => {
+				WithdrawConsequence::ReducedToZero(C::convert_balance(b, GetCurrencyId::get()))
+			}
 			NoFunds => NoFunds,
 			WouldDie => WouldDie,
 			UnknownAsset => UnknownAsset,
@@ -175,7 +193,11 @@ where
 impl<AccountId, T, C, B, GetCurrencyId> fungible::Transfer<AccountId> for Mapper<AccountId, T, C, B, GetCurrencyId>
 where
 	T: fungibles::Transfer<AccountId, Balance = B>,
-	C: ConvertBalance<<T as fungibles::Inspect<AccountId>>::Balance, B>,
+	C: ConvertBalance<
+		<T as fungibles::Inspect<AccountId>>::Balance,
+		B,
+		AssetId = <T as fungibles::Inspect<AccountId>>::AssetId,
+	>,
 	// TOOD: use trait Balance after https://github.com/paritytech/substrate/pull/9863 is available
 	B: AtLeast32BitUnsigned + FullCodec + Copy + Default + Debug,
 	GetCurrencyId: Get<<T as fungibles::Inspect<AccountId>>::AssetId>,
@@ -185,7 +207,7 @@ where
 			GetCurrencyId::get(),
 			source,
 			dest,
-			C::convert_balance_back(amount),
+			C::convert_balance_back(amount, GetCurrencyId::get()),
 			keep_alive,
 		)
 	}
@@ -194,16 +216,28 @@ where
 impl<AccountId, T, C, B, GetCurrencyId> fungible::Mutate<AccountId> for Mapper<AccountId, T, C, B, GetCurrencyId>
 where
 	T: fungibles::Mutate<AccountId, Balance = B>,
-	C: ConvertBalance<<T as fungibles::Inspect<AccountId>>::Balance, B>,
+	C: ConvertBalance<
+		<T as fungibles::Inspect<AccountId>>::Balance,
+		B,
+		AssetId = <T as fungibles::Inspect<AccountId>>::AssetId,
+	>,
 	// TOOD: use trait Balance after https://github.com/paritytech/substrate/pull/9863 is available
 	B: AtLeast32BitUnsigned + FullCodec + Copy + Default + Debug,
 	GetCurrencyId: Get<<T as fungibles::Inspect<AccountId>>::AssetId>,
 {
 	fn mint_into(dest: &AccountId, amount: Self::Balance) -> DispatchResult {
-		T::mint_into(GetCurrencyId::get(), dest, C::convert_balance_back(amount))
+		T::mint_into(
+			GetCurrencyId::get(),
+			dest,
+			C::convert_balance_back(amount, GetCurrencyId::get()),
+		)
 	}
 
 	fn burn_from(dest: &AccountId, amount: Self::Balance) -> Result<Self::Balance, DispatchError> {
-		T::burn_from(GetCurrencyId::get(), dest, C::convert_balance_back(amount))
+		T::burn_from(
+			GetCurrencyId::get(),
+			dest,
+			C::convert_balance_back(amount, GetCurrencyId::get()),
+		)
 	}
 }

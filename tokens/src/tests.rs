@@ -2084,11 +2084,12 @@ fn fungibles_mutate_hold_trait_should_work() {
 fn fungibles_inspect_convert_should_work() {
 	pub struct ConvertBalanceTest;
 	impl ConvertBalance<Balance, Balance> for ConvertBalanceTest {
-		fn convert_balance(balance: Balance) -> Balance {
+		type AssetId = CurrencyId;
+		fn convert_balance(balance: Balance, _asset_id: CurrencyId) -> Balance {
 			balance * 100
 		}
 
-		fn convert_balance_back(balance: Balance) -> Balance {
+		fn convert_balance_back(balance: Balance, _asset_id: CurrencyId) -> Balance {
 			balance / 100
 		}
 	}
@@ -2133,11 +2134,12 @@ fn fungibles_inspect_convert_should_work() {
 fn fungibles_transfers_convert_should_work() {
 	pub struct ConvertBalanceTest;
 	impl ConvertBalance<Balance, Balance> for ConvertBalanceTest {
-		fn convert_balance(balance: Balance) -> Balance {
+		type AssetId = CurrencyId;
+		fn convert_balance(balance: Balance, _asset_id: CurrencyId) -> Balance {
 			balance * 100
 		}
 
-		fn convert_balance_back(balance: Balance) -> Balance {
+		fn convert_balance_back(balance: Balance, _asset_id: CurrencyId) -> Balance {
 			balance / 100
 		}
 	}
@@ -2185,11 +2187,12 @@ fn fungibles_transfers_convert_should_work() {
 fn fungibles_mutate_convert_should_work() {
 	pub struct ConvertBalanceTest;
 	impl ConvertBalance<Balance, Balance> for ConvertBalanceTest {
-		fn convert_balance(balance: Balance) -> Balance {
+		type AssetId = CurrencyId;
+		fn convert_balance(balance: Balance, _asset_id: CurrencyId) -> Balance {
 			balance * 100
 		}
 
-		fn convert_balance_back(balance: Balance) -> Balance {
+		fn convert_balance_back(balance: Balance, _asset_id: CurrencyId) -> Balance {
 			balance / 100
 		}
 	}
