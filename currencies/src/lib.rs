@@ -55,6 +55,7 @@ use orml_traits::{
 	LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
 };
 use orml_utilities::with_transaction_result;
+use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{CheckedSub, MaybeSerializeDeserialize, StaticLookup, Zero},
 	DispatchError, DispatchResult,
@@ -113,7 +114,6 @@ pub mod module {
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
-	#[pallet::metadata(CurrencyIdOf<T> = "Currency", T::AccountId = "AccountId", BalanceOf<T> = "Balance", AmountOf<T> = "Amount")]
 	pub enum Event<T: Config> {
 		/// Currency transfer success. \[currency_id, from, to, amount\]
 		Transferred(CurrencyIdOf<T>, T::AccountId, T::AccountId, BalanceOf<T>),

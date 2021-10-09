@@ -29,6 +29,7 @@ use frame_support::{
 	weights::{DispatchClass, GetDispatchInfo, Pays},
 };
 use frame_system::{pallet_prelude::*, EnsureOneOf, EnsureRoot, EnsureSigned};
+use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{CheckedSub, Dispatchable, Hash, Saturating},
 	ArithmeticError, DispatchError, DispatchResult, Either, RuntimeDebug,
@@ -42,7 +43,7 @@ mod weights;
 pub use weights::WeightInfo;
 
 /// A delayed origin. Can only be dispatched via `dispatch_as` with a delay.
-#[derive(PartialEq, Eq, Clone, RuntimeDebug, Encode, Decode)]
+#[derive(PartialEq, Eq, Clone, RuntimeDebug, Encode, Decode, TypeInfo)]
 pub struct DelayedOrigin<BlockNumber, PalletsOrigin> {
 	/// Number of blocks that this call have been delayed.
 	pub delay: BlockNumber,
