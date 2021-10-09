@@ -18,6 +18,9 @@ frame-system = { git = "https://github.com/paritytech/substrate", branch = "polk
 xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.11", default-features = false }
 pallet-xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.11", default-features = false }
 
+[dev-dependencies]
+xcm-executor  = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.11" }
+
 [features]
 default = ["std"]
 std = [
