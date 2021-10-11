@@ -56,7 +56,7 @@ pub mod module {
 		) -> DispatchResult {
 			let _ = T::SovereignOrigin::ensure_origin(origin)?;
 			pallet_xcm::Pallet::<T>::send_xcm(Here, *dest.clone(), *message.clone()).map_err(|e| match e {
-				SendError::CannotReachDestination(..) | SendError::Unroutable => Error::<T>::Unreachable,
+				SendError::CannotReachDestination(..) => Error::<T>::Unreachable,
 				_ => Error::<T>::SendFailure,
 			})?;
 			Self::deposit_event(Event::Sent(*dest, *message));
