@@ -25,6 +25,17 @@ pub use sp_runtime::traits::Zero;
 pub use sp_std::{self, boxed::Box, prelude::Vec, str, vec};
 #[doc(hidden)]
 pub use sp_storage::TrackedStorageKey;
+
+/// Whitelist the given account.
+#[macro_export]
+macro_rules! whitelist_account {
+	($acc:ident) => {
+		frame_benchmarking::benchmarking::add_to_whitelist(
+			frame_system::Account::<Runtime>::hashed_key_for(&$acc).into(),
+		);
+	};
+}
+
 /// Construct pallet benchmarks for weighing dispatchables.
 ///
 /// Works around the idea of complexity parameters, named by a single letter
@@ -164,16 +175,6 @@ pub use sp_storage::TrackedStorageKey;
 /// }
 /// ```
 
-/// Whitelist the given account.
-#[macro_export]
-macro_rules! whitelist_account {
-	($acc:ident) => {
-		frame_benchmarking::benchmarking::add_to_whitelist(
-			frame_system::Account::<Runtime>::hashed_key_for(&$acc).into(),
-		);
-	};
-}
-
 #[macro_export]
 macro_rules! runtime_benchmarks {
 	(
@@ -256,7 +257,7 @@ macro_rules! benchmarks_iter {
 			( $( $names )* )
 			( $( $names_extra )* )
 			( $( $names_skip_meta )* )
-			$name { $( $code )* }: $name $(< $origin_type:ty>)? ( $origin $( , $arg )* )
+			$name { $( $code )* }: $name $(< $origin_type >)? ( $origin $( , $arg )* )
 			verify $postcode
 			$( $rest )*
 		}
@@ -449,7 +450,7 @@ macro_rules! to_origin {
 		$origin.into()
 	};
 	($origin:expr, $origin_type:ty) => {
-		<T::Origin as From<$origin_type>>::from($origin)
+		<<$runtime as frame_system::Config>::Origin as From<$origin_type>>::from($origin)
 	};
 }
 
@@ -1137,7 +1138,9 @@ macro_rules! impl_benchmark_test_suite {
 					println!("failing benchmark tests:");
 					for benchmark_metadata in $path_to_benchmarks_invocation::Benchmark::benchmarks($extra) {
 						let benchmark_name = &benchmark_metadata.name;
-						match std::panic::catch_unwind(|| Benchmark::test_bench_by_name(benchmark_name)) {
+						match std::panic::catch_unwind(|| {
+							Benchmark::test_bench_by_name(benchmark_name)
+						}) {
 							Err(err) => {
 								println!(
 									"{}: {:?}",
