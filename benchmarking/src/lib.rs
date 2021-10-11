@@ -6,8 +6,8 @@
 mod tests;
 
 pub use frame_benchmarking::{
-	benchmarking, whitelisted_caller, BenchmarkBatch, BenchmarkConfig, BenchmarkList, BenchmarkMetadata,
-	BenchmarkParameter, BenchmarkResults, Benchmarking, BenchmarkingSetup,
+	benchmarking, whitelisted_caller, BenchmarkBatch, BenchmarkConfig, BenchmarkError, BenchmarkList,
+	BenchmarkMetadata, BenchmarkParameter, BenchmarkResult, Benchmarking, BenchmarkingSetup,
 };
 #[cfg(feature = "std")]
 pub use frame_benchmarking::{Analysis, BenchmarkSelector};
@@ -260,31 +260,37 @@ macro_rules! benchmarks_iter {
 		verify $postcode:block
 		$( $rest:tt )*
 	) => {
-		$crate::benchmarks_iter! {
-			{ $( $instance)? }
-			$runtime
-			$pallet
-			( $( $names )* )
-			( $( $names_extra )* )
-			( $( $names_skip_meta )* )
-			$name {
-				$( $code )*
-				let __benchmarked_call_encoded = $crate::frame_support::codec::Encode::encode(
-					&$pallet::Call::<$runtime $(, $instance )?>::$dispatch($( $arg ),*)
-				);
-			}: {
-				let call_decoded = <
-					$pallet::Call::<$runtime $(, $instance )?>
-					as $crate::frame_support::codec::Decode
-				>::decode(&mut &__benchmarked_call_encoded[..])
-					.expect("call is encoded above, encoding must be correct");
-
-				<
-					$pallet::Call::<$runtime $(, $instance )? > as $crate::frame_support::traits::UnfilteredDispatchable
-				>::dispatch_bypass_filter(call_decoded, $origin.into())?;
+		$crate::paste::paste! {
+			$crate::benchmarks_iter! {
+				{ $( $instance)? }
+				$runtime
+				$pallet
+				( $( $names )* )
+					( $( $names_extra )* )
+					( $( $names_skip_meta )* )
+					$name {
+						$( $code )*
+							let __call =
+							$pallet::Call::<$runtime $(, $instance )?
+									>:: [< new_call_variant_ $dispatch >] (
+								$($arg),*
+							);
+						let __benchmarked_call_encoded = $crate::frame_support::codec::Encode::encode(
+							&__call
+						);
+					}: {
+						let call_decoded = <
+								$pallet::Call::<$runtime $(, $instance )?>
+								as $crate::frame_support::codec::Decode
+								>::decode(&mut &__benchmarked_call_encoded[..])
+							.expect("call is encoded above, encoding must be correct");
+						<
+								$pallet::Call::<$runtime $(, $instance )?> as $crate::frame_support::traits::UnfilteredDispatchable
+								>::dispatch_bypass_filter(call_decoded, $origin.into())?;
+					}
+				verify $postcode
+					$( $rest )*
 			}
-			verify $postcode
-			$( $rest )*
 		}
 	};
 	// iteration arm:
@@ -595,7 +601,7 @@ macro_rules! benchmark_backend {
 				&self,
 				components: &[($crate::BenchmarkParameter, u32)],
 				verify: bool
-			) -> Result<$crate::Box<dyn FnOnce() -> Result<(), &'static str>>, &'static str> {
+			) -> Result<$crate::Box<dyn FnOnce() -> Result<(), $crate::BenchmarkError>>, $crate::BenchmarkError> {
 				$(
 					// Prepare instance
 					let $param = components.iter()
@@ -609,7 +615,7 @@ macro_rules! benchmark_backend {
 				$( $param_instancer ; )*
 				$( $post )*
 
-				Ok($crate::Box::new(move || -> Result<(), &'static str> {
+				Ok($crate::Box::new(move || -> Result<(), $crate::BenchmarkError> {
 					$eval;
 					if verify {
 						$postcode;
@@ -666,7 +672,7 @@ macro_rules! selected_benchmark {
 				&self,
 				components: &[($crate::BenchmarkParameter, u32)],
 				verify: bool
-			) -> Result<$crate::Box<dyn FnOnce() -> Result<(), &'static str>>, &'static str> {
+			) -> Result<$crate::Box<dyn FnOnce() -> Result<(), $crate::BenchmarkError>>, $crate::BenchmarkError> {
 				match self {
 					$(
 						Self::$bench => <
@@ -692,7 +698,7 @@ macro_rules! impl_benchmark {
 	) => {
 		pub struct Benchmark;
 
-		impl $crate::Benchmarking<$crate::BenchmarkResults> for Benchmark {
+		impl $crate::Benchmarking for Benchmark {
 			fn benchmarks(extra: bool) -> $crate::Vec<$crate::BenchmarkMetadata> {
 				let mut all_names = $crate::vec![ $( stringify!($name).as_ref() ),* ];
 				if !extra {
@@ -721,13 +727,13 @@ macro_rules! impl_benchmark {
 				whitelist: &[$crate::TrackedStorageKey],
 				verify: bool,
 				internal_repeats: u32,
-			) -> Result<$crate::Vec<$crate::BenchmarkResults>, &'static str> {
+			) -> Result<$crate::Vec<$crate::BenchmarkResult>, $crate::BenchmarkError> {
 				// Map the input to the selected benchmark.
 				let extrinsic = $crate::sp_std::str::from_utf8(extrinsic)
 					.map_err(|_| "`extrinsic` is not a valid utf8 string!")?;
 				let selected_benchmark = match extrinsic {
 					$( stringify!($name) => SelectedBenchmark::$name, )*
-					_ => return Err("Could not find extrinsic."),
+					_ => return Err("Could not find extrinsic.".into()),
 				};
 
 				// Add whitelist to DB including whitelisted caller
@@ -739,7 +745,7 @@ macro_rules! impl_benchmark {
 				whitelist.push(whitelisted_caller_key.into());
 				$crate::benchmarking::set_whitelist(whitelist);
 
-				let mut results: $crate::Vec<$crate::BenchmarkResults> = $crate::Vec::new();
+				let mut results: $crate::Vec<$crate::BenchmarkResult> = $crate::Vec::new();
 
 				// Always do at least one internal repeat...
 				for _ in 0 .. internal_repeats.max(1) {
@@ -807,7 +813,7 @@ macro_rules! impl_benchmark {
 						$crate::benchmarking::get_read_and_written_keys()
 					};
 
-					results.push($crate::BenchmarkResults {
+					results.push($crate::BenchmarkResult {
 						components: c.to_vec(),
 						extrinsic_time: elapsed_extrinsic,
 						storage_root_time: elapsed_storage_root,
