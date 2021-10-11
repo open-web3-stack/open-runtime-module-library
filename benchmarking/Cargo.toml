@@ -20,6 +20,7 @@ sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0
 sp-storage = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.11", default-features = false }
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.11", default-features = false }
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.11", default-features = false }
+log = { version = "0.4.14", default-features = false }
 
 [dev-dependencies]
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.11" }
@@ -37,4 +38,5 @@ std = [
 	"sp-std/std",
 	"frame-support/std",
 	"frame-benchmarking/std",
+	"log/std",
 ]
