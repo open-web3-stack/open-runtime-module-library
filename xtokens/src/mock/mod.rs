@@ -3,6 +3,7 @@
 use super::*;
 use crate as orml_xtokens;
 
+use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 use sp_io::TestExternalities;
 use sp_runtime::AccountId32;
