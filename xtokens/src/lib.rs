@@ -261,7 +261,7 @@ pub mod module {
 					max_assets: u32::max_value(),
 					dest: dest.clone(),
 					xcm: Xcm(vec![
-						Self::buy_execution(asset.clone(), &dest, dest_weight)?,
+						Self::buy_execution(asset, &dest, dest_weight)?,
 						Self::deposit_asset(recipient),
 					]),
 				},
@@ -280,7 +280,7 @@ pub mod module {
 					assets: All.into(),
 					reserve: reserve.clone(),
 					xcm: Xcm(vec![
-						Self::buy_execution(asset.clone(), &reserve, dest_weight)?,
+						Self::buy_execution(asset, &reserve, dest_weight)?,
 						Self::deposit_asset(recipient),
 					]),
 				},
