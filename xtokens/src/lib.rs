@@ -31,7 +31,7 @@ use sp_runtime::{
 use sp_std::prelude::*;
 
 use xcm::v0::prelude::*;
-use xcm_executor::traits::WeightBounds;
+use xcm_executor::traits::{InvertLocation, WeightBounds};
 
 pub use module::*;
 use orml_traits::{
@@ -94,6 +94,9 @@ pub mod module {
 		/// T::Weigher::weight(&msg)`.
 		#[pallet::constant]
 		type BaseXcmWeight: Get<Weight>;
+
+		/// Means of inverting a location.
+		type LocationInverter: InvertLocation;
 	}
 
 	#[pallet::event]
@@ -120,6 +123,9 @@ pub mod module {
 		UnweighableMessage,
 		/// XCM execution failed.
 		XcmExecutionFailed,
+		/// Could not re-anchor the assets to declare the fees for the
+		/// destination chain.
+		CannotReanchor,
 	}
 
 	#[pallet::hooks]
@@ -208,26 +214,18 @@ pub mod module {
 			dest_weight: Weight,
 			deposit_event: bool,
 		) -> DispatchResult {
-			if Self::is_zero_amount(&asset) {
+			if fungible_amount(&asset).is_zero() {
 				return Ok(());
 			}
 
 			let (transfer_kind, dest, reserve, recipient) = Self::transfer_kind(&asset, &dest)?;
-			let buy_order = BuyExecution {
-				fees: All,
-				// Zero weight for additional XCM (since there are none to execute)
-				weight: 0,
-				debt: dest_weight,
-				halt_on_error: false,
-				xcm: vec![],
-			};
 			let mut msg = match transfer_kind {
 				SelfReserveAsset => {
-					Self::transfer_self_reserve_asset(asset.clone(), dest.clone(), recipient, buy_order)
+					Self::transfer_self_reserve_asset(asset.clone(), dest.clone(), recipient, dest_weight)?
 				}
-				ToReserve => Self::transfer_to_reserve(asset.clone(), dest.clone(), recipient, buy_order),
+				ToReserve => Self::transfer_to_reserve(asset.clone(), dest.clone(), recipient, dest_weight)?,
 				ToNonReserve => {
-					Self::transfer_to_non_reserve(asset.clone(), reserve, dest.clone(), recipient, buy_order)
+					Self::transfer_to_non_reserve(asset.clone(), reserve, dest.clone(), recipient, dest_weight)?
 				}
 			};
 
@@ -248,32 +246,36 @@ pub mod module {
 			asset: MultiAsset,
 			dest: MultiLocation,
 			recipient: MultiLocation,
-			buy_order: Order<()>,
-		) -> Xcm<T::Call> {
-			WithdrawAsset {
+			dest_weight: Weight,
+		) -> Result<Xcm<T::Call>, DispatchError> {
+			let buy_execution = Self::buy_execution(asset.clone(), &dest, dest_weight)?;
+			Ok(WithdrawAsset {
 				assets: vec![asset],
 				effects: vec![DepositReserveAsset {
 					assets: vec![MultiAsset::All],
 					dest,
-					effects: vec![buy_order, Self::deposit_asset(recipient)],
+					effects: vec![buy_execution, Self::deposit_asset(recipient)],
 				}],
-			}
+			})
 		}
 
 		fn transfer_to_reserve(
 			asset: MultiAsset,
 			reserve: MultiLocation,
 			recipient: MultiLocation,
-			buy_order: Order<()>,
-		) -> Xcm<T::Call> {
-			WithdrawAsset {
-				assets: vec![asset],
+			dest_weight: Weight,
+		) -> Result<Xcm<T::Call>, DispatchError> {
+			Ok(WithdrawAsset {
+				assets: vec![asset.clone()],
 				effects: vec![InitiateReserveWithdraw {
 					assets: vec![MultiAsset::All],
-					reserve,
-					effects: vec![buy_order, Self::deposit_asset(recipient)],
+					reserve: reserve.clone(),
+					effects: vec![
+						Self::buy_execution(asset, &reserve, dest_weight)?,
+						Self::deposit_asset(recipient),
+					],
 				}],
-			}
+			})
 		}
 
 		fn transfer_to_non_reserve(
@@ -281,8 +283,8 @@ pub mod module {
 			reserve: MultiLocation,
 			dest: MultiLocation,
 			recipient: MultiLocation,
-			buy_order: Order<()>,
-		) -> Xcm<T::Call> {
+			dest_weight: Weight,
+		) -> Result<Xcm<T::Call>, DispatchError> {
 			let mut reanchored_dest = dest.clone();
 			if reserve == Parent.into() {
 				if let MultiLocation::X2(Parent, Parachain(id)) = dest {
@@ -290,21 +292,23 @@ pub mod module {
 				}
 			}
 
-			WithdrawAsset {
+			let reserve_buy_execution = Self::buy_execution(half(&asset), &reserve, dest_weight)?;
+			let dest_buy_execution = Self::buy_execution(half(&asset), &dest, dest_weight)?;
+			Ok(WithdrawAsset {
 				assets: vec![asset],
 				effects: vec![InitiateReserveWithdraw {
 					assets: vec![MultiAsset::All],
 					reserve,
 					effects: vec![
-						buy_order.clone(),
+						reserve_buy_execution,
 						DepositReserveAsset {
 							assets: vec![MultiAsset::All],
 							dest: reanchored_dest,
-							effects: vec![buy_order, Self::deposit_asset(recipient)],
+							effects: vec![dest_buy_execution, Self::deposit_asset(recipient)],
 						},
 					],
 				}],
-			}
+			})
 		}
 
 		fn deposit_asset(recipient: MultiLocation) -> Order<()> {
@@ -314,20 +318,17 @@ pub mod module {
 			}
 		}
 
-		fn is_zero_amount(asset: &MultiAsset) -> bool {
-			if let MultiAsset::ConcreteFungible { id: _, amount } = asset {
-				if amount.is_zero() {
-					return true;
-				}
-			}
-
-			if let MultiAsset::AbstractFungible { id: _, amount } = asset {
-				if amount.is_zero() {
-					return true;
-				}
-			}
-
-			false
+		fn buy_execution(asset: MultiAsset, at: &MultiLocation, weight: Weight) -> Result<Order<()>, DispatchError> {
+			let inv_at = T::LocationInverter::invert_location(at);
+			let mut fees = asset;
+			fees.reanchor(&inv_at).map_err(|_| Error::<T>::CannotReanchor)?;
+			Ok(BuyExecution {
+				fees,
+				weight: 0,
+				debt: weight,
+				halt_on_error: false,
+				xcm: vec![],
+			})
 		}
 
 		/// Ensure has the `dest` has chain part and recipient part.
@@ -437,5 +438,22 @@ pub mod module {
 		) -> DispatchResult {
 			Self::do_transfer_multiasset(who, asset, dest, dest_weight, true)
 		}
+	}
+}
+
+/// Returns amount if `asset` is fungible, or zero.
+fn fungible_amount(asset: &MultiAsset) -> u128 {
+	match asset {
+		MultiAsset::ConcreteFungible { id: _, amount } => *amount,
+		MultiAsset::AbstractFungible { id: _, amount } => *amount,
+		_ => 0,
+	}
+}
+
+fn half(asset: &MultiAsset) -> MultiAsset {
+	match asset.clone() {
+		MultiAsset::ConcreteFungible { id, amount } => MultiAsset::ConcreteFungible { id, amount: amount / 2 },
+		MultiAsset::AbstractFungible { id, amount } => MultiAsset::AbstractFungible { id, amount: amount / 2 },
+		asset => asset,
 	}
 }
