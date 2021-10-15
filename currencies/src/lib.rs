@@ -113,7 +113,6 @@ pub mod module {
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
-	#[pallet::metadata(CurrencyIdOf<T> = "Currency", T::AccountId = "AccountId", BalanceOf<T> = "Balance", AmountOf<T> = "Amount")]
 	pub enum Event<T: Config> {
 		/// Currency transfer success. \[currency_id, from, to, amount\]
 		Transferred(CurrencyIdOf<T>, T::AccountId, T::AccountId, BalanceOf<T>),

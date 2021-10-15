@@ -64,7 +64,7 @@ impl pallet_scheduler::Config for Runtime {
 	type WeightInfo = ();
 }
 
-#[derive(Clone, Encode, Decode, Eq, PartialEq, Ord, PartialOrd, Debug)]
+#[derive(Clone, Encode, Decode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
 pub enum MockAsOriginId {
 	Root,
 	Account1,

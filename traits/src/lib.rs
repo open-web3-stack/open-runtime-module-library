@@ -22,6 +22,7 @@ pub use multi_asset::ConcreteFungibleAsset;
 pub use nft::NFT;
 pub use price::{DefaultPriceProvider, PriceProvider};
 pub use rewards::RewardHandler;
+use scale_info::TypeInfo;
 pub use xcm_transfer::XcmTransfer;
 
 pub mod arithmetic;
@@ -54,7 +55,7 @@ pub trait CombineData<Key, TimestampedValue> {
 }
 
 /// Indicate if should change a value
-#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub enum Change<Value> {
 	/// No change.
 	NoChange,

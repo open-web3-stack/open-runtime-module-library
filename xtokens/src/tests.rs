@@ -63,14 +63,14 @@ fn send_relay_chain_asset_to_relay_chain() {
 					id: BOB.into(),
 				})
 			)),
-			30,
+			40,
 		));
 		assert_eq!(ParaTokens::free_balance(CurrencyId::R, &ALICE), 500);
 	});
 
 	Relay::execute_with(|| {
 		assert_eq!(RelayBalances::free_balance(&para_a_account()), 500);
-		assert_eq!(RelayBalances::free_balance(&BOB), 470);
+		assert_eq!(RelayBalances::free_balance(&BOB), 460);
 	});
 }
 
@@ -96,7 +96,7 @@ fn cannot_lost_fund_on_send_failed() {
 					)
 						.into()
 				),
-				30,
+				40,
 			),
 			Error::<para::Runtime>::XcmExecutionFailed
 		);
@@ -128,18 +128,18 @@ fn send_relay_chain_asset_to_sibling() {
 					}
 				)
 			)),
-			30,
+			40,
 		));
 		assert_eq!(ParaTokens::free_balance(CurrencyId::R, &ALICE), 500);
 	});
 
 	Relay::execute_with(|| {
 		assert_eq!(RelayBalances::free_balance(&para_a_account()), 500);
-		assert_eq!(RelayBalances::free_balance(&para_b_account()), 470);
+		assert_eq!(RelayBalances::free_balance(&para_b_account()), 460);
 	});
 
 	ParaB::execute_with(|| {
-		assert_eq!(ParaTokens::free_balance(CurrencyId::R, &BOB), 440);
+		assert_eq!(ParaTokens::free_balance(CurrencyId::R, &BOB), 420);
 	});
 }
 
@@ -171,7 +171,7 @@ fn send_sibling_asset_to_reserve_sibling() {
 				)
 					.into()
 			),
-			30,
+			40,
 		));
 
 		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &ALICE), 500);
@@ -179,7 +179,7 @@ fn send_sibling_asset_to_reserve_sibling() {
 
 	ParaB::execute_with(|| {
 		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &sibling_a_account()), 500);
-		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &BOB), 470);
+		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &BOB), 460);
 	});
 }
 
@@ -210,7 +210,7 @@ fn send_sibling_asset_to_non_reserve_sibling() {
 					}
 				)
 			),),
-			30
+			40
 		));
 		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &ALICE), 500);
 	});
@@ -218,11 +218,11 @@ fn send_sibling_asset_to_non_reserve_sibling() {
 	// check reserve accounts
 	ParaB::execute_with(|| {
 		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &sibling_a_account()), 500);
-		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &sibling_c_account()), 470);
+		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &sibling_c_account()), 460);
 	});
 
 	ParaC::execute_with(|| {
-		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &BOB), 440);
+		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &BOB), 420);
 	});
 }
 
@@ -247,7 +247,7 @@ fn send_self_parachain_asset_to_sibling() {
 					}
 				)
 			)),
-			30,
+			40,
 		));
 
 		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &ALICE), 500);
@@ -255,7 +255,7 @@ fn send_self_parachain_asset_to_sibling() {
 	});
 
 	ParaB::execute_with(|| {
-		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &BOB), 470);
+		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &BOB), 460);
 	});
 }
 
@@ -346,25 +346,24 @@ fn send_as_sovereign() {
 	ParaA::execute_with(|| {
 		use xcm::latest::OriginKind::SovereignAccount;
 
-		let call = relay::Call::System(frame_system::Call::<relay::Runtime>::remark_with_event(vec![1, 1, 1]));
+		let call =
+			relay::Call::System(frame_system::Call::<relay::Runtime>::remark_with_event { remark: vec![1, 1, 1] });
 		let assets: MultiAsset = (Here, 1_000_000_000_000).into();
 		assert_ok!(para::OrmlXcm::send_as_sovereign(
 			para::Origin::root(),
 			Box::new(MultiLocation::parent()),
-			Box::new(WithdrawAsset {
-				assets: assets.clone().into(),
-				effects: vec![Order::BuyExecution {
+			Box::new(Xcm(vec![
+				WithdrawAsset(assets.clone().into()),
+				BuyExecution {
 					fees: assets,
-					weight: 10_000_000,
-					debt: 10_000_000,
-					halt_on_error: true,
-					instructions: vec![Transact {
-						origin_type: SovereignAccount,
-						require_weight_at_most: 1_000_000_000,
-						call: call.encode().into(),
-					}],
-				}]
-			})
+					weight_limit: Limited(10_000_000)
+				},
+				Instruction::Transact {
+					origin_type: SovereignAccount,
+					require_weight_at_most: 1_000_000_000,
+					call: call.encode().into(),
+				}
+			]))
 		));
 	});
 
@@ -389,26 +388,25 @@ fn send_as_sovereign_fails_if_bad_origin() {
 	ParaA::execute_with(|| {
 		use xcm::latest::OriginKind::SovereignAccount;
 
-		let call = relay::Call::System(frame_system::Call::<relay::Runtime>::remark_with_event(vec![1, 1, 1]));
+		let call =
+			relay::Call::System(frame_system::Call::<relay::Runtime>::remark_with_event { remark: vec![1, 1, 1] });
 		let assets: MultiAsset = (Here, 1_000_000_000_000).into();
 		assert_err!(
 			para::OrmlXcm::send_as_sovereign(
 				para::Origin::signed(ALICE),
 				Box::new(MultiLocation::parent()),
-				Box::new(WithdrawAsset {
-					assets: assets.clone().into(),
-					effects: vec![Order::BuyExecution {
+				Box::new(Xcm(vec![
+					WithdrawAsset(assets.clone().into()),
+					BuyExecution {
 						fees: assets,
-						weight: 10_000_000,
-						debt: 10_000_000,
-						halt_on_error: true,
-						instructions: vec![Transact {
-							origin_type: SovereignAccount,
-							require_weight_at_most: 1_000_000_000,
-							call: call.encode().into(),
-						}],
-					}]
-				})
+						weight_limit: Limited(10_000_000)
+					},
+					Instruction::Transact {
+						origin_type: SovereignAccount,
+						require_weight_at_most: 1_000_000_000,
+						call: call.encode().into(),
+					}
+				]))
 			),
 			DispatchError::BadOrigin,
 		);

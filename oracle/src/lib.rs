@@ -34,6 +34,7 @@ use frame_support::{
 use frame_system::{ensure_root, ensure_signed, pallet_prelude::*};
 pub use orml_traits::{CombineData, DataFeeder, DataProvider, DataProviderExtended, OnNewData};
 use orml_utilities::OrderedSet;
+use scale_info::TypeInfo;
 use sp_runtime::{traits::Member, DispatchResult, RuntimeDebug};
 use sp_std::{prelude::*, vec};
 
@@ -54,7 +55,7 @@ pub mod module {
 	pub(crate) type MomentOf<T, I = ()> = <<T as Config<I>>::Time as Time>::Moment;
 	pub(crate) type TimestampedValueOf<T, I = ()> = TimestampedValue<<T as Config<I>>::OracleValue, MomentOf<T, I>>;
 
-	#[derive(Encode, Decode, RuntimeDebug, Eq, PartialEq, Clone, Copy, Ord, PartialOrd)]
+	#[derive(Encode, Decode, RuntimeDebug, Eq, PartialEq, Clone, Copy, Ord, PartialOrd, TypeInfo)]
 	#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 	pub struct TimestampedValue<Value, Moment> {
 		pub value: Value,
@@ -104,7 +105,6 @@ pub mod module {
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
-	#[pallet::metadata(T::AccountId = "AccountId", Vec<(T::OracleKey, T::OracleValue)> = "Vec<(OracleKey, OracleValue)>")]
 	pub enum Event<T: Config<I>, I: 'static = ()> {
 		/// New feed data is submitted. [sender, values]
 		NewFeedData(T::AccountId, Vec<(T::OracleKey, T::OracleValue)>),

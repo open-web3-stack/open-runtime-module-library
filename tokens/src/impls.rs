@@ -1,12 +1,9 @@
-use codec::FullCodec;
 use frame_support::dispatch::{DispatchError, DispatchResult};
 use frame_support::traits::{
 	fungible, fungibles,
-	tokens::{DepositConsequence, WithdrawConsequence},
+	tokens::{Balance as BalanceT, DepositConsequence, WithdrawConsequence},
 	Contains, Get,
 };
-use sp_runtime::traits::AtLeast32BitUnsigned;
-use sp_std::fmt::Debug;
 
 pub struct Combiner<AccountId, TestKey, A, B>(sp_std::marker::PhantomData<(AccountId, TestKey, A, B)>);
 
@@ -135,8 +132,7 @@ where
 		B,
 		AssetId = <T as fungibles::Inspect<AccountId>>::AssetId,
 	>,
-	// TOOD: use trait Balance after https://github.com/paritytech/substrate/pull/9863 is available
-	B: AtLeast32BitUnsigned + FullCodec + Copy + Default + Debug,
+	B: BalanceT,
 	GetCurrencyId: Get<<T as fungibles::Inspect<AccountId>>::AssetId>,
 {
 	type Balance = B;
@@ -198,8 +194,7 @@ where
 		B,
 		AssetId = <T as fungibles::Inspect<AccountId>>::AssetId,
 	>,
-	// TOOD: use trait Balance after https://github.com/paritytech/substrate/pull/9863 is available
-	B: AtLeast32BitUnsigned + FullCodec + Copy + Default + Debug,
+	B: BalanceT,
 	GetCurrencyId: Get<<T as fungibles::Inspect<AccountId>>::AssetId>,
 {
 	fn transfer(source: &AccountId, dest: &AccountId, amount: B, keep_alive: bool) -> Result<B, DispatchError> {
@@ -221,8 +216,7 @@ where
 		B,
 		AssetId = <T as fungibles::Inspect<AccountId>>::AssetId,
 	>,
-	// TOOD: use trait Balance after https://github.com/paritytech/substrate/pull/9863 is available
-	B: AtLeast32BitUnsigned + FullCodec + Copy + Default + Debug,
+	B: BalanceT,
 	GetCurrencyId: Get<<T as fungibles::Inspect<AccountId>>::AssetId>,
 {
 	fn mint_into(dest: &AccountId, amount: Self::Balance) -> DispatchResult {

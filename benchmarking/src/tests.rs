@@ -4,7 +4,7 @@
 
 use super::*;
 use frame_benchmarking::account;
-use frame_support::{assert_err, assert_ok, construct_runtime, ensure};
+use frame_support::{assert_err, assert_ok, construct_runtime, ensure, traits::Everything};
 use frame_system::RawOrigin;
 use sp_runtime::{
 	testing::{Header, H256},
@@ -73,7 +73,7 @@ impl frame_system::Config for Test {
 	type AccountData = ();
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
-	type BaseCallFilter = ();
+	type BaseCallFilter = Everything;
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
 	type OnSetCode = ();

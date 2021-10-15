@@ -3,6 +3,7 @@
 use super::*;
 use crate as orml_xtokens;
 
+use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 use sp_io::TestExternalities;
 use sp_runtime::AccountId32;
@@ -15,7 +16,7 @@ pub mod relay;
 pub const ALICE: AccountId32 = AccountId32::new([0u8; 32]);
 pub const BOB: AccountId32 = AccountId32::new([1u8; 32]);
 
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum CurrencyId {
 	/// Relay chain token.
