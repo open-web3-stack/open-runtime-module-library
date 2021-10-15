@@ -354,6 +354,10 @@ fn send_as_sovereign() {
 			Box::new(MultiLocation::parent()),
 			Box::new(Xcm(vec![
 				WithdrawAsset(assets.clone().into()),
+				BuyExecution {
+					fees: assets,
+					weight_limit: Limited(10_000_000)
+				},
 				Instruction::Transact {
 					origin_type: SovereignAccount,
 					require_weight_at_most: 1_000_000_000,
@@ -393,6 +397,10 @@ fn send_as_sovereign_fails_if_bad_origin() {
 				Box::new(MultiLocation::parent()),
 				Box::new(Xcm(vec![
 					WithdrawAsset(assets.clone().into()),
+					BuyExecution {
+						fees: assets,
+						weight_limit: Limited(10_000_000)
+					},
 					Instruction::Transact {
 						origin_type: SovereignAccount,
 						require_weight_at_most: 1_000_000_000,
