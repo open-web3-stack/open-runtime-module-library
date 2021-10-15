@@ -30,11 +30,11 @@ pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "p
 default = ["std"]
 std = [
 	"scale-info/std",
-    "frame-support/std",
-    "weight-meter-procedural/std",
-    "orml-bencher/std",
+	"frame-support/std",
+	"weight-meter-procedural/std",
+	"orml-bencher/std",
 ]
 bench = [
-    "weight-meter-procedural/bench",
-    "orml-bencher",
+	"weight-meter-procedural/bench",
+	"orml-bencher",
 ]
