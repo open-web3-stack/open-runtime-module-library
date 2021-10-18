@@ -1,6 +1,5 @@
 #![cfg(any(test, feature = "bench"))]
 
-use frame_support::parameter_types;
 use sp_core::H256;
 use sp_runtime::{
 	traits::{BlakeTwo256, IdentityLookup},
@@ -27,7 +26,7 @@ frame_support::construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-		TestPallet: crate::pallet_test::{Pallet, Call, Storage},
+		Test: crate::pallet::{Pallet, Call, Storage},
 	}
 );
 
@@ -57,20 +56,7 @@ impl frame_system::Config for Runtime {
 	type OnSetCode = ();
 }
 
-parameter_types! {
-	pub const LowerBound: u32 = 1;
-	pub const UpperBound: u32 = 100;
-}
-
-impl crate::pallet_test::Config for Runtime {
-	type Event = Event;
-	type LowerBound = LowerBound;
-	type UpperBound = UpperBound;
-}
-
-impl crate::pallet_test::OtherConfig for Runtime {
-	type OtherEvent = Event;
-}
+impl crate::pallet::Config for Runtime {}
 
 #[cfg(test)]
 pub struct ExtBuilder;

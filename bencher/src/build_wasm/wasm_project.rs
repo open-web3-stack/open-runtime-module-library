@@ -577,13 +577,12 @@ fn copy_wasm_to_target_directory(cargo_manifest: &Path, wasm_binary: &WasmBinary
 		Err(_) => return,
 	};
 
-	if !target_dir.is_absolute() {
-		panic!(
-			"Environment variable `{}` with `{}` is not an absolute path!",
-			WASM_TARGET_DIRECTORY,
-			target_dir.display(),
-		);
-	}
+	assert!(
+		target_dir.is_absolute(),
+		"Environment variable `{}` with `{}` is not an absolute path!",
+		WASM_TARGET_DIRECTORY,
+		target_dir.display()
+	);
 
 	fs::create_dir_all(&target_dir).expect("Creates `WASM_TARGET_DIRECTORY`.");
 

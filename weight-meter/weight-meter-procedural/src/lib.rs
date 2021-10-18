@@ -5,7 +5,7 @@ use syn::{Expr, ItemFn, parse};
 #[proc_macro_attribute]
 pub fn start(attr: TokenStream, item: TokenStream) -> TokenStream {
 	let weight: Expr = if attr.is_empty() {
-		parse((quote!{ 0 }).into()).unwrap()
+		parse((quote! { 0 }).into()).unwrap()
 	} else {
 		parse(attr).unwrap()
 	};

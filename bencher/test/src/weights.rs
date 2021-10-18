@@ -14,7 +14,7 @@ impl<T: frame_system::Config> ModuleWeights<T> {
 	//
 	// Test::Value (r: 1, w: 1)
 	pub fn set_value() -> Weight {
-		(4_530_000 as Weight)
+		(5_236_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
@@ -24,8 +24,13 @@ impl<T: frame_system::Config> ModuleWeights<T> {
 	// Test::Foo (r: 0, w: 1)
 	// Test::Value (r: 0, w: 1)
 	pub fn set_foo() -> Weight {
-		(11_729_000 as Weight)
+		(13_274_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(4 as Weight))
+	}
+	// Storage access info
+	//
+	pub fn remove_all_bar() -> Weight {
+		(3_449_000 as Weight)
 	}
 }
