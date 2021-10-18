@@ -7,6 +7,7 @@ mod tests;
 use codec::{FullCodec, HasCompact};
 use frame_support::pallet_prelude::*;
 use orml_traits::RewardHandler;
+use scale_info::TypeInfo;
 use sp_core::U256;
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize, Member, Saturating, UniqueSaturatedInto, Zero},
@@ -15,7 +16,7 @@ use sp_runtime::{
 use sp_std::{borrow::ToOwned, collections::btree_map::BTreeMap, fmt::Debug, prelude::*};
 
 /// The Reward Pool Info.
-#[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug)]
+#[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub struct PoolInfo<Share: HasCompact, Balance: HasCompact, CurrencyId: Ord> {
 	/// Total shares amount
 	pub total_shares: Share,

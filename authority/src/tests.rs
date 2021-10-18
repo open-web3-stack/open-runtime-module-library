@@ -18,8 +18,8 @@ use sp_runtime::{traits::BadOrigin, Perbill};
 #[test]
 fn dispatch_as_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let ensure_root_call = Call::System(frame_system::Call::fill_block(Perbill::one()));
-		let ensure_signed_call = Call::System(frame_system::Call::remark(vec![]));
+		let ensure_root_call = Call::System(frame_system::Call::fill_block { ratio: Perbill::one() });
+		let ensure_signed_call = Call::System(frame_system::Call::remark { remark: vec![] });
 		assert_ok!(Authority::dispatch_as(
 			Origin::root(),
 			MockAsOriginId::Root,
@@ -57,11 +57,11 @@ fn dispatch_as_work() {
 #[test]
 fn schedule_dispatch_at_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let ensure_root_call = Call::System(frame_system::Call::fill_block(Perbill::one()));
-		let call = Call::Authority(authority::Call::dispatch_as(
-			MockAsOriginId::Root,
-			Box::new(ensure_root_call),
-		));
+		let ensure_root_call = Call::System(frame_system::Call::fill_block { ratio: Perbill::one() });
+		let call = Call::Authority(authority::Call::dispatch_as {
+			as_origin: MockAsOriginId::Root,
+			call: Box::new(ensure_root_call),
+		});
 		run_to_block(1);
 		assert_eq!(
 			Authority::schedule_dispatch(Origin::root(), DispatchTime::At(1), 0, true, Box::new(call.clone())),
@@ -115,11 +115,11 @@ fn schedule_dispatch_at_work() {
 #[test]
 fn schedule_dispatch_after_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let ensure_root_call = Call::System(frame_system::Call::fill_block(Perbill::one()));
-		let call = Call::Authority(authority::Call::dispatch_as(
-			MockAsOriginId::Root,
-			Box::new(ensure_root_call),
-		));
+		let ensure_root_call = Call::System(frame_system::Call::fill_block { ratio: Perbill::one() });
+		let call = Call::Authority(authority::Call::dispatch_as {
+			as_origin: MockAsOriginId::Root,
+			call: Box::new(ensure_root_call),
+		});
 		run_to_block(1);
 		assert_eq!(
 			Authority::schedule_dispatch(Origin::root(), DispatchTime::At(0), 0, true, Box::new(call.clone())),
@@ -174,11 +174,11 @@ fn schedule_dispatch_after_work() {
 fn fast_track_scheduled_dispatch_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		System::set_block_number(1);
-		let ensure_root_call = Call::System(frame_system::Call::fill_block(Perbill::one()));
-		let call = Call::Authority(authority::Call::dispatch_as(
-			MockAsOriginId::Root,
-			Box::new(ensure_root_call),
-		));
+		let ensure_root_call = Call::System(frame_system::Call::fill_block { ratio: Perbill::one() });
+		let call = Call::Authority(authority::Call::dispatch_as {
+			as_origin: MockAsOriginId::Root,
+			call: Box::new(ensure_root_call),
+		});
 		run_to_block(1);
 		assert_ok!(Authority::schedule_dispatch(
 			Origin::root(),
@@ -251,11 +251,11 @@ fn fast_track_scheduled_dispatch_work() {
 fn delay_scheduled_dispatch_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		System::set_block_number(1);
-		let ensure_root_call = Call::System(frame_system::Call::fill_block(Perbill::one()));
-		let call = Call::Authority(authority::Call::dispatch_as(
-			MockAsOriginId::Root,
-			Box::new(ensure_root_call),
-		));
+		let ensure_root_call = Call::System(frame_system::Call::fill_block { ratio: Perbill::one() });
+		let call = Call::Authority(authority::Call::dispatch_as {
+			as_origin: MockAsOriginId::Root,
+			call: Box::new(ensure_root_call),
+		});
 		run_to_block(1);
 		assert_ok!(Authority::schedule_dispatch(
 			Origin::root(),
@@ -327,11 +327,11 @@ fn delay_scheduled_dispatch_work() {
 #[test]
 fn cancel_scheduled_dispatch_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let ensure_root_call = Call::System(frame_system::Call::fill_block(Perbill::one()));
-		let call = Call::Authority(authority::Call::dispatch_as(
-			MockAsOriginId::Root,
-			Box::new(ensure_root_call),
-		));
+		let ensure_root_call = Call::System(frame_system::Call::fill_block { ratio: Perbill::one() });
+		let call = Call::Authority(authority::Call::dispatch_as {
+			as_origin: MockAsOriginId::Root,
+			call: Box::new(ensure_root_call),
+		});
 		run_to_block(1);
 		assert_ok!(Authority::schedule_dispatch(
 			Origin::root(),
@@ -410,11 +410,11 @@ fn call_size_limit() {
 fn authorize_call_works() {
 	ExtBuilder::default().build().execute_with(|| {
 		run_to_block(1);
-		let ensure_root_call = Call::System(frame_system::Call::fill_block(Perbill::one()));
-		let call = Call::Authority(authority::Call::dispatch_as(
-			MockAsOriginId::Root,
-			Box::new(ensure_root_call),
-		));
+		let ensure_root_call = Call::System(frame_system::Call::fill_block { ratio: Perbill::one() });
+		let call = Call::Authority(authority::Call::dispatch_as {
+			as_origin: MockAsOriginId::Root,
+			call: Box::new(ensure_root_call),
+		});
 		let hash = <Runtime as frame_system::Config>::Hashing::hash_of(&call);
 
 		// works without account
@@ -437,11 +437,11 @@ fn authorize_call_works() {
 fn trigger_call_works() {
 	ExtBuilder::default().build().execute_with(|| {
 		run_to_block(1);
-		let ensure_root_call = Call::System(frame_system::Call::fill_block(Perbill::one()));
-		let call = Call::Authority(authority::Call::dispatch_as(
-			MockAsOriginId::Root,
-			Box::new(ensure_root_call),
-		));
+		let ensure_root_call = Call::System(frame_system::Call::fill_block { ratio: Perbill::one() });
+		let call = Call::Authority(authority::Call::dispatch_as {
+			as_origin: MockAsOriginId::Root,
+			call: Box::new(ensure_root_call),
+		});
 		let hash = <Runtime as frame_system::Config>::Hashing::hash_of(&call);
 
 		let call_weight_bound = call.get_dispatch_info().weight;
@@ -491,11 +491,11 @@ fn trigger_call_works() {
 fn remove_authorized_call_works() {
 	ExtBuilder::default().build().execute_with(|| {
 		run_to_block(1);
-		let ensure_root_call = Call::System(frame_system::Call::fill_block(Perbill::one()));
-		let call = Call::Authority(authority::Call::dispatch_as(
-			MockAsOriginId::Root,
-			Box::new(ensure_root_call),
-		));
+		let ensure_root_call = Call::System(frame_system::Call::fill_block { ratio: Perbill::one() });
+		let call = Call::Authority(authority::Call::dispatch_as {
+			as_origin: MockAsOriginId::Root,
+			call: Box::new(ensure_root_call),
+		});
 		let hash = <Runtime as frame_system::Config>::Hashing::hash_of(&call);
 
 		assert_noop!(
@@ -538,10 +538,13 @@ fn remove_authorized_call_works() {
 #[test]
 fn trigger_call_should_be_free_and_operational() {
 	ExtBuilder::default().build().execute_with(|| {
-		let call = Call::System(frame_system::Call::fill_block(Perbill::one()));
+		let call = Call::System(frame_system::Call::fill_block { ratio: Perbill::one() });
 		let hash = <Runtime as frame_system::Config>::Hashing::hash_of(&call);
 		let call_weight_bound = call.get_dispatch_info().weight;
-		let trigger_call = Call::Authority(authority::Call::trigger_call(hash, call_weight_bound));
+		let trigger_call = Call::Authority(authority::Call::trigger_call {
+			hash,
+			call_weight_bound,
+		});
 
 		assert_ok!(Authority::authorize_call(Origin::root(), Box::new(call), Some(1)));
 

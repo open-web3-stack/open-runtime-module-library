@@ -130,6 +130,7 @@ pub mod test_module {
 }
 
 use frame_support::sp_runtime::traits::IdentityLookup;
+use frame_support::traits::Everything;
 use sp_runtime::testing::{Header, H256};
 
 pub type BlockNumber = u64;
@@ -162,7 +163,7 @@ impl frame_system::Config for Runtime {
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type DbWeight = ();
-	type BaseCallFilter = ();
+	type BaseCallFilter = Everything;
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
 	type OnSetCode = ();

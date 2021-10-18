@@ -13,7 +13,7 @@ use frame_support::dispatch::{DispatchError, DispatchResult};
 use sp_runtime::traits::{CheckedConversion, Convert};
 use sp_std::{convert::TryFrom, marker::PhantomData, prelude::*};
 
-use xcm::v0::{MultiAsset, MultiLocation};
+use xcm::latest::prelude::*;
 use xcm_executor::traits::{FilterAssetLocation, MatchesFungible};
 
 use orml_traits::location::Reserve;
@@ -33,8 +33,8 @@ where
 	Amount: TryFrom<u128>,
 {
 	fn matches_fungible(a: &MultiAsset) -> Option<Amount> {
-		if let MultiAsset::ConcreteFungible { id, amount } = a {
-			if CurrencyIdConvert::convert(id.clone()).is_some() {
+		if let (Fungible(ref amount), Concrete(ref location)) = (&a.fun, &a.id) {
+			if CurrencyIdConvert::convert(location.clone()).is_some() {
 				return CheckedConversion::checked_from(*amount);
 			}
 		}

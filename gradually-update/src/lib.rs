@@ -30,6 +30,7 @@ use frame_support::{
 	BoundedVec,
 };
 use frame_system::pallet_prelude::*;
+use scale_info::TypeInfo;
 use sp_runtime::{traits::SaturatedConversion, DispatchResult, RuntimeDebug};
 use sp_std::convert::TryInto;
 
@@ -40,7 +41,7 @@ mod tests;
 /// Gradually update a value stored at `key` to `target_value`,
 /// change `per_block` * `T::UpdateFrequency` per `T::UpdateFrequency`
 /// blocks.
-#[derive(Encode, Decode, Clone, Eq, PartialEq, MaxEncodedLen, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, Eq, PartialEq, MaxEncodedLen, RuntimeDebug, TypeInfo)]
 pub struct GraduallyUpdate<Key, Value> {
 	pub key: Key,
 	pub target_value: Value,

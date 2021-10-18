@@ -8,7 +8,7 @@ use sp_std::{
 	result,
 };
 
-use xcm::v0::{Error as XcmError, MultiAsset, MultiLocation, Result};
+use xcm::latest::{Error as XcmError, MultiAsset, MultiLocation, Result};
 use xcm_executor::{
 	traits::{Convert as MoreConvert, MatchesFungible, TransactAsset},
 	Assets,
