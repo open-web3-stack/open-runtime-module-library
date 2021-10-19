@@ -9,11 +9,19 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 
-use frame_support::dispatch::{DispatchError, DispatchResult};
+use frame_support::{dispatch::{DispatchError, DispatchResult}, traits::Get};
 use sp_runtime::traits::{CheckedConversion, Convert};
-use sp_std::{convert::TryFrom, marker::PhantomData, prelude::*};
+use sp_std::{collections::btree_map::BTreeMap, convert::TryFrom, marker::PhantomData, prelude::*};
 
-use xcm::latest::prelude::*;
+use xcm::{
+	IntoVersion,
+	latest::{
+		prelude::*,
+	},
+	VersionedXcm,
+	Version as XcmVersion,
+	WrapVersion,
+};
 use xcm_executor::traits::{FilterAssetLocation, MatchesFungible};
 
 use orml_traits::location::Reserve;
@@ -73,5 +81,21 @@ impl UnknownAsset for () {
 	}
 	fn withdraw(_asset: &MultiAsset, _from: &MultiLocation) -> DispatchResult {
 		Err(DispatchError::Other(NO_UNKNOWN_ASSET_IMPL))
+	}
+}
+
+pub struct VersionWrapper<T>(PhantomData<T>);
+impl<T: Get<BTreeMap<MultiLocation, XcmVersion>>> WrapVersion for VersionWrapper<T> {
+	fn wrap_version<Call>(
+		dest: &MultiLocation,
+		xcm: impl Into<VersionedXcm<Call>>,
+	) -> Result<VersionedXcm<Call>, ()> {
+		log::error!(target: "Got dest to send xcm", "dest: {:?}", dest);
+		T::get().get(dest)
+			.ok_or(())
+			.and_then(|&v| {
+				log::error!(target: "Safe xcm version is", "dest: {:?}, version: {:?}", dest, v);
+				xcm.into().into_version(v.min(XCM_VERSION))
+			})
 	}
 }

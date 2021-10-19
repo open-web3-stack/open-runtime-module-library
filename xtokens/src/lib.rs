@@ -225,6 +225,10 @@ pub mod module {
 			}
 
 			let (transfer_kind, dest, reserve, recipient) = Self::transfer_kind(&asset, &dest)?;
+			log::error!(
+				target: "=======> xtoken", "dest: {:?}, reserve: {:?}, recipient: {:?}",
+				dest.clone(), reserve.clone(), recipient.clone());
+
 			let mut msg = match transfer_kind {
 				SelfReserveAsset => {
 					Self::transfer_self_reserve_asset(asset.clone(), dest.clone(), recipient, dest_weight)?
@@ -237,9 +241,14 @@ pub mod module {
 
 			let origin_location = T::AccountIdToMultiLocation::convert(who.clone());
 			let weight = T::Weigher::weight(&mut msg).map_err(|()| Error::<T>::UnweighableMessage)?;
+			log::error!(target: "=======> xtoken", "Ready to execute xcm message {:?}", msg.clone());
+
 			T::XcmExecutor::execute_xcm_in_credit(origin_location, msg, weight, weight)
 				.ensure_complete()
-				.map_err(|_| Error::<T>::XcmExecutionFailed)?;
+				.map_err(|err| {
+					log::error!(target: "=======> xtoken", "xcm execute failed {:?}", err);
+					Error::<T>::XcmExecutionFailed
+				})?;
 
 			if deposit_event {
 				Self::deposit_event(Event::<T>::TransferredMultiAsset(who, asset, dest));
