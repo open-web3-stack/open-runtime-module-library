@@ -53,7 +53,7 @@ type CurrencyId = u32;
 type Balance = u64;
 
 parameter_types! {
-	pub const ExistentialDeposit: u64 = 1;
+	pub const ExistentialDeposit: u64 = 2;
 }
 
 impl pallet_balances::Config for Runtime {
