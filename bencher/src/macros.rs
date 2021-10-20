@@ -70,21 +70,17 @@ macro_rules! benches {
             fn run_benches() -> $crate::sp_std::vec::Vec<$crate::BenchResult> {
                 let mut bencher = $crate::Bencher::default();
                 $(
-                    bencher.reset();
-                    if bencher.name.len() == 0 {
-                        // use method name as default bench name
-                        bencher.name(stringify!($method));
-                    }
-                    let mut result = $crate::BenchResult {
-                        method: bencher.name.clone(),
-                        ..Default::default()
-                    };
-                    bencher.results.push(result);
+                    let name = stringify!($method);
+
+                    bencher.current = $crate::BenchResult::with_name(name);
+
                     for _ in 0..1_000 {
                         $method(&mut bencher);
                     }
 
-                    bencher.print_warnings();
+                    bencher.print_warnings(name);
+
+                    bencher.results.push(bencher.current);
                 )+
                 bencher.results
             }

@@ -10,33 +10,29 @@ pub struct BenchResult {
 	pub keys: Vec<u8>,
 }
 
+impl BenchResult {
+	pub fn with_name(name: &str) -> Self {
+		Self {
+			method: name.as_bytes().to_vec(),
+			..Default::default()
+		}
+	}
+}
+
 #[derive(Default)]
 pub struct Bencher {
-	pub name: Vec<u8>,
+	pub current: BenchResult,
 	pub results: Vec<BenchResult>,
 }
 
 #[inline]
 fn black_box<T>(dummy: T) -> T {
-	unsafe {
-		let ret = sp_std::ptr::read_volatile(&dummy);
-		sp_std::mem::forget(dummy);
-		ret
-	}
+	let ret = unsafe { sp_std::ptr::read_volatile(&dummy) };
+	sp_std::mem::forget(dummy);
+	ret
 }
 
 impl Bencher {
-	/// Reset name and blocks
-	pub fn reset(&mut self) {
-		self.name = Vec::new();
-	}
-
-	/// Set bench name
-	pub fn name(&mut self, name: &str) -> &mut Self {
-		self.name = name.as_bytes().to_vec();
-		self
-	}
-
 	#[cfg(feature = "std")]
 	pub fn bench<T, F>(&mut self, mut inner: F) -> T
 	where
@@ -54,24 +50,24 @@ impl Bencher {
 		frame_benchmarking::benchmarking::reset_read_write_count();
 		crate::bench::reset_redundant();
 
-		let mut result = self.results.pop().unwrap();
 		crate::bench::instant();
 		let ret = black_box(inner());
 		let elapsed = crate::bench::elapsed().saturating_sub(crate::bench::redundant_time());
-		result.elapses.push(elapsed);
+		self.current.elapses.push(elapsed);
 
 		frame_benchmarking::benchmarking::commit_db();
 		let (reads, _, written, _) = frame_benchmarking::benchmarking::read_write_count();
 
-		result.reads = reads;
-		result.writes = written;
+		self.current.reads = reads;
+		self.current.writes = written;
+
 		// changed keys
-		result.keys = crate::bench::read_written_keys();
-		self.results.push(result);
+		self.current.keys = crate::bench::read_written_keys();
+
 		ret
 	}
 
-	pub fn print_warnings(&self) {
-		crate::bench::print_warnings(self.name.clone().encode());
+	pub fn print_warnings(&self, name: &str) {
+		crate::bench::print_warnings(name.encode());
 	}
 }
