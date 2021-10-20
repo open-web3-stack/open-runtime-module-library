@@ -241,9 +241,7 @@ pub mod module {
 
 			T::XcmExecutor::execute_xcm_in_credit(origin_location, msg, weight, weight)
 				.ensure_complete()
-				.map_err(|err| {
-					Error::<T>::XcmExecutionFailed
-				})?;
+				.map_err(|err| Error::<T>::XcmExecutionFailed)?;
 
 			if deposit_event {
 				Self::deposit_event(Event::<T>::TransferredMultiAsset(who, asset, dest));
