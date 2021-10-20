@@ -27,39 +27,35 @@
 ///
 /// Define benches
 ///
-/// Create a file `src/benches.rs`:
-/// ```.ignore
+/// Create a file `src/benches.rs`
+/// ```ignore
 /// #!#[cfg(feature = "bench")]
 ///
 /// use orml_bencher::{Bencher, benches};
 /// use crate::mock::*;
 ///
 /// fn foo(b: &mut Bencher) {
-///     b.prepare(|| {
-///         // optional. prepare block, runs before bench
-///     })
-///     .bench(|| {
-///         // foo must have macro `[orml_weight_meter::weight(..)]`
-///         YourModule::foo();
-///     })
-///     .verify(|| {
-///         // optional. verify block, runs before bench
+///     // Run any before code here
+///     let ret = b.bench(|| {
+///         // foo must have macro `[orml_weight_meter::weight(..)]` to measure correct redundant info
+///         YourModule::foo()
 ///     });
+///     // Run any after code here
 /// }
 ///
 /// fn bar(b: &mut Bencher) {
 ///     // optional. method name is used by default i.e: `bar`
 ///     b.name("bench_name")
 ///     .bench(|| {
-///         // bar must have macro `[orml_weight_meter::weight(..)]`
+///         // bar must have macro `[orml_weight_meter::weight(..)]` to measure correct redundant info
 ///         YourModule::bar();
 ///     });
 /// }
 ///
 /// benches!(foo, bar); // Tests are generated automatically
 /// ```
-/// Update `src/lib.rs`:
-/// ```.ignore
+/// Update `src/lib.rs`
+/// ```ignore
 /// #[cfg(any(feature = "bench", test))]
 /// pub mod mock; /* mock runtime needs to be compiled into wasm */
 /// pub mod benches;
@@ -75,12 +71,20 @@ macro_rules! benches {
                 let mut bencher = $crate::Bencher::default();
                 $(
                     bencher.reset();
-                    $method(&mut bencher);
                     if bencher.name.len() == 0 {
                         // use method name as default bench name
                         bencher.name(stringify!($method));
                     }
-                    bencher.run();
+                    let mut result = $crate::BenchResult {
+                        method: bencher.name.clone(),
+                        ..Default::default()
+                    };
+                    bencher.results.push(result);
+                    for _ in 0..1_000 {
+                        $method(&mut bencher);
+                    }
+
+                    bencher.print_warnings();
                 )+
                 bencher.results
             }
@@ -106,7 +110,6 @@ macro_rules! benches {
                         $crate::sp_io::TestExternalities::new_empty().execute_with(|| {
                             let mut bencher = $crate::Bencher::default();
                             super::$method(&mut bencher);
-                            bencher.run();
                         });
                     }
                 }

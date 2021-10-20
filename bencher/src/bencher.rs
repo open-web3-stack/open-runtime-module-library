@@ -1,5 +1,5 @@
 use codec::{Decode, Encode};
-use sp_std::prelude::{Box, Vec};
+use sp_std::prelude::Vec;
 
 #[derive(Encode, Decode, Default, Clone, PartialEq, Debug)]
 pub struct BenchResult {
@@ -10,23 +10,17 @@ pub struct BenchResult {
 	pub keys: Vec<u8>,
 }
 
+#[derive(Default)]
 pub struct Bencher {
 	pub name: Vec<u8>,
 	pub results: Vec<BenchResult>,
-	pub prepare: Box<dyn Fn()>,
-	pub bench: Box<dyn Fn()>,
-	pub verify: Box<dyn Fn()>,
 }
 
-impl Default for Bencher {
-	fn default() -> Self {
-		Bencher {
-			name: Vec::new(),
-			results: Vec::new(),
-			prepare: Box::new(|| {}),
-			bench: Box::new(|| {}),
-			verify: Box::new(|| {}),
-		}
+pub fn black_box<T>(dummy: T) -> T {
+	unsafe {
+		let ret = sp_std::ptr::read_volatile(&dummy);
+		sp_std::mem::forget(dummy);
+		ret
 	}
 }
 
@@ -34,9 +28,6 @@ impl Bencher {
 	/// Reset name and blocks
 	pub fn reset(&mut self) {
 		self.name = Vec::new();
-		self.prepare = Box::new(|| {});
-		self.bench = Box::new(|| {});
-		self.verify = Box::new(|| {});
 	}
 
 	/// Set bench name
@@ -45,70 +36,29 @@ impl Bencher {
 		self
 	}
 
-	/// Set prepare block
-	pub fn prepare(&mut self, prepare: impl Fn() + 'static) -> &mut Self {
-		self.prepare = Box::new(prepare);
-		self
-	}
-
-	/// Set verify block
-	pub fn verify(&mut self, verify: impl Fn() + 'static) -> &mut Self {
-		self.verify = Box::new(verify);
-		self
-	}
-
-	/// Set bench block
-	pub fn bench(&mut self, bench: impl Fn() + 'static) -> &mut Self {
-		self.bench = Box::new(bench);
-		self
-	}
-
-	/// Run benchmark for tests
 	#[cfg(feature = "std")]
-	pub fn run(&mut self) {
-		// Execute prepare block
-		(self.prepare)();
-		// Execute bench block
-		(self.bench)();
-		// Execute verify block
-		(self.verify)();
+	pub fn bench<T, F>(&mut self, mut inner: F) -> T
+	where
+		F: FnMut() -> T,
+	{
+		black_box(inner())
 	}
 
-	/// Run benchmark
 	#[cfg(not(feature = "std"))]
-	pub fn run(&mut self) {
-		assert!(self.name.len() > 0, "bench name not defined");
-		// Warm up the DB
+	pub fn bench<T, F>(&mut self, mut inner: F) -> T
+	where
+		F: FnMut() -> T,
+	{
 		frame_benchmarking::benchmarking::commit_db();
-		frame_benchmarking::benchmarking::wipe_db();
-		// Warm up
-		(self.prepare)();
-		(self.bench)();
+		frame_benchmarking::benchmarking::reset_read_write_count();
+		crate::bench::reset_redundant();
 
-		let mut result = BenchResult {
-			method: self.name.clone(),
-			..Default::default()
-		};
+		let mut result = self.results.pop().unwrap();
+		crate::bench::instant();
+		let ret = black_box(inner());
+		let elapsed = crate::bench::elapsed().saturating_sub(crate::bench::redundant_time());
+		result.elapses.push(elapsed);
 
-		for _ in 0..50 {
-			// Reset the DB
-			frame_benchmarking::benchmarking::wipe_db();
-
-			// Execute prepare block
-			(self.prepare)();
-
-			frame_benchmarking::benchmarking::commit_db();
-			frame_benchmarking::benchmarking::reset_read_write_count();
-			crate::bench::reset_redundant();
-
-			crate::bench::instant();
-			// Execute bench block
-			(self.bench)();
-			let elapsed = crate::bench::elapsed().saturating_sub(crate::bench::redundant_time());
-			assert!(elapsed > 0);
-			result.elapses.push(elapsed);
-		}
-		// used for comparison
 		frame_benchmarking::benchmarking::commit_db();
 		let (reads, _, written, _) = frame_benchmarking::benchmarking::read_write_count();
 
@@ -117,19 +67,10 @@ impl Bencher {
 		// changed keys
 		result.keys = crate::bench::read_written_keys();
 		self.results.push(result);
+		ret
+	}
 
-		crate::bench::print_warnings(self.name.encode());
-
-		// Verify
-		{
-			// Reset the DB
-			frame_benchmarking::benchmarking::wipe_db();
-			// Execute prepare block
-			(self.prepare)();
-			// Execute bench block
-			(self.bench)();
-			// Execute verify block
-			(self.verify)();
-		}
+	pub fn print_warnings(&self) {
+		crate::bench::print_warnings(self.name.clone().encode());
 	}
 }
