@@ -90,11 +90,9 @@ impl<T: Get<BTreeMap<MultiLocation, XcmVersion>>> WrapVersion for VersionWrapper
 		dest: &MultiLocation,
 		xcm: impl Into<VersionedXcm<Call>>,
 	) -> Result<VersionedXcm<Call>, ()> {
-		log::error!(target: "Got dest to send xcm", "dest: {:?}", dest);
 		T::get().get(dest)
 			.ok_or(())
 			.and_then(|&v| {
-				log::error!(target: "Safe xcm version is", "dest: {:?}, version: {:?}", dest, v);
 				xcm.into().into_version(v.min(XCM_VERSION))
 			})
 	}
