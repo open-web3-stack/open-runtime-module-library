@@ -16,7 +16,8 @@ pub struct Bencher {
 	pub results: Vec<BenchResult>,
 }
 
-pub fn black_box<T>(dummy: T) -> T {
+#[inline]
+fn black_box<T>(dummy: T) -> T {
 	unsafe {
 		let ret = sp_std::ptr::read_volatile(&dummy);
 		sp_std::mem::forget(dummy);
