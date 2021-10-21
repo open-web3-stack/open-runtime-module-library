@@ -258,7 +258,7 @@ pub mod module {
 				WithdrawAsset(asset.clone().into()),
 				DepositReserveAsset {
 					assets: All.into(),
-					max_assets: u32::max_value(),
+					max_assets: 1,
 					dest: dest.clone(),
 					xcm: Xcm(vec![
 						Self::buy_execution(asset, &dest, dest_weight)?,
@@ -316,7 +316,7 @@ pub mod module {
 						Self::buy_execution(half(&asset), &reserve, dest_weight)?,
 						DepositReserveAsset {
 							assets: All.into(),
-							max_assets: u32::max_value(),
+							max_assets: 1,
 							dest: reanchored_dest,
 							xcm: Xcm(vec![
 								Self::buy_execution(half(&asset), &dest, dest_weight)?,
@@ -331,7 +331,7 @@ pub mod module {
 		fn deposit_asset(recipient: MultiLocation) -> Instruction<()> {
 			DepositAsset {
 				assets: All.into(),
-				max_assets: u32::max_value(),
+				max_assets: 1,
 				beneficiary: recipient,
 			}
 		}
@@ -397,7 +397,7 @@ pub mod module {
 						WithdrawAsset(MultiAssets::from(asset.clone())),
 						DepositReserveAsset {
 							assets: All.into(),
-							max_assets: u32::max_value(),
+							max_assets: 1,
 							dest,
 							xcm: Xcm(vec![]),
 						},
