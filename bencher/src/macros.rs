@@ -75,6 +75,7 @@ macro_rules! benches {
                     bencher.current = $crate::BenchResult::with_name(name);
 
                     for _ in 0..1_000 {
+                        bencher.prepare();
                         $method(&mut bencher);
                     }
 

@@ -33,6 +33,11 @@ fn black_box<T>(dummy: T) -> T {
 }
 
 impl Bencher {
+	pub fn prepare(&self) {
+		frame_benchmarking::benchmarking::commit_db();
+		frame_benchmarking::benchmarking::wipe_db();
+	}
+
 	#[cfg(feature = "std")]
 	pub fn bench<T, F>(&mut self, mut inner: F) -> T
 	where
