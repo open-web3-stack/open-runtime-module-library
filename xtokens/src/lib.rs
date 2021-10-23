@@ -30,8 +30,8 @@ use sp_runtime::{
 };
 use sp_std::{convert::TryInto, prelude::*, result::Result};
 
-use xcm::latest::prelude::*;
 use xcm::prelude::*;
+use xcm::v2::prelude::*;
 use xcm_executor::traits::{InvertLocation, WeightBounds};
 
 pub use module::*;

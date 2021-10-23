@@ -56,13 +56,16 @@ fn send_relay_chain_asset_to_relay_chain() {
 			Some(ALICE).into(),
 			CurrencyId::R,
 			500,
-			Box::new(MultiLocation::new(
-				1,
-				X1(Junction::AccountId32 {
-					network: NetworkId::Any,
-					id: BOB.into(),
-				})
-			)),
+			Box::new(
+				MultiLocation::new(
+					1,
+					X1(Junction::AccountId32 {
+						network: NetworkId::Any,
+						id: BOB.into(),
+					})
+				)
+				.into()
+			),
 			40,
 		));
 		assert_eq!(ParaTokens::free_balance(CurrencyId::R, &ALICE), 500);
@@ -118,16 +121,19 @@ fn send_relay_chain_asset_to_sibling() {
 			Some(ALICE).into(),
 			CurrencyId::R,
 			500,
-			Box::new(MultiLocation::new(
-				1,
-				X2(
-					Parachain(2),
-					Junction::AccountId32 {
-						network: NetworkId::Any,
-						id: BOB.into(),
-					}
+			Box::new(
+				MultiLocation::new(
+					1,
+					X2(
+						Parachain(2),
+						Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: BOB.into(),
+						}
+					)
 				)
-			)),
+				.into()
+			),
 			40,
 		));
 		assert_eq!(ParaTokens::free_balance(CurrencyId::R, &ALICE), 500);
@@ -200,16 +206,19 @@ fn send_sibling_asset_to_non_reserve_sibling() {
 			Some(ALICE).into(),
 			CurrencyId::B,
 			500,
-			Box::new(MultiLocation::new(
-				1,
-				X2(
-					Parachain(3),
-					Junction::AccountId32 {
-						network: NetworkId::Any,
-						id: BOB.into(),
-					}
+			Box::new(
+				MultiLocation::new(
+					1,
+					X2(
+						Parachain(3),
+						Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: BOB.into(),
+						}
+					)
 				)
-			),),
+				.into()
+			),
 			40
 		));
 		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &ALICE), 500);
@@ -237,16 +246,19 @@ fn send_self_parachain_asset_to_sibling() {
 			Some(ALICE).into(),
 			CurrencyId::A,
 			500,
-			Box::new(MultiLocation::new(
-				1,
-				X2(
-					Parachain(2),
-					Junction::AccountId32 {
-						network: NetworkId::Any,
-						id: BOB.into(),
-					}
+			Box::new(
+				MultiLocation::new(
+					1,
+					X2(
+						Parachain(2),
+						Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: BOB.into(),
+						}
+					)
 				)
-			)),
+				.into()
+			),
 			40,
 		));
 
@@ -294,17 +306,20 @@ fn transfer_to_self_chain_fails() {
 		assert_noop!(
 			ParaXTokens::transfer_multiasset(
 				Some(ALICE).into(),
-				Box::new(MultiAsset::sibling_parachain_asset(1, "A".into(), 100)),
-				Box::new(MultiLocation::new(
-					1,
-					X2(
-						Parachain(1),
-						Junction::AccountId32 {
-							network: NetworkId::Any,
-							id: BOB.into()
-						}
+				Box::new(MultiAsset::sibling_parachain_asset(1, "A".into(), 100).into()),
+				Box::new(
+					MultiLocation::new(
+						1,
+						X2(
+							Parachain(1),
+							Junction::AccountId32 {
+								network: NetworkId::Any,
+								id: BOB.into()
+							}
+						)
 					)
-				)),
+					.into()
+				),
 				50,
 			),
 			Error::<para::Runtime>::NotCrossChainTransfer
@@ -320,14 +335,17 @@ fn transfer_to_invalid_dest_fails() {
 		assert_noop!(
 			ParaXTokens::transfer_multiasset(
 				Some(ALICE).into(),
-				Box::new(MultiAsset::sibling_parachain_asset(1, "A".into(), 100)),
-				Box::new(MultiLocation::new(
-					0,
-					X1(Junction::AccountId32 {
-						network: NetworkId::Any,
-						id: BOB.into()
-					})
-				)),
+				Box::new(MultiAsset::sibling_parachain_asset(1, "A".into(), 100).into()),
+				Box::new(
+					MultiLocation::new(
+						0,
+						X1(Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: BOB.into()
+						})
+					)
+					.into()
+				),
 				50,
 			),
 			Error::<para::Runtime>::InvalidDest
