@@ -356,7 +356,7 @@ fn send_as_sovereign() {
 				WithdrawAsset(assets.clone().into()),
 				BuyExecution {
 					fees: assets,
-					weight_limit: Limited(10_000_000)
+					weight_limit: Limited(2_000_000_000)
 				},
 				Instruction::Transact {
 					origin_type: SovereignAccount,
@@ -368,12 +368,12 @@ fn send_as_sovereign() {
 	});
 
 	Relay::execute_with(|| {
-		relay::System::events().iter().any(|r| {
+		assert!(relay::System::events().iter().any(|r| {
 			matches!(
 				r.event,
 				relay::Event::System(frame_system::Event::<relay::Runtime>::Remarked(_, _))
 			)
-		});
+		}));
 	})
 }
 
