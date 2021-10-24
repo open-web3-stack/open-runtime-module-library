@@ -28,9 +28,9 @@ use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, Convert, MaybeSerializeDeserialize, Member, Zero},
 	DispatchError,
 };
-use sp_std::{prelude::*, result::Result};
+use sp_std::{convert::TryInto, prelude::*, result::Result};
 
-use xcm::latest::prelude::*;
+use xcm::prelude::*;
 use xcm_executor::traits::{InvertLocation, WeightBounds};
 
 pub use module::*;
@@ -131,6 +131,9 @@ pub mod module {
 		NotFungible,
 		/// The destination `MultiLocation` provided cannot be inverted.
 		DestinationNotInvertible,
+		/// The version of the `Versioned` value used is not able to be
+		/// interpreted.
+		BadVersion,
 	}
 
 	#[pallet::hooks]
@@ -159,11 +162,12 @@ pub mod module {
 			origin: OriginFor<T>,
 			currency_id: T::CurrencyId,
 			amount: T::Balance,
-			dest: Box<MultiLocation>,
+			dest: Box<VersionedMultiLocation>,
 			dest_weight: Weight,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			Self::do_transfer(who, currency_id, amount, *dest, dest_weight)
+			let dest: MultiLocation = (*dest).try_into().map_err(|()| Error::<T>::BadVersion)?;
+			Self::do_transfer(who, currency_id, amount, dest, dest_weight)
 		}
 
 		/// Transfer `MultiAsset`.
@@ -182,12 +186,14 @@ pub mod module {
 		#[transactional]
 		pub fn transfer_multiasset(
 			origin: OriginFor<T>,
-			asset: Box<MultiAsset>,
-			dest: Box<MultiLocation>,
+			asset: Box<VersionedMultiAsset>,
+			dest: Box<VersionedMultiLocation>,
 			dest_weight: Weight,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			Self::do_transfer_multiasset(who, *asset, *dest, dest_weight, true)
+			let asset: MultiAsset = (*asset).try_into().map_err(|()| Error::<T>::BadVersion)?;
+			let dest: MultiLocation = (*dest).try_into().map_err(|()| Error::<T>::BadVersion)?;
+			Self::do_transfer_multiasset(who, asset, dest, dest_weight, true)
 		}
 	}
 
@@ -390,36 +396,40 @@ pub mod module {
 	// weights
 	impl<T: Config> Pallet<T> {
 		/// Returns weight of `transfer_multiasset` call.
-		fn weight_of_transfer_multiasset(asset: &MultiAsset, dest: &MultiLocation) -> Weight {
-			if let Ok((transfer_kind, dest, _, reserve)) = Self::transfer_kind(asset, dest) {
-				let mut msg = match transfer_kind {
-					SelfReserveAsset => Xcm(vec![
-						WithdrawAsset(MultiAssets::from(asset.clone())),
-						DepositReserveAsset {
-							assets: All.into(),
-							max_assets: 1,
-							dest,
-							xcm: Xcm(vec![]),
-						},
-					]),
-					ToReserve | ToNonReserve => Xcm(vec![
-						WithdrawAsset(MultiAssets::from(asset.clone())),
-						InitiateReserveWithdraw {
-							assets: All.into(),
-							// `dest` is always (equal to) `reserve` in both cases
-							reserve,
-							xcm: Xcm(vec![]),
-						},
-					]),
-				};
-				T::Weigher::weight(&mut msg).map_or(Weight::max_value(), |w| T::BaseXcmWeight::get().saturating_add(w))
-			} else {
-				0
+		fn weight_of_transfer_multiasset(asset: &VersionedMultiAsset, dest: &VersionedMultiLocation) -> Weight {
+			let asset = asset.clone().try_into();
+			let dest = dest.clone().try_into();
+			if let (Ok(asset), Ok(dest)) = (asset, dest) {
+				if let Ok((transfer_kind, dest, _, reserve)) = Self::transfer_kind(&asset, &dest) {
+					let mut msg = match transfer_kind {
+						SelfReserveAsset => Xcm(vec![
+							WithdrawAsset(MultiAssets::from(asset.clone())),
+							DepositReserveAsset {
+								assets: All.into(),
+								max_assets: 1,
+								dest,
+								xcm: Xcm(vec![]),
+							},
+						]),
+						ToReserve | ToNonReserve => Xcm(vec![
+							WithdrawAsset(MultiAssets::from(asset.clone())),
+							InitiateReserveWithdraw {
+								assets: All.into(),
+								// `dest` is always (equal to) `reserve` in both cases
+								reserve,
+								xcm: Xcm(vec![]),
+							},
+						]),
+					};
+					return T::Weigher::weight(&mut msg)
+						.map_or(Weight::max_value(), |w| T::BaseXcmWeight::get().saturating_add(w));
+				}
 			}
+			0
 		}
 
 		/// Returns weight of `transfer` call.
-		fn weight_of_transfer(currency_id: T::CurrencyId, amount: T::Balance, dest: &MultiLocation) -> Weight {
+		fn weight_of_transfer(currency_id: T::CurrencyId, amount: T::Balance, dest: &VersionedMultiLocation) -> Weight {
 			if let Some(location) = T::CurrencyIdConvert::convert(currency_id) {
 				let asset = (location, amount.into()).into();
 				Self::weight_of_transfer_multiasset(&asset, dest)
