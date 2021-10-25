@@ -38,7 +38,6 @@ pallet-authority-discovery = { git = "https://github.com/paritytech//substrate",
 pallet-authorship = { git = "https://github.com/paritytech//substrate", rev = "d76f39995315ec36980908e4b99709bd14927044" }
 pallet-balances = { git = "https://github.com/paritytech//substrate", rev = "d76f39995315ec36980908e4b99709bd14927044" }
 pallet-elections-phragmen = { git = "https://github.com/paritytech//substrate", rev = "d76f39995315ec36980908e4b99709bd14927044" }
-pallet-offences = { git = "https://github.com/paritytech//substrate", rev = "d76f39995315ec36980908e4b99709bd14927044" }
 pallet-scheduler = { git = "https://github.com/paritytech//substrate", rev = "d76f39995315ec36980908e4b99709bd14927044" }
 pallet-session = { git = "https://github.com/paritytech//substrate", rev = "d76f39995315ec36980908e4b99709bd14927044" }
 pallet-staking = { git = "https://github.com/paritytech//substrate", rev = "d76f39995315ec36980908e4b99709bd14927044" }
