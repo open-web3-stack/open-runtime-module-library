@@ -58,15 +58,19 @@ pub fn handle(output: Vec<u8>, storage_infos: Vec<StorageInfo>) {
 			});
 
 			println!(
-				"{} {:<40} {:>20}  {:<20}  {:<20}",
+				"{} {:<40} {:>20} {:<20} {:<20}",
 				green_bold("Bench"),
 				cyan(&name),
 				green_bold(&format!(
 					"{:?}",
 					Duration::from_nanos(model.parameters.intercept_value as u64)
 				)),
-				format!("reads: {} {}", green_bold(&total_reads.to_string()), result.reads),
-				format!("writes: {} {}", green_bold(&total_writes.to_string()), result.writes)
+				format!(
+					"tracked: [r: {}, w: {}]",
+					green_bold(&total_reads.to_string()),
+					green_bold(&total_writes.to_string())
+				),
+				format!("total: [r: {}, w: {}]", result.reads, result.writes)
 			);
 
 			BenchData {

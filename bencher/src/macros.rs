@@ -68,10 +68,12 @@ macro_rules! benches {
         #[cfg(feature = "bench")]
         $crate::sp_core::wasm_export_functions! {
             fn run_benches() -> $crate::sp_std::vec::Vec<$crate::BenchResult> {
+                $crate::bench::print_info("\nRunning benches ...\n".as_bytes().to_vec());
                 let mut bencher = $crate::Bencher::default();
                 $(
-                    let name = stringify!($method);
+                    $crate::bench::reset();
 
+                    let name = stringify!($method);
                     bencher.current = $crate::BenchResult::with_name(name);
 
                     for _ in 0..1_000 {

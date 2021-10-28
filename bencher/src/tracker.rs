@@ -9,6 +9,7 @@ enum AccessType {
 	None,
 	Redundant,
 	Important,
+	Whitelisted,
 }
 
 impl Default for AccessType {
@@ -22,7 +23,9 @@ impl AccessType {
 		*self == AccessType::Important
 	}
 	fn mark_important(&mut self) {
-		*self = AccessType::Important;
+		if *self != AccessType::Whitelisted {
+			*self = AccessType::Important;
+		}
 	}
 }
 
@@ -56,6 +59,21 @@ impl AccessInfo {
 			written,
 		}
 	}
+
+	fn whitelisted(read: bool, write: bool) -> Self {
+		Self {
+			read: if read {
+				AccessType::Whitelisted
+			} else {
+				AccessType::None
+			},
+			written: if write {
+				AccessType::Whitelisted
+			} else {
+				AccessType::None
+			},
+		}
+	}
 }
 
 #[derive(Default, Debug)]
@@ -72,6 +90,7 @@ pub struct BenchTracker {
 	main_keys: RwLock<HashMap<StorageKey, AccessInfo>>,
 	child_keys: RwLock<HashMap<StorageKey, HashMap<StorageKey, AccessInfo>>>,
 	warn_child_prefix_remove: RwLock<bool>,
+	whitelisted_keys: RwLock<HashMap<StorageKey, (bool, bool)>>,
 }
 
 impl BenchTracker {
@@ -84,6 +103,7 @@ impl BenchTracker {
 			main_keys: RwLock::new(HashMap::new()),
 			child_keys: RwLock::new(HashMap::new()),
 			warn_child_prefix_remove: RwLock::new(false),
+			whitelisted_keys: RwLock::new(HashMap::new()),
 		}
 	}
 
@@ -294,14 +314,35 @@ impl BenchTracker {
 		elapsed
 	}
 
-	pub fn reset_storage_tracker(&self) {
-		self.main_keys.write().clear();
-		self.child_keys.write().clear();
-	}
-
-	pub fn reset_redundant(&self) {
+	pub fn prepare(&self) {
 		*self.depth.write() = 0;
 		self.results.write().clear();
+
+		self.child_keys.write().clear();
+		*self.warn_child_prefix_remove.write() = false;
+
+		let main_keys = &mut self.main_keys.write();
+		main_keys.clear();
+
+		let keys = self.whitelisted_keys.read();
+		for (key, (read, write)) in keys.iter() {
+			main_keys.insert(key.clone(), AccessInfo::whitelisted(*read, *write));
+		}
+	}
+
+	pub fn whitelist(&self, key: Vec<u8>, read: bool, write: bool) {
+		let whitelisted = &mut self.whitelisted_keys.write();
+		whitelisted.insert(key, (read, write));
+	}
+
+	pub fn reset(&self) {
+		*self.depth.write() = 0;
+		*self.redundant.write() = Instant::now();
+		self.results.write().clear();
+		self.main_keys.write().clear();
+		self.child_keys.write().clear();
+		*self.warn_child_prefix_remove.write() = false;
+		self.whitelisted_keys.write().clear();
 	}
 }
 

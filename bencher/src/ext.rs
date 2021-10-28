@@ -144,8 +144,7 @@ where
 	}
 
 	fn reset_read_write_count(&mut self) {
-		self.tracker.reset_storage_tracker();
-		self.ext.reset_read_write_count()
+		self.ext.reset_read_write_count();
 	}
 
 	fn get_whitelist(&self) -> Vec<TrackedStorageKey> {

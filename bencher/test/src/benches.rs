@@ -24,4 +24,14 @@ fn remove_all_bar(b: &mut Bencher) {
 	});
 }
 
-benches!(set_value, set_foo, remove_all_bar);
+fn whitelist(b: &mut Bencher) {
+	b.whitelist(Bar::<Runtime>::hashed_key_for(1), true, true);
+	b.whitelist(Bar::<Runtime>::hashed_key_for(2), true, false);
+	b.whitelist(Foo::<Runtime>::hashed_key().to_vec(), true, true);
+	b.whitelist(Value::<Runtime>::hashed_key().to_vec(), true, true);
+	b.bench(|| {
+		let _ = Test::set_foo();
+	});
+}
+
+benches!(whitelist, set_value, set_foo, remove_all_bar);

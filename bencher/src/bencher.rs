@@ -33,6 +33,10 @@ fn black_box<T>(dummy: T) -> T {
 }
 
 impl Bencher {
+	pub fn whitelist(&mut self, key: Vec<u8>, read: bool, write: bool) {
+		crate::bench::whitelist(key, read, write);
+	}
+
 	pub fn prepare(&self) {
 		frame_benchmarking::benchmarking::commit_db();
 		frame_benchmarking::benchmarking::wipe_db();
@@ -53,7 +57,7 @@ impl Bencher {
 	{
 		frame_benchmarking::benchmarking::commit_db();
 		frame_benchmarking::benchmarking::reset_read_write_count();
-		crate::bench::reset_redundant();
+		crate::bench::prepare();
 
 		crate::bench::instant();
 		let ret = black_box(inner());

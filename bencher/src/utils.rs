@@ -11,8 +11,8 @@ use sp_externalities::ExternalitiesExt;
 
 #[sp_runtime_interface::runtime_interface]
 pub trait Bench {
-	fn print_error(str: Vec<u8>) {
-		let msg = String::from_utf8_lossy(&str);
+	fn print_error(message: Vec<u8>) {
+		let msg = String::from_utf8_lossy(&message);
 		eprintln!("{}", red_bold(&msg));
 	}
 
@@ -28,6 +28,11 @@ pub trait Bench {
 				cyan(&method_name)
 			);
 		}
+	}
+
+	fn print_info(&mut self, message: Vec<u8>) {
+		let msg = String::from_utf8_lossy(&message);
+		println!("{}", msg);
 	}
 
 	fn instant(&mut self) {
@@ -65,11 +70,11 @@ pub trait Bench {
 		tracker.redundant_time()
 	}
 
-	fn reset_redundant(&mut self) {
+	fn prepare(&mut self) {
 		let tracker = &***self
 			.extension::<BenchTrackerExt>()
 			.expect("No `bench_tracker` associated for the current context!");
-		tracker.reset_redundant();
+		tracker.prepare();
 	}
 
 	fn read_written_keys(&mut self) -> Vec<u8> {
@@ -77,5 +82,19 @@ pub trait Bench {
 			.extension::<BenchTrackerExt>()
 			.expect("No `bench_tracker` associated for the current context!");
 		tracker.read_written_keys()
+	}
+
+	fn whitelist(&mut self, key: Vec<u8>, read: bool, write: bool) {
+		let tracker = &***self
+			.extension::<BenchTrackerExt>()
+			.expect("No `bench_tracker` associated for the current context!");
+		tracker.whitelist(key, read, write);
+	}
+
+	fn reset(&mut self) {
+		let tracker = &***self
+			.extension::<BenchTrackerExt>()
+			.expect("No `bench_tracker` associated for the current context!");
+		tracker.reset();
 	}
 }
