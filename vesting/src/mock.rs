@@ -133,13 +133,17 @@ impl ExtBuilder {
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {
-			balances: vec![(ALICE, 100), (CHARLIE, 30)],
+			balances: vec![(ALICE, 100), (CHARLIE, 50)],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();
 
 		vesting::GenesisConfig::<Runtime> {
-			vesting: vec![(CHARLIE, 2, 3, 4, 5)], // who, start, period, period_count, per_period
+			vesting: vec![
+				// who, start, period, period_count, per_period
+				(CHARLIE, 2, 3, 1, 5),
+				(CHARLIE, 2 + 3, 3, 3, 5),
+			],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();

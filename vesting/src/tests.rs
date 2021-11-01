@@ -20,12 +20,20 @@ fn vesting_from_chain_spec_works() {
 
 		assert_eq!(
 			Vesting::vesting_schedules(&CHARLIE),
-			vec![VestingSchedule {
-				start: 2u64,
-				period: 3u64,
-				period_count: 4u32,
-				per_period: 5u64,
-			}]
+			vec![
+				VestingSchedule {
+					start: 2u64,
+					period: 3u64,
+					period_count: 1u32,
+					per_period: 5u64,
+				},
+				VestingSchedule {
+					start: 2u64 + 3u64,
+					period: 3u64,
+					period_count: 3u32,
+					per_period: 5u64,
+				}
+			]
 		);
 
 		MockBlockNumberProvider::set(13);
