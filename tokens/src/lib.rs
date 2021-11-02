@@ -1133,14 +1133,12 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 		}
 		Self::ensure_can_withdraw(currency_id, who, value)?;
 
-		let account = Self::accounts(who, currency_id);
-		Self::set_free_balance(currency_id, who, account.free - value);
-		// Cannot overflow becuase total issuance is using the same balance type and
-		// this doesn't increase total issuance
-		Self::set_reserved_balance(currency_id, who, account.reserved + value);
-
-		Self::deposit_event(Event::Reserved(currency_id, who.clone(), value));
-		Ok(())
+		Self::mutate_account(who, currency_id, |account, _| {
+			account.free -= value;
+			account.reserved += value;
+			Self::deposit_event(Event::Reserved(currency_id, who.clone(), value));
+			Ok(())
+		})
 	}
 
 	/// Unreserve some funds, returning any amount that was unable to be
@@ -1152,13 +1150,13 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 			return value;
 		}
 
-		let account = Self::accounts(who, currency_id);
-		let actual = account.reserved.min(value);
-		Self::set_reserved_balance(currency_id, who, account.reserved - actual);
-		Self::set_free_balance(currency_id, who, account.free + actual);
-
-		Self::deposit_event(Event::Unreserved(currency_id, who.clone(), actual));
-		value - actual
+		Self::mutate_account(who, currency_id, |account, _| {
+			let actual = account.reserved.min(value);
+			account.reserved -= actual;
+			account.free += actual;
+			Self::deposit_event(Event::Unreserved(currency_id, who.clone(), actual));
+			value - actual
+		})
 	}
 
 	/// Move the reserved balance of one account into the balance of

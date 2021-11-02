@@ -1263,6 +1263,15 @@ fn multi_reservable_currency_reserve_work() {
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 50);
 			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 50);
 			assert_eq!(Tokens::total_balance(DOT, &ALICE), 100);
+
+			assert_ok!(Tokens::reserve(DOT, &ALICE, 50));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 100);
+			assert_eq!(Tokens::total_balance(DOT, &ALICE), 100);
+			// ensure will not trigger Endowed event
+			assert!(System::events()
+				.iter()
+				.all(|record| !matches!(record.event, Event::Tokens(crate::Event::Endowed(DOT, ALICE, _)))));
 		});
 }
 
@@ -1289,6 +1298,10 @@ fn multi_reservable_currency_unreserve_work() {
 			System::assert_last_event(Event::Tokens(crate::Event::Unreserved(DOT, ALICE, 15)));
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
 			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 0);
+			// ensure will not trigger Endowed event
+			assert!(System::events()
+				.iter()
+				.all(|record| !matches!(record.event, Event::Tokens(crate::Event::Endowed(DOT, ALICE, _)))));
 		});
 }
 
