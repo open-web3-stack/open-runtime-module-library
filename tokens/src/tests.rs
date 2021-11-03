@@ -2081,15 +2081,61 @@ fn fungibles_mutate_hold_trait_should_work() {
 				<Tokens as fungibles::MutateHold<_>>::hold(DOT, &ALICE, 200),
 				Error::<Runtime>::BalanceTooLow
 			);
+			assert_eq!(<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, &ALICE), 0);
 			assert_ok!(<Tokens as fungibles::MutateHold<_>>::hold(DOT, &ALICE, 100));
+			assert_eq!(<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, &ALICE), 100);
 			assert_eq!(
-				<Tokens as fungibles::MutateHold<_>>::release(DOT, &ALICE, 50, true),
-				Ok(50)
+				<Tokens as fungibles::MutateHold<_>>::release(DOT, &ALICE, 40, false),
+				Ok(40)
 			);
+			assert_eq!(<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, &ALICE), 60);
+
+			// exceed hold amount when not in best_effort
+			assert_noop!(
+				<Tokens as fungibles::MutateHold<_>>::release(DOT, &ALICE, 61, false),
+				Error::<Runtime>::BalanceTooLow
+			);
+
+			// exceed hold amount when in best_effort
 			assert_eq!(
-				<Tokens as fungibles::MutateHold<_>>::transfer_held(DOT, &ALICE, &BOB, 100, true, true),
-				Ok(50)
+				<Tokens as fungibles::MutateHold<_>>::release(DOT, &ALICE, 61, true),
+				Ok(60)
 			);
+			assert_eq!(<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, &ALICE), 0);
+
+			assert_ok!(<Tokens as fungibles::MutateHold<_>>::hold(DOT, &ALICE, 70));
+			assert_eq!(<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, &ALICE), 70);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &BOB), 100);
+			assert_eq!(<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, &BOB), 0);
+			assert_eq!(
+				<Tokens as fungibles::MutateHold<_>>::transfer_held(DOT, &ALICE, &BOB, 5, false, false),
+				Ok(5)
+			);
+			assert_eq!(<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, &ALICE), 65);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &BOB), 105);
+			assert_eq!(<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, &BOB), 0);
+			assert_eq!(
+				<Tokens as fungibles::MutateHold<_>>::transfer_held(DOT, &ALICE, &BOB, 5, false, true),
+				Ok(5)
+			);
+			assert_eq!(<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, &ALICE), 60);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &BOB), 110);
+			assert_eq!(<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, &BOB), 5);
+
+			// exceed hold amount when not in best_effort
+			assert_noop!(
+				<Tokens as fungibles::MutateHold<_>>::transfer_held(DOT, &ALICE, &BOB, 61, false, true),
+				Error::<Runtime>::BalanceTooLow
+			);
+
+			// exceed hold amount when in best_effort
+			assert_eq!(
+				<Tokens as fungibles::MutateHold<_>>::transfer_held(DOT, &ALICE, &BOB, 61, true, true),
+				Ok(60)
+			);
+			assert_eq!(<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, &ALICE), 0);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &BOB), 170);
+			assert_eq!(<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, &BOB), 65);
 		});
 }
 
