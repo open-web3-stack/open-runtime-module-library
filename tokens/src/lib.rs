@@ -250,8 +250,8 @@ pub mod module {
 		/// \[currency_id, who, value\]
 		Unreserved(T::CurrencyId, T::AccountId, T::Balance),
 		/// Some reserved balance was repatriated (moved from reserved to
-		/// another account). \[currency_id, slashed, beneficiary, value,
-		/// status\]
+		/// another account).
+		/// \[currency_id, from, to, amount_actually_moved, status\]
 		RepatriatedReserve(T::CurrencyId, T::AccountId, T::AccountId, T::Balance, BalanceStatus),
 		/// A balance was set by root. \[who, free, reserved\]
 		BalanceSet(T::CurrencyId, T::AccountId, T::Balance, T::Balance),
