@@ -1,10 +1,9 @@
-use clap::{AppSettings, Clap};
+use clap::Parser;
 use serde::{Deserialize, Serialize};
 use std::io::Read;
 
-#[derive(Clap)]
+#[derive(Parser)]
 #[clap(version = "01.0", author = "Laminar Developers <hello@laminar.one>")]
-#[clap(setting = AppSettings::ColoredHelp)]
 struct Opts {
 	input: Option<String>,
 	#[clap(short, long)]

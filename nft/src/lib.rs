@@ -23,6 +23,7 @@
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{ensure, pallet_prelude::*, traits::Get, BoundedVec, Parameter};
+use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, One, Zero},
 	ArithmeticError, DispatchError, DispatchResult, RuntimeDebug,
@@ -33,7 +34,7 @@ mod mock;
 mod tests;
 
 /// Class info
-#[derive(Encode, Decode, Clone, Eq, PartialEq, MaxEncodedLen, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, Eq, PartialEq, MaxEncodedLen, RuntimeDebug, TypeInfo)]
 pub struct ClassInfo<TokenId, AccountId, Data, ClassMetadataOf> {
 	/// Class metadata
 	pub metadata: ClassMetadataOf,
@@ -46,7 +47,7 @@ pub struct ClassInfo<TokenId, AccountId, Data, ClassMetadataOf> {
 }
 
 /// Token info
-#[derive(Encode, Decode, Clone, Eq, PartialEq, MaxEncodedLen, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, Eq, PartialEq, MaxEncodedLen, RuntimeDebug, TypeInfo)]
 pub struct TokenInfo<AccountId, Data, TokenMetadataOf> {
 	/// Token metadata
 	pub metadata: TokenMetadataOf,
@@ -179,7 +180,7 @@ pub mod module {
 				let class_id = Pallet::<T>::create_class(&token_class.0, token_class.1.to_vec(), token_class.2.clone())
 					.expect("Create class cannot fail while building genesis");
 				for (account_id, token_metadata, token_data) in &token_class.3 {
-					Pallet::<T>::mint(&account_id, class_id, token_metadata.to_vec(), token_data.clone())
+					Pallet::<T>::mint(account_id, class_id, token_metadata.to_vec(), token_data.clone())
 						.expect("Token mint cannot fail during genesis");
 				}
 			})

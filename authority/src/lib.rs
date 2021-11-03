@@ -26,12 +26,13 @@ use frame_support::{
 		schedule::{DispatchTime, Named as ScheduleNamed, Priority},
 		EnsureOrigin, Get, IsType, OriginTrait,
 	},
-	weights::GetDispatchInfo,
+	weights::{DispatchClass, GetDispatchInfo, Pays},
 };
-use frame_system::pallet_prelude::*;
+use frame_system::{pallet_prelude::*, EnsureOneOf, EnsureRoot, EnsureSigned};
+use scale_info::TypeInfo;
 use sp_runtime::{
-	traits::{CheckedSub, Dispatchable, Saturating},
-	ArithmeticError, DispatchError, DispatchResult, RuntimeDebug,
+	traits::{CheckedSub, Dispatchable, Hash, Saturating},
+	ArithmeticError, DispatchError, DispatchResult, Either, RuntimeDebug,
 };
 use sp_std::prelude::*;
 
@@ -42,7 +43,7 @@ mod weights;
 pub use weights::WeightInfo;
 
 /// A delayed origin. Can only be dispatched via `dispatch_as` with a delay.
-#[derive(PartialEq, Eq, Clone, RuntimeDebug, Encode, Decode)]
+#[derive(PartialEq, Eq, Clone, RuntimeDebug, Encode, Decode, TypeInfo)]
 pub struct DelayedOrigin<BlockNumber, PalletsOrigin> {
 	/// Number of blocks that this call have been delayed.
 	pub delay: BlockNumber,
@@ -172,6 +173,12 @@ pub mod module {
 		FailedToFastTrack,
 		/// Failed to delay a task.
 		FailedToDelay,
+		/// Call is not authorized.
+		CallNotAuthorized,
+		/// Triggering the call is not permitted.
+		TriggerCallNotPermitted,
+		/// Call weight bound is wrong.
+		WrongCallWeightBound,
 	}
 
 	#[pallet::event]
@@ -187,11 +194,21 @@ pub mod module {
 		Delayed(T::PalletsOrigin, ScheduleTaskIndex, T::BlockNumber),
 		/// A scheduled call is cancelled. [origin, index]
 		Cancelled(T::PalletsOrigin, ScheduleTaskIndex),
+		/// A call is authorized. \[hash, caller\]
+		AuthorizedCall(T::Hash, Option<T::AccountId>),
+		/// An authorized call was removed. \[hash\]
+		RemovedAuthorizedCall(T::Hash),
+		/// An authorized call was triggered. \[hash, caller\]
+		TriggeredCallBy(T::Hash, T::AccountId),
 	}
 
 	#[pallet::storage]
 	#[pallet::getter(fn next_task_index)]
 	pub type NextTaskIndex<T: Config> = StorageValue<_, ScheduleTaskIndex, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn saved_calls)]
+	pub type SavedCalls<T: Config> = StorageMap<_, Identity, T::Hash, (CallOf<T>, Option<T::AccountId>), OptionQuery>;
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
@@ -267,7 +284,7 @@ pub mod module {
 		#[pallet::weight(T::WeightInfo::fast_track_scheduled_dispatch())]
 		pub fn fast_track_scheduled_dispatch(
 			origin: OriginFor<T>,
-			initial_origin: T::PalletsOrigin,
+			initial_origin: Box<T::PalletsOrigin>,
 			task_id: ScheduleTaskIndex,
 			when: DispatchTime<T::BlockNumber>,
 		) -> DispatchResult {
@@ -285,7 +302,7 @@ pub mod module {
 			T::Scheduler::reschedule_named((&initial_origin, task_id).encode(), when)
 				.map_err(|_| Error::<T>::FailedToFastTrack)?;
 
-			Self::deposit_event(Event::FastTracked(initial_origin, task_id, dispatch_at));
+			Self::deposit_event(Event::FastTracked(*initial_origin, task_id, dispatch_at));
 			Ok(())
 		}
 
@@ -293,7 +310,7 @@ pub mod module {
 		#[pallet::weight(T::WeightInfo::delay_scheduled_dispatch())]
 		pub fn delay_scheduled_dispatch(
 			origin: OriginFor<T>,
-			initial_origin: T::PalletsOrigin,
+			initial_origin: Box<T::PalletsOrigin>,
 			task_id: ScheduleTaskIndex,
 			additional_delay: T::BlockNumber,
 		) -> DispatchResult {
@@ -308,7 +325,7 @@ pub mod module {
 			let now = frame_system::Pallet::<T>::block_number();
 			let dispatch_at = now.saturating_add(additional_delay);
 
-			Self::deposit_event(Event::Delayed(initial_origin, task_id, dispatch_at));
+			Self::deposit_event(Event::Delayed(*initial_origin, task_id, dispatch_at));
 			Ok(())
 		}
 
@@ -316,14 +333,75 @@ pub mod module {
 		#[pallet::weight(T::WeightInfo::cancel_scheduled_dispatch())]
 		pub fn cancel_scheduled_dispatch(
 			origin: OriginFor<T>,
-			initial_origin: T::PalletsOrigin,
+			initial_origin: Box<T::PalletsOrigin>,
 			task_id: ScheduleTaskIndex,
 		) -> DispatchResult {
 			T::AuthorityConfig::check_cancel_schedule(origin, &initial_origin)?;
 			T::Scheduler::cancel_named((&initial_origin, task_id).encode()).map_err(|_| Error::<T>::FailedToCancel)?;
 
-			Self::deposit_event(Event::Cancelled(initial_origin, task_id));
+			Self::deposit_event(Event::Cancelled(*initial_origin, task_id));
 			Ok(())
+		}
+
+		#[pallet::weight(T::WeightInfo::authorize_call())]
+		pub fn authorize_call(
+			origin: OriginFor<T>,
+			call: Box<CallOf<T>>,
+			caller: Option<T::AccountId>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+			let hash = T::Hashing::hash_of(&call);
+			SavedCalls::<T>::insert(hash, (call, caller.clone()));
+			Self::deposit_event(Event::AuthorizedCall(hash, caller));
+			Ok(())
+		}
+
+		#[pallet::weight(T::WeightInfo::remove_authorized_call())]
+		pub fn remove_authorized_call(origin: OriginFor<T>, hash: T::Hash) -> DispatchResult {
+			let root_or_sigend =
+				EnsureOneOf::<T::AccountId, EnsureRoot<T::AccountId>, EnsureSigned<T::AccountId>>::ensure_origin(
+					origin,
+				)?;
+
+			SavedCalls::<T>::try_mutate_exists(hash, |maybe_call| {
+				let (_, maybe_caller) = maybe_call.take().ok_or(Error::<T>::CallNotAuthorized)?;
+				match root_or_sigend {
+					Either::Left(_) => {} // root, do nothing
+					Either::Right(who) => {
+						// signed, ensure it's the caller
+						let caller = maybe_caller.ok_or(Error::<T>::CallNotAuthorized)?;
+						ensure!(who == caller, Error::<T>::CallNotAuthorized);
+					}
+				}
+				Self::deposit_event(Event::RemovedAuthorizedCall(hash));
+				Ok(())
+			})
+		}
+
+		#[pallet::weight((
+			T::WeightInfo::trigger_call().saturating_add(*call_weight_bound),
+			DispatchClass::Operational,
+		))]
+		pub fn trigger_call(
+			origin: OriginFor<T>,
+			hash: T::Hash,
+			#[pallet::compact] call_weight_bound: Weight,
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+			SavedCalls::<T>::try_mutate_exists(hash, |maybe_call| {
+				let (call, maybe_caller) = maybe_call.take().ok_or(Error::<T>::CallNotAuthorized)?;
+				if let Some(caller) = maybe_caller {
+					ensure!(who == caller, Error::<T>::TriggerCallNotPermitted);
+				}
+				ensure!(
+					call_weight_bound >= call.get_dispatch_info().weight,
+					Error::<T>::WrongCallWeightBound
+				);
+				let result = call.dispatch(OriginFor::<T>::root());
+				Self::deposit_event(Event::TriggeredCallBy(hash, who));
+				Self::deposit_event(Event::Dispatched(result.map(|_| ()).map_err(|e| e.error)));
+				Ok(Pays::No.into())
+			})
 		}
 	}
 }

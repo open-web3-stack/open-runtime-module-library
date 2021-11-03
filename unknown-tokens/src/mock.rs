@@ -5,7 +5,7 @@
 use super::*;
 use crate as unknown_tokens;
 
-use frame_support::{construct_runtime, parameter_types};
+use frame_support::{construct_runtime, parameter_types, traits::Everything};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, AccountId32};
 
@@ -35,7 +35,7 @@ impl frame_system::Config for Runtime {
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type DbWeight = ();
-	type BaseCallFilter = ();
+	type BaseCallFilter = Everything;
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
 	type OnSetCode = ();

@@ -34,6 +34,7 @@ use frame_support::{
 use frame_system::{ensure_root, ensure_signed, pallet_prelude::*};
 pub use orml_traits::{CombineData, DataFeeder, DataProvider, DataProviderExtended, OnNewData};
 use orml_utilities::OrderedSet;
+use scale_info::TypeInfo;
 use sp_runtime::{traits::Member, DispatchResult, RuntimeDebug};
 use sp_std::{prelude::*, vec};
 
@@ -54,7 +55,7 @@ pub mod module {
 	pub(crate) type MomentOf<T, I = ()> = <<T as Config<I>>::Time as Time>::Moment;
 	pub(crate) type TimestampedValueOf<T, I = ()> = TimestampedValue<<T as Config<I>>::OracleValue, MomentOf<T, I>>;
 
-	#[derive(Encode, Decode, RuntimeDebug, Eq, PartialEq, Clone, Copy, Ord, PartialOrd)]
+	#[derive(Encode, Decode, RuntimeDebug, Eq, PartialEq, Clone, Copy, Ord, PartialOrd, TypeInfo)]
 	#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 	pub struct TimestampedValue<Value, Moment> {
 		pub value: Value,
@@ -240,7 +241,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 			RawValues::<T, I>::insert(&who, &key, timestamped);
 			IsUpdated::<T, I>::remove(&key);
 
-			T::OnNewData::on_new_data(&who, &key, &value);
+			T::OnNewData::on_new_data(&who, key, value);
 		}
 		Self::deposit_event(Event::NewFeedData(who, values));
 		Ok(())
