@@ -1355,11 +1355,17 @@ impl<T: Config> fungibles::MutateHold<T::AccountId> for Pallet<T> {
 		source: &T::AccountId,
 		dest: &T::AccountId,
 		amount: Self::Balance,
-		_best_effort: bool,
+		best_effort: bool,
 		on_hold: bool,
 	) -> Result<Self::Balance, DispatchError> {
 		let status = if on_hold { Status::Reserved } else { Status::Free };
-		Self::repatriate_reserved(asset_id, source, dest, amount, status)
+		ensure!(
+			amount <= <Self as fungibles::InspectHold<T::AccountId>>::balance_on_hold(asset_id, source) || best_effort,
+			Error::<T>::BalanceTooLow
+		);
+		let gap = Self::repatriate_reserved(asset_id, source, dest, amount, status)?;
+		// return actual transferred amount
+		Ok(amount.saturating_sub(gap))
 	}
 }
 
