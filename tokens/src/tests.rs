@@ -1321,6 +1321,9 @@ fn multi_reservable_currency_repatriate_reserved_work() {
 				Tokens::repatriate_reserved(DOT, &ALICE, &ALICE, 50, BalanceStatus::Free),
 				Ok(50)
 			);
+			// Repatriating from and to the same account, fund is `unreserved`.
+			System::assert_last_event(Event::Tokens(crate::Event::Unreserved(DOT, ALICE, 0)));
+
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
 			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 0);
 
@@ -1333,6 +1336,7 @@ fn multi_reservable_currency_repatriate_reserved_work() {
 				Tokens::repatriate_reserved(DOT, &BOB, &BOB, 60, BalanceStatus::Reserved),
 				Ok(10)
 			);
+
 			assert_eq!(Tokens::free_balance(DOT, &BOB), 50);
 			assert_eq!(Tokens::reserved_balance(DOT, &BOB), 50);
 
@@ -1340,6 +1344,14 @@ fn multi_reservable_currency_repatriate_reserved_work() {
 				Tokens::repatriate_reserved(DOT, &BOB, &ALICE, 30, BalanceStatus::Reserved),
 				Ok(0)
 			);
+			System::assert_last_event(Event::Tokens(crate::Event::RepatriatedReserve(
+				DOT,
+				BOB,
+				ALICE,
+				30,
+				BalanceStatus::Reserved,
+			)));
+
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
 			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 30);
 			assert_eq!(Tokens::free_balance(DOT, &BOB), 50);
@@ -1349,6 +1361,16 @@ fn multi_reservable_currency_repatriate_reserved_work() {
 				Tokens::repatriate_reserved(DOT, &BOB, &ALICE, 30, BalanceStatus::Free),
 				Ok(10)
 			);
+
+			// Actual amount repatriated is 20.
+			System::assert_last_event(Event::Tokens(crate::Event::RepatriatedReserve(
+				DOT,
+				BOB,
+				ALICE,
+				20,
+				BalanceStatus::Free,
+			)));
+
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 120);
 			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 30);
 			assert_eq!(Tokens::free_balance(DOT, &BOB), 50);

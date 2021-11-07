@@ -249,6 +249,10 @@ pub mod module {
 		/// Some balance was unreserved (moved from reserved to free).
 		/// \[currency_id, who, value\]
 		Unreserved(T::CurrencyId, T::AccountId, T::Balance),
+		/// Some reserved balance was repatriated (moved from reserved to
+		/// another account).
+		/// \[currency_id, from, to, amount_actually_moved, status\]
+		RepatriatedReserve(T::CurrencyId, T::AccountId, T::AccountId, T::Balance, BalanceStatus),
 		/// A balance was set by root. \[who, free, reserved\]
 		BalanceSet(T::CurrencyId, T::AccountId, T::Balance, T::Balance),
 	}
@@ -1196,6 +1200,13 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 			}
 		}
 		Self::set_reserved_balance(currency_id, slashed, from_account.reserved - actual);
+		Self::deposit_event(Event::<T>::RepatriatedReserve(
+			currency_id,
+			slashed.clone(),
+			beneficiary.clone(),
+			actual,
+			status,
+		));
 		Ok(value - actual)
 	}
 }
