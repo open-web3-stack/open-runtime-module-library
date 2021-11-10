@@ -5,11 +5,8 @@
 
 use frame_support::{pallet_prelude::*, traits::EnsureOrigin};
 use frame_system::pallet_prelude::*;
-use sp_std::boxed::Box;
-use sp_std::convert::{TryFrom, TryInto};
-
-use xcm::latest::prelude::*;
-use xcm::{VersionedMultiLocation, VersionedXcm};
+use sp_std::{boxed::Box, convert::{TryFrom, TryInto}};
+use xcm::{latest::prelude::*, VersionedMultiLocation, VersionedXcm};
 
 pub use module::*;
 
