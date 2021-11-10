@@ -6,16 +6,16 @@
 use frame_support::{pallet_prelude::*, traits::EnsureOrigin};
 use frame_system::pallet_prelude::*;
 use sp_std::boxed::Box;
+use sp_std::convert::{TryFrom, TryInto};
 
-use xcm::prelude::*;
+use xcm::latest::prelude::*;
+use xcm::{VersionedMultiLocation, VersionedXcm};
 
 pub use module::*;
 
 #[frame_support::pallet]
 pub mod module {
 	use super::*;
-	use xcm::{VersionedMultiLocation, VersionedXcm};
-	use sp_std::convert::{TryFrom, TryInto};
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config + pallet_xcm::Config {
