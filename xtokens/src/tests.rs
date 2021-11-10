@@ -369,8 +369,9 @@ fn send_as_sovereign() {
 		let assets: MultiAsset = (Here, 1_000_000_000_000).into();
 		assert_ok!(para::OrmlXcm::send_as_sovereign(
 			para::Origin::root(),
-			Box::new(MultiLocation::parent()),
-			Box::new(Xcm(vec![
+			Box::new(Parent.into()),
+			Box::new(VersionedXcm::from(
+			Xcm(vec![
 				WithdrawAsset(assets.clone().into()),
 				BuyExecution {
 					fees: assets,
@@ -381,7 +382,7 @@ fn send_as_sovereign() {
 					require_weight_at_most: 1_000_000_000,
 					call: call.encode().into(),
 				}
-			]))
+			])))
 		));
 	});
 
@@ -412,8 +413,9 @@ fn send_as_sovereign_fails_if_bad_origin() {
 		assert_err!(
 			para::OrmlXcm::send_as_sovereign(
 				para::Origin::signed(ALICE),
-				Box::new(MultiLocation::parent()),
-				Box::new(Xcm(vec![
+				Box::new(Parent.into()),
+				Box::new(VersionedXcm::from(
+				Xcm(vec![
 					WithdrawAsset(assets.clone().into()),
 					BuyExecution {
 						fees: assets,
@@ -424,7 +426,7 @@ fn send_as_sovereign_fails_if_bad_origin() {
 						require_weight_at_most: 1_000_000_000,
 						call: call.encode().into(),
 					}
-				]))
+				])))
 			),
 			DispatchError::BadOrigin,
 		);
