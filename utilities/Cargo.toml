@@ -5,7 +5,7 @@ repository = "https://github.com/open-web3-stack/open-runtime-module-library/tre
 license = "Apache-2.0"
 version = "0.4.1-dev"
 authors = ["Laminar Developers <hello@laminar.one>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 scale-info = { version = "1.0", default-features = false, features = ["derive"] }

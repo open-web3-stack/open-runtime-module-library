@@ -4,7 +4,7 @@ description = "CLI for generating weight from bencher output"
 license = "Apache-2.0"
 version = "0.4.1-dev"
 authors = ["Laminar Developers <hello@laminar.one>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 serde = { version = "1.0.119", features = ['derive'] }
