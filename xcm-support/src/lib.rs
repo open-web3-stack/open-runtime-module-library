@@ -19,6 +19,7 @@ use xcm_executor::traits::{FilterAssetLocation, MatchesFungible};
 use orml_traits::location::Reserve;
 
 pub use currency_adapter::MultiCurrencyAdapter;
+use frame_support::pallet_prelude::Get;
 
 mod currency_adapter;
 
@@ -73,5 +74,26 @@ impl UnknownAsset for () {
 	}
 	fn withdraw(_asset: &MultiAsset, _from: &MultiLocation) -> DispatchResult {
 		Err(DispatchError::Other(NO_UNKNOWN_ASSET_IMPL))
+	}
+}
+
+/// Extracts the `AccountId32` from the passed `location` if the network matches.
+pub struct RelaychainAccountId32Aliases<Network, AccountId>(PhantomData<(Network, AccountId)>);
+impl<Network: Get<NetworkId>, AccountId: From<[u8; 32]> + Into<[u8; 32]> + Clone>
+xcm_executor::traits::Convert<MultiLocation, AccountId> for RelaychainAccountId32Aliases<Network, AccountId>
+{
+	fn convert(location: MultiLocation) -> Result<AccountId, MultiLocation> {
+		let id = match location {
+			MultiLocation {
+				parents: 1,
+				interior: X1(AccountId32 { id, network: NetworkId::Any }),
+			} => id,
+			_ => return Err(location),
+		};
+		Ok(id.into())
+	}
+
+	fn reverse(who: AccountId) -> Result<MultiLocation, AccountId> {
+		Ok(AccountId32 { id: who.into(), network: Network::get() }.into())
 	}
 }
