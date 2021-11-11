@@ -370,8 +370,7 @@ fn send_as_sovereign() {
 		assert_ok!(para::OrmlXcm::send_as_sovereign(
 			para::Origin::root(),
 			Box::new(Parent.into()),
-			Box::new(VersionedXcm::from(
-			Xcm(vec![
+			Box::new(VersionedXcm::from(Xcm(vec![
 				WithdrawAsset(assets.clone().into()),
 				BuyExecution {
 					fees: assets,
@@ -414,8 +413,7 @@ fn send_as_sovereign_fails_if_bad_origin() {
 			para::OrmlXcm::send_as_sovereign(
 				para::Origin::signed(ALICE),
 				Box::new(Parent.into()),
-				Box::new(VersionedXcm::from(
-				Xcm(vec![
+				Box::new(VersionedXcm::from(Xcm(vec![
 					WithdrawAsset(assets.clone().into()),
 					BuyExecution {
 						fees: assets,
