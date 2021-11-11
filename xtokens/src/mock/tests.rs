@@ -5,8 +5,9 @@ use super::para::AccountIdToMultiLocation;
 use orml_traits::{MultiCurrency};
 use xcm_simulator::TestExt;
 use xcm_builder::{IsConcrete};
-use crate::mock::relay::KsmLocation;
 use xcm_executor::traits::MatchesFungible;
+
+use crate::mock::relay::KsmLocation;
 use crate::mock::para::RelayLocation;
 
 #[test]
@@ -54,7 +55,7 @@ fn test_asset_matches_fungible() {
     let amount: u128 = IsConcrete::<KsmLocation>::matches_fungible(&asset.clone()).unwrap_or_default();
     assert_eq!(amount, 100u128);
 
-    // the first parameter is not equal to `Here`, which not match `KsmLocation`, so asset match result is `0`
+    // `KsmLocation` in `relay.rs` is `Here`
     let asset: MultiAsset = (X1(Parachain(1)), 100u128).into();
     let assets: u128 = IsConcrete::<KsmLocation>::matches_fungible(&asset.clone()).unwrap_or_default();
     assert_eq!(assets, 0);
@@ -157,11 +158,18 @@ fn test_parachain_convert_location_to_account() {
     let account = para::LocationToAccountId::convert(destination);
     assert_eq!(account, Ok(ALICE));
 
-    // Error case
+    // Error case 1: ../Parachain/Account
     let destination: MultiLocation = (
         Parent,
         Parachain(1),
         alice.clone()
+    ).into();
+    let account = para::LocationToAccountId::convert(destination.clone());
+    assert_eq!(account, Err(destination));
+
+    // Error case 2: ./Parachain
+    let destination: MultiLocation = (
+        Parachain(1),
     ).into();
     let account = para::LocationToAccountId::convert(destination.clone());
     assert_eq!(account, Err(destination));
@@ -201,4 +209,84 @@ fn test_relaychain_convert_location_to_account() {
     ).into();
     let account = relay::SovereignAccountOf::convert(destination.clone());
     assert_eq!(account, Err(destination));
+}
+
+#[test]
+fn test_parachain_convert_origin() {
+    use xcm_executor::traits::ConvertOrigin;
+
+    let alice = Junction::AccountId32 {
+        network: NetworkId::Any,
+        id: ALICE.into()
+    };
+
+    // SovereignSignedViaLocation<ParentIsDefault>
+    let destination: MultiLocation = Parent.into();
+    let origin = para::XcmOriginToCallOrigin::convert_origin(
+        destination.clone(), OriginKind::SovereignAccount);
+    assert!(origin.is_ok());
+
+    // SovereignSignedViaLocation<SiblingParachainConvertsVia>
+    let destination: MultiLocation = (
+        Parent,
+        Parachain(1),
+    ).into();
+    let origin = para::XcmOriginToCallOrigin::convert_origin(destination.clone(), OriginKind::SovereignAccount);
+    assert!(origin.is_ok());
+
+    // SovereignSignedViaLocation<AccountId32Aliases>
+    let destination: MultiLocation = (
+        alice.clone()
+    ).into();
+    let origin = para::XcmOriginToCallOrigin::convert_origin(destination.clone(), OriginKind::SovereignAccount);
+    assert!(origin.is_ok());
+
+    // SovereignSignedViaLocation<RelaychainAccountId32Aliases>
+    let destination: MultiLocation = (
+        Parent,
+        alice.clone()
+    ).into();
+    let origin = para::XcmOriginToCallOrigin::convert_origin(destination.clone(), OriginKind::SovereignAccount);
+    assert!(origin.is_ok());
+
+    // SovereignSignedViaLocation Error case
+    let destination: MultiLocation = (
+        Parent,
+        Parachain(1),
+        alice.clone()
+    ).into();
+    let origin = para::XcmOriginToCallOrigin::convert_origin(destination.clone(), OriginKind::SovereignAccount);
+    assert!(origin.is_err());
+
+    // RelayChainAsNative
+    let destination: MultiLocation = Parent.into();
+    let origin = para::XcmOriginToCallOrigin::convert_origin(
+        destination.clone(), OriginKind::Native);
+    assert!(origin.is_ok());
+
+    // SiblingParachainAsNative
+    let destination: MultiLocation = (
+        Parent,
+        Parachain(1),
+    ).into();
+    let origin = para::XcmOriginToCallOrigin::convert_origin(
+        destination.clone(), OriginKind::Native);
+    assert!(origin.is_ok());
+
+    // SignedAccountId32AsNative
+    let destination: MultiLocation = (
+        alice.clone()
+    ).into();
+    let origin = para::XcmOriginToCallOrigin::convert_origin(
+        destination.clone(), OriginKind::Native);
+    assert!(origin.is_ok());
+
+    // XcmPassthrough
+    let destination: MultiLocation = (
+        Parent,
+        alice.clone()
+    ).into();
+    let origin = para::XcmOriginToCallOrigin::convert_origin(
+        destination.clone(), OriginKind::Xcm);
+    assert!(origin.is_ok());
 }
