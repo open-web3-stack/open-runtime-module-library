@@ -405,9 +405,7 @@ fn send_as_sovereign_fails_if_bad_origin() {
 }
 
 #[test]
-fn para_transact_sovereign_account() {
-	TestNet::reset();
-
+fn para_transact_to_relay_use_sovereign_account() {
 	Relay::execute_with(|| {
 		let _ = RelayBalances::deposit_creating(&para_a_account(), 1_000_000_000_000);
 	});
@@ -443,9 +441,7 @@ fn para_transact_sovereign_account() {
 }
 
 #[test]
-fn relay_transact_default_sovereign_account() {
-	TestNet::reset();
-
+fn relay_transact_to_para_use_default_sovereign_account() {
 	ParaA::execute_with(|| {
 		assert_ok!(ParaTokens::deposit(CurrencyId::R, &DEFAULT, 10_000_000_000_000));
 	});
@@ -461,9 +457,7 @@ fn relay_transact_default_sovereign_account() {
 }
 
 #[test]
-fn relay_transact_normal_account() {
-	TestNet::reset();
-
+fn relay_transact_to_para_use_normal_account() {
 	ParaA::execute_with(|| {
 		assert_ok!(ParaTokens::deposit(CurrencyId::R, &ALICE, 1_000_000_000_000));
 		assert_eq!(1_000_000_001_000, ParaTokens::free_balance(CurrencyId::R, &ALICE));
@@ -476,8 +470,8 @@ fn relay_transact_normal_account() {
 	relaychain_transact_to_parachain(alice.clone(), 1_000_000_000_000);
 
 	ParaA::execute_with(|| {
-		assert_eq!(1000, ParaTokens::free_balance(CurrencyId::R, &ALICE));
 		use para::{Event, System};
+		assert_eq!(1000, ParaTokens::free_balance(CurrencyId::R, &ALICE));
 		assert!(System::events()
 			.iter()
 			.any(|r| matches!(r.event, Event::System(frame_system::Event::Remarked(_, _)))));
@@ -486,8 +480,8 @@ fn relay_transact_normal_account() {
 	relaychain_transact_to_parachain(alice.clone(), 100);
 
 	ParaA::execute_with(|| {
-		assert_eq!(900, ParaTokens::free_balance(CurrencyId::R, &ALICE));
 		use para::{Event, System};
+		assert_eq!(900, ParaTokens::free_balance(CurrencyId::R, &ALICE));
 		assert!(System::events()
 			.iter()
 			.any(|r| matches!(r.event, Event::System(frame_system::Event::Remarked(_, _)))));
@@ -496,12 +490,46 @@ fn relay_transact_normal_account() {
 	relaychain_transact_to_parachain(alice, 1000);
 
 	ParaA::execute_with(|| {
-		assert_eq!(900, ParaTokens::free_balance(CurrencyId::R, &ALICE));
 		use para::{Event, System};
+		assert_eq!(900, ParaTokens::free_balance(CurrencyId::R, &ALICE));
 		assert!(System::events()
 			.iter()
 			.any(|r| matches!(r.event, Event::System(frame_system::Event::Remarked(_, _)))));
 	});
+}
+
+#[test]
+fn para_transact_to_sibling_use_sovereign_account() {
+	ParaB::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(
+			CurrencyId::R,
+			&sibling_a_account(),
+			1_000_000_000_000
+		));
+	});
+
+	parachain_transact_to_sibling(Here, 1_000_000_000_000);
+
+	ParaB::execute_with(|| {
+		use para::{Event, System};
+		assert_eq!(0, ParaTokens::free_balance(CurrencyId::R, &sibling_a_account()));
+		assert!(System::events()
+			.iter()
+			.any(|r| matches!(r.event, Event::System(frame_system::Event::Remarked(_, _)))));
+	});
+}
+
+#[test]
+fn para_transact_to_sibling_use_account_failed() {
+	let alice = Junctions::X1(Junction::AccountId32 {
+		network: NetworkId::Any,
+		id: ALICE.into(),
+	});
+
+	// the origin of WithdrawAsset in the context of destination parachain is
+	// (Parent, Parachain(1), Alice) and it get error when convert
+	// LocationToAccountId
+	parachain_transact_to_sibling(alice, 1_000_000_000_000);
 }
 
 fn relaychain_transact_to_parachain(junctions: Junctions, amount: u128) {
@@ -523,6 +551,29 @@ fn relaychain_transact_to_parachain(junctions: Junctions, amount: u128) {
 					call: call.encode().into(),
 				},
 			]),
+		));
+	});
+}
+
+fn parachain_transact_to_sibling(junctions: Junctions, amount: u128) {
+	ParaA::execute_with(|| {
+		let call = para::Call::System(frame_system::Call::<para::Runtime>::remark_with_event { remark: vec![1, 2, 3] });
+		let assets: MultiAsset = (Parent, amount).into();
+		assert_ok!(ParachainPalletXcm::send_xcm(
+			junctions,
+			(Parent, Parachain(2)),
+			Xcm(vec![
+				WithdrawAsset(assets.clone().into()),
+				BuyExecution {
+					fees: assets,
+					weight_limit: Limited(2_000_000_000)
+				},
+				Transact {
+					origin_type: OriginKind::SovereignAccount,
+					require_weight_at_most: 1_000_000_000 as u64,
+					call: call.encode().into(),
+				},
+			])
 		));
 	});
 }
