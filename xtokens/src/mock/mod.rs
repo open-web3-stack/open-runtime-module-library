@@ -8,9 +8,9 @@ use serde::{Deserialize, Serialize};
 use sp_io::TestExternalities;
 use sp_runtime::AccountId32;
 
-use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain};
 use cumulus_primitives_core::ParaId;
 use polkadot_parachain::primitives::{AccountIdConversion, Sibling};
+use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain};
 
 pub mod para;
 pub mod relay;
@@ -18,7 +18,7 @@ pub mod tests;
 
 pub const ALICE: AccountId32 = AccountId32::new([1u8; 32]);
 pub const BOB: AccountId32 = AccountId32::new([2u8; 32]);
-pub const GOD: AccountId32 = AccountId32::new([0u8; 32]);
+pub const DEFAULT: AccountId32 = AccountId32::new([0u8; 32]);
 pub const INITIAL_BALANCE: u128 = 1_000;
 
 pub fn para_a_account() -> AccountId32 {
@@ -150,6 +150,9 @@ pub type ParaBalances = pallet_balances::Pallet<para::Runtime>;
 
 pub type ParaTokens = orml_tokens::Pallet<para::Runtime>;
 pub type ParaXTokens = orml_xtokens::Pallet<para::Runtime>;
+
+pub type RelayChainPalletXcm = pallet_xcm::Pallet<relay::Runtime>;
+pub type ParachainPalletXcm = pallet_xcm::Pallet<para::Runtime>;
 
 pub fn para_ext(para_id: u32) -> TestExternalities {
 	use para::{Runtime, System};

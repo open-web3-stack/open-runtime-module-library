@@ -10,11 +10,13 @@
 #![allow(clippy::unused_unit)]
 
 use frame_support::dispatch::{DispatchError, DispatchResult};
+use frame_support::{ensure, traits::Contains, weights::Weight};
+
 use sp_runtime::traits::{CheckedConversion, Convert};
 use sp_std::{convert::TryFrom, marker::PhantomData, prelude::*};
 
 use xcm::latest::prelude::*;
-use xcm_executor::traits::{FilterAssetLocation, MatchesFungible};
+use xcm_executor::traits::{FilterAssetLocation, MatchesFungible, ShouldExecute};
 
 use orml_traits::location::Reserve;
 
@@ -77,16 +79,20 @@ impl UnknownAsset for () {
 	}
 }
 
-/// Extracts the `AccountId32` from the passed `location` if the network matches.
+/// Extracts the `AccountId32` from the passed `location` if the network
+/// matches.
 pub struct RelaychainAccountId32Aliases<Network, AccountId>(PhantomData<(Network, AccountId)>);
 impl<Network: Get<NetworkId>, AccountId: From<[u8; 32]> + Into<[u8; 32]> + Clone>
-xcm_executor::traits::Convert<MultiLocation, AccountId> for RelaychainAccountId32Aliases<Network, AccountId>
+	xcm_executor::traits::Convert<MultiLocation, AccountId> for RelaychainAccountId32Aliases<Network, AccountId>
 {
 	fn convert(location: MultiLocation) -> Result<AccountId, MultiLocation> {
 		let id = match location {
 			MultiLocation {
 				parents: 1,
-				interior: X1(AccountId32 { id, network: NetworkId::Any }),
+				interior: X1(AccountId32 {
+					id,
+					network: NetworkId::Any,
+				}),
 			} => id,
 			_ => return Err(location),
 		};
@@ -94,6 +100,53 @@ xcm_executor::traits::Convert<MultiLocation, AccountId> for RelaychainAccountId3
 	}
 
 	fn reverse(who: AccountId) -> Result<MultiLocation, AccountId> {
-		Ok(AccountId32 { id: who.into(), network: Network::get() }.into())
+		Ok(AccountId32 {
+			id: who.into(),
+			network: Network::get(),
+		}
+		.into())
+	}
+}
+
+pub struct AllowDescendOrigin<T>(PhantomData<T>);
+impl<T: Contains<MultiLocation>> ShouldExecute for AllowDescendOrigin<T> {
+	fn should_execute<Call>(
+		origin: &MultiLocation,
+		message: &mut Xcm<Call>,
+		max_weight: Weight,
+		_weight_credit: &mut Weight,
+	) -> Result<(), ()> {
+		ensure!(T::contains(origin), ());
+		let mut iter = message.0.iter_mut();
+		let i = iter.next().ok_or(())?;
+		match i {
+			DescendOrigin(..) => (),
+			_ => return Err(()),
+		}
+		let i = iter.next().ok_or(())?;
+		match i {
+			ReceiveTeleportedAsset(..) | WithdrawAsset(..) | ReserveAssetDeposited(..) | ClaimAsset { .. } => (),
+			_ => return Err(()),
+		}
+		let mut i = iter.next().ok_or(())?;
+		while let ClearOrigin = i {
+			i = iter.next().ok_or(())?;
+		}
+		match i {
+			BuyExecution {
+				weight_limit: Limited(ref mut weight),
+				..
+			} if *weight >= max_weight => {
+				*weight = max_weight;
+				Ok(())
+			}
+			BuyExecution {
+				ref mut weight_limit, ..
+			} if weight_limit == &Unlimited => {
+				*weight_limit = Limited(max_weight);
+				Ok(())
+			}
+			_ => Err(()),
+		}
 	}
 }

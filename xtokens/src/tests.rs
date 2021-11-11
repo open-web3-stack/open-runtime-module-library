@@ -405,6 +405,129 @@ fn send_as_sovereign_fails_if_bad_origin() {
 }
 
 #[test]
+fn para_transact_sovereign_account() {
+	TestNet::reset();
+
+	Relay::execute_with(|| {
+		let _ = RelayBalances::deposit_creating(&para_a_account(), 1_000_000_000_000);
+	});
+
+	ParaA::execute_with(|| {
+		let call =
+			relay::Call::System(frame_system::Call::<relay::Runtime>::remark_with_event { remark: vec![1, 2, 3] });
+		let assets: MultiAsset = (Here, 1_000_000_000_000).into();
+		assert_ok!(ParachainPalletXcm::send_xcm(
+			Here,
+			Parent,
+			Xcm(vec![
+				WithdrawAsset(assets.clone().into()),
+				BuyExecution {
+					fees: assets,
+					weight_limit: Limited(2_000_000_000)
+				},
+				Transact {
+					origin_type: OriginKind::SovereignAccount,
+					require_weight_at_most: 1_000_000_000 as u64,
+					call: call.encode().into(),
+				},
+			]),
+		));
+	});
+
+	Relay::execute_with(|| {
+		use relay::{Event, System};
+		assert!(System::events()
+			.iter()
+			.any(|r| matches!(r.event, Event::System(frame_system::Event::Remarked(_, _)))));
+	});
+}
+
+#[test]
+fn relay_transact_default_sovereign_account() {
+	TestNet::reset();
+
+	ParaA::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::R, &DEFAULT, 10_000_000_000_000));
+	});
+
+	relaychain_transact_to_parachain(Here, 1_000_000_000_000);
+
+	ParaA::execute_with(|| {
+		use para::{Event, System};
+		assert!(System::events()
+			.iter()
+			.any(|r| matches!(r.event, Event::System(frame_system::Event::Remarked(_, _)))));
+	});
+}
+
+#[test]
+fn relay_transact_normal_account() {
+	TestNet::reset();
+
+	ParaA::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::R, &ALICE, 1_000_000_000_000));
+		assert_eq!(1_000_000_001_000, ParaTokens::free_balance(CurrencyId::R, &ALICE));
+	});
+
+	let alice = Junctions::X1(Junction::AccountId32 {
+		network: NetworkId::Any,
+		id: ALICE.into(),
+	});
+	relaychain_transact_to_parachain(alice.clone(), 1_000_000_000_000);
+
+	ParaA::execute_with(|| {
+		assert_eq!(1000, ParaTokens::free_balance(CurrencyId::R, &ALICE));
+		use para::{Event, System};
+		assert!(System::events()
+			.iter()
+			.any(|r| matches!(r.event, Event::System(frame_system::Event::Remarked(_, _)))));
+	});
+
+	relaychain_transact_to_parachain(alice.clone(), 100);
+
+	ParaA::execute_with(|| {
+		assert_eq!(900, ParaTokens::free_balance(CurrencyId::R, &ALICE));
+		use para::{Event, System};
+		assert!(System::events()
+			.iter()
+			.any(|r| matches!(r.event, Event::System(frame_system::Event::Remarked(_, _)))));
+	});
+
+	relaychain_transact_to_parachain(alice, 1000);
+
+	ParaA::execute_with(|| {
+		assert_eq!(900, ParaTokens::free_balance(CurrencyId::R, &ALICE));
+		use para::{Event, System};
+		assert!(System::events()
+			.iter()
+			.any(|r| matches!(r.event, Event::System(frame_system::Event::Remarked(_, _)))));
+	});
+}
+
+fn relaychain_transact_to_parachain(junctions: Junctions, amount: u128) {
+	Relay::execute_with(|| {
+		let call = para::Call::System(frame_system::Call::<para::Runtime>::remark_with_event { remark: vec![1, 2, 3] });
+		let assets: MultiAsset = (Parent, amount).into();
+		assert_ok!(RelayChainPalletXcm::send_xcm(
+			junctions,
+			Parachain(1).into(),
+			Xcm(vec![
+				WithdrawAsset(assets.clone().into()),
+				BuyExecution {
+					fees: assets,
+					weight_limit: Limited(2_000_000_000)
+				},
+				Transact {
+					origin_type: OriginKind::SovereignAccount,
+					require_weight_at_most: 1_000_000_000 as u64,
+					call: call.encode().into(),
+				},
+			]),
+		));
+	});
+}
+
+#[test]
 fn call_size_limit() {
 	// Ensures Call enum doesn't allocate more than 200 bytes in runtime
 	assert!(
