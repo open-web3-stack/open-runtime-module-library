@@ -108,6 +108,11 @@ impl<Network: Get<NetworkId>, AccountId: From<[u8; 32]> + Into<[u8; 32]> + Clone
 	}
 }
 
+/// when Relay an XCM message from a given `interior` location, if the given
+/// `interior` is not `Here`, the destination will receive a xcm message
+/// beginning with `DescendOrigin` as the first instruction. the implementation
+/// of `AllowDescendOrigin` is first allow `DescendOrigin` pass through, and
+/// then the remaining process is same as `AllowTopLevelPaidExecutionFrom`.
 pub struct AllowDescendOrigin<T>(PhantomData<T>);
 impl<T: Contains<MultiLocation>> ShouldExecute for AllowDescendOrigin<T> {
 	fn should_execute<Call>(
