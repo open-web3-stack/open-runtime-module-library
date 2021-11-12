@@ -150,7 +150,7 @@ impl<T: Contains<MultiLocation>> ShouldExecute for AllowEquivalentAccountsFrom<T
 				origin_type: OriginKind::SovereignAccount,
 				..
 			} => Ok(()),
-			_ => return Err(()),
+			_ => Err(()),
 		}
 	}
 }
