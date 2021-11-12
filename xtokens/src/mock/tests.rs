@@ -245,3 +245,71 @@ fn test_parachain_convert_origin() {
 	let origin = para::XcmOriginToCallOrigin::convert_origin(destination.clone(), OriginKind::Xcm);
 	assert!(origin.is_ok());
 }
+
+#[test]
+fn test_call_weight_info() {
+	use frame_support::weights::GetDispatchInfo;
+	use para::{Call, Runtime};
+
+	let expect_weight: u64 = 6000;
+	let call = Call::System(frame_system::Call::<Runtime>::remark_with_event { remark: vec![1, 2, 3] });
+
+	let weight = call.get_dispatch_info().weight;
+	assert_eq!(weight, expect_weight);
+
+	let call = Call::System(frame_system::Call::<Runtime>::remark_with_event { remark: vec![1, 2, 3] });
+	let weight = call.get_dispatch_info().weight;
+	assert_eq!(weight, expect_weight);
+
+	let call = Call::Balances(pallet_balances::Call::<Runtime>::transfer { dest: BOB, value: 100 });
+	let weight = call.get_dispatch_info().weight;
+	assert_eq!(weight, 195952000);
+}
+
+#[test]
+fn test_parachain_weigher_calculate() {
+	use frame_support::weights::GetDispatchInfo;
+	use para::{Call, Runtime, XcmConfig};
+
+	let expect_weight: u64 = 195952000;
+	let call = Call::Balances(pallet_balances::Call::<Runtime>::transfer { dest: BOB, value: 100 });
+
+	let weight = call.get_dispatch_info().weight;
+	assert_eq!(weight, expect_weight);
+
+	let assets: MultiAsset = (Parent, 1).into();
+
+	let instructions = vec![
+		WithdrawAsset(assets.clone().into()),
+		BuyExecution {
+			fees: assets.clone(),
+			weight_limit: Limited(1),
+		},
+		Transact {
+			origin_type: OriginKind::SovereignAccount,
+			require_weight_at_most: expect_weight,
+			call: call.encode().into(),
+		},
+	];
+	let xcm_weight = <XcmConfig as xcm_executor::Config>::Weigher::weight(&mut Xcm(instructions));
+	assert_eq!(xcm_weight.unwrap(), expect_weight + 30);
+
+	let instructions = vec![
+		DescendOrigin(Junctions::X1(Junction::AccountId32 {
+			network: NetworkId::Any,
+			id: [0; 32],
+		})),
+		WithdrawAsset(assets.clone().into()),
+		BuyExecution {
+			fees: assets,
+			weight_limit: Limited(1),
+		},
+		Transact {
+			origin_type: OriginKind::SovereignAccount,
+			require_weight_at_most: expect_weight,
+			call: call.encode().into(),
+		},
+	];
+	let xcm_weight = <XcmConfig as xcm_executor::Config>::Weigher::weight(&mut Xcm(instructions));
+	assert_eq!(xcm_weight.unwrap(), expect_weight + 40);
+}

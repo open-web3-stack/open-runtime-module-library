@@ -110,11 +110,11 @@ impl<Network: Get<NetworkId>, AccountId: From<[u8; 32]> + Into<[u8; 32]> + Clone
 
 /// when Relay an XCM message from a given `interior` location, if the given
 /// `interior` is not `Here`, the destination will receive a xcm message
-/// beginning with `DescendOrigin` as the first instruction. the implementation
-/// of `AllowDescendOrigin` is first allow `DescendOrigin` pass through, and
-/// then the remaining process is same as `AllowTopLevelPaidExecutionFrom`.
-pub struct AllowDescendOrigin<T>(PhantomData<T>);
-impl<T: Contains<MultiLocation>> ShouldExecute for AllowDescendOrigin<T> {
+/// beginning with `DescendOrigin` as the first instruction. so the xcm message
+/// format must match this order:
+/// `DescendOrigin`,`WithdrawAsset`,`BuyExecution`,`Transact`.
+pub struct AllowEquivalentAccountsFrom<T>(PhantomData<T>);
+impl<T: Contains<MultiLocation>> ShouldExecute for AllowEquivalentAccountsFrom<T> {
 	fn should_execute<Call>(
 		origin: &MultiLocation,
 		message: &mut Xcm<Call>,
@@ -130,28 +130,27 @@ impl<T: Contains<MultiLocation>> ShouldExecute for AllowDescendOrigin<T> {
 		}
 		let i = iter.next().ok_or(())?;
 		match i {
-			ReceiveTeleportedAsset(..) | WithdrawAsset(..) | ReserveAssetDeposited(..) | ClaimAsset { .. } => (),
+			WithdrawAsset(..) => (),
 			_ => return Err(()),
 		}
-		let mut i = iter.next().ok_or(())?;
-		while let ClearOrigin = i {
-			i = iter.next().ok_or(())?;
-		}
+		let i = iter.next().ok_or(())?;
 		match i {
 			BuyExecution {
 				weight_limit: Limited(ref mut weight),
 				..
 			} if *weight >= max_weight => {
 				*weight = max_weight;
-				Ok(())
+				()
 			}
-			BuyExecution {
-				ref mut weight_limit, ..
-			} if weight_limit == &Unlimited => {
-				*weight_limit = Limited(max_weight);
-				Ok(())
-			}
-			_ => Err(()),
+			_ => return Err(()),
+		}
+		let i = iter.next().ok_or(())?;
+		match i {
+			Transact {
+				origin_type: OriginKind::SovereignAccount,
+				..
+			} => Ok(()),
+			_ => return Err(()),
 		}
 	}
 }
