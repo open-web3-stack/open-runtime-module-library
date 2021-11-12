@@ -5,7 +5,7 @@
 use super::*;
 use frame_support::{assert_noop, assert_ok};
 use frame_system::RawOrigin;
-use mock::{Event, *};
+use mock::{Event, Balance, *};
 use sp_runtime::{traits::BadOrigin, TokenError};
 
 // *************************************************
@@ -641,7 +641,7 @@ fn do_transfer_report_keep_alive_error_when_ed_is_not_zero() {
 #[test]
 fn do_transfer_will_not_report_keep_alive_error_when_ed_is_zero() {
 	ExtBuilder::default()
-		.balances(vec![(ALICE, ETH, 100), (DAVE, ETH, 100)])
+		.balances(vec![(ALICE, DOT, 100), (ALICE, BTC, 100), (ALICE, ETH, 100), (DAVE, ETH, 100)])
 		.build()
 		.execute_with(|| {
 			assert!(Accounts::<Runtime>::contains_key(ALICE, ETH));
@@ -838,7 +838,7 @@ fn do_withdraw_report_keep_alive_error_when_ed_is_not_zero() {
 #[test]
 fn do_withdraw_will_not_report_keep_alive_error_when_ed_is_zero() {
 	ExtBuilder::default()
-		.balances(vec![(ALICE, ETH, 100), (DAVE, ETH, 100)])
+		.balances(vec![(ALICE, DOT, 100), (ALICE, BTC, 100), (ALICE, ETH, 100), (DAVE, ETH, 100)])
 		.build()
 		.execute_with(|| {
 			assert!(Accounts::<Runtime>::contains_key(ALICE, ETH));
@@ -969,7 +969,7 @@ fn remove_account_work() {
 #[test]
 fn reap_account_will_dec_providers_work() {
 	ExtBuilder::default()
-		.balances(vec![(ALICE, DOT, 100), (ALICE, ETH, 100), (ALICE, BTC, 100)])
+		.balances(vec![(ALICE, DOT, 100), (ALICE, BTC, 100), (ALICE, ETH, 100)])
 		.build()
 		.execute_with(|| {
 			assert_eq!(System::providers(&ALICE), 3);
@@ -1677,7 +1677,7 @@ fn currency_adapter_lock_removal_should_work() {
 		.balances(vec![(TREASURY_ACCOUNT, DOT, 100)])
 		.build()
 		.execute_with(|| {
-			TreasuryCurrencyAdapter::set_lock(ID_1, &TREASURY_ACCOUNT, u64::max_value(), WithdrawReasons::all());
+			TreasuryCurrencyAdapter::set_lock(ID_1, &TREASURY_ACCOUNT, Balance::max_value(), WithdrawReasons::all());
 			TreasuryCurrencyAdapter::remove_lock(ID_1, &TREASURY_ACCOUNT);
 			assert_ok!(TreasuryCurrencyAdapter::transfer(
 				&TREASURY_ACCOUNT,
@@ -1694,7 +1694,7 @@ fn currency_adapter_lock_replacement_should_work() {
 		.balances(vec![(TREASURY_ACCOUNT, DOT, 100)])
 		.build()
 		.execute_with(|| {
-			TreasuryCurrencyAdapter::set_lock(ID_1, &TREASURY_ACCOUNT, u64::max_value(), WithdrawReasons::all());
+			TreasuryCurrencyAdapter::set_lock(ID_1, &TREASURY_ACCOUNT, Balance::max_value(), WithdrawReasons::all());
 			TreasuryCurrencyAdapter::set_lock(ID_1, &TREASURY_ACCOUNT, 5, WithdrawReasons::all());
 			assert_ok!(TreasuryCurrencyAdapter::transfer(
 				&TREASURY_ACCOUNT,
@@ -1729,7 +1729,7 @@ fn currency_adapter_combination_locking_should_work() {
 		.build()
 		.execute_with(|| {
 			// withdrawReasons not work
-			TreasuryCurrencyAdapter::set_lock(ID_1, &TREASURY_ACCOUNT, u64::max_value(), WithdrawReasons::empty());
+			TreasuryCurrencyAdapter::set_lock(ID_1, &TREASURY_ACCOUNT, Balance::max_value(), WithdrawReasons::empty());
 			TreasuryCurrencyAdapter::set_lock(ID_2, &TREASURY_ACCOUNT, 0, WithdrawReasons::all());
 			assert_noop!(
 				TreasuryCurrencyAdapter::transfer(&TREASURY_ACCOUNT, &ALICE, 2, ExistenceRequirement::AllowDeath),
@@ -1897,7 +1897,7 @@ fn currency_adapter_repatriating_reserved_balance_should_work() {
 		let _ = TreasuryCurrencyAdapter::deposit_creating(&ALICE, 2);
 		assert_ok!(TreasuryCurrencyAdapter::reserve(&TREASURY_ACCOUNT, 110));
 		assert_ok!(
-			TreasuryCurrencyAdapter::repatriate_reserved(&TREASURY_ACCOUNT, &ALICE, 41, Status::Free),
+			TreasuryCurrencyAdapter::repatriate_reserved(&TREASURY_ACCOUNT, &ALICE, 41, BalanceStatus::Free),
 			0
 		);
 		assert_eq!(TreasuryCurrencyAdapter::reserved_balance(&TREASURY_ACCOUNT), 69);
@@ -1914,7 +1914,7 @@ fn currency_adapter_transferring_reserved_balance_should_work() {
 		let _ = TreasuryCurrencyAdapter::deposit_creating(&ALICE, 2);
 		assert_ok!(TreasuryCurrencyAdapter::reserve(&TREASURY_ACCOUNT, 110));
 		assert_ok!(
-			TreasuryCurrencyAdapter::repatriate_reserved(&TREASURY_ACCOUNT, &ALICE, 41, Status::Reserved),
+			TreasuryCurrencyAdapter::repatriate_reserved(&TREASURY_ACCOUNT, &ALICE, 41, BalanceStatus::Reserved),
 			0
 		);
 		assert_eq!(TreasuryCurrencyAdapter::reserved_balance(&TREASURY_ACCOUNT), 69);
@@ -1933,7 +1933,7 @@ fn currency_adapter_transferring_reserved_balance_to_nonexistent_should_fail() {
 			&TREASURY_ACCOUNT,
 			&ALICE,
 			42,
-			Status::Free
+			BalanceStatus::Free
 		));
 	});
 }
@@ -1945,7 +1945,7 @@ fn currency_adapter_transferring_incomplete_reserved_balance_should_work() {
 		let _ = TreasuryCurrencyAdapter::deposit_creating(&ALICE, 2);
 		assert_ok!(TreasuryCurrencyAdapter::reserve(&TREASURY_ACCOUNT, 41));
 		assert_ok!(
-			TreasuryCurrencyAdapter::repatriate_reserved(&TREASURY_ACCOUNT, &ALICE, 69, Status::Free),
+			TreasuryCurrencyAdapter::repatriate_reserved(&TREASURY_ACCOUNT, &ALICE, 69, BalanceStatus::Free),
 			28
 		);
 		assert_eq!(TreasuryCurrencyAdapter::reserved_balance(&TREASURY_ACCOUNT), 0);
@@ -1958,14 +1958,14 @@ fn currency_adapter_transferring_incomplete_reserved_balance_should_work() {
 #[test]
 fn currency_adapter_transferring_too_high_value_should_not_panic() {
 	ExtBuilder::default().build().execute_with(|| {
-		TreasuryCurrencyAdapter::make_free_balance_be(&TREASURY_ACCOUNT, u64::max_value());
+		TreasuryCurrencyAdapter::make_free_balance_be(&TREASURY_ACCOUNT, Balance::max_value());
 		TreasuryCurrencyAdapter::make_free_balance_be(&ALICE, 2);
 
 		assert_noop!(
 			TreasuryCurrencyAdapter::transfer(
 				&TREASURY_ACCOUNT,
 				&ALICE,
-				u64::max_value(),
+				Balance::max_value(),
 				ExistenceRequirement::AllowDeath
 			),
 			ArithmeticError::Overflow,
@@ -1973,7 +1973,7 @@ fn currency_adapter_transferring_too_high_value_should_not_panic() {
 
 		assert_eq!(
 			TreasuryCurrencyAdapter::free_balance(&TREASURY_ACCOUNT),
-			u64::max_value()
+			Balance::max_value()
 		);
 		assert_eq!(TreasuryCurrencyAdapter::free_balance(&ALICE), 2);
 	});
@@ -2296,4 +2296,140 @@ fn fungibles_mutate_convert_should_work() {
 				10000
 			);
 		});
+}
+
+#[test]
+fn fail_to_create_currency_as_regular_user() {
+	ExtBuilder::default().build().execute_with(|| {
+		System::set_block_number(1);
+		assert_noop!(
+			Tokens::create(Some(ALICE).into(), ALICE.into(), 100000),
+			DispatchError::BadOrigin,
+		);
+	});
+}
+
+#[test]
+fn fail_to_create_tokens_as_regular_user() {
+	ExtBuilder::default().build().execute_with(|| {
+		System::set_block_number(1);
+		assert_noop!(
+			Tokens::create(Some(ALICE).into(), ALICE.into(), 100000),
+			DispatchError::BadOrigin,
+		);
+	});
+}
+
+#[test]
+fn create_token_as_root() {
+	ExtBuilder::default().build().execute_with(|| {
+		System::set_block_number(1);
+		let amount = 100000;
+		let token_id = Tokens::next_asset_id();
+		assert_ok!(Tokens::create(Origin::root(), ALICE.into(), amount));
+		assert!(System::events()
+			.iter()
+			.any(|record| record.event == Event::Tokens(crate::Event::Issued(token_id, ALICE, amount))));
+	});
+}
+
+#[test]
+fn fail_to_mint_tokens_as_regular_user() {
+	ExtBuilder::default().build().execute_with(|| {
+		System::set_block_number(1);
+
+		assert_noop!(
+			Tokens::mint(Some(ALICE).into(), 1, ALICE.into(), 100000),
+			DispatchError::BadOrigin,
+		);
+	});
+}
+
+#[test]
+fn mint_tokens_as_root() {
+	ExtBuilder::default().build().execute_with(|| {
+		System::set_block_number(1);
+
+		let amount = 1_000_000;
+		let token_id = Tokens::next_asset_id();
+		assert_ok!(Tokens::create(Origin::root(), ALICE.into(), amount),);
+		assert_ok!(Tokens::mint(Origin::root(), token_id, ALICE.into(), amount),);
+
+		assert!(System::events()
+			.iter()
+			.any(|record| record.event == Event::Tokens(crate::Event::Minted(token_id, ALICE, amount))));
+	});
+}
+
+#[test]
+fn multi_token_currency_extended_create() {
+	ExtBuilder::default().build().execute_with(|| {
+		System::set_block_number(1);
+		let amount = 1_000_000;
+		let currency_id = <MultiTokenCurrencyAdapter<Runtime>>::create(&ALICE.into(), amount).expect("Token creation failed");
+		assert_eq!(Tokens::accounts(&ALICE, currency_id).free, amount);
+		assert_eq!(Tokens::total_issuance(currency_id), amount);
+	});
+}
+
+#[test]
+fn multi_token_currency_extended_mint() {
+	ExtBuilder::default().build().execute_with(|| {
+		System::set_block_number(1);
+		let initial_amount = 1_000_000;
+		let minted_amount = 500_000;
+
+		let currency_id = <MultiTokenCurrencyAdapter<Runtime>>::create(&ALICE.into(), initial_amount).expect("Token creation failed");
+		assert_ok!(<MultiTokenCurrencyAdapter<Runtime>>::mint(
+			currency_id,
+			&ALICE.into(),
+			minted_amount
+		));
+
+		let expected_amount = initial_amount + minted_amount;
+		assert_eq!(Tokens::accounts(&ALICE, currency_id).free, expected_amount);
+		assert_eq!(Tokens::total_issuance(currency_id), expected_amount);
+	});
+}
+
+#[test]
+fn multi_token_currency_extended_exists() {
+	ExtBuilder::default().build().execute_with(|| {
+		System::set_block_number(1);
+
+		let token_id = Tokens::next_asset_id();
+		assert!(!<MultiTokenCurrencyAdapter<Runtime>>::exists(token_id));
+		<MultiTokenCurrencyAdapter<Runtime>>::create(&ALICE.into(), 1_000_000).expect("Token creation failed");
+		assert!(<MultiTokenCurrencyAdapter<Runtime>>::exists(token_id));
+	});
+}
+
+#[test]
+fn multi_token_currency_extended_burn_and_settle_fail_to_burn_too_many_tokens() {
+	ExtBuilder::default().build().execute_with(|| {
+		System::set_block_number(1);
+
+		let token_id = <MultiTokenCurrencyAdapter<Runtime>>::create(&ALICE.into(), 1_000_000).expect("Token creation failed");
+		assert_noop!(
+			<MultiTokenCurrencyAdapter<Runtime>>::burn_and_settle(token_id, &ALICE.into(), 2_000_000),
+			Error::<Runtime>::BalanceTooLow,
+		);
+	});
+}
+
+#[test]
+fn multi_token_currency_extended_burn_and_settle_verify_burned_amount() {
+	ExtBuilder::default().build().execute_with(|| {
+		System::set_block_number(1);
+
+		let currency_id = <MultiTokenCurrencyAdapter<Runtime>>::create(&ALICE.into(), 1_000_000).expect("Token creation failed");
+		assert_ok!(<MultiTokenCurrencyAdapter<Runtime>>::burn_and_settle(
+			currency_id,
+			&ALICE.into(),
+			500_000
+		));
+
+		assert_eq!(Tokens::accounts(&ALICE, currency_id).free, 500_000);
+		assert_eq!(Tokens::total_issuance(currency_id), 500_000);
+	});
 }

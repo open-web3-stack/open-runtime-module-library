@@ -38,6 +38,15 @@ impl<T: Config> PositiveImbalance<T> {
 	}
 }
 
+impl<T: Config> Default for PositiveImbalance<T> {
+	fn default() -> Self {
+        PositiveImbalance(
+            Default::default(),
+            Default::default(),
+        )
+	}
+}
+
 /// Opaque, move-only struct with private fields that serves as a token
 /// denoting that funds have been destroyed without any equal and opposite
 /// accounting.
@@ -52,6 +61,15 @@ impl<T: Config> NegativeImbalance<T> {
 
 	pub fn zero(currency_id: T::CurrencyId) -> Self {
 		NegativeImbalance(currency_id, Zero::zero())
+	}
+}
+
+impl<T: Config> Default for NegativeImbalance<T> {
+	fn default() -> Self {
+        NegativeImbalance(
+            Default::default(),
+            Default::default(),
+        )
 	}
 }
 
@@ -102,7 +120,7 @@ impl<T: Config> Imbalance<T::Balance> for PositiveImbalance<T> {
 		let currency_id = self.0;
 		mem::forget((self, other));
 
-		if if a > b {
+		if a > b {
 			SameOrOther::Same(Self::new(currency_id, a - b))
 		} else if b > a {
 			SameOrOther::Other(NegativeImbalance::new(currency_id, b - a))

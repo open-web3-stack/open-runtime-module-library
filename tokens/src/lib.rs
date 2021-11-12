@@ -343,7 +343,7 @@ pub mod module {
 				if MultiTokenCurrencyAdapter::<T>::exists(*token_id){
 					assert!(MultiTokenCurrencyAdapter::<T>::mint(*token_id, account_id, *initial_balance).is_ok(), "Tokens mint failed");
 				}else{
-					let created_token_id = MultiTokenCurrencyAdapter::<T>::create(account_id, *initial_balance);
+					let created_token_id = MultiTokenCurrencyAdapter::<T>::create(account_id, *initial_balance).expect("Token creation failed");
 					assert!(created_token_id == *token_id, "Assets not initialized in the expected sequence");
 				}
 			});
@@ -351,7 +351,7 @@ pub mod module {
 				if MultiTokenCurrencyAdapter::<T>::exists(*token_id){
 					assert!(MultiTokenCurrencyAdapter::<T>::mint(*token_id, account_id, *initial_balance).is_ok(), "Tokens mint failed");
 				}else{
-					let created_token_id = MultiTokenCurrencyAdapter::<T>::create(account_id, *initial_balance);
+					let created_token_id = MultiTokenCurrencyAdapter::<T>::create(account_id, *initial_balance).expect("Token creation failed");
 					assert!(created_token_id == *token_id, "Assets not initialized in the expected sequence");
 				}
 			})
@@ -539,12 +539,11 @@ pub mod module {
 		pub fn create(
 			origin: OriginFor<T>,
 			who: <T::Lookup as StaticLookup>::Source,
-			#[pallet::compact] value: T::Balance,
+			#[pallet::compact] amount: T::Balance,
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 			let who = T::Lookup::lookup(who)?;
-			let amount: T::Balance = value.into();
-			let currency_id = MultiTokenCurrencyAdapter::<T>::create(&who, amount);
+			let currency_id = MultiTokenCurrencyAdapter::<T>::create(&who, amount)?;
 			Self::deposit_event(Event::Issued(currency_id, who, amount));
 			Ok(().into())
 		}
@@ -1900,7 +1899,7 @@ where
 		value: Self::Balance,
 	) -> Self::PositiveImbalance {
 		Pallet::<T>::do_deposit(currency_id, who, value, false, false)
-			.map_or_else(|_| Self::PositiveImbalance::zero(currency_id), |_| PositiveImbalance::new(currency_id, value))
+			.map_or_else(|_| Self::PositiveImbalance::zero(currency_id), |_| Self::PositiveImbalance::new(currency_id, value))
 	}
 
 	fn withdraw(
@@ -2023,14 +2022,14 @@ impl<T> MultiTokenCurrencyExtended<T::AccountId> for MultiTokenCurrencyAdapter<T
 where
 	T: Config,
 {
-	fn create(who: &T::AccountId, amount: T::Balance) -> T::CurrencyId {
+	fn create(who: &T::AccountId, amount: T::Balance) -> sp_std::result::Result<T::CurrencyId, DispatchError> {
 		let token_id = <NextCurrencyId<T>>::get();
-		<Pallet<T> as fungibles::Inspect>::can_deposit(token_id, who, amount).into_result()?;
+		<Pallet<T> as fungibles::Inspect<_>>::can_deposit(token_id, who, amount).into_result()?;
 		NextCurrencyId::<T>::mutate(|id| *id += One::one());
 		// we are creating new token so amount can not be overflowed as its always true
 		// 0 + amount < T::Balance::max_value()
-		let _ = <Self as MultiTokenCurrency<T::AccountId>>::deposit_creating(token_id, who, amount);
-		token_id
+		Pallet::<T>::do_deposit(token_id, who, amount, false, true)?;
+		Ok(token_id)
 	}
 
 	fn mint(currency_id: T::CurrencyId, who: &T::AccountId, amount: T::Balance) -> DispatchResult {
@@ -2050,6 +2049,6 @@ where
 
 	/// either succeeds or leaves state unchanged
 	fn burn_and_settle(currency_id: T::CurrencyId, who: &T::AccountId, amount: T::Balance) -> DispatchResult {
-		Self::do_withdraw(currency_id, who, amount, ExistenceRequirement::AllowDeath, true)
+		Pallet::<T>::do_withdraw(currency_id, who, amount, ExistenceRequirement::AllowDeath, true)
 	}
 }

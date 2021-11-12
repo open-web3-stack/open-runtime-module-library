@@ -19,7 +19,6 @@ impl-trait-for-tuples = "0.2.1"
 frame-support = { path = "../../substrate/frame/support", default-features = false }
 orml-utilities = { path = "../utilities", version = "0.4.1-dev", default-features = false }
 xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.12", default-features = false }
-mangata-primitives = { path = "../../mangata-node/primitives/mangata", default-features = false, version = '0.1.0' }
 
 # [dependencies]
 # scale-info = { version = "1.0", default-features = false, features = ["derive"] }
@@ -33,7 +32,6 @@ mangata-primitives = { path = "../../mangata-node/primitives/mangata", default-f
 # frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", default-features = false }
 # orml-utilities = { path = "../utilities", version = "0.4.1-dev", default-features = false }
 # xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.12", default-features = false }
-# mangata-primitives = { git="https://github.com/mangata-finance/substrate", branch="mangata-dev-v4", default-features = false, version = '0.1.0' }
 
 [features]
 default = ["std"]
