@@ -89,22 +89,22 @@ impl<Network: Get<NetworkId>, AccountId: From<[u8; 32]> + Into<[u8; 32]> + Clone
 		let id = match location {
 			MultiLocation {
 				parents: 1,
-				interior: X1(AccountId32 {
-					id,
-					network: NetworkId::Any,
-				}),
-			} => id,
+				interior: X1(AccountId32 { id, network }),
+			} if network == Network::get() => id,
 			_ => return Err(location),
 		};
 		Ok(id.into())
 	}
 
 	fn reverse(who: AccountId) -> Result<MultiLocation, AccountId> {
-		Ok(AccountId32 {
-			id: who.into(),
-			network: Network::get(),
-		}
-		.into())
+		Ok((
+			1,
+			AccountId32 {
+				id: who.into(),
+				network: Network::get(),
+			},
+		)
+			.into())
 	}
 }
 

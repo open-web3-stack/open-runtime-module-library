@@ -446,7 +446,7 @@ fn relay_transact_to_para_remark_use_normal_account() {
 	});
 
 	let alice = Junctions::X1(Junction::AccountId32 {
-		network: NetworkId::Any,
+		network: NetworkId::Kusama,
 		id: ALICE.into(),
 	});
 	relaychain_transact_to_parachain_remark(alice.clone(), 6040);
@@ -457,26 +457,19 @@ fn relay_transact_to_para_remark_use_normal_account() {
 		assert!(System::events()
 			.iter()
 			.any(|r| matches!(r.event, Event::System(frame_system::Event::Remarked(_, _)))));
+		System::reset_events();
 	});
-
 	relaychain_transact_to_parachain_remark(alice.clone(), 100);
 
 	ParaA::execute_with(|| {
 		use para::{Event, System};
 		assert_eq!(900, ParaTokens::free_balance(CurrencyId::R, &ALICE));
-		assert!(System::events()
-			.iter()
-			.any(|r| matches!(r.event, Event::System(frame_system::Event::Remarked(_, _)))));
-	});
-
-	relaychain_transact_to_parachain_remark(alice, 1000);
-
-	ParaA::execute_with(|| {
-		use para::{Event, System};
-		assert_eq!(900, ParaTokens::free_balance(CurrencyId::R, &ALICE));
-		assert!(System::events()
-			.iter()
-			.any(|r| matches!(r.event, Event::System(frame_system::Event::Remarked(_, _)))));
+		assert_eq!(
+			System::events()
+				.iter()
+				.find(|r| matches!(r.event, Event::System(frame_system::Event::Remarked(_, _)))),
+			None
+		);
 	});
 }
 
@@ -490,37 +483,35 @@ fn relay_transact_to_para_transfer_use_normal_account() {
 	});
 
 	let alice = Junctions::X1(Junction::AccountId32 {
-		network: NetworkId::Any,
+		network: NetworkId::Kusama,
 		id: ALICE.into(),
 	});
-	relaychain_transact_to_parachain_transfer(alice.clone(), 195952040);
+	relaychain_transact_to_parachain_transfer(alice.clone(), 195952040, 500);
 
 	ParaA::execute_with(|| {
 		use para::{Event, System};
 		assert_eq!(1000, ParaTokens::free_balance(CurrencyId::R, &ALICE));
+		assert_eq!(500, ParaBalances::free_balance(&ALICE));
+		assert_eq!(500, ParaBalances::free_balance(&BOB));
 		assert!(System::events()
 			.iter()
 			.any(|r| matches!(r.event, Event::Balances(pallet_balances::Event::Transfer(_, _, _)))));
+		System::reset_events();
 	});
 
-	relaychain_transact_to_parachain_transfer(alice.clone(), 100);
+	relaychain_transact_to_parachain_transfer(alice.clone(), 100, 100);
 
 	ParaA::execute_with(|| {
 		use para::{Event, System};
-		assert_eq!(900, ParaBalances::free_balance(&ALICE));
-		assert!(System::events()
-			.iter()
-			.any(|r| matches!(r.event, Event::Balances(pallet_balances::Event::Transfer(_, _, _)))));
-	});
-
-	relaychain_transact_to_parachain_transfer(alice, 1000);
-
-	ParaA::execute_with(|| {
-		use para::{Event, System};
-		assert_eq!(900, ParaBalances::free_balance(&ALICE));
-		assert!(System::events()
-			.iter()
-			.any(|r| matches!(r.event, Event::Balances(pallet_balances::Event::Transfer(_, _, _)))));
+		assert_eq!(900, ParaTokens::free_balance(CurrencyId::R, &ALICE));
+		assert_eq!(500, ParaBalances::free_balance(&ALICE));
+		assert_eq!(500, ParaBalances::free_balance(&BOB));
+		assert_eq!(
+			System::events()
+				.iter()
+				.find(|r| matches!(r.event, Event::Balances(pallet_balances::Event::Transfer(_, _, _)))),
+			None
+		);
 	});
 }
 
@@ -565,7 +556,7 @@ fn para_transact_to_sibling_remark_use_account_failed() {
 }
 
 #[test]
-fn relay_transact_to_para_use_wrong_kind() {
+fn relay_transact_to_para_unsupport_kind_failed() {
 	ParaA::execute_with(|| {
 		assert_ok!(ParaTokens::deposit(CurrencyId::R, &DEFAULT, 6040));
 	});
@@ -632,9 +623,12 @@ fn relaychain_transact_to_parachain_remark(junctions: Junctions, amount: u128) {
 	});
 }
 
-fn relaychain_transact_to_parachain_transfer(junctions: Junctions, amount: u128) {
+fn relaychain_transact_to_parachain_transfer(junctions: Junctions, amount: u128, transfer_amount: u128) {
 	use para::{Call, Runtime};
-	let call = Call::Balances(pallet_balances::Call::<Runtime>::transfer { dest: BOB, value: 100 });
+	let call = Call::Balances(pallet_balances::Call::<Runtime>::transfer {
+		dest: BOB,
+		value: transfer_amount,
+	});
 	let assets: MultiAsset = (Parent, amount).into();
 
 	let limit: u64 = match junctions {

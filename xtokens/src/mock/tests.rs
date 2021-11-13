@@ -4,11 +4,12 @@ use super::para::AccountIdToMultiLocation;
 use super::*;
 use orml_traits::MultiCurrency;
 use xcm_builder::IsConcrete;
-use xcm_executor::traits::MatchesFungible;
+use xcm_executor::traits::{MatchesFungible, WeightTrader};
 use xcm_simulator::TestExt;
 
 use crate::mock::para::RelayLocation;
 use crate::mock::relay::KsmLocation;
+use xcm_executor::Assets;
 
 #[test]
 fn test_init_balance() {
@@ -120,7 +121,7 @@ fn test_parachain_convert_location_to_account() {
 	assert_eq!(account, Ok(sibling_a_account()));
 
 	let alice = Junction::AccountId32 {
-		network: NetworkId::Any,
+		network: NetworkId::Kusama,
 		id: ALICE.into(),
 	};
 
@@ -180,6 +181,10 @@ fn test_parachain_convert_origin() {
 	use xcm_executor::traits::ConvertOrigin;
 
 	let alice = Junction::AccountId32 {
+		network: NetworkId::Kusama,
+		id: ALICE.into(),
+	};
+	let alice_any = Junction::AccountId32 {
 		network: NetworkId::Any,
 		id: ALICE.into(),
 	};
@@ -202,6 +207,8 @@ fn test_parachain_convert_origin() {
 
 	// unsupported destination convert with OriginKind::SovereignAccount
 	let unsupported_sovereign_account_destination: Vec<MultiLocation> = vec![
+		// network not matched can't be kind of sovereign account
+		(Parent, alice_any.clone()).into(),
 		// sibling parachain's account can't be kind of sovereign account
 		(Parent, Parachain(1), alice.clone()).into(),
 		// relaychain's account with unmatched network can't be kind of sovereign account
@@ -264,6 +271,18 @@ fn test_call_weight_info() {
 	let call = Call::Balances(pallet_balances::Call::<Runtime>::transfer { dest: BOB, value: 100 });
 	let weight = call.get_dispatch_info().weight;
 	assert_eq!(weight, 195952000);
+
+	let call_para = Call::Balances(pallet_balances::Call::<Runtime>::transfer { dest: BOB, value: 100 });
+	let call_relay = relay::Call::XcmPallet(pallet_xcm::Call::<relay::Runtime>::send {
+		dest: Box::new(VersionedMultiLocation::V1(Parachain(2).into())),
+		message: Box::new(VersionedXcm::from(Xcm(vec![Transact {
+			origin_type: OriginKind::SovereignAccount,
+			require_weight_at_most: 1000,
+			call: call_para.encode().into(),
+		}]))),
+	});
+	let weight = call_relay.get_dispatch_info().weight;
+	assert_eq!(weight, 100000000);
 }
 
 #[test]
@@ -312,4 +331,30 @@ fn test_parachain_weigher_calculate() {
 	];
 	let xcm_weight = <XcmConfig as xcm_executor::Config>::Weigher::weight(&mut Xcm(instructions));
 	assert_eq!(xcm_weight.unwrap(), expect_weight + 40);
+}
+
+#[test]
+fn test_trader() {
+	use para::XcmConfig;
+
+	let asset: MultiAsset = (Parent, 1000).into();
+
+	let mut holding = Assets::new();
+	holding.subsume(asset.clone());
+
+	let backup = holding.clone();
+
+	let fees: MultiAsset = (Parent, 1000).into();
+	let max_fee = holding.try_take(fees.into()).unwrap();
+
+	assert_eq!(holding.is_empty(), true);
+	assert_eq!(max_fee, backup);
+
+	let mut trader = para::AllTokensAreCreatedEqualToWeight::new();
+	let result = <XcmConfig as xcm_executor::Config>::Trader::buy_weight(&mut trader, 1000, max_fee.clone());
+	assert_eq!(result.is_ok(), true);
+	assert_eq!(result.unwrap().is_empty(), true);
+
+	let result = <XcmConfig as xcm_executor::Config>::Trader::buy_weight(&mut trader, 2000, max_fee);
+	assert_eq!(result.is_err(), true);
 }
