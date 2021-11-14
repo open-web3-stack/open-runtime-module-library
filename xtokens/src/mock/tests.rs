@@ -203,12 +203,11 @@ fn test_parachain_convert_origin() {
 		(alice.clone()).into(),
 		// RelaychainAccountId32Aliases: relaychain's account can be kind of sovereign account(xcm-support feature)
 		(Parent, alice.clone()).into(),
+		(Parent, alice_any.clone()).into(),
 	];
 
 	// unsupported destination convert with OriginKind::SovereignAccount
 	let unsupported_sovereign_account_destination: Vec<MultiLocation> = vec![
-		// network not matched can't be kind of sovereign account
-		(Parent, alice_any.clone()).into(),
 		// sibling parachain's account can't be kind of sovereign account
 		(Parent, Parachain(1), alice.clone()).into(),
 		// relaychain's account with unmatched network can't be kind of sovereign account

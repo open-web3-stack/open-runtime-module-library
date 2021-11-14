@@ -89,6 +89,13 @@ impl<Network: Get<NetworkId>, AccountId: From<[u8; 32]> + Into<[u8; 32]> + Clone
 		let id = match location {
 			MultiLocation {
 				parents: 1,
+				interior: X1(AccountId32 {
+					id,
+					network: NetworkId::Any,
+				}),
+			} => id,
+			MultiLocation {
+				parents: 1,
 				interior: X1(AccountId32 { id, network }),
 			} if network == Network::get() => id,
 			_ => return Err(location),
