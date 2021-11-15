@@ -78,6 +78,42 @@ fn send_relay_chain_asset_to_relay_chain() {
 }
 
 #[test]
+fn send_relay_chain_asset_to_relay_chain_with_fee() {
+	TestNet::reset();
+
+	Relay::execute_with(|| {
+		let _ = RelayBalances::deposit_creating(&para_a_account(), 1_000);
+	});
+
+	ParaA::execute_with(|| {
+		assert_ok!(ParaXTokens::transfer_with_fee(
+			Some(ALICE).into(),
+			CurrencyId::R,
+			460,
+			40,
+			Box::new(
+				MultiLocation::new(
+					1,
+					X1(Junction::AccountId32 {
+						network: NetworkId::Any,
+						id: BOB.into(),
+					})
+				)
+				.into()
+			),
+			40,
+		));
+		assert_eq!(ParaTokens::free_balance(CurrencyId::R, &ALICE), 500);
+	});
+
+	Relay::execute_with(|| {
+		println!("Relay events {:?}", relay::relay_events());
+		assert_eq!(RelayBalances::free_balance(&para_a_account()), 500);
+		assert_eq!(RelayBalances::free_balance(&BOB), 460);
+	});
+}
+
+#[test]
 fn cannot_lost_fund_on_send_failed() {
 	TestNet::reset();
 

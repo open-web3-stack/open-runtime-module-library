@@ -170,3 +170,11 @@ construct_runtime!(
 		XcmPallet: pallet_xcm::{Pallet, Call, Storage, Event<T>, Origin},
 	}
 );
+
+pub(crate) fn relay_events() -> Vec<Event> {
+	System::events()
+		.into_iter()
+		.map(|r| r.event)
+		.filter_map(|e| Some(e))
+		.collect::<Vec<_>>()
+}
