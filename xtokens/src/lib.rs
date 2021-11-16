@@ -414,7 +414,7 @@ pub mod module {
 					dest: dest.clone(),
 					xcm: Xcm(vec![
 						Self::buy_execution(fee, &dest, dest_weight)?,
-						Self::deposit_asset_specific(asset, recipient),
+						Self::deposit_asset_specific(asset, &dest, recipient)?,
 					]),
 				},
 			]))
@@ -458,7 +458,7 @@ pub mod module {
 					reserve: reserve.clone(),
 					xcm: Xcm(vec![
 						Self::buy_execution(fee, &reserve, dest_weight)?,
-						Self::deposit_asset_specific(asset, recipient),
+						Self::deposit_asset_specific(asset, &reserve, recipient)?,
 					]),
 				},
 			]))
@@ -526,6 +526,8 @@ pub mod module {
 				}
 			}
 
+			let inv_at = T::LocationInverter::invert_location(&reserve).map_err(|()| Error::<T>::DestinationNotInvertible)?;
+
 			Ok(Xcm(vec![
 				WithdrawAsset(vec![
 					asset.clone().into(),
@@ -538,12 +540,15 @@ pub mod module {
 					xcm: Xcm(vec![
 						Self::buy_execution(half(&fee), &reserve, dest_weight)?,
 						DepositReserveAsset {
-							assets: vec![half(&fee.clone()), asset.clone()].into(),
+							assets: vec![
+								half(&fee.clone()).reanchored(&inv_at).map_err(|_| Error::<T>::CannotReanchor)?, 
+								asset.clone().reanchored(&inv_at).map_err(|_| Error::<T>::CannotReanchor)?
+							].into(),
 							max_assets: 1,
 							dest: reanchored_dest,
 							xcm: Xcm(vec![
 								Self::buy_execution(half(&fee), &dest, dest_weight)?,
-								Self::deposit_asset_specific(asset, recipient),
+								Self::deposit_asset_specific(asset, &dest, recipient)?,
 							]),
 						},
 					]),
@@ -559,13 +564,15 @@ pub mod module {
 			}
 		}
 
-		fn deposit_asset_specific(asset: MultiAsset, recipient: MultiLocation) -> Instruction<()> {
-			DepositAsset {
-				assets: vec![asset].into(),
+		fn deposit_asset_specific(asset: MultiAsset, at: &MultiLocation, recipient: MultiLocation) -> Result<Instruction<()>, DispatchError> {
+			let inv_at = T::LocationInverter::invert_location(at).map_err(|()| Error::<T>::DestinationNotInvertible)?;
+			let asset = asset.reanchored(&inv_at).map_err(|_| Error::<T>::CannotReanchor)?;
+			Ok(DepositAsset {
+				assets: asset.into(),
 				//assets: All.into(),
 				max_assets: 1,
 				beneficiary: recipient,
-			}
+			})
 		}
 
 		fn buy_execution(
