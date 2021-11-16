@@ -115,13 +115,22 @@ impl<Network: Get<NetworkId>, AccountId: From<[u8; 32]> + Into<[u8; 32]> + Clone
 	}
 }
 
+pub struct IsParent;
+impl Contains<MultiLocation> for IsParent {
+	fn contains(l: &MultiLocation) -> bool {
+		l.contains_parents_only(1)
+	}
+}
+
 /// when Relay an XCM message from a given `interior` location, if the given
 /// `interior` is not `Here`, the destination will receive a xcm message
 /// beginning with `DescendOrigin` as the first instruction. so the xcm message
 /// format must match this order:
 /// `DescendOrigin`,`WithdrawAsset`,`BuyExecution`,`Transact`.
-pub struct AllowEquivalentAccountsFrom<T>(PhantomData<T>);
-impl<T: Contains<MultiLocation>> ShouldExecute for AllowEquivalentAccountsFrom<T> {
+pub struct AllowEquivalentParentAccountsFrom<T, Network>(PhantomData<(T, Network)>);
+impl<T: Contains<MultiLocation>, Network: Get<NetworkId>> ShouldExecute
+	for AllowEquivalentParentAccountsFrom<T, Network>
+{
 	fn should_execute<Call>(
 		origin: &MultiLocation,
 		message: &mut Xcm<Call>,
@@ -132,7 +141,11 @@ impl<T: Contains<MultiLocation>> ShouldExecute for AllowEquivalentAccountsFrom<T
 		let mut iter = message.0.iter_mut();
 		let i = iter.next().ok_or(())?;
 		match i {
-			DescendOrigin(..) => (),
+			DescendOrigin(X1(Junction::AccountId32 {
+				network: NetworkId::Any,
+				..
+			})) => (),
+			DescendOrigin(X1(Junction::AccountId32 { network, .. })) if network == &Network::get() => (),
 			_ => return Err(()),
 		}
 		let i = iter.next().ok_or(())?;
