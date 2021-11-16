@@ -143,6 +143,6 @@ fn allow_relayed_paid_execution_works() {
 			call: Encode::encode(&100).into(),
 		},
 	]);
-	let r = AllowRelayedPaidExecutionFrom::<RelayNetwork>::should_execute(&(Parent.into()), &mut xcm, 100, &mut 100);
+	let r = AllowRelayedPaidExecutionFromParent::<RelayNetwork>::should_execute(&(Parent.into()), &mut xcm, 100, &mut 100);
 	assert_eq!(r, Ok(()));
 }

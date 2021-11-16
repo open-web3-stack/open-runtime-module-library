@@ -27,7 +27,7 @@ use xcm_executor::{traits::WeightTrader, Assets, Config, XcmExecutor};
 
 use orml_traits::parameter_type_with_key;
 use orml_xcm_support::{
-	AllowRelayedPaidExecutionFrom, IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset,
+	AllowRelayedPaidExecutionFromParent, IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset,
 	RelayChainAccountId32Aliases,
 };
 
@@ -147,7 +147,7 @@ pub type XcmRouter = ParachainXcmRouter<ParachainInfo>;
 pub type Barrier = (
 	TakeWeightCredit,
 	AllowTopLevelPaidExecutionFrom<Everything>,
-	AllowRelayedPaidExecutionFrom<RelayNetwork>,
+	AllowRelayedPaidExecutionFromParent<RelayNetwork>,
 );
 
 /// A trader who believes all tokens are created equal to "weight" of any chain,

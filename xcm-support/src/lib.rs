@@ -114,8 +114,8 @@ impl<Network: Get<NetworkId>, AccountId: From<[u8; 32]> + Into<[u8; 32]> + Clone
 ///
 /// Only allows exactly alike the order of xcm: `DescendOrigin`,
 /// `WithdrawAsset`, `BuyExecution` and `Transact`.
-pub struct AllowRelayedPaidExecutionFrom<Network>(PhantomData<Network>);
-impl<Network: Get<NetworkId>> ShouldExecute for AllowRelayedPaidExecutionFrom<Network> {
+pub struct AllowRelayedPaidExecutionFromParent<Network>(PhantomData<Network>);
+impl<Network: Get<NetworkId>> ShouldExecute for AllowRelayedPaidExecutionFromParent<Network> {
 	fn should_execute<Call>(
 		origin: &MultiLocation,
 		message: &mut Xcm<Call>,
