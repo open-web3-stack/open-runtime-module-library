@@ -10,7 +10,7 @@
 #![allow(clippy::unused_unit)]
 
 use frame_support::dispatch::{DispatchError, DispatchResult};
-use frame_support::{ensure, traits::Contains, weights::Weight};
+use frame_support::{ensure, weights::Weight};
 
 use sp_runtime::traits::{CheckedConversion, Convert};
 use sp_std::{convert::TryFrom, marker::PhantomData, prelude::*};
@@ -80,27 +80,22 @@ impl UnknownAsset for () {
 }
 
 /// Extracts the `AccountId32` from the passed `location` if the network
-/// matches.
-pub struct RelaychainAccountId32Aliases<Network, AccountId>(PhantomData<(Network, AccountId)>);
+/// matches or is `NetworkId::Any`.
+pub struct RelayChainAccountId32Aliases<Network, AccountId>(PhantomData<(Network, AccountId)>);
 impl<Network: Get<NetworkId>, AccountId: From<[u8; 32]> + Into<[u8; 32]> + Clone>
-	xcm_executor::traits::Convert<MultiLocation, AccountId> for RelaychainAccountId32Aliases<Network, AccountId>
+	xcm_executor::traits::Convert<MultiLocation, AccountId> for RelayChainAccountId32Aliases<Network, AccountId>
 {
 	fn convert(location: MultiLocation) -> Result<AccountId, MultiLocation> {
-		let id = match location {
-			MultiLocation {
-				parents: 1,
-				interior: X1(AccountId32 {
-					id,
-					network: NetworkId::Any,
-				}),
-			} => id,
-			MultiLocation {
-				parents: 1,
-				interior: X1(AccountId32 { id, network }),
-			} if network == Network::get() => id,
-			_ => return Err(location),
+		if let MultiLocation {
+			parents: 1,
+			interior: X1(AccountId32 { id, network }),
+		} = location.clone()
+		{
+			if network == NetworkId::Any || network == Network::get() {
+				return Ok(id.into());
+			}
 		};
-		Ok(id.into())
+		return Err(location);
 	}
 
 	fn reverse(who: AccountId) -> Result<MultiLocation, AccountId> {
@@ -115,37 +110,27 @@ impl<Network: Get<NetworkId>, AccountId: From<[u8; 32]> + Into<[u8; 32]> + Clone
 	}
 }
 
-pub struct IsParent;
-impl Contains<MultiLocation> for IsParent {
-	fn contains(l: &MultiLocation) -> bool {
-		l.contains_parents_only(1)
-	}
-}
-
-/// when Relay an XCM message from a given `interior` location, if the given
-/// `interior` is not `Here`, the destination will receive a xcm message
-/// beginning with `DescendOrigin` as the first instruction. so the xcm message
-/// format must match this order:
-/// `DescendOrigin`,`WithdrawAsset`,`BuyExecution`,`Transact`.
-pub struct AllowEquivalentParentAccountsFrom<T, Network>(PhantomData<(T, Network)>);
-impl<T: Contains<MultiLocation>, Network: Get<NetworkId>> ShouldExecute
-	for AllowEquivalentParentAccountsFrom<T, Network>
-{
+/// Allows execution from `origin` if it is `Parent`.
+///
+/// Only allows exactly alike the order of xcm: `DescendOrigin`,
+/// `WithdrawAsset`, `BuyExecution` and `Transact`.
+pub struct AllowRelayedPaidExecutionFrom<Network>(PhantomData<Network>);
+impl<Network: Get<NetworkId>> ShouldExecute for AllowRelayedPaidExecutionFrom<Network> {
 	fn should_execute<Call>(
 		origin: &MultiLocation,
 		message: &mut Xcm<Call>,
 		max_weight: Weight,
 		_weight_credit: &mut Weight,
 	) -> Result<(), ()> {
-		ensure!(T::contains(origin), ());
+		ensure!(origin.contains_parents_only(1), ());
 		let mut iter = message.0.iter_mut();
 		let i = iter.next().ok_or(())?;
 		match i {
-			DescendOrigin(X1(Junction::AccountId32 {
-				network: NetworkId::Any,
-				..
-			})) => (),
-			DescendOrigin(X1(Junction::AccountId32 { network, .. })) if network == &Network::get() => (),
+			DescendOrigin(X1(Junction::AccountId32 { network, .. }))
+				if network == &NetworkId::Any || network == &Network::get() =>
+			{
+				()
+			}
 			_ => return Err(()),
 		}
 		let i = iter.next().ok_or(())?;

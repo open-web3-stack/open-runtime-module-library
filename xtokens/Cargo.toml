@@ -49,8 +49,6 @@ xcm-simulator = { git = "https://github.com/paritytech/polkadot", branch = "rele
 orml-tokens = { path = "../tokens" }
 orml-xcm = { path = "../xcm" }
 
-env_logger = "0.8.3"
-
 [features]
 default = ["std"]
 std = [
