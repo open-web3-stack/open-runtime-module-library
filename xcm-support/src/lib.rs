@@ -95,7 +95,7 @@ impl<Network: Get<NetworkId>, AccountId: From<[u8; 32]> + Into<[u8; 32]> + Clone
 				return Ok(id.into());
 			}
 		};
-		return Err(location);
+		Err(location)
 	}
 
 	fn reverse(who: AccountId) -> Result<MultiLocation, AccountId> {
