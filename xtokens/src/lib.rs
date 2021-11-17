@@ -446,7 +446,6 @@ pub mod module {
 			recipient: MultiLocation,
 			dest_weight: Weight,
 		) -> Result<Xcm<T::Call>, DispatchError> {
-			println!("asset {:?}", asset);
 			Ok(Xcm(vec![
 				WithdrawAsset(vec![
 					asset.clone().into(),
