@@ -104,8 +104,12 @@ pub mod module {
 	pub enum Event<T: Config> {
 		/// Transferred. \[sender, currency_id, amount, dest\]
 		Transferred(T::AccountId, T::CurrencyId, T::Balance, MultiLocation),
+		/// Transferred. \[sender, currency_id, amount, fee, dest\]
+		TransferredWithFee(T::AccountId, T::CurrencyId, T::Balance, T::Balance, MultiLocation),
 		/// Transferred `MultiAsset`. \[sender, asset, dest\]
 		TransferredMultiAsset(T::AccountId, MultiAsset, MultiLocation),
+		/// Transferred `MultiAsset`. \[sender, asset, dest\]
+		TransferredMultiAssetWithFee(T::AccountId, MultiAsset, MultiAsset, MultiLocation),
 	}
 
 	#[pallet::error]
@@ -285,10 +289,10 @@ pub mod module {
 				.ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
 
 			let asset = (location.clone(), amount.into()).into();
-			let fee: MultiAsset = (location, fee.into()).into();
-			Self::do_transfer_multiasset_with_fee(who.clone(), asset, fee, dest.clone(), dest_weight, false)?;
+			let fee_asset: MultiAsset = (location, fee.into()).into();
+			Self::do_transfer_multiasset_with_fee(who.clone(), asset, fee_asset, dest.clone(), dest_weight, false)?;
 
-			Self::deposit_event(Event::<T>::Transferred(who, currency_id, amount, dest));
+			Self::deposit_event(Event::<T>::TransferredWithFee(who, currency_id, amount, fee, dest));
 			Ok(())
 		}
 
@@ -369,7 +373,7 @@ pub mod module {
 				.map_err(|_| Error::<T>::XcmExecutionFailed)?;
 
 			if deposit_event {
-				Self::deposit_event(Event::<T>::TransferredMultiAsset(who, asset, dest));
+				Self::deposit_event(Event::<T>::TransferredMultiAssetWithFee(who, asset, fee, dest));
 			}
 
 			Ok(())
