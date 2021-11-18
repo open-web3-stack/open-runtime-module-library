@@ -176,12 +176,17 @@ pub mod module {
 			Self::do_transfer(who, currency_id, amount, dest, dest_weight)
 		}
 
-		/// Transfer native currencies specifying the fee.
+		/// Transfer native currencies specifying the fee and amount as
+		/// separate.
 		///
 		/// `dest_weight` is the weight for XCM execution on the dest chain, and
 		/// it would be charged from the transferred assets. If set below
 		/// requirements, the execution may fail and assets wouldn't be
 		/// received.
+		///
+		/// `fee` is the amount to be spent to pay for execution in destination
+		/// chain Both fee and amount will be substracted form the callers
+		/// balance
 		///
 		/// It's a no-op if any error on local XCM execution or message sending.
 		/// Note sending assets out per se doesn't guarantee they would be
@@ -229,12 +234,17 @@ pub mod module {
 			Self::do_transfer_multiasset(who, asset, dest, dest_weight, true)
 		}
 
-		/// Transfer `MultiAsset` specifying the fee.
+		/// Transfer `MultiAsset` specifying the fee and amount as separate.
 		///
 		/// `dest_weight` is the weight for XCM execution on the dest chain, and
 		/// it would be charged from the transferred assets. If set below
 		/// requirements, the execution may fail and assets wouldn't be
 		/// received.
+		///
+		/// `fee` is the multiasset to be spent to pay for execution in
+		/// destination chain Both fee and amount will be substracted form the
+		/// callers balance For now we only accept fee and asset having the same
+		/// multilocation id
 		///
 		/// It's a no-op if any error on local XCM execution or message sending.
 		/// Note sending assets out per se doesn't guarantee they would be
@@ -343,11 +353,11 @@ pub mod module {
 			dest_weight: Weight,
 			deposit_event: bool,
 		) -> DispatchResult {
-			if !asset.is_fungible(None) {
+			if !asset.is_fungible(None) || !fee.is_fungible(None) {
 				return Err(Error::<T>::NotFungible.into());
 			}
 
-			if fungible_amount(&asset).is_zero() {
+			if fungible_amount(&asset).is_zero() || fungible_amount(&fee).is_zero() {
 				return Ok(());
 			}
 
@@ -357,13 +367,28 @@ pub mod module {
 
 			let (transfer_kind, dest, reserve, recipient) = Self::transfer_kind(&asset, &dest)?;
 			let mut msg = match transfer_kind {
-				SelfReserveAsset => {
-					Self::transfer_self_reserve_asset_with_fee(asset.clone(), fee.clone(), dest.clone(), recipient, dest_weight)?
-				}
-				ToReserve => Self::transfer_to_reserve_with_fee(asset.clone(), fee.clone(), dest.clone(), recipient, dest_weight)?,
-				ToNonReserve => {
-					Self::transfer_to_non_reserve_with_fee(asset.clone(), fee.clone(), reserve, dest.clone(), recipient, dest_weight)?
-				}
+				SelfReserveAsset => Self::transfer_self_reserve_asset_with_fee(
+					asset.clone(),
+					fee.clone(),
+					dest.clone(),
+					recipient,
+					dest_weight,
+				)?,
+				ToReserve => Self::transfer_to_reserve_with_fee(
+					asset.clone(),
+					fee.clone(),
+					dest.clone(),
+					recipient,
+					dest_weight,
+				)?,
+				ToNonReserve => Self::transfer_to_non_reserve_with_fee(
+					asset.clone(),
+					fee.clone(),
+					reserve,
+					dest.clone(),
+					recipient,
+					dest_weight,
+				)?,
 			};
 
 			let origin_location = T::AccountIdToMultiLocation::convert(who.clone());
@@ -393,7 +418,7 @@ pub mod module {
 					dest: dest.clone(),
 					xcm: Xcm(vec![
 						Self::buy_execution(asset, &dest, dest_weight)?,
-						Self::deposit_asset(recipient),
+						Self::deposit_asset(All.into(), &dest, recipient)?,
 					]),
 				},
 			]))
@@ -407,18 +432,14 @@ pub mod module {
 			dest_weight: Weight,
 		) -> Result<Xcm<T::Call>, DispatchError> {
 			Ok(Xcm(vec![
-				WithdrawAsset(vec![
-						asset.clone().into(),
-						fee.clone().into()
-					].into()
-				),
+				WithdrawAsset(vec![asset.clone().into(), fee.clone().into()].into()),
 				DepositReserveAsset {
 					assets: All.into(),
 					max_assets: 1,
 					dest: dest.clone(),
 					xcm: Xcm(vec![
 						Self::buy_execution(fee, &dest, dest_weight)?,
-						Self::deposit_asset_specific(asset, &dest, recipient)?,
+						Self::deposit_asset(asset.into(), &dest, recipient)?,
 					]),
 				},
 			]))
@@ -437,7 +458,7 @@ pub mod module {
 					reserve: reserve.clone(),
 					xcm: Xcm(vec![
 						Self::buy_execution(asset, &reserve, dest_weight)?,
-						Self::deposit_asset(recipient),
+						Self::deposit_asset(All.into(), &reserve, recipient)?,
 					]),
 				},
 			]))
@@ -451,17 +472,13 @@ pub mod module {
 			dest_weight: Weight,
 		) -> Result<Xcm<T::Call>, DispatchError> {
 			Ok(Xcm(vec![
-				WithdrawAsset(vec![
-					asset.clone().into(),
-					fee.clone().into()
-				].into()
-				),
+				WithdrawAsset(vec![asset.clone().into(), fee.clone().into()].into()),
 				InitiateReserveWithdraw {
 					assets: All.into(),
 					reserve: reserve.clone(),
 					xcm: Xcm(vec![
 						Self::buy_execution(fee, &reserve, dest_weight)?,
-						Self::deposit_asset_specific(asset, &reserve, recipient)?,
+						Self::deposit_asset(asset.into(), &reserve, recipient)?,
 					]),
 				},
 			]))
@@ -500,7 +517,7 @@ pub mod module {
 							dest: reanchored_dest,
 							xcm: Xcm(vec![
 								Self::buy_execution(half(&asset), &dest, dest_weight)?,
-								Self::deposit_asset(recipient),
+								Self::deposit_asset(All.into(), &dest, recipient)?,
 							]),
 						},
 					]),
@@ -529,14 +546,11 @@ pub mod module {
 				}
 			}
 
-			let inv_at = T::LocationInverter::invert_location(&reserve).map_err(|()| Error::<T>::DestinationNotInvertible)?;
+			let reserve_inv_at =
+				T::LocationInverter::invert_location(&reserve).map_err(|()| Error::<T>::DestinationNotInvertible)?;
 
 			Ok(Xcm(vec![
-				WithdrawAsset(vec![
-					asset.clone().into(),
-					fee.clone().into()
-				].into()
-				),
+				WithdrawAsset(vec![asset.clone().into(), fee.clone().into()].into()),
 				InitiateReserveWithdraw {
 					assets: All.into(),
 					reserve: reserve.clone(),
@@ -544,14 +558,20 @@ pub mod module {
 						Self::buy_execution(half(&fee), &reserve, dest_weight)?,
 						DepositReserveAsset {
 							assets: vec![
-								half(&fee.clone()).reanchored(&inv_at).map_err(|_| Error::<T>::CannotReanchor)?, 
-								asset.clone().reanchored(&inv_at).map_err(|_| Error::<T>::CannotReanchor)?
-							].into(),
+								half(&fee.clone())
+									.reanchored(&reserve_inv_at)
+									.map_err(|_| Error::<T>::CannotReanchor)?,
+								asset
+									.clone()
+									.reanchored(&reserve_inv_at)
+									.map_err(|_| Error::<T>::CannotReanchor)?,
+							]
+							.into(),
 							max_assets: 1,
 							dest: reanchored_dest,
 							xcm: Xcm(vec![
 								Self::buy_execution(half(&fee), &dest, dest_weight)?,
-								Self::deposit_asset_specific(asset, &dest, recipient)?,
+								Self::deposit_asset(asset.into(), &dest, recipient)?,
 							]),
 						},
 					]),
@@ -559,20 +579,16 @@ pub mod module {
 			]))
 		}
 
-		fn deposit_asset(recipient: MultiLocation) -> Instruction<()> {
-			DepositAsset {
-				assets: All.into(),
-				max_assets: 1,
-				beneficiary: recipient,
-			}
-		}
-
-		fn deposit_asset_specific(asset: MultiAsset, at: &MultiLocation, recipient: MultiLocation) -> Result<Instruction<()>, DispatchError> {
+		fn deposit_asset(
+			mut asset: MultiAssetFilter,
+			at: &MultiLocation,
+			recipient: MultiLocation,
+		) -> Result<Instruction<()>, DispatchError> {
 			let inv_at = T::LocationInverter::invert_location(at).map_err(|()| Error::<T>::DestinationNotInvertible)?;
-			let asset = asset.reanchored(&inv_at).map_err(|_| Error::<T>::CannotReanchor)?;
+			asset.reanchor(&inv_at).map_err(|_| Error::<T>::CannotReanchor)?;
+
 			Ok(DepositAsset {
-				assets: asset.into(),
-				//assets: All.into(),
+				assets: asset,
 				max_assets: 1,
 				beneficiary: recipient,
 			})
@@ -695,6 +711,29 @@ pub mod module {
 			dest_weight: Weight,
 		) -> DispatchResult {
 			Self::do_transfer_multiasset(who, asset, dest, dest_weight, true)
+		}
+
+		#[require_transactional]
+		fn transfer_with_fee(
+			who: T::AccountId,
+			currency_id: T::CurrencyId,
+			amount: T::Balance,
+			fee: T::Balance,
+			dest: MultiLocation,
+			dest_weight: Weight,
+		) -> DispatchResult {
+			Self::do_transfer_with_fee(who, currency_id, amount, fee, dest, dest_weight)
+		}
+
+		#[require_transactional]
+		fn transfer_multi_asset_with_fee(
+			who: T::AccountId,
+			asset: MultiAsset,
+			fee: MultiAsset,
+			dest: MultiLocation,
+			dest_weight: Weight,
+		) -> DispatchResult {
+			Self::do_transfer_multiasset_with_fee(who, asset, fee, dest, dest_weight, true)
 		}
 	}
 }

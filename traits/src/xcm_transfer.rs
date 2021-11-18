@@ -20,4 +20,23 @@ pub trait XcmTransfer<AccountId, Balance, CurrencyId> {
 		dest: MultiLocation,
 		dest_weight: Weight,
 	) -> DispatchResult;
+
+	/// Transfer native currencies.
+	fn transfer_with_fee(
+		who: AccountId,
+		currency_id: CurrencyId,
+		amount: Balance,
+		fee: Balance,
+		dest: MultiLocation,
+		dest_weight: Weight,
+	) -> DispatchResult;
+
+	/// Transfer `MultiAsset`
+	fn transfer_multi_asset_with_fee(
+		who: AccountId,
+		asset: MultiAsset,
+		fee: MultiAsset,
+		dest: MultiLocation,
+		dest_weight: Weight,
+	) -> DispatchResult;
 }

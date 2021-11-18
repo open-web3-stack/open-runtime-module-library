@@ -97,7 +97,7 @@ fn send_relay_chain_asset_to_relay_chain_with_fee() {
 					X1(Junction::AccountId32 {
 						network: NetworkId::Any,
 						id: BOB.into(),
-					})	
+					})
 				)
 				.into()
 			),
