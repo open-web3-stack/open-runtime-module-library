@@ -4,7 +4,7 @@
 
 use super::*;
 
-use frame_support::{pallet_prelude::Encode, parameter_types};
+use frame_support::{assert_ok, pallet_prelude::Encode, parameter_types};
 use orml_traits::{location::RelativeLocations, ConcreteFungibleAsset};
 use sp_runtime::AccountId32;
 
@@ -122,7 +122,7 @@ fn relay_account_convert() {
 }
 
 #[test]
-fn allow_relayed_paid_execution_works() {
+fn allow_relayed_paid_execution_transact_works() {
 	parameter_types! {
 		const RelayNetwork: NetworkId = NetworkId::Any;
 	}
@@ -145,5 +145,36 @@ fn allow_relayed_paid_execution_works() {
 	]);
 	let r =
 		AllowRelayedPaidExecutionFromParent::<RelayNetwork>::should_execute(&(Parent.into()), &mut xcm, 100, &mut 100);
-	assert_eq!(r, Ok(()));
+	assert_ok!(r);
+}
+
+#[test]
+fn allow_relayed_paid_execution_weight_not_works() {
+	parameter_types! {
+		const RelayNetwork: NetworkId = NetworkId::Any;
+	}
+	let bob = X1(Junction::AccountId32 {
+		network: NetworkId::Kusama,
+		id: [1; 32],
+	});
+	let assets: MultiAsset = (Parent, 1000).into();
+	let mut xcm = Xcm::<()>(vec![
+		DescendOrigin(X1(Junction::AccountId32 {
+			network: NetworkId::Any,
+			id: [0; 32],
+		})),
+		WithdrawAsset(assets.clone().into()),
+		BuyExecution {
+			fees: assets,
+			weight_limit: Limited(1000),
+		},
+		DepositAsset {
+			assets: All.into(),
+			max_assets: 1,
+			beneficiary: (0, bob).into(),
+		},
+	]);
+	let r =
+		AllowRelayedPaidExecutionFromParent::<RelayNetwork>::should_execute(&(Parent.into()), &mut xcm, 2000, &mut 100);
+	assert_eq!(r, Err(()));
 }

@@ -152,7 +152,6 @@ impl<Network: Get<NetworkId>> ShouldExecute for AllowRelayedPaidExecutionFromPar
 				origin_type: OriginKind::SovereignAccount,
 				..
 			}
-			| WithdrawAsset(..)
 			| DepositAsset { .. } => Ok(()),
 			_ => Err(()),
 		}
