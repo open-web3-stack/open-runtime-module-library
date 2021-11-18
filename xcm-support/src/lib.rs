@@ -111,9 +111,6 @@ impl<Network: Get<NetworkId>, AccountId: From<[u8; 32]> + Into<[u8; 32]> + Clone
 }
 
 /// Allows execution from `origin` if it is `Parent`.
-///
-/// Only allows exactly alike the order of xcm: `DescendOrigin`,
-/// `WithdrawAsset`, `BuyExecution` and `Transact`.
 pub struct AllowRelayedPaidExecutionFromParent<Network>(PhantomData<Network>);
 impl<Network: Get<NetworkId>> ShouldExecute for AllowRelayedPaidExecutionFromParent<Network> {
 	fn should_execute<Call>(
@@ -154,7 +151,9 @@ impl<Network: Get<NetworkId>> ShouldExecute for AllowRelayedPaidExecutionFromPar
 			Transact {
 				origin_type: OriginKind::SovereignAccount,
 				..
-			} => Ok(()),
+			}
+			| WithdrawAsset(..)
+			| DepositAsset { .. } => Ok(()),
 			_ => Err(()),
 		}
 	}
