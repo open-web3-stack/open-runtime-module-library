@@ -3,7 +3,7 @@ name = "orml-weight-meter"
 version = "0.4.1-dev"
 license = "Apache-2.0"
 authors = ["Laminar Developers <hello@laminar.one>"]
-edition = "2018"
+edition = "2021"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]

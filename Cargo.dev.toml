@@ -1,5 +1,3 @@
-cargo-features = ["resolver"]
-
 [workspace]
 members = [
 	"auction",
@@ -25,6 +23,7 @@ members = [
 	"weight-gen",
 	"weight-meter",
 ]
+
 resolver = "2"
 
 [profile.dev]
