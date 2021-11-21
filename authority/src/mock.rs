@@ -4,7 +4,11 @@
 
 use super::*;
 use codec::{Decode, Encode};
-use frame_support::{parameter_types, traits::Everything, weights::Weight};
+use frame_support::{
+	parameter_types,
+	traits::{EqualPrivilegeOnly, Everything},
+	weights::Weight,
+};
 use frame_system::{ensure_root, ensure_signed, EnsureRoot};
 use sp_core::H256;
 use sp_runtime::{
@@ -62,6 +66,7 @@ impl pallet_scheduler::Config for Runtime {
 	type ScheduleOrigin = EnsureRoot<u128>;
 	type MaxScheduledPerBlock = ();
 	type WeightInfo = ();
+	type OriginPrivilegeCmp = EqualPrivilegeOnly;
 }
 
 #[derive(Clone, Encode, Decode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
