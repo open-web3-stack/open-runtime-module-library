@@ -104,11 +104,11 @@ pub mod module {
 	pub enum Event<T: Config> {
 		/// Transferred. \[sender, currency_id, amount, dest\]
 		Transferred(T::AccountId, T::CurrencyId, T::Balance, MultiLocation),
-		/// Transferred. \[sender, currency_id, amount, fee, dest\]
+		/// Transferred with fee. \[sender, currency_id, amount, fee, dest\]
 		TransferredWithFee(T::AccountId, T::CurrencyId, T::Balance, T::Balance, MultiLocation),
 		/// Transferred `MultiAsset`. \[sender, asset, dest\]
 		TransferredMultiAsset(T::AccountId, MultiAsset, MultiLocation),
-		/// Transferred `MultiAsset`. \[sender, asset, dest\]
+		/// Transferred `MultiAsset` with fee. \[sender, asset, dest\]
 		TransferredMultiAssetWithFee(T::AccountId, MultiAsset, MultiAsset, MultiLocation),
 	}
 
