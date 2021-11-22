@@ -712,29 +712,6 @@ pub mod module {
 		) -> DispatchResult {
 			Self::do_transfer_multiasset(who, asset, dest, dest_weight, true)
 		}
-
-		#[require_transactional]
-		fn transfer_with_fee(
-			who: T::AccountId,
-			currency_id: T::CurrencyId,
-			amount: T::Balance,
-			fee: T::Balance,
-			dest: MultiLocation,
-			dest_weight: Weight,
-		) -> DispatchResult {
-			Self::do_transfer_with_fee(who, currency_id, amount, fee, dest, dest_weight)
-		}
-
-		#[require_transactional]
-		fn transfer_multi_asset_with_fee(
-			who: T::AccountId,
-			asset: MultiAsset,
-			fee: MultiAsset,
-			dest: MultiLocation,
-			dest_weight: Weight,
-		) -> DispatchResult {
-			Self::do_transfer_multiasset_with_fee(who, asset, fee, dest, dest_weight, true)
-		}
 	}
 }
 
