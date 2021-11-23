@@ -138,7 +138,7 @@ pub mod module {
 		/// The version of the `Versioned` value used is not able to be
 		/// interpreted.
 		BadVersion,
-		/// The fee MultiAsset is of different type than the asset to transfer
+		/// The fee MultiAsset is of different type than the asset to transfer.
 		DistincAssetAndFeeId,
 	}
 
@@ -242,9 +242,9 @@ pub mod module {
 		/// received.
 		///
 		/// `fee` is the multiasset to be spent to pay for execution in
-		/// destination chain Both fee and amount will be substracted form the
+		/// destination chain. Both fee and amount will be subtracted form the
 		/// callers balance For now we only accept fee and asset having the same
-		/// multilocation id
+		/// `MultiLocation` id.
 		///
 		/// It's a no-op if any error on local XCM execution or message sending.
 		/// Note sending assets out per se doesn't guarantee they would be
