@@ -134,6 +134,91 @@ pub mod module {
 		/// The version of the `Versioned` value used is not able to be
 		/// interpreted.
 		BadVersion,
+		/// same as  XCM underlying error
+		XcmOverflow,
+		/// same as  XCM underlying error
+		XcmUnimplemented,
+		/// same as  XCM underlying error
+		XcmUntrustedReserveLocation,
+		/// same as  XCM underlying error
+		XcmUntrustedTeleportLocation,
+		/// same as  XCM underlying error
+		XcmMultiLocationFull,
+		/// same as  XCM underlying error
+		XcmMultiLocationNotInvertible,
+		/// same as  XCM underlying error
+		XcmBadOrigin,
+		/// same as  XCM underlying error
+		XcmInvalidLocation,
+		/// same as  XCM underlying error
+		XcmAssetNotFound,
+		/// same as  XCM underlying error
+		XcmFailedToTransactAsset,
+		/// same as  XCM underlying error
+		XcmNotWithdrawable,
+		/// same as  XCM underlying error
+		XcmLocationCannotHold,
+		/// same as  XCM underlying error
+		XcmExceedsMaxMessageSize,
+		/// same as  XCM underlying error
+		XcmDestinationUnsupported,
+		/// same as  XCM underlying error
+		XcmTransport,
+		/// same as  XCM underlying error
+		XcmUnroutable,
+		/// same as  XCM underlying error
+		XcmUnknownClaim,
+		/// same as  XCM underlying error
+		XcmFailedToDecode,
+		/// same as  XCM underlying error
+		XcmTooMuchWeightRequired,
+		/// same as  XCM underlying error
+		XcmNotHoldingFees,
+		/// same as  XCM underlying error
+		XcmTooExpensive,
+		/// same as  XCM underlying error
+		XcmTrap,
+		/// same as  XCM underlying error
+		XcmUnhandledXcmVersion,
+		/// same as  XCM underlying error
+		XcmWeightLimitReached,
+		/// same as  XCM underlying error
+		XcmBarrier,
+		/// same as  XCM underlying error
+		XcmWeightNotComputable,
+	}
+
+	/// Maps xcm error for detailed response in pallet.
+	/// Make sure that Xcm transfers are debugable.
+	fn xcm_to_pallet_error<T>(error: XcmError) -> Error<T> {
+		match error {
+			XcmError::Overflow => Error::<T>::XcmOverflow,
+			XcmError::Unimplemented => Error::<T>::XcmUnimplemented,
+			XcmError::UntrustedReserveLocation => Error::<T>::XcmUntrustedReserveLocation,
+			XcmError::UntrustedTeleportLocation => Error::<T>::XcmUntrustedTeleportLocation,
+			XcmError::MultiLocationFull => Error::<T>::XcmMultiLocationFull,
+			XcmError::MultiLocationNotInvertible => Error::<T>::XcmMultiLocationNotInvertible,
+			XcmError::BadOrigin => Error::<T>::XcmBadOrigin,
+			XcmError::InvalidLocation => Error::<T>::XcmInvalidLocation,
+			XcmError::AssetNotFound => Error::<T>::XcmAssetNotFound,
+			XcmError::FailedToTransactAsset(_) => Error::<T>::XcmFailedToTransactAsset,
+			XcmError::NotWithdrawable => Error::<T>::XcmNotWithdrawable,
+			XcmError::LocationCannotHold => Error::<T>::XcmLocationCannotHold,
+			XcmError::ExceedsMaxMessageSize => Error::<T>::XcmExceedsMaxMessageSize,
+			XcmError::DestinationUnsupported => Error::<T>::XcmDestinationUnsupported,
+			XcmError::Transport(_) => Error::<T>::XcmTransport,
+			XcmError::Unroutable => Error::<T>::XcmUnroutable,
+			XcmError::UnknownClaim => Error::<T>::XcmUnknownClaim,
+			XcmError::FailedToDecode => Error::<T>::XcmFailedToDecode,
+			XcmError::TooMuchWeightRequired => Error::<T>::XcmTooMuchWeightRequired,
+			XcmError::NotHoldingFees => Error::<T>::XcmNotHoldingFees,
+			XcmError::TooExpensive => Error::<T>::XcmTooExpensive,
+			XcmError::Trap(_) => Error::<T>::XcmTrap,
+			XcmError::UnhandledXcmVersion => Error::<T>::XcmUnhandledXcmVersion,
+			XcmError::WeightLimitReached(_) => Error::<T>::XcmWeightLimitReached,
+			XcmError::Barrier => Error::<T>::XcmBarrier,
+			XcmError::WeightNotComputable => Error::<T>::XcmWeightNotComputable,
+		}
 	}
 
 	#[pallet::hooks]
@@ -245,7 +330,7 @@ pub mod module {
 			let weight = T::Weigher::weight(&mut msg).map_err(|()| Error::<T>::UnweighableMessage)?;
 			T::XcmExecutor::execute_xcm_in_credit(origin_location, msg, weight, weight)
 				.ensure_complete()
-				.map_err(|_| Error::<T>::XcmExecutionFailed)?;
+				.map_err(xcm_to_pallet_error::<T>)?;
 
 			if deposit_event {
 				Self::deposit_event(Event::<T>::TransferredMultiAsset(who, asset, dest));
