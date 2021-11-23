@@ -89,8 +89,8 @@ fn send_relay_chain_asset_to_relay_chain_with_fee() {
 		assert_ok!(ParaXTokens::transfer_with_fee(
 			Some(ALICE).into(),
 			CurrencyId::R,
-			460,
-			40,
+			450,
+			50,
 			Box::new(
 				MultiLocation::new(
 					1,
@@ -106,6 +106,7 @@ fn send_relay_chain_asset_to_relay_chain_with_fee() {
 		assert_eq!(ParaTokens::free_balance(CurrencyId::R, &ALICE), 500);
 	});
 
+	// It should use 40 for weight, so 460 should reach destination
 	Relay::execute_with(|| {
 		assert_eq!(RelayBalances::free_balance(&para_a_account()), 500);
 		assert_eq!(RelayBalances::free_balance(&BOB), 460);
@@ -196,8 +197,8 @@ fn send_relay_chain_asset_to_sibling_with_fee() {
 		assert_ok!(ParaXTokens::transfer_with_fee(
 			Some(ALICE).into(),
 			CurrencyId::R,
-			420,
-			80,
+			410,
+			90,
 			Box::new(
 				MultiLocation::new(
 					1,
@@ -216,11 +217,13 @@ fn send_relay_chain_asset_to_sibling_with_fee() {
 		assert_eq!(ParaTokens::free_balance(CurrencyId::R, &ALICE), 500);
 	});
 
+	// It should use 40 weight
 	Relay::execute_with(|| {
 		assert_eq!(RelayBalances::free_balance(&para_a_account()), 500);
 		assert_eq!(RelayBalances::free_balance(&para_b_account()), 460);
 	});
 
+	// It should use another 40 weight in paraB
 	ParaB::execute_with(|| {
 		assert_eq!(ParaTokens::free_balance(CurrencyId::R, &BOB), 420);
 	});
@@ -282,8 +285,8 @@ fn send_sibling_asset_to_reserve_sibling_with_fee() {
 		assert_ok!(ParaXTokens::transfer_with_fee(
 			Some(ALICE).into(),
 			CurrencyId::B,
-			460,
-			40,
+			450,
+			50,
 			Box::new(
 				(
 					Parent,
@@ -301,6 +304,7 @@ fn send_sibling_asset_to_reserve_sibling_with_fee() {
 		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &ALICE), 500);
 	});
 
+	// It should use 40 for weight, so 460 should reach destination
 	ParaB::execute_with(|| {
 		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &sibling_a_account()), 500);
 		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &BOB), 460);
@@ -369,8 +373,8 @@ fn send_sibling_asset_to_non_reserve_sibling_with_fee() {
 		assert_ok!(ParaXTokens::transfer_with_fee(
 			Some(ALICE).into(),
 			CurrencyId::B,
-			420,
-			80,
+			410,
+			90,
 			Box::new(
 				MultiLocation::new(
 					1,
@@ -389,12 +393,14 @@ fn send_sibling_asset_to_non_reserve_sibling_with_fee() {
 		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &ALICE), 500);
 	});
 
+	// Should use only 40 weight
 	// check reserve accounts
 	ParaB::execute_with(|| {
 		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &sibling_a_account()), 500);
 		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &sibling_c_account()), 460);
 	});
 
+	// Should use 40 additional weight
 	ParaC::execute_with(|| {
 		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &BOB), 420);
 	});
@@ -437,7 +443,7 @@ fn send_self_parachain_asset_to_sibling() {
 }
 
 #[test]
-fn send_self_parachain_asset_to_sibling_with_feee() {
+fn send_self_parachain_asset_to_sibling_with_fee() {
 	TestNet::reset();
 
 	ParaA::execute_with(|| {
@@ -446,8 +452,8 @@ fn send_self_parachain_asset_to_sibling_with_feee() {
 		assert_ok!(ParaXTokens::transfer_with_fee(
 			Some(ALICE).into(),
 			CurrencyId::A,
-			460,
-			40,
+			450,
+			50,
 			Box::new(
 				MultiLocation::new(
 					1,
@@ -468,6 +474,7 @@ fn send_self_parachain_asset_to_sibling_with_feee() {
 		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &sibling_b_account()), 500);
 	});
 
+	// It should use 40 for weight, so 460 should reach destination
 	ParaB::execute_with(|| {
 		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &BOB), 460);
 	});

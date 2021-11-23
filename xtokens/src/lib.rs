@@ -108,7 +108,7 @@ pub mod module {
 		TransferredWithFee(T::AccountId, T::CurrencyId, T::Balance, T::Balance, MultiLocation),
 		/// Transferred `MultiAsset`. \[sender, asset, dest\]
 		TransferredMultiAsset(T::AccountId, MultiAsset, MultiLocation),
-		/// Transferred `MultiAsset` with fee. \[sender, asset, dest\]
+		/// Transferred `MultiAsset` with fee. \[sender, asset, fee, dest\]
 		TransferredMultiAssetWithFee(T::AccountId, MultiAsset, MultiAsset, MultiLocation),
 	}
 
@@ -176,38 +176,6 @@ pub mod module {
 			Self::do_transfer(who, currency_id, amount, dest, dest_weight)
 		}
 
-		/// Transfer native currencies specifying the fee and amount as
-		/// separate.
-		///
-		/// `dest_weight` is the weight for XCM execution on the dest chain, and
-		/// it would be charged from the transferred assets. If set below
-		/// requirements, the execution may fail and assets wouldn't be
-		/// received.
-		///
-		/// `fee` is the amount to be spent to pay for execution in destination
-		/// chain Both fee and amount will be substracted form the callers
-		/// balance
-		///
-		/// It's a no-op if any error on local XCM execution or message sending.
-		/// Note sending assets out per se doesn't guarantee they would be
-		/// received. Receiving depends on if the XCM message could be delivered
-		/// by the network, and if the receiving chain would handle
-		/// messages correctly.
-		#[pallet::weight(Pallet::<T>::weight_of_transfer(currency_id.clone(), *amount, dest))]
-		#[transactional]
-		pub fn transfer_with_fee(
-			origin: OriginFor<T>,
-			currency_id: T::CurrencyId,
-			amount: T::Balance,
-			fee: T::Balance,
-			dest: Box<VersionedMultiLocation>,
-			dest_weight: Weight,
-		) -> DispatchResult {
-			let who = ensure_signed(origin)?;
-			let dest: MultiLocation = (*dest).try_into().map_err(|()| Error::<T>::BadVersion)?;
-			Self::do_transfer_with_fee(who, currency_id, amount, fee, dest, dest_weight)
-		}
-
 		/// Transfer `MultiAsset`.
 		///
 		/// `dest_weight` is the weight for XCM execution on the dest chain, and
@@ -232,6 +200,38 @@ pub mod module {
 			let asset: MultiAsset = (*asset).try_into().map_err(|()| Error::<T>::BadVersion)?;
 			let dest: MultiLocation = (*dest).try_into().map_err(|()| Error::<T>::BadVersion)?;
 			Self::do_transfer_multiasset(who, asset, dest, dest_weight, true)
+		}
+
+		/// Transfer native currencies specifying the fee and amount as
+		/// separate.
+		///
+		/// `dest_weight` is the weight for XCM execution on the dest chain, and
+		/// it would be charged from the transferred assets. If set below
+		/// requirements, the execution may fail and assets wouldn't be
+		/// received.
+		///
+		/// `fee` is the amount to be spent to pay for execution in destination
+		/// chain. Both fee and amount will be subtracted form the callers
+		/// balance.
+		///
+		/// It's a no-op if any error on local XCM execution or message sending.
+		/// Note sending assets out per se doesn't guarantee they would be
+		/// received. Receiving depends on if the XCM message could be delivered
+		/// by the network, and if the receiving chain would handle
+		/// messages correctly.
+		#[pallet::weight(Pallet::<T>::weight_of_transfer(currency_id.clone(), *amount, dest))]
+		#[transactional]
+		pub fn transfer_with_fee(
+			origin: OriginFor<T>,
+			currency_id: T::CurrencyId,
+			amount: T::Balance,
+			fee: T::Balance,
+			dest: Box<VersionedMultiLocation>,
+			dest_weight: Weight,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let dest: MultiLocation = (*dest).try_into().map_err(|()| Error::<T>::BadVersion)?;
+			Self::do_transfer_with_fee(who, currency_id, amount, fee, dest, dest_weight)
 		}
 
 		/// Transfer `MultiAsset` specifying the fee and amount as separate.
@@ -357,7 +357,7 @@ pub mod module {
 				return Err(Error::<T>::NotFungible.into());
 			}
 
-			if fungible_amount(&asset).is_zero() || fungible_amount(&fee).is_zero() {
+			if fungible_amount(&asset).is_zero() {
 				return Ok(());
 			}
 
@@ -418,7 +418,7 @@ pub mod module {
 					dest: dest.clone(),
 					xcm: Xcm(vec![
 						Self::buy_execution(asset, &dest, dest_weight)?,
-						Self::deposit_asset(All.into(), &dest, recipient)?,
+						Self::deposit_asset(recipient),
 					]),
 				},
 			]))
@@ -439,7 +439,7 @@ pub mod module {
 					dest: dest.clone(),
 					xcm: Xcm(vec![
 						Self::buy_execution(fee, &dest, dest_weight)?,
-						Self::deposit_asset(asset.into(), &dest, recipient)?,
+						Self::deposit_asset(recipient),
 					]),
 				},
 			]))
@@ -458,7 +458,7 @@ pub mod module {
 					reserve: reserve.clone(),
 					xcm: Xcm(vec![
 						Self::buy_execution(asset, &reserve, dest_weight)?,
-						Self::deposit_asset(All.into(), &reserve, recipient)?,
+						Self::deposit_asset(recipient),
 					]),
 				},
 			]))
@@ -478,7 +478,7 @@ pub mod module {
 					reserve: reserve.clone(),
 					xcm: Xcm(vec![
 						Self::buy_execution(fee, &reserve, dest_weight)?,
-						Self::deposit_asset(asset.into(), &reserve, recipient)?,
+						Self::deposit_asset(recipient),
 					]),
 				},
 			]))
@@ -517,7 +517,7 @@ pub mod module {
 							dest: reanchored_dest,
 							xcm: Xcm(vec![
 								Self::buy_execution(half(&asset), &dest, dest_weight)?,
-								Self::deposit_asset(All.into(), &dest, recipient)?,
+								Self::deposit_asset(recipient),
 							]),
 						},
 					]),
@@ -546,9 +546,6 @@ pub mod module {
 				}
 			}
 
-			let reserve_inv_at =
-				T::LocationInverter::invert_location(&reserve).map_err(|()| Error::<T>::DestinationNotInvertible)?;
-
 			Ok(Xcm(vec![
 				WithdrawAsset(vec![asset.clone().into(), fee.clone().into()].into()),
 				InitiateReserveWithdraw {
@@ -557,21 +554,12 @@ pub mod module {
 					xcm: Xcm(vec![
 						Self::buy_execution(half(&fee), &reserve, dest_weight)?,
 						DepositReserveAsset {
-							assets: vec![
-								half(&fee.clone())
-									.reanchored(&reserve_inv_at)
-									.map_err(|_| Error::<T>::CannotReanchor)?,
-								asset
-									.clone()
-									.reanchored(&reserve_inv_at)
-									.map_err(|_| Error::<T>::CannotReanchor)?,
-							]
-							.into(),
+							assets: All.into(),
 							max_assets: 1,
 							dest: reanchored_dest,
 							xcm: Xcm(vec![
 								Self::buy_execution(half(&fee), &dest, dest_weight)?,
-								Self::deposit_asset(asset.into(), &dest, recipient)?,
+								Self::deposit_asset(recipient),
 							]),
 						},
 					]),
@@ -579,19 +567,12 @@ pub mod module {
 			]))
 		}
 
-		fn deposit_asset(
-			mut asset: MultiAssetFilter,
-			at: &MultiLocation,
-			recipient: MultiLocation,
-		) -> Result<Instruction<()>, DispatchError> {
-			let inv_at = T::LocationInverter::invert_location(at).map_err(|()| Error::<T>::DestinationNotInvertible)?;
-			asset.reanchor(&inv_at).map_err(|_| Error::<T>::CannotReanchor)?;
-
-			Ok(DepositAsset {
-				assets: asset,
+		fn deposit_asset(recipient: MultiLocation) -> Instruction<()> {
+			DepositAsset {
+				assets: All.into(),
 				max_assets: 1,
 				beneficiary: recipient,
-			})
+			}
 		}
 
 		fn buy_execution(
