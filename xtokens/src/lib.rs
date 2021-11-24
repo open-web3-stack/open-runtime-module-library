@@ -448,7 +448,7 @@ pub mod module {
 			dest_weight: Weight,
 		) -> Result<Xcm<T::Call>, DispatchError> {
 			Ok(Xcm(vec![
-				WithdrawAsset(vec![asset.clone().into(), fee.clone().into()].into()),
+				WithdrawAsset(vec![asset, fee.clone()].into()),
 				DepositReserveAsset {
 					assets: All.into(),
 					max_assets: 1,
@@ -488,7 +488,7 @@ pub mod module {
 			dest_weight: Weight,
 		) -> Result<Xcm<T::Call>, DispatchError> {
 			Ok(Xcm(vec![
-				WithdrawAsset(vec![asset.clone().into(), fee.clone().into()].into()),
+				WithdrawAsset(vec![asset, fee.clone()].into()),
 				InitiateReserveWithdraw {
 					assets: All.into(),
 					reserve: reserve.clone(),
@@ -563,7 +563,7 @@ pub mod module {
 			}
 
 			Ok(Xcm(vec![
-				WithdrawAsset(vec![asset.clone().into(), fee.clone().into()].into()),
+				WithdrawAsset(vec![asset, fee.clone()].into()),
 				InitiateReserveWithdraw {
 					assets: All.into(),
 					reserve: reserve.clone(),
