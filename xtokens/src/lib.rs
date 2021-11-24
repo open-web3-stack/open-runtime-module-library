@@ -22,7 +22,7 @@
 #![allow(clippy::unused_unit)]
 #![allow(clippy::large_enum_variant)]
 
-use frame_support::{pallet_prelude::*, require_transactional, traits::Get, transactional, Parameter};
+use frame_support::{log, pallet_prelude::*, require_transactional, traits::Get, transactional, Parameter};
 use frame_system::{ensure_signed, pallet_prelude::*};
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, Convert, MaybeSerializeDeserialize, Member, Zero},
@@ -54,6 +54,7 @@ use TransferKind::*;
 
 #[frame_support::pallet]
 pub mod module {
+
 	use super::*;
 
 	#[pallet::config]
@@ -120,6 +121,7 @@ pub mod module {
 		NotCrossChainTransferableCurrency,
 		/// The message's weight could not be determined.
 		UnweighableMessage,
+		// TODO: expand into XcmExecutionFailed(XcmError) after https://github.com/paritytech/substrate/pull/10242 done
 		/// XCM execution failed.
 		XcmExecutionFailed,
 		/// Could not re-anchor the assets to declare the fees for the
@@ -245,7 +247,10 @@ pub mod module {
 			let weight = T::Weigher::weight(&mut msg).map_err(|()| Error::<T>::UnweighableMessage)?;
 			T::XcmExecutor::execute_xcm_in_credit(origin_location, msg, weight, weight)
 				.ensure_complete()
-				.map_err(|_| Error::<T>::XcmExecutionFailed)?;
+				.map_err(|error| {
+					log::error!("Failed execute transfer message with {:?}", error);
+					Error::<T>::XcmExecutionFailed
+				})?;
 
 			if deposit_event {
 				Self::deposit_event(Event::<T>::TransferredMultiAsset(who, asset, dest));
