@@ -657,3 +657,35 @@ fn call_size_limit() {
 		If the limit is too strong, maybe consider increasing the limit",
 	);
 }
+
+#[test]
+fn send_with_zero_fee_should_yield_an_error() {
+	TestNet::reset();
+
+	ParaA::execute_with(|| {
+		// Transferring with zero fee should fail
+		assert_noop!(
+			ParaXTokens::transfer_with_fee(
+				Some(ALICE).into(),
+				CurrencyId::A,
+				450,
+				0,
+				Box::new(
+					MultiLocation::new(
+						1,
+						X2(
+							Parachain(2),
+							Junction::AccountId32 {
+								network: NetworkId::Any,
+								id: BOB.into(),
+							}
+						)
+					)
+					.into()
+				),
+				40,
+			),
+			Error::<para::Runtime>::FeeCannotBeZero
+		);
+	});
+}

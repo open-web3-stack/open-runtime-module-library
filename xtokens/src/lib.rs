@@ -140,6 +140,9 @@ pub mod module {
 		BadVersion,
 		/// The fee MultiAsset is of different type than the asset to transfer.
 		DistincAssetAndFeeId,
+		/// The fee amount was zero when the fee specification extrinsic is
+		/// being used.
+		FeeCannotBeZero,
 	}
 
 	#[pallet::hooks]
@@ -214,6 +217,10 @@ pub mod module {
 		/// chain. Both fee and amount will be subtracted form the callers
 		/// balance.
 		///
+		/// If `fee` is not high enough to cover for the execution costs in the
+		/// destination chain, then the assets will be trapped in the
+		/// destination chain
+		///
 		/// It's a no-op if any error on local XCM execution or message sending.
 		/// Note sending assets out per se doesn't guarantee they would be
 		/// received. Receiving depends on if the XCM message could be delivered
@@ -245,6 +252,10 @@ pub mod module {
 		/// destination chain. Both fee and amount will be subtracted form the
 		/// callers balance For now we only accept fee and asset having the same
 		/// `MultiLocation` id.
+		///
+		/// If `fee` is not high enough to cover for the execution costs in the
+		/// destination chain, then the assets will be trapped in the
+		/// destination chain
 		///
 		/// It's a no-op if any error on local XCM execution or message sending.
 		/// Note sending assets out per se doesn't guarantee they would be
@@ -355,6 +366,11 @@ pub mod module {
 		) -> DispatchResult {
 			if !asset.is_fungible(None) || !fee.is_fungible(None) {
 				return Err(Error::<T>::NotFungible.into());
+			}
+
+			// Zero fee is an error
+			if fungible_amount(&fee).is_zero() {
+				return Err(Error::<T>::FeeCannotBeZero.into());
 			}
 
 			if fungible_amount(&asset).is_zero() {
