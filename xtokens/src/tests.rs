@@ -101,7 +101,7 @@ fn cannot_lost_fund_on_send_failed() {
 				),
 				40,
 			),
-			Error::<para::Runtime>::XcmUnroutable
+			Error::<para::Runtime>::XcmExecutionFailed
 		);
 
 		assert_eq!(ParaTokens::free_balance(CurrencyId::R, &ALICE), 1_000);

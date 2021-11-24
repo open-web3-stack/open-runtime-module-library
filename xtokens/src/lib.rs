@@ -248,7 +248,7 @@ pub mod module {
 			T::XcmExecutor::execute_xcm_in_credit(origin_location, msg, weight, weight)
 				.ensure_complete()
 				.map_err(|error| {
-					log::trace!("Failed execute transfer message with {:?}", error);
+					log::error!("Failed execute transfer message with {:?}", error);
 					Error::<T>::XcmExecutionFailed
 				})?;
 
