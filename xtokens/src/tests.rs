@@ -663,6 +663,8 @@ fn send_with_zero_fee_should_yield_an_error() {
 	TestNet::reset();
 
 	ParaA::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::A, &ALICE, 1_000));
+
 		// Transferring with zero fee should fail
 		assert_noop!(
 			ParaXTokens::transfer_with_fee(
@@ -688,4 +690,46 @@ fn send_with_zero_fee_should_yield_an_error() {
 			Error::<para::Runtime>::FeeCannotBeZero
 		);
 	});
+}
+
+#[test]
+fn send_with_insufficient_fee_traps_assets() {
+	TestNet::reset();
+
+	ParaA::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::A, &ALICE, 1_000));
+
+		// ParaB charges 40, but we specify 30 as fee. Assets will be trapped
+		// Call succedes in paraA
+		assert_ok!(ParaXTokens::transfer_with_fee(
+			Some(ALICE).into(),
+			CurrencyId::A,
+			450,
+			30,
+			Box::new(
+				MultiLocation::new(
+					1,
+					X2(
+						Parachain(2),
+						Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: BOB.into(),
+						}
+					)
+				)
+				.into()
+			),
+			40,
+		));
+	});
+
+	// In paraB, assets have been trapped due to he failed execution
+	ParaB::execute_with(|| {
+		assert!(para::System::events().iter().any(|r| {
+			matches!(
+				r.event,
+				para::Event::PolkadotXcm(pallet_xcm::Event::<para::Runtime>::AssetsTrapped(_, _, _))
+			)
+		}));
+	})
 }
