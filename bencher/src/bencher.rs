@@ -33,6 +33,10 @@ fn black_box<T>(dummy: T) -> T {
 }
 
 impl Bencher {
+	#[cfg(feature = "std")]
+	pub fn whitelist(&mut self, _key: Vec<u8>, _read: bool, _write: bool) {}
+
+	#[cfg(not(feature = "std"))]
 	pub fn whitelist(&mut self, key: Vec<u8>, read: bool, write: bool) {
 		crate::bench::whitelist(key, read, write);
 	}
