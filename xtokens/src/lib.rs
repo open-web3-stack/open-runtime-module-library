@@ -309,6 +309,11 @@ pub mod module {
 			let location: MultiLocation = T::CurrencyIdConvert::convert(currency_id.clone())
 				.ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
 
+			// Zero fee is an error
+			if fee.is_zero() {
+				return Err(Error::<T>::FeeCannotBeZero.into());
+			}
+
 			let asset = (location.clone(), amount.into()).into();
 			let fee_asset: MultiAsset = (location, fee.into()).into();
 			Self::do_transfer_multiasset_with_fee(who.clone(), asset, fee_asset, dest.clone(), dest_weight, false)?;
