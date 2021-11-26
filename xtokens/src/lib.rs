@@ -238,6 +238,11 @@ pub mod module {
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let dest: MultiLocation = (*dest).try_into().map_err(|()| Error::<T>::BadVersion)?;
+			// Zero fee is an error
+			if fee.is_zero() {
+				return Err(Error::<T>::FeeCannotBeZero.into());
+			}
+
 			Self::do_transfer_with_fee(who, currency_id, amount, fee, dest, dest_weight)
 		}
 
@@ -275,6 +280,10 @@ pub mod module {
 			let asset: MultiAsset = (*asset).try_into().map_err(|()| Error::<T>::BadVersion)?;
 			let fee: MultiAsset = (*fee).try_into().map_err(|()| Error::<T>::BadVersion)?;
 			let dest: MultiLocation = (*dest).try_into().map_err(|()| Error::<T>::BadVersion)?;
+			// Zero fee is an error
+			if fungible_amount(&fee).is_zero() {
+				return Err(Error::<T>::FeeCannotBeZero.into());
+			}
 
 			Self::do_transfer_multiasset_with_fee(who, asset, fee, dest, dest_weight, true)
 		}
@@ -308,11 +317,6 @@ pub mod module {
 		) -> DispatchResult {
 			let location: MultiLocation = T::CurrencyIdConvert::convert(currency_id.clone())
 				.ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
-
-			// Zero fee is an error
-			if fee.is_zero() {
-				return Err(Error::<T>::FeeCannotBeZero.into());
-			}
 
 			let asset = (location.clone(), amount.into()).into();
 			let fee_asset: MultiAsset = (location, fee.into()).into();
@@ -371,11 +375,6 @@ pub mod module {
 		) -> DispatchResult {
 			if !asset.is_fungible(None) || !fee.is_fungible(None) {
 				return Err(Error::<T>::NotFungible.into());
-			}
-
-			// Zero fee is an error
-			if fungible_amount(&fee).is_zero() {
-				return Err(Error::<T>::FeeCannotBeZero.into());
 			}
 
 			if fungible_amount(&asset).is_zero() {
