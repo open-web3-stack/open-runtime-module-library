@@ -198,8 +198,8 @@ impl Config for XcmConfig {
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
 	type Trader = AllTokensAreCreatedEqualToWeight;
 	type ResponseHandler = ();
-	type AssetTrap = ();
-	type AssetClaims = ();
+	type AssetTrap = PolkadotXcm;
+	type AssetClaims = PolkadotXcm;
 	type SubscriptionService = PolkadotXcm;
 }
 
