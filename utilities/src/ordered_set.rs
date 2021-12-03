@@ -1,7 +1,6 @@
 use codec::{Decode, Encode};
 use frame_support::{traits::Get, BoundedVec, DefaultNoBound};
 use scale_info::TypeInfo;
-use sp_std::convert::TryInto;
 #[cfg(feature = "std")]
 use sp_std::{fmt, prelude::*};
 

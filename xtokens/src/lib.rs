@@ -28,7 +28,7 @@ use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, Convert, MaybeSerializeDeserialize, Member, Zero},
 	DispatchError,
 };
-use sp_std::{convert::TryInto, prelude::*, result::Result};
+use sp_std::{prelude::*, result::Result};
 
 use xcm::prelude::*;
 use xcm_executor::traits::{InvertLocation, WeightBounds};

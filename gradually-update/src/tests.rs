@@ -7,7 +7,6 @@ use codec::Encode;
 use frame_support::{assert_noop, assert_ok};
 use mock::{Event, *};
 use sp_runtime::{FixedPointNumber, FixedU128, Permill};
-use sp_std::convert::TryInto;
 
 fn storage_set(key: &Vec<u8>, value: &Vec<u8>) {
 	// let bounded_key: StorageValueBytes<Runtime> =

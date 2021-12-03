@@ -1,4 +1,4 @@
-use frame_benchmarking::frame_support::sp_runtime::traits::{Block, NumberFor};
+use frame_benchmarking::frame_support::sp_runtime::traits::Block;
 use sc_executor::{sp_wasm_interface::HostFunctions, WasmExecutionMethod, WasmExecutor};
 use sc_executor_common::runtime_blob::RuntimeBlob;
 use sp_state_machine::{Ext, OverlayedChanges, StorageTransactionCache};
@@ -9,7 +9,7 @@ pub fn run<B: Block>(wasm_code: Vec<u8>) -> std::result::Result<Vec<u8>, String>
 	let mut cache = StorageTransactionCache::default();
 	let state =
 		sc_client_db::BenchmarkingState::<B>::new(Default::default(), Default::default(), false, false).unwrap();
-	let mut ext = Ext::<_, NumberFor<B>, _>::new(&mut overlay, &mut cache, &state, None, None);
+	let mut ext = Ext::new(&mut overlay, &mut cache, &state, None);
 
 	let mut host_functions = sp_io::SubstrateHostFunctions::host_functions();
 	host_functions.append(&mut frame_benchmarking::benchmarking::HostFunctions::host_functions());
