@@ -26,9 +26,6 @@ xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "relea
 orml-xcm-support = { path = "../xcm-support", default-features = false }
 orml-traits = { path = "../traits", default-features = false}
 
-# TODO: remove this when https://github.com/paritytech/polkadot/pull/4438 is available
-pallet-babe = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13", default-features = false }
-
 [dev-dependencies]
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13" }
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13" }
@@ -68,7 +65,6 @@ std = [
 	"xcm-executor/std",
 	"orml-xcm-support/std",
 	"orml-traits/std",
-	"pallet-babe/std",
 ]
 try-runtime = ["frame-support/try-runtime"]
 # Needed because of cargo feature pollution.
