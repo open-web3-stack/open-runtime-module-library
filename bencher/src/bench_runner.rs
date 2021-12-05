@@ -2,7 +2,7 @@ use super::{
 	ext::BenchExt,
 	tracker::{BenchTracker, BenchTrackerExt},
 };
-use frame_benchmarking::frame_support::sp_runtime::traits::{Block, NumberFor};
+use frame_benchmarking::frame_support::sp_runtime::traits::Block;
 use sc_executor::{sp_wasm_interface::HostFunctions, WasmExecutionMethod, WasmExecutor};
 use sc_executor_common::runtime_blob::RuntimeBlob;
 use sp_externalities::Extensions;
@@ -21,7 +21,7 @@ pub fn run<B: Block>(wasm_code: Vec<u8>) -> std::result::Result<Vec<u8>, String>
 	let mut extensions = Extensions::default();
 	extensions.register(tracker_ext);
 
-	let ext = Ext::<_, NumberFor<B>, _>::new(&mut overlay, &mut cache, &state, None, Some(&mut extensions));
+	let ext = Ext::<_, _>::new(&mut overlay, &mut cache, &state, Some(&mut extensions));
 	let mut bench_ext = BenchExt::new(ext, tracker);
 
 	let mut host_functions = sp_io::SubstrateHostFunctions::host_functions();

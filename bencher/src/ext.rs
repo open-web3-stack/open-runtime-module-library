@@ -1,39 +1,36 @@
 use core::any::{Any, TypeId};
 use hash_db::Hasher;
 use sp_externalities::{Extension, ExtensionStore, Externalities};
-use sp_state_machine::{Backend, ChangesTrieBlockNumber, Ext};
+use sp_state_machine::{Backend, Ext};
 use sp_std::sync::Arc;
 use sp_storage::{ChildInfo, TrackedStorageKey};
 
 use super::tracker::BenchTracker;
 
-pub struct BenchExt<'a, H, N, B>
+pub struct BenchExt<'a, H, B>
 where
 	H: Hasher,
 	B: 'a + Backend<H>,
-	N: ChangesTrieBlockNumber,
 {
-	ext: Ext<'a, H, N, B>,
+	ext: Ext<'a, H, B>,
 	tracker: Arc<BenchTracker>,
 }
 
-impl<'a, H, N, B> BenchExt<'a, H, N, B>
+impl<'a, H, B> BenchExt<'a, H, B>
 where
 	H: Hasher,
 	B: 'a + Backend<H>,
-	N: ChangesTrieBlockNumber,
 {
-	pub fn new(ext: Ext<'a, H, N, B>, tracker: Arc<BenchTracker>) -> Self {
+	pub fn new(ext: Ext<'a, H, B>, tracker: Arc<BenchTracker>) -> Self {
 		BenchExt { ext, tracker }
 	}
 }
 
-impl<'a, H, N, B> Externalities for BenchExt<'a, H, N, B>
+impl<'a, H, B> Externalities for BenchExt<'a, H, B>
 where
 	H: Hasher,
 	B: 'a + Backend<H>,
 	H::Out: Ord + 'static + codec::Codec,
-	N: ChangesTrieBlockNumber,
 {
 	fn set_offchain_storage(&mut self, key: &[u8], value: Option<&[u8]>) {
 		self.ext.set_offchain_storage(key, value);
@@ -107,10 +104,6 @@ where
 		self.ext.storage_append(key, value);
 	}
 
-	fn storage_changes_root(&mut self, parent: &[u8]) -> Result<Option<Vec<u8>>, ()> {
-		self.ext.storage_changes_root(parent)
-	}
-
 	fn storage_start_transaction(&mut self) {
 		self.ext.storage_start_transaction();
 	}
@@ -164,11 +157,10 @@ where
 	}
 }
 
-impl<'a, H, N, B> ExtensionStore for BenchExt<'a, H, N, B>
+impl<'a, H, B> ExtensionStore for BenchExt<'a, H, B>
 where
 	H: Hasher,
 	B: 'a + Backend<H>,
-	N: ChangesTrieBlockNumber,
 {
 	fn extension_by_type_id(&mut self, type_id: TypeId) -> Option<&mut dyn Any> {
 		self.ext.extension_by_type_id(type_id)

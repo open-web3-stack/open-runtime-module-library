@@ -32,7 +32,6 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use scale_info::TypeInfo;
 use sp_runtime::{traits::SaturatedConversion, DispatchResult, RuntimeDebug};
-use sp_std::convert::TryInto;
 
 mod default_weight;
 mod mock;

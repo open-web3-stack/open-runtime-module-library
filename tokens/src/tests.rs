@@ -1263,6 +1263,15 @@ fn multi_reservable_currency_reserve_work() {
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 50);
 			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 50);
 			assert_eq!(Tokens::total_balance(DOT, &ALICE), 100);
+
+			assert_ok!(Tokens::reserve(DOT, &ALICE, 50));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 100);
+			assert_eq!(Tokens::total_balance(DOT, &ALICE), 100);
+			// ensure will not trigger Endowed event
+			assert!(System::events()
+				.iter()
+				.all(|record| !matches!(record.event, Event::Tokens(crate::Event::Endowed(DOT, ALICE, _)))));
 		});
 }
 
@@ -1289,6 +1298,10 @@ fn multi_reservable_currency_unreserve_work() {
 			System::assert_last_event(Event::Tokens(crate::Event::Unreserved(DOT, ALICE, 15)));
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
 			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 0);
+			// ensure will not trigger Endowed event
+			assert!(System::events()
+				.iter()
+				.all(|record| !matches!(record.event, Event::Tokens(crate::Event::Endowed(DOT, ALICE, _)))));
 		});
 }
 
@@ -1308,6 +1321,9 @@ fn multi_reservable_currency_repatriate_reserved_work() {
 				Tokens::repatriate_reserved(DOT, &ALICE, &ALICE, 50, BalanceStatus::Free),
 				Ok(50)
 			);
+			// Repatriating from and to the same account, fund is `unreserved`.
+			System::assert_last_event(Event::Tokens(crate::Event::Unreserved(DOT, ALICE, 0)));
+
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
 			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 0);
 
@@ -1320,6 +1336,7 @@ fn multi_reservable_currency_repatriate_reserved_work() {
 				Tokens::repatriate_reserved(DOT, &BOB, &BOB, 60, BalanceStatus::Reserved),
 				Ok(10)
 			);
+
 			assert_eq!(Tokens::free_balance(DOT, &BOB), 50);
 			assert_eq!(Tokens::reserved_balance(DOT, &BOB), 50);
 
@@ -1327,6 +1344,14 @@ fn multi_reservable_currency_repatriate_reserved_work() {
 				Tokens::repatriate_reserved(DOT, &BOB, &ALICE, 30, BalanceStatus::Reserved),
 				Ok(0)
 			);
+			System::assert_last_event(Event::Tokens(crate::Event::RepatriatedReserve(
+				DOT,
+				BOB,
+				ALICE,
+				30,
+				BalanceStatus::Reserved,
+			)));
+
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
 			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 30);
 			assert_eq!(Tokens::free_balance(DOT, &BOB), 50);
@@ -1336,6 +1361,16 @@ fn multi_reservable_currency_repatriate_reserved_work() {
 				Tokens::repatriate_reserved(DOT, &BOB, &ALICE, 30, BalanceStatus::Free),
 				Ok(10)
 			);
+
+			// Actual amount repatriated is 20.
+			System::assert_last_event(Event::Tokens(crate::Event::RepatriatedReserve(
+				DOT,
+				BOB,
+				ALICE,
+				20,
+				BalanceStatus::Free,
+			)));
+
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 120);
 			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 30);
 			assert_eq!(Tokens::free_balance(DOT, &BOB), 50);
@@ -2068,15 +2103,61 @@ fn fungibles_mutate_hold_trait_should_work() {
 				<Tokens as fungibles::MutateHold<_>>::hold(DOT, &ALICE, 200),
 				Error::<Runtime>::BalanceTooLow
 			);
+			assert_eq!(<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, &ALICE), 0);
 			assert_ok!(<Tokens as fungibles::MutateHold<_>>::hold(DOT, &ALICE, 100));
+			assert_eq!(<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, &ALICE), 100);
 			assert_eq!(
-				<Tokens as fungibles::MutateHold<_>>::release(DOT, &ALICE, 50, true),
-				Ok(50)
+				<Tokens as fungibles::MutateHold<_>>::release(DOT, &ALICE, 40, false),
+				Ok(40)
 			);
+			assert_eq!(<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, &ALICE), 60);
+
+			// exceed hold amount when not in best_effort
+			assert_noop!(
+				<Tokens as fungibles::MutateHold<_>>::release(DOT, &ALICE, 61, false),
+				Error::<Runtime>::BalanceTooLow
+			);
+
+			// exceed hold amount when in best_effort
 			assert_eq!(
-				<Tokens as fungibles::MutateHold<_>>::transfer_held(DOT, &ALICE, &BOB, 100, true, true),
-				Ok(50)
+				<Tokens as fungibles::MutateHold<_>>::release(DOT, &ALICE, 61, true),
+				Ok(60)
 			);
+			assert_eq!(<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, &ALICE), 0);
+
+			assert_ok!(<Tokens as fungibles::MutateHold<_>>::hold(DOT, &ALICE, 70));
+			assert_eq!(<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, &ALICE), 70);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &BOB), 100);
+			assert_eq!(<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, &BOB), 0);
+			assert_eq!(
+				<Tokens as fungibles::MutateHold<_>>::transfer_held(DOT, &ALICE, &BOB, 5, false, false),
+				Ok(5)
+			);
+			assert_eq!(<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, &ALICE), 65);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &BOB), 105);
+			assert_eq!(<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, &BOB), 0);
+			assert_eq!(
+				<Tokens as fungibles::MutateHold<_>>::transfer_held(DOT, &ALICE, &BOB, 5, false, true),
+				Ok(5)
+			);
+			assert_eq!(<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, &ALICE), 60);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &BOB), 110);
+			assert_eq!(<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, &BOB), 5);
+
+			// exceed hold amount when not in best_effort
+			assert_noop!(
+				<Tokens as fungibles::MutateHold<_>>::transfer_held(DOT, &ALICE, &BOB, 61, false, true),
+				Error::<Runtime>::BalanceTooLow
+			);
+
+			// exceed hold amount when in best_effort
+			assert_eq!(
+				<Tokens as fungibles::MutateHold<_>>::transfer_held(DOT, &ALICE, &BOB, 61, true, true),
+				Ok(60)
+			);
+			assert_eq!(<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, &ALICE), 0);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &BOB), 170);
+			assert_eq!(<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, &BOB), 65);
 		});
 }
 
