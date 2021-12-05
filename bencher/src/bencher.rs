@@ -32,55 +32,63 @@ fn black_box<T>(dummy: T) -> T {
 	ret
 }
 
+#[allow(unused_variables)]
 impl Bencher {
-	#[cfg(feature = "std")]
-	pub fn whitelist(&mut self, _key: Vec<u8>, _read: bool, _write: bool) {}
-
-	#[cfg(not(feature = "std"))]
 	pub fn whitelist(&mut self, key: Vec<u8>, read: bool, write: bool) {
+		#[cfg(not(feature = "std"))]
 		crate::bench::whitelist(key, read, write);
 	}
 
 	pub fn prepare(&self) {
-		frame_benchmarking::benchmarking::commit_db();
-		frame_benchmarking::benchmarking::wipe_db();
+		#[cfg(not(feature = "std"))]
+		{
+			frame_benchmarking::benchmarking::commit_db();
+			frame_benchmarking::benchmarking::wipe_db();
+		}
 	}
 
-	#[cfg(feature = "std")]
 	pub fn bench<T, F>(&mut self, mut inner: F) -> T
 	where
 		F: FnMut() -> T,
 	{
-		black_box(inner())
-	}
+		#[cfg(feature = "std")]
+		let instant = std::time::Instant::now();
 
-	#[cfg(not(feature = "std"))]
-	pub fn bench<T, F>(&mut self, mut inner: F) -> T
-	where
-		F: FnMut() -> T,
-	{
-		frame_benchmarking::benchmarking::commit_db();
-		frame_benchmarking::benchmarking::reset_read_write_count();
-		crate::bench::prepare();
+		#[cfg(not(feature = "std"))]
+		{
+			frame_benchmarking::benchmarking::commit_db();
+			frame_benchmarking::benchmarking::reset_read_write_count();
+			crate::bench::prepare();
+			crate::bench::instant();
+		}
 
-		crate::bench::instant();
 		let ret = black_box(inner());
+
+		#[cfg(feature = "std")]
+		let elapsed = instant.elapsed().as_nanos();
+
+		#[cfg(not(feature = "std"))]
 		let elapsed = crate::bench::elapsed().saturating_sub(crate::bench::redundant_time());
+
 		self.current.elapses.push(elapsed);
 
-		frame_benchmarking::benchmarking::commit_db();
-		let (reads, _, written, _) = frame_benchmarking::benchmarking::read_write_count();
+		#[cfg(not(feature = "std"))]
+		{
+			frame_benchmarking::benchmarking::commit_db();
+			let (reads, _, written, _) = frame_benchmarking::benchmarking::read_write_count();
 
-		self.current.reads = reads;
-		self.current.writes = written;
+			self.current.reads = reads;
+			self.current.writes = written;
 
-		// changed keys
-		self.current.keys = crate::bench::read_written_keys();
+			// changed keys
+			self.current.keys = crate::bench::read_written_keys();
+		}
 
 		ret
 	}
 
 	pub fn print_warnings(&self, name: &str) {
+		#[cfg(not(feature = "std"))]
 		crate::bench::print_warnings(name.encode());
 	}
 }

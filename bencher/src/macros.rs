@@ -93,11 +93,9 @@ macro_rules! benches {
         #[panic_handler]
         #[no_mangle]
         fn panic_handler(info: &::core::panic::PanicInfo) -> ! {
-            unsafe {
-                let message = $crate::sp_std::alloc::format!("{}", info);
-                $crate::bench::print_error(message.as_bytes().to_vec());
-                core::arch::wasm32::unreachable();
-            }
+            let message = $crate::sp_std::alloc::format!("{}", info);
+            $crate::bench::print_error(message.as_bytes().to_vec());
+            unsafe {core::arch::wasm32::unreachable(); }
         }
 
         // Tests
