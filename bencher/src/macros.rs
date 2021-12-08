@@ -99,6 +99,7 @@ macro_rules! benches {
         }
 
         // Tests
+        #[cfg(test)]
         mod tests {
             $(
                 $crate::paste::item! {
