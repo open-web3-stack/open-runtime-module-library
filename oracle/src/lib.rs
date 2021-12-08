@@ -222,14 +222,15 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
 	fn do_feed_values(who: Option<T::AccountId>, values: Vec<(T::OracleKey, T::OracleValue)>) -> DispatchResult {
 		// ensure feeder is authorized
-		if let Some(ref who) = who {
+		let who = if let Some(who) = who {
 			ensure!(
-				T::Members::contains(who),
+				T::Members::contains(&who),
 				Error::<T, I>::NoPermission
 			);
-		}
-
-		let who = who.unwrap_or_else(|| T::RootOperatorAccountId::get());
+			who
+		} else {
+			T::RootOperatorAccountId::get()
+		};
 
 		// ensure account hasn't dispatched an updated yet
 		ensure!(
