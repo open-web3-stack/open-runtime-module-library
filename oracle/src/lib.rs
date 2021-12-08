@@ -223,10 +223,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 	fn do_feed_values(who: Option<T::AccountId>, values: Vec<(T::OracleKey, T::OracleValue)>) -> DispatchResult {
 		// ensure feeder is authorized
 		let who = if let Some(who) = who {
-			ensure!(
-				T::Members::contains(&who),
-				Error::<T, I>::NoPermission
-			);
+			ensure!(T::Members::contains(&who), Error::<T, I>::NoPermission);
 			who
 		} else {
 			T::RootOperatorAccountId::get()

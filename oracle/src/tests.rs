@@ -94,10 +94,7 @@ fn should_not_feed_values_from_root_directly() {
 		let root_feeder: AccountId = RootOperatorAccountId::get();
 
 		assert_noop!(
-			ModuleOracle::feed_values(
-				Origin::signed(root_feeder),
-				vec![(50, 1000), (51, 900), (52, 800)]
-			),
+			ModuleOracle::feed_values(Origin::signed(root_feeder), vec![(50, 1000), (51, 900), (52, 800)]),
 			Error::<Test, _>::NoPermission,
 		);
 	});
