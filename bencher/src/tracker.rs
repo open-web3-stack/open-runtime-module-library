@@ -303,7 +303,7 @@ impl BenchTracker {
 	}
 
 	pub fn redundant_time(&self) -> u128 {
-		assert!(*self.depth.read() == 0, "benchmark in progress");
+		assert_eq!(*self.depth.read(), 0, "benchmark in progress");
 
 		let mut elapsed = 0u128;
 

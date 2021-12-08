@@ -51,9 +51,6 @@ impl Bencher {
 	where
 		F: FnMut() -> T,
 	{
-		#[cfg(feature = "std")]
-		let instant = std::time::Instant::now();
-
 		#[cfg(not(feature = "std"))]
 		{
 			frame_benchmarking::benchmarking::commit_db();
@@ -64,16 +61,11 @@ impl Bencher {
 
 		let ret = black_box(inner());
 
-		#[cfg(feature = "std")]
-		let elapsed = instant.elapsed().as_nanos();
-
-		#[cfg(not(feature = "std"))]
-		let elapsed = crate::bench::elapsed().saturating_sub(crate::bench::redundant_time());
-
-		self.current.elapses.push(elapsed);
-
 		#[cfg(not(feature = "std"))]
 		{
+			let elapsed = crate::bench::elapsed().saturating_sub(crate::bench::redundant_time());
+			self.current.elapses.push(elapsed);
+
 			frame_benchmarking::benchmarking::commit_db();
 			let (reads, _, written, _) = frame_benchmarking::benchmarking::read_write_count();
 
