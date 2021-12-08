@@ -32,7 +32,7 @@ fn black_box<T>(dummy: T) -> T {
 	ret
 }
 
-#[allow(unused_variables)]
+#[allow(unused_variables, clippy::let_and_return)]
 impl Bencher {
 	pub fn whitelist(&mut self, key: Vec<u8>, read: bool, write: bool) {
 		#[cfg(not(feature = "std"))]
