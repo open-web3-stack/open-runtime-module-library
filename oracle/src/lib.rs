@@ -277,7 +277,7 @@ impl<T: Config<I>, I: 'static> DataProviderExtended<T::OracleKey, TimestampedVal
 		Self::get_no_op(key)
 	}
 
-	#[allow(clippy::type_complexity)]
+	#[allow(clippy::complexity)]
 	fn get_all_values() -> Vec<(T::OracleKey, Option<TimestampedValueOf<T, I>>)> {
 		Self::get_all_values()
 	}
