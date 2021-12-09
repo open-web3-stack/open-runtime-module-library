@@ -160,7 +160,8 @@ pub mod module {
 			values: Vec<(T::OracleKey, T::OracleValue)>,
 		) -> DispatchResultWithPostInfo {
 			let feeder = ensure_signed(origin.clone())
-				.or_else(|_| ensure_root(origin).map(|_| T::RootOperatorAccountId::get()))?;
+				.map(Some)
+				.or_else(|_| ensure_root(origin).map(|_| None))?;
 			Self::do_feed_values(feeder, values)?;
 			Ok(Pays::No.into())
 		}
@@ -219,12 +220,14 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		T::CombineData::combine_data(key, values, Self::values(key))
 	}
 
-	fn do_feed_values(who: T::AccountId, values: Vec<(T::OracleKey, T::OracleValue)>) -> DispatchResult {
+	fn do_feed_values(who: Option<T::AccountId>, values: Vec<(T::OracleKey, T::OracleValue)>) -> DispatchResult {
 		// ensure feeder is authorized
-		ensure!(
-			T::Members::contains(&who) || who == T::RootOperatorAccountId::get(),
-			Error::<T, I>::NoPermission
-		);
+		let who = if let Some(who) = who {
+			ensure!(T::Members::contains(&who), Error::<T, I>::NoPermission);
+			who
+		} else {
+			T::RootOperatorAccountId::get()
+		};
 
 		// ensure account hasn't dispatched an updated yet
 		ensure!(
@@ -273,6 +276,7 @@ impl<T: Config<I>, I: 'static> DataProviderExtended<T::OracleKey, TimestampedVal
 	fn get_no_op(key: &T::OracleKey) -> Option<TimestampedValueOf<T, I>> {
 		Self::get_no_op(key)
 	}
+
 	#[allow(clippy::complexity)]
 	fn get_all_values() -> Vec<(T::OracleKey, Option<TimestampedValueOf<T, I>>)> {
 		Self::get_all_values()
@@ -281,7 +285,6 @@ impl<T: Config<I>, I: 'static> DataProviderExtended<T::OracleKey, TimestampedVal
 
 impl<T: Config<I>, I: 'static> DataFeeder<T::OracleKey, T::OracleValue, T::AccountId> for Pallet<T, I> {
 	fn feed_value(who: T::AccountId, key: T::OracleKey, value: T::OracleValue) -> DispatchResult {
-		Self::do_feed_values(who, vec![(key, value)])?;
-		Ok(())
+		Self::do_feed_values(Some(who), vec![(key, value)])
 	}
 }
