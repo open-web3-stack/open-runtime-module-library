@@ -89,6 +89,18 @@ fn should_feed_values_from_root() {
 }
 
 #[test]
+fn should_not_feed_values_from_root_directly() {
+	new_test_ext().execute_with(|| {
+		let root_feeder: AccountId = RootOperatorAccountId::get();
+
+		assert_noop!(
+			ModuleOracle::feed_values(Origin::signed(root_feeder), vec![(50, 1000), (51, 900), (52, 800)]),
+			Error::<Test, _>::NoPermission,
+		);
+	});
+}
+
+#[test]
 fn should_update_is_updated() {
 	new_test_ext().execute_with(|| {
 		let key: u32 = 50;
