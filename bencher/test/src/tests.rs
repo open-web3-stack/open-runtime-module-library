@@ -15,13 +15,5 @@ fn set_value() {
 				..Default::default()
 			})
 		);
-
-		assert_eq!(
-			Test::set_value(Origin::signed(1), 1),
-			Ok(PostDispatchInfo {
-				actual_weight: Some(weight),
-				..Default::default()
-			})
-		);
 	});
 }
