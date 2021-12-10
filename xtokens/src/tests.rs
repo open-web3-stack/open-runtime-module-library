@@ -733,3 +733,36 @@ fn send_with_insufficient_fee_traps_assets() {
 		}));
 	})
 }
+
+#[test]
+fn send_with_fee_should_handle_overflow() {
+	TestNet::reset();
+
+	ParaA::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::A, &ALICE, 1_000));
+
+		assert_noop!(
+			ParaXTokens::transfer_with_fee(
+				Some(ALICE).into(),
+				CurrencyId::A,
+				u128::MAX,
+				1,
+				Box::new(
+					MultiLocation::new(
+						1,
+						X2(
+							Parachain(2),
+							Junction::AccountId32 {
+								network: NetworkId::Any,
+								id: BOB.into(),
+							}
+						)
+					)
+					.into()
+				),
+				40,
+			),
+			ArithmeticError::Overflow
+		);
+	});
+}
