@@ -26,7 +26,7 @@ use frame_support::{log, pallet_prelude::*, require_transactional, traits::Get, 
 use frame_system::{ensure_signed, pallet_prelude::*};
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, Convert, MaybeSerializeDeserialize, Member, Zero},
-	DispatchError,
+	ArithmeticError, DispatchError,
 };
 use sp_std::{prelude::*, result::Result};
 
@@ -389,6 +389,12 @@ pub mod module {
 			// For now fee and asset id should be identical
 			// We can relax this assumption in the future
 			ensure!(fee.id == asset.id, Error::<T>::DistincAssetAndFeeId);
+			// Workaround issue of https://github.com/paritytech/polkadot/pull/4492
+			// TODO: remove this on next Substrate version
+			ensure!(
+				fungible_amount(&asset).checked_add(fungible_amount(&fee)).is_some(),
+				ArithmeticError::Overflow
+			);
 
 			let (transfer_kind, dest, reserve, recipient) = Self::transfer_kind(&asset, &dest)?;
 			let mut msg = match transfer_kind {
