@@ -12,11 +12,11 @@ thread_local! {
 }
 
 /// Start weight meter with base weight
-pub fn start() {
+pub fn start(weight: Weight) {
 	METER.with(|v| {
 		let mut meter = v.borrow_mut();
 		if meter.depth == 0 {
-			meter.used_weight = 0;
+			meter.used_weight = weight;
 		}
 		meter.depth = meter.depth.saturating_add(1);
 	});
