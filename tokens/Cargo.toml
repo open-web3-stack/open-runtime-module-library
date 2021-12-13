@@ -16,7 +16,7 @@ sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v
 frame-support = {  git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", default-features = false }
 frame-system = {  git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", default-features = false }
 orml-traits = { path = "../traits", version = "0.4.1-dev", default-features = false }
-mangata-primitives = { git="https://github.com/mangata-finance/mangata-node", branch="mangata-dev", default-features = false, version = '0.1.0' }
+mangata-primitives = { git="https://github.com/mangata-finance/mangata-node", branch="mangata-dev-v4", default-features = false, version = '0.1.0' }
 
 [dev-dependencies]
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
