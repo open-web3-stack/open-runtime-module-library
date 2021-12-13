@@ -15,8 +15,8 @@ sp-runtime = { git = "https://github.com/mangata-finance/substrate", branch = "m
 
 frame-support = { git = "https://github.com/mangata-finance/substrate", branch = "mangata-dev-v4", default-features = false }
 
-xcm = { git = "https://github.com/mangata-finance/polkadot", branch = "release-v0.9.12", default-features = false }
-xcm-executor = { git = "https://github.com/mangata-finance/polkadot", branch = "release-v0.9.12", default-features = false }
+xcm = { git = "https://github.com/mangata-finance/polkadot", branch = "mangata-dev-v4", default-features = false }
+xcm-executor = { git = "https://github.com/mangata-finance/polkadot", branch = "mangata-dev-v4", default-features = false }
 
 orml-traits = { path = "../traits", version = "0.4.1-dev", default-features = false }
 

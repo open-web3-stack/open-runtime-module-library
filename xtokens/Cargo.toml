@@ -20,8 +20,8 @@ frame-system = { git = "https://github.com/mangata-finance/substrate", branch = 
 
 cumulus-primitives-core = { git = "https://github.com/mangata-finance/cumulus", branch = "mangata-dev-v4", default-features = false }
 
-xcm = { git = "https://github.com/mangata-finance/polkadot", branch = "release-v0.9.12", default-features = false }
-xcm-executor = { git = "https://github.com/mangata-finance/polkadot", branch = "release-v0.9.12", default-features = false }
+xcm = { git = "https://github.com/mangata-finance/polkadot", branch = "mangata-dev-v4", default-features = false }
+xcm-executor = { git = "https://github.com/mangata-finance/polkadot", branch = "mangata-dev-v4", default-features = false }
 
 orml-xcm-support = { path = "../xcm-support", default-features = false }
 orml-traits = { path = "../traits", default-features = false}
@@ -38,13 +38,13 @@ cumulus-pallet-xcm = { git = "https://github.com/mangata-finance/cumulus", branc
 parachain-info = { git = "https://github.com/mangata-finance/cumulus", branch = "mangata-dev-v4" }
 
 # polkadot
-polkadot-parachain = { git = "https://github.com/mangata-finance/polkadot", branch = "release-v0.9.12" }
-xcm = { git = "https://github.com/mangata-finance/polkadot", branch = "release-v0.9.12" }
-xcm-executor = { git = "https://github.com/mangata-finance/polkadot", branch = "release-v0.9.12" }
-xcm-builder = { git = "https://github.com/mangata-finance/polkadot", branch = "release-v0.9.12" }
-pallet-xcm = { git = "https://github.com/mangata-finance/polkadot", branch = "release-v0.9.12" }
-polkadot-runtime-parachains = { git = "https://github.com/mangata-finance/polkadot", branch = "release-v0.9.12" }
-xcm-simulator = { git = "https://github.com/mangata-finance/polkadot", branch = "release-v0.9.12"}
+polkadot-parachain = { git = "https://github.com/mangata-finance/polkadot", branch = "mangata-dev-v4" }
+xcm = { git = "https://github.com/mangata-finance/polkadot", branch = "mangata-dev-v4" }
+xcm-executor = { git = "https://github.com/mangata-finance/polkadot", branch = "mangata-dev-v4" }
+xcm-builder = { git = "https://github.com/mangata-finance/polkadot", branch = "mangata-dev-v4" }
+pallet-xcm = { git = "https://github.com/mangata-finance/polkadot", branch = "mangata-dev-v4" }
+polkadot-runtime-parachains = { git = "https://github.com/mangata-finance/polkadot", branch = "mangata-dev-v4" }
+xcm-simulator = { git = "https://github.com/mangata-finance/polkadot", branch = "mangata-dev-v4"}
 
 orml-tokens = { path = "../tokens" }
 orml-xcm = { path = "../xcm" }

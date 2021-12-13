@@ -15,11 +15,11 @@ sp-std = { git = "https://github.com/mangata-finance/substrate", branch = "manga
 frame-support = { git = "https://github.com/mangata-finance/substrate", branch = "mangata-dev-v4", default-features = false }
 frame-system = { git = "https://github.com/mangata-finance/substrate", branch = "mangata-dev-v4", default-features = false }
 
-xcm = { git = "https://github.com/mangata-finance/polkadot", branch = "release-v0.9.12", default-features = false }
-pallet-xcm = { git = "https://github.com/mangata-finance/polkadot", branch = "release-v0.9.12", default-features = false }
+xcm = { git = "https://github.com/mangata-finance/polkadot", branch = "mangata-dev-v4", default-features = false }
+pallet-xcm = { git = "https://github.com/mangata-finance/polkadot", branch = "mangata-dev-v4", default-features = false }
 
 [dev-dependencies]
-xcm-executor  = { git = "https://github.com/mangata-finance/polkadot", branch = "release-v0.9.12" }
+xcm-executor  = { git = "https://github.com/mangata-finance/polkadot", branch = "mangata-dev-v4" }
 
 [features]
 default = ["std"]
