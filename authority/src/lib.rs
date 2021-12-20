@@ -385,7 +385,7 @@ pub mod module {
 			ensure_root(origin)?;
 			let hash = T::Hashing::hash_of(&call);
 			SavedCalls::<T>::insert(hash, (call, caller.clone()));
-			Self::deposit_event(Event::AuthorizedCall { hash, caller: caller });
+			Self::deposit_event(Event::AuthorizedCall { hash, caller });
 			Ok(())
 		}
 
