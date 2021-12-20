@@ -110,11 +110,19 @@ pub mod module {
 	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Gradually update added.
-		GraduallyUpdateAdded{key: StorageKeyBytes<T>, per_block: StorageValueBytes<T>, target_value: StorageValueBytes<T>},
+		GraduallyUpdateAdded {
+			key: StorageKeyBytes<T>,
+			per_block: StorageValueBytes<T>,
+			target_value: StorageValueBytes<T>,
+		},
 		/// Gradually update cancelled.
-		GraduallyUpdateCancelled{key: StorageKeyBytes<T>},
+		GraduallyUpdateCancelled { key: StorageKeyBytes<T> },
 		/// Gradually update applied.
-		Updated{block_number: T::BlockNumber, key: StorageKeyBytes<T>, target_value: StorageValueBytes<T>},
+		Updated {
+			block_number: T::BlockNumber,
+			key: StorageKeyBytes<T>,
+			target_value: StorageValueBytes<T>,
+		},
 	}
 
 	/// All the on-going updates
@@ -182,7 +190,7 @@ pub mod module {
 				Ok(())
 			})?;
 
-			Self::deposit_event(Event::GraduallyUpdateAdded{
+			Self::deposit_event(Event::GraduallyUpdateAdded {
 				key: update.key,
 				per_block: update.per_block,
 				target_value: update.target_value,
@@ -204,7 +212,7 @@ pub mod module {
 				Ok(())
 			})?;
 
-			Self::deposit_event(Event::GraduallyUpdateCancelled{key});
+			Self::deposit_event(Event::GraduallyUpdateCancelled { key });
 			Ok(())
 		}
 	}
@@ -253,7 +261,11 @@ impl<T: Config> Pallet<T> {
 
 			let bounded_value: StorageValueBytes<T> = value.to_vec().try_into().unwrap();
 
-			Self::deposit_event(Event::Updated{block_number: now, key: update.key.clone(), target_value: bounded_value});
+			Self::deposit_event(Event::Updated {
+				block_number: now,
+				key: update.key.clone(),
+				target_value: bounded_value,
+			});
 
 			keep
 		});

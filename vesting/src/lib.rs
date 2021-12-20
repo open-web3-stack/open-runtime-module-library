@@ -162,11 +162,15 @@ pub mod module {
 	#[pallet::generate_deposit(fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Added new vesting schedule.
-		VestingScheduleAdded{from: T::AccountId, to: T::AccountId, vesting_schedule: VestingScheduleOf<T>},
+		VestingScheduleAdded {
+			from: T::AccountId,
+			to: T::AccountId,
+			vesting_schedule: VestingScheduleOf<T>,
+		},
 		/// Claimed vesting.
-		Claimed{who: T::AccountId, amount: BalanceOf<T>},
+		Claimed { who: T::AccountId, amount: BalanceOf<T> },
 		/// Updated vesting schedules.
-		VestingSchedulesUpdated{who: T::AccountId},
+		VestingSchedulesUpdated { who: T::AccountId },
 	}
 
 	/// Vesting schedules of an account.
@@ -241,7 +245,10 @@ pub mod module {
 			let who = ensure_signed(origin)?;
 			let locked_amount = Self::do_claim(&who);
 
-			Self::deposit_event(Event::Claimed{who, amount: locked_amount});
+			Self::deposit_event(Event::Claimed {
+				who,
+				amount: locked_amount,
+			});
 			Ok(())
 		}
 
@@ -255,7 +262,11 @@ pub mod module {
 			let to = T::Lookup::lookup(dest)?;
 			Self::do_vested_transfer(&from, &to, schedule.clone())?;
 
-			Self::deposit_event(Event::VestingScheduleAdded{from, to, vesting_schedule: schedule});
+			Self::deposit_event(Event::VestingScheduleAdded {
+				from,
+				to,
+				vesting_schedule: schedule,
+			});
 			Ok(())
 		}
 
@@ -270,7 +281,7 @@ pub mod module {
 			let account = T::Lookup::lookup(who)?;
 			Self::do_update_vesting_schedules(&account, vesting_schedules)?;
 
-			Self::deposit_event(Event::VestingSchedulesUpdated{who: account});
+			Self::deposit_event(Event::VestingSchedulesUpdated { who: account });
 			Ok(())
 		}
 
@@ -280,7 +291,10 @@ pub mod module {
 			let who = T::Lookup::lookup(dest)?;
 			let locked_amount = Self::do_claim(&who);
 
-			Self::deposit_event(Event::Claimed{who, amount: locked_amount});
+			Self::deposit_event(Event::Claimed {
+				who,
+				amount: locked_amount,
+			});
 			Ok(())
 		}
 	}

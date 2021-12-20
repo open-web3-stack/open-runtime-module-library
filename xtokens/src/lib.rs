@@ -104,13 +104,33 @@ pub mod module {
 	#[pallet::generate_deposit(fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Transferred.
-		Transferred{sender: T::AccountId, currency_id: T::CurrencyId, amount: T::Balance, dest: MultiLocation},
-		/// Transferred with fee. 
-		TransferredWithFee{sender: T::AccountId, currency_id: T::CurrencyId, amount: T::Balance, fee: T::Balance, dest: MultiLocation},
+		Transferred {
+			sender: T::AccountId,
+			currency_id: T::CurrencyId,
+			amount: T::Balance,
+			dest: MultiLocation,
+		},
+		/// Transferred with fee.
+		TransferredWithFee {
+			sender: T::AccountId,
+			currency_id: T::CurrencyId,
+			amount: T::Balance,
+			fee: T::Balance,
+			dest: MultiLocation,
+		},
 		/// Transferred `MultiAsset`.
-		TransferredMultiAsset{sender: T::AccountId, asset: MultiAsset,dest:  MultiLocation},
+		TransferredMultiAsset {
+			sender: T::AccountId,
+			asset: MultiAsset,
+			dest: MultiLocation,
+		},
 		/// Transferred `MultiAsset` with fee.
-		TransferredMultiAssetWithFee{sender: T::AccountId, asset: MultiAsset, fee: MultiAsset, dest: MultiLocation},
+		TransferredMultiAssetWithFee {
+			sender: T::AccountId,
+			asset: MultiAsset,
+			fee: MultiAsset,
+			dest: MultiLocation,
+		},
 	}
 
 	#[pallet::error]
@@ -305,7 +325,12 @@ pub mod module {
 			let asset = (location, amount.into()).into();
 			Self::do_transfer_multiasset(who.clone(), asset, dest.clone(), dest_weight, false)?;
 
-			Self::deposit_event(Event::<T>::Transferred{sender: who, currency_id, amount, dest});
+			Self::deposit_event(Event::<T>::Transferred {
+				sender: who,
+				currency_id,
+				amount,
+				dest,
+			});
 			Ok(())
 		}
 
@@ -324,7 +349,13 @@ pub mod module {
 			let fee_asset: MultiAsset = (location, fee.into()).into();
 			Self::do_transfer_multiasset_with_fee(who.clone(), asset, fee_asset, dest.clone(), dest_weight, false)?;
 
-			Self::deposit_event(Event::<T>::TransferredWithFee{sender: who, currency_id, amount, fee, dest});
+			Self::deposit_event(Event::<T>::TransferredWithFee {
+				sender: who,
+				currency_id,
+				amount,
+				fee,
+				dest,
+			});
 			Ok(())
 		}
 
@@ -364,7 +395,11 @@ pub mod module {
 				})?;
 
 			if deposit_event {
-				Self::deposit_event(Event::<T>::TransferredMultiAsset{sender: who, asset, dest});
+				Self::deposit_event(Event::<T>::TransferredMultiAsset {
+					sender: who,
+					asset,
+					dest,
+				});
 			}
 
 			Ok(())
@@ -429,7 +464,12 @@ pub mod module {
 				.map_err(|_| Error::<T>::XcmExecutionFailed)?;
 
 			if deposit_event {
-				Self::deposit_event(Event::<T>::TransferredMultiAssetWithFee{sender: who, asset, fee, dest});
+				Self::deposit_event(Event::<T>::TransferredMultiAssetWithFee {
+					sender: who,
+					asset,
+					fee,
+					dest,
+				});
 			}
 
 			Ok(())
