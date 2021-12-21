@@ -229,27 +229,54 @@ pub mod module {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// An account was created with some free balance. \[currency_id,
-		/// account, free_balance\]
-		Endowed(T::CurrencyId, T::AccountId, T::Balance),
+		/// An account was created with some free balance.
+		Endowed {
+			currency_id: T::CurrencyId,
+			who: T::AccountId,
+			amount: T::Balance,
+		},
 		/// An account was removed whose balance was non-zero but below
-		/// ExistentialDeposit, resulting in an outright loss. \[currency_id,
-		/// account, balance\]
-		DustLost(T::CurrencyId, T::AccountId, T::Balance),
-		/// Transfer succeeded. \[currency_id, from, to, value\]
-		Transfer(T::CurrencyId, T::AccountId, T::AccountId, T::Balance),
+		/// ExistentialDeposit, resulting in an outright loss.
+		DustLost {
+			currency_id: T::CurrencyId,
+			who: T::AccountId,
+			amount: T::Balance,
+		},
+		/// Transfer succeeded.
+		Transfer {
+			currency_id: T::CurrencyId,
+			from: T::AccountId,
+			to: T::AccountId,
+			amount: T::Balance,
+		},
 		/// Some balance was reserved (moved from free to reserved).
-		/// \[currency_id, who, value\]
-		Reserved(T::CurrencyId, T::AccountId, T::Balance),
+		Reserved {
+			currency_id: T::CurrencyId,
+			who: T::AccountId,
+			amount: T::Balance,
+		},
 		/// Some balance was unreserved (moved from reserved to free).
-		/// \[currency_id, who, value\]
-		Unreserved(T::CurrencyId, T::AccountId, T::Balance),
+		Unreserved {
+			currency_id: T::CurrencyId,
+			who: T::AccountId,
+			amount: T::Balance,
+		},
 		/// Some reserved balance was repatriated (moved from reserved to
 		/// another account).
-		/// \[currency_id, from, to, amount_actually_moved, status\]
-		RepatriatedReserve(T::CurrencyId, T::AccountId, T::AccountId, T::Balance, BalanceStatus),
-		/// A balance was set by root. \[who, free, reserved\]
-		BalanceSet(T::CurrencyId, T::AccountId, T::Balance, T::Balance),
+		RepatriatedReserve {
+			currency_id: T::CurrencyId,
+			from: T::AccountId,
+			to: T::AccountId,
+			amount: T::Balance,
+			status: BalanceStatus,
+		},
+		/// A balance was set by root.
+		BalanceSet {
+			currency_id: T::CurrencyId,
+			who: T::AccountId,
+			free: T::Balance,
+			reserved: T::Balance,
+		},
 	}
 
 	/// The total issuance of a token type.
@@ -366,7 +393,12 @@ pub mod module {
 			let to = T::Lookup::lookup(dest)?;
 			Self::do_transfer(currency_id, &from, &to, amount, ExistenceRequirement::AllowDeath)?;
 
-			Self::deposit_event(Event::Transfer(currency_id, from, to, amount));
+			Self::deposit_event(Event::Transfer {
+				currency_id,
+				from,
+				to,
+				amount,
+			});
 			Ok(())
 		}
 
@@ -402,7 +434,12 @@ pub mod module {
 				<Self as fungibles::Inspect<T::AccountId>>::reducible_balance(currency_id, &from, keep_alive);
 			<Self as fungibles::Transfer<_>>::transfer(currency_id, &from, &to, reducible_balance, keep_alive)?;
 
-			Self::deposit_event(Event::Transfer(currency_id, from, to, reducible_balance));
+			Self::deposit_event(Event::Transfer {
+				currency_id,
+				from,
+				to,
+				amount: reducible_balance,
+			});
 			Ok(())
 		}
 
@@ -428,7 +465,12 @@ pub mod module {
 			let to = T::Lookup::lookup(dest)?;
 			Self::do_transfer(currency_id, &from, &to, amount, ExistenceRequirement::KeepAlive)?;
 
-			Self::deposit_event(Event::Transfer(currency_id, from, to, amount));
+			Self::deposit_event(Event::Transfer {
+				currency_id,
+				from,
+				to,
+				amount,
+			});
 			Ok(().into())
 		}
 
@@ -454,7 +496,12 @@ pub mod module {
 			let to = T::Lookup::lookup(dest)?;
 			Self::do_transfer(currency_id, &from, &to, amount, ExistenceRequirement::AllowDeath)?;
 
-			Self::deposit_event(Event::Transfer(currency_id, from, to, amount));
+			Self::deposit_event(Event::Transfer {
+				currency_id,
+				from,
+				to,
+				amount,
+			});
 			Ok(())
 		}
 
@@ -506,7 +553,12 @@ pub mod module {
 					})?;
 				}
 
-				Self::deposit_event(Event::BalanceSet(currency_id, who.clone(), new_free, new_reserved));
+				Self::deposit_event(Event::BalanceSet {
+					currency_id,
+					who: who.clone(),
+					free: new_free,
+					reserved: new_reserved,
+				});
 				Ok(())
 			})
 		}
@@ -655,14 +707,22 @@ impl<T: Config> Pallet<T> {
 			}
 
 			if let Some(endowed) = maybe_endowed {
-				Self::deposit_event(Event::Endowed(currency_id, who.clone(), endowed));
+				Self::deposit_event(Event::Endowed {
+					currency_id,
+					who: who.clone(),
+					amount: endowed,
+				});
 			}
 
 			if let Some(dust_amount) = maybe_dust {
 				// `OnDust` maybe get/set storage `Accounts` of `who`, trigger handler here
 				// to avoid some unexpected errors.
 				T::OnDust::on_dust(who, currency_id, dust_amount);
-				Self::deposit_event(Event::DustLost(currency_id, who.clone(), dust_amount));
+				Self::deposit_event(Event::DustLost {
+					currency_id,
+					who: who.clone(),
+					amount: dust_amount,
+				});
 			}
 
 			result
@@ -1135,7 +1195,11 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 		Self::mutate_account(who, currency_id, |account, _| {
 			account.free -= value;
 			account.reserved += value;
-			Self::deposit_event(Event::Reserved(currency_id, who.clone(), value));
+			Self::deposit_event(Event::Reserved {
+				currency_id,
+				who: who.clone(),
+				amount: value,
+			});
 			Ok(())
 		})
 	}
@@ -1153,7 +1217,11 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 			let actual = account.reserved.min(value);
 			account.reserved -= actual;
 			account.free += actual;
-			Self::deposit_event(Event::Unreserved(currency_id, who.clone(), actual));
+			Self::deposit_event(Event::Unreserved {
+				currency_id,
+				who: who.clone(),
+				amount: actual,
+			});
 			value - actual
 		})
 	}
@@ -1195,13 +1263,13 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 			}
 		}
 		Self::set_reserved_balance(currency_id, slashed, from_account.reserved - actual);
-		Self::deposit_event(Event::<T>::RepatriatedReserve(
+		Self::deposit_event(Event::<T>::RepatriatedReserve {
 			currency_id,
-			slashed.clone(),
-			beneficiary.clone(),
-			actual,
+			from: slashed.clone(),
+			to: beneficiary.clone(),
+			amount: actual,
 			status,
-		));
+		});
 		Ok(value - actual)
 	}
 }

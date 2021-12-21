@@ -68,7 +68,11 @@ fn bid_should_work() {
 			})
 		);
 		assert_ok!(AuctionModule::bid(Origin::signed(ALICE), 0, 20));
-		System::assert_last_event(Event::AuctionModule(crate::Event::Bid(0, ALICE, 20)));
+		System::assert_last_event(Event::AuctionModule(crate::Event::Bid {
+			auction_id: 0,
+			bidder: ALICE,
+			amount: 20,
+		}));
 		assert_eq!(
 			AuctionModule::auction_info(0),
 			Some(AuctionInfo {

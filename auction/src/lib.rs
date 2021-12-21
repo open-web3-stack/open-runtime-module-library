@@ -69,8 +69,12 @@ pub mod module {
 	#[pallet::event]
 	#[pallet::generate_deposit(fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// A bid is placed. [auction_id, bidder, bidding_amount]
-		Bid(T::AuctionId, T::AccountId, T::Balance),
+		/// A bid is placed
+		Bid {
+			auction_id: T::AuctionId,
+			bidder: T::AccountId,
+			amount: T::Balance,
+		},
 	}
 
 	/// Stores on-going and future auctions. Closed auction are removed.
@@ -151,7 +155,11 @@ pub mod module {
 				Ok(())
 			})?;
 
-			Self::deposit_event(Event::Bid(id, from, value));
+			Self::deposit_event(Event::Bid {
+				auction_id: id,
+				bidder: from,
+				amount: value,
+			});
 			Ok(())
 		}
 	}

@@ -31,7 +31,7 @@ pub mod module {
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// XCM message sent. \[to, message\]
-		Sent(MultiLocation, Xcm<()>),
+		Sent { to: MultiLocation, message: Xcm<()> },
 	}
 
 	#[pallet::error]
@@ -64,7 +64,7 @@ pub mod module {
 				SendError::CannotReachDestination(..) => Error::<T>::Unreachable,
 				_ => Error::<T>::SendFailure,
 			})?;
-			Self::deposit_event(Event::Sent(dest, message));
+			Self::deposit_event(Event::Sent { to: dest, message });
 			Ok(())
 		}
 	}

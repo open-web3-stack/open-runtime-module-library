@@ -106,8 +106,11 @@ pub mod module {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event<T: Config<I>, I: 'static = ()> {
-		/// New feed data is submitted. [sender, values]
-		NewFeedData(T::AccountId, Vec<(T::OracleKey, T::OracleValue)>),
+		/// New feed data is submitted.
+		NewFeedData {
+			sender: T::AccountId,
+			values: Vec<(T::OracleKey, T::OracleValue)>,
+		},
 	}
 
 	/// Raw values for each oracle operators
@@ -246,7 +249,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
 			T::OnNewData::on_new_data(&who, key, value);
 		}
-		Self::deposit_event(Event::NewFeedData(who, values));
+		Self::deposit_event(Event::NewFeedData { sender: who, values });
 		Ok(())
 	}
 }
