@@ -3,11 +3,17 @@ use super::{
 	tracker::{BenchTracker, BenchTrackerExt},
 };
 use frame_benchmarking::frame_support::sp_runtime::traits::Block;
-use sc_executor::{sp_wasm_interface::HostFunctions, WasmExecutionMethod, WasmExecutor};
+use sc_executor::{WasmExecutionMethod, WasmExecutor};
 use sc_executor_common::runtime_blob::RuntimeBlob;
 use sp_externalities::Extensions;
 use sp_state_machine::{Ext, OverlayedChanges, StorageTransactionCache};
 use sp_std::sync::Arc;
+
+type ComposeHostFunctions = (
+	sp_io::SubstrateHostFunctions,
+	frame_benchmarking::benchmarking::HostFunctions,
+	super::bench::HostFunctions
+);
 
 /// Run benches
 pub fn run<B: Block>(wasm_code: Vec<u8>) -> std::result::Result<Vec<u8>, String> {
@@ -24,16 +30,12 @@ pub fn run<B: Block>(wasm_code: Vec<u8>) -> std::result::Result<Vec<u8>, String>
 	let ext = Ext::<_, _>::new(&mut overlay, &mut cache, &state, Some(&mut extensions));
 	let mut bench_ext = BenchExt::new(ext, tracker);
 
-	let mut host_functions = sp_io::SubstrateHostFunctions::host_functions();
-	host_functions.append(&mut frame_benchmarking::benchmarking::HostFunctions::host_functions());
-	host_functions.append(&mut super::bench::HostFunctions::host_functions());
-
-	let executor = WasmExecutor::new(
+	let executor = WasmExecutor::<ComposeHostFunctions>::new(
 		WasmExecutionMethod::Compiled,
 		Default::default(),
-		host_functions,
 		1,
 		None,
+		1,
 	);
 
 	let blob = RuntimeBlob::uncompress_if_needed(&wasm_code[..]).unwrap();
