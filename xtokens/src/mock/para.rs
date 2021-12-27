@@ -26,7 +26,10 @@ use xcm_builder::{
 use xcm_executor::{traits::WeightTrader, Assets, Config, XcmExecutor};
 
 use orml_traits::parameter_type_with_key;
-use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
+use orml_xcm_support::{
+	AllowRelayedPaidExecutionFromParent, IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset,
+	RelayChainAccountId32Aliases,
+};
 
 pub type AccountId = AccountId32;
 
@@ -114,6 +117,7 @@ pub type LocationToAccountId = (
 	ParentIsDefault<AccountId>,
 	SiblingParachainConvertsVia<Sibling, AccountId>,
 	AccountId32Aliases<RelayNetwork, AccountId>,
+	RelayChainAccountId32Aliases<RelayNetwork, AccountId>,
 );
 
 pub type XcmOriginToCallOrigin = (
@@ -140,7 +144,11 @@ pub type LocalAssetTransactor = MultiCurrencyAdapter<
 >;
 
 pub type XcmRouter = ParachainXcmRouter<ParachainInfo>;
-pub type Barrier = (TakeWeightCredit, AllowTopLevelPaidExecutionFrom<Everything>);
+pub type Barrier = (
+	TakeWeightCredit,
+	AllowTopLevelPaidExecutionFrom<Everything>,
+	AllowRelayedPaidExecutionFromParent<RelayNetwork>,
+);
 
 /// A trader who believes all tokens are created equal to "weight" of any chain,
 /// which is not true, but good enough to mock the fee payment of XCM execution.
