@@ -391,26 +391,24 @@ pub mod module {
 
 		#[pallet::weight(T::WeightInfo::remove_authorized_call())]
 		pub fn remove_authorized_call(origin: OriginFor<T>, hash: T::Hash) -> DispatchResult {
-			// TODO: https://github.com/paritytech/substrate/pull/10556
-			// let root_or_sigend =
-			// 	EnsureOneOf::<EnsureRoot<T::AccountId>, EnsureSigned<T::AccountId>>::ensure_origin(
-			// 		origin,
-			// 	)?;
-			//
-			// SavedCalls::<T>::try_mutate_exists(hash, |maybe_call| {
-			// 	let (_, maybe_caller) = maybe_call.take().ok_or(Error::<T>::CallNotAuthorized)?;
-			// 	match root_or_sigend {
-			// 		Either::Left(_) => {} // root, do nothing
-			// 		Either::Right(who) => {
-			// 			// signed, ensure it's the caller
-			// 			let caller = maybe_caller.ok_or(Error::<T>::CallNotAuthorized)?;
-			// 			ensure!(who == caller, Error::<T>::CallNotAuthorized);
-			// 		}
-			// 	}
-			// 	Self::deposit_event(Event::RemovedAuthorizedCall { hash });
-			// 	Ok(())
-			// })
-			Ok(())
+			let root_or_sigend =
+				EnsureOneOf::<EnsureRoot<T::AccountId>, EnsureSigned<T::AccountId>>::ensure_origin(
+					origin,
+				)?;
+
+			SavedCalls::<T>::try_mutate_exists(hash, |maybe_call| {
+				let (_, maybe_caller) = maybe_call.take().ok_or(Error::<T>::CallNotAuthorized)?;
+				match root_or_sigend {
+					Either::Left(_) => {} // root, do nothing
+					Either::Right(who) => {
+						// signed, ensure it's the caller
+						let caller = maybe_caller.ok_or(Error::<T>::CallNotAuthorized)?;
+						ensure!(who == caller, Error::<T>::CallNotAuthorized);
+					}
+				}
+				Self::deposit_event(Event::RemovedAuthorizedCall { hash });
+				Ok(())
+			})
 		}
 
 		#[pallet::weight((
