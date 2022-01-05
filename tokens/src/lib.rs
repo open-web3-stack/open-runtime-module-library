@@ -2044,7 +2044,7 @@ where
 	}
 
 	fn exists(currency_id: Self::CurrencyId) -> bool {
-		TotalIssuance::<T>::contains_key(currency_id)
+		currency_id < <NextCurrencyId<T>>::get()
 	}
 
 	/// either succeeds or leaves state unchanged
