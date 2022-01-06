@@ -137,6 +137,7 @@ pub type LocalAssetTransactor = MultiCurrencyAdapter<
 	LocationToAccountId,
 	CurrencyId,
 	CurrencyIdConvert,
+	(),
 >;
 
 pub type XcmRouter = ParachainXcmRouter<ParachainInfo>;

@@ -1,5 +1,8 @@
 use codec::FullCodec;
-use sp_runtime::traits::{Convert, MaybeSerializeDeserialize, SaturatedConversion};
+use sp_runtime::{
+	traits::{Convert, MaybeSerializeDeserialize, SaturatedConversion},
+	DispatchError,
+};
 use sp_std::{
 	cmp::{Eq, PartialEq},
 	fmt::Debug,
@@ -36,8 +39,41 @@ impl From<Error> for XcmError {
 	}
 }
 
+/// Deposit errors handler for `TransactAsset` implementations. Default impl for
+/// `()` returns an `XcmError::FailedToTransactAsset` error.
+pub trait OnDepositFail<CurrencyId, AccountId, Balance> {
+	/// Called on deposit errors with a specific `currency_id`.
+	fn on_deposit_currency_fail(
+		err: DispatchError,
+		currency_id: CurrencyId,
+		who: &AccountId,
+		amount: Balance,
+	) -> Result;
+
+	/// Called on unknown asset deposit errors.
+	fn on_deposit_unknown_asset_fail(err: DispatchError, asset: &MultiAsset, location: &MultiLocation) -> Result;
+}
+
+impl<CurrencyId, AccountId, Balance> OnDepositFail<CurrencyId, AccountId, Balance> for () {
+	fn on_deposit_currency_fail(
+		err: DispatchError,
+		_currency_id: CurrencyId,
+		_who: &AccountId,
+		_amount: Balance,
+	) -> Result {
+		Err(XcmError::FailedToTransactAsset(err.into()))
+	}
+
+	fn on_deposit_unknown_asset_fail(err: DispatchError, _asset: &MultiAsset, _location: &MultiLocation) -> Result {
+		Err(XcmError::FailedToTransactAsset(err.into()))
+	}
+}
+
 /// The `TransactAsset` implementation, to handle `MultiAsset` deposit/withdraw.
 /// Note that teleport related functions are unimplemented.
+///
+/// Methods of `DepositFailureHandler` would be called on multi-currency deposit
+/// errors.
 ///
 /// If the asset is known, deposit/withdraw will be handled by `MultiCurrency`,
 /// else by `UnknownAsset` if unknown.
@@ -49,6 +85,7 @@ pub struct MultiCurrencyAdapter<
 	AccountIdConvert,
 	CurrencyId,
 	CurrencyIdConvert,
+	DepositFailureHandler,
 >(
 	PhantomData<(
 		MultiCurrency,
@@ -58,6 +95,7 @@ pub struct MultiCurrencyAdapter<
 		AccountIdConvert,
 		CurrencyId,
 		CurrencyIdConvert,
+		DepositFailureHandler,
 	)>,
 );
 
@@ -69,8 +107,18 @@ impl<
 		AccountIdConvert: MoreConvert<MultiLocation, AccountId>,
 		CurrencyId: FullCodec + Eq + PartialEq + Copy + MaybeSerializeDeserialize + Debug,
 		CurrencyIdConvert: Convert<MultiAsset, Option<CurrencyId>>,
+		DepositFailureHandler: OnDepositFail<CurrencyId, AccountId, MultiCurrency::Balance>,
 	> TransactAsset
-	for MultiCurrencyAdapter<MultiCurrency, UnknownAsset, Match, AccountId, AccountIdConvert, CurrencyId, CurrencyIdConvert>
+	for MultiCurrencyAdapter<
+		MultiCurrency,
+		UnknownAsset,
+		Match,
+		AccountId,
+		AccountIdConvert,
+		CurrencyId,
+		CurrencyIdConvert,
+		DepositFailureHandler,
+	>
 {
 	fn deposit_asset(asset: &MultiAsset, location: &MultiLocation) -> Result {
 		match (
@@ -79,11 +127,11 @@ impl<
 			Match::matches_fungible(asset),
 		) {
 			// known asset
-			(Ok(who), Some(currency_id), Some(amount)) => {
-				MultiCurrency::deposit(currency_id, &who, amount).map_err(|e| XcmError::FailedToTransactAsset(e.into()))
-			}
+			(Ok(who), Some(currency_id), Some(amount)) => MultiCurrency::deposit(currency_id, &who, amount)
+				.or_else(|err| DepositFailureHandler::on_deposit_currency_fail(err, currency_id, &who, amount)),
 			// unknown asset
-			_ => UnknownAsset::deposit(asset, location).map_err(|e| XcmError::FailedToTransactAsset(e.into())),
+			_ => UnknownAsset::deposit(asset, location)
+				.or_else(|err| DepositFailureHandler::on_deposit_unknown_asset_fail(err, asset, location)),
 		}
 	}
 
