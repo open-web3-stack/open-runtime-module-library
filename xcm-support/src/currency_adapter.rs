@@ -1,4 +1,5 @@
 use codec::FullCodec;
+use frame_support::traits::Get;
 use sp_runtime::{
 	traits::{Convert, MaybeSerializeDeserialize, SaturatedConversion},
 	DispatchError,
@@ -51,7 +52,9 @@ pub trait OnDepositFail<CurrencyId, AccountId, Balance> {
 	) -> Result;
 
 	/// Called on unknown asset deposit errors.
-	fn on_deposit_unknown_asset_fail(err: DispatchError, asset: &MultiAsset, location: &MultiLocation) -> Result;
+	fn on_deposit_unknown_asset_fail(err: DispatchError, _asset: &MultiAsset, _location: &MultiLocation) -> Result {
+		Err(XcmError::FailedToTransactAsset(err.into()))
+	}
 }
 
 impl<CurrencyId, AccountId, Balance> OnDepositFail<CurrencyId, AccountId, Balance> for () {
@@ -63,9 +66,30 @@ impl<CurrencyId, AccountId, Balance> OnDepositFail<CurrencyId, AccountId, Balanc
 	) -> Result {
 		Err(XcmError::FailedToTransactAsset(err.into()))
 	}
+}
 
-	fn on_deposit_unknown_asset_fail(err: DispatchError, _asset: &MultiAsset, _location: &MultiLocation) -> Result {
-		Err(XcmError::FailedToTransactAsset(err.into()))
+/// `OnDepositFail` impl, will deposit known currencies to an alternative
+/// account.
+pub struct DepositToAlternative<Alternative, MultiCurrency, CurrencyId, AccountId, Balance>(
+	PhantomData<(Alternative, MultiCurrency, CurrencyId, AccountId, Balance)>,
+);
+impl<
+		Alternative: Get<AccountId>,
+		MultiCurrency: orml_traits::MultiCurrency<AccountId, CurrencyId = CurrencyId, Balance = Balance>,
+		AccountId: sp_std::fmt::Debug + Clone,
+		CurrencyId: FullCodec + Eq + PartialEq + Copy + MaybeSerializeDeserialize + Debug,
+		Balance,
+	> OnDepositFail<CurrencyId, AccountId, Balance>
+	for DepositToAlternative<Alternative, MultiCurrency, CurrencyId, AccountId, Balance>
+{
+	fn on_deposit_currency_fail(
+		_err: DispatchError,
+		currency_id: CurrencyId,
+		_who: &AccountId,
+		amount: Balance,
+	) -> Result {
+		MultiCurrency::deposit(currency_id, &Alternative::get(), amount)
+			.map_err(|e| XcmError::FailedToTransactAsset(e.into()))
 	}
 }
 
