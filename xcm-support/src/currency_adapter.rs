@@ -101,6 +101,7 @@ impl<
 ///
 /// If the asset is known, deposit/withdraw will be handled by `MultiCurrency`,
 /// else by `UnknownAsset` if unknown.
+#[allow(clippy::type_complexity)]
 pub struct MultiCurrencyAdapter<
 	MultiCurrency,
 	UnknownAsset,
