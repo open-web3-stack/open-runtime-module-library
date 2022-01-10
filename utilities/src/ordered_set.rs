@@ -7,7 +7,7 @@ use sp_std::{fmt, prelude::*};
 /// An ordered set backed by `BoundedVec`
 #[derive(PartialEq, Eq, Encode, Decode, DefaultNoBound, Clone, TypeInfo)]
 #[scale_info(skip_type_params(S))]
-pub struct OrderedSet<T, S>(pub BoundedVec<T, S>);
+pub struct OrderedSet<T, S: Get<u32>>(pub BoundedVec<T, S>);
 
 impl<T: Ord, S: Get<u32>> OrderedSet<T, S> {
 	/// Create a new empty set
