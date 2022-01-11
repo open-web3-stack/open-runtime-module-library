@@ -57,7 +57,7 @@ impl frame_system::Config for Runtime {
 
 parameter_types! {
 	pub MaximumSchedulerWeight: Weight = Perbill::from_percent(80) * BlockWeights::get().max_block;
-    // Retry a scheduled item every 10 blocks (1 minute) until the preimage exists.
+	// Retry a scheduled item every 10 blocks (1 minute) until the preimage exists.
 	pub const NoPreimagePostponement: Option<u64> = Some(10);
 }
 impl pallet_scheduler::Config for Runtime {

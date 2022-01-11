@@ -652,7 +652,9 @@ pub mod module {
 			weight: Weight,
 		) -> Result<Instruction<()>, DispatchError> {
 			let ancestry = T::LocationInverter::ancestry();
-			let fees = asset.reanchored(&at, &ancestry).map_err(|_| Error::<T>::CannotReanchor)?;
+			let fees = asset
+				.reanchored(&at, &ancestry)
+				.map_err(|_| Error::<T>::CannotReanchor)?;
 			Ok(BuyExecution {
 				fees,
 				weight_limit: WeightLimit::Limited(weight),

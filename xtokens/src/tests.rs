@@ -624,10 +624,7 @@ fn send_as_sovereign() {
 		assert!(relay::System::events().iter().any(|r| {
 			matches!(
 				r.event,
-				relay::Event::System(frame_system::Event::<relay::Runtime>::Remarked {
-					sender: _,
-					hash: _
-				})
+				relay::Event::System(frame_system::Event::<relay::Runtime>::Remarked { sender: _, hash: _ })
 			)
 		}));
 	})
