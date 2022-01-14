@@ -162,6 +162,17 @@ pub struct TransferDetails<AccountId, CurrencyId, Balance> {
 	amount: Balance,
 }
 
+impl<AccountId, CurrencyId, Balance> TransferDetails<AccountId, CurrencyId, Balance> {
+	pub fn new(send: AccountId, recv: AccountId, id: CurrencyId, amount: Balance) -> Self {
+		TransferDetails {
+			send,
+			recv,
+			id,
+			amount
+		}
+	}
+}
+
 pub use module::*;
 
 #[frame_support::pallet]
@@ -406,7 +417,7 @@ pub mod module {
 			let to = T::Lookup::lookup(dest)?;
 
 			ensure!(
-				T::PreConditions::check(from, to, currency_id, amount),
+				T::PreConditions::check(TransferDetails::new(from, to, currency_id, amount)),
 				Error::<T>::PreConditionsNotMet,
 			);
 
@@ -454,7 +465,7 @@ pub mod module {
 				<Self as fungibles::Inspect<T::AccountId>>::reducible_balance(currency_id, &from, keep_alive);
 
 			ensure!(
-				T::PreConditions::check(from, to, currency_id, reducible_balance),
+				T::PreConditions::check(TransferDetails::new(from, to, currency_id, amount)),
 				Error::<T>::PreConditionsNotMet,
 			);
 
@@ -491,7 +502,7 @@ pub mod module {
 			let to = T::Lookup::lookup(dest)?;
 
 			ensure!(
-				T::PreConditions::check(from, to, currency_id, reducible_balance),
+				T::PreConditions::check(TransferDetails::new(from, to, currency_id, amount)),
 				Error::<T>::PreConditionsNotMet,
 			);
 
