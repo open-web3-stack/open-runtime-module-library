@@ -100,16 +100,16 @@ impl<T> PreConditions<T> for Tuple {
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub struct Always;
-impl PreConditions<T> for Always {
-	fn check(t: &T) -> bool {
+impl<T> PreConditions<T> for Always {
+	fn check(_t: &T) -> bool {
 		true
 	}
 }
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub struct Never;
-impl PreConditions<T> for Never {
-	fn check(t: &T) -> bool {
+impl<T> PreConditions<T> for Never {
+	fn check(_t: &T) -> bool {
 		false
 	}
 }
