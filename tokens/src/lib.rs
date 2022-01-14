@@ -235,6 +235,8 @@ pub mod module {
 		ExistentialDeposit,
 		/// Beneficiary account must pre-exist
 		DeadAccount,
+		/// The pre-conditions for this transfer are not met
+		PreConditionsNotMet
 	}
 
 	#[pallet::event]
