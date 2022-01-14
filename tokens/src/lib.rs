@@ -417,8 +417,13 @@ pub mod module {
 			let to = T::Lookup::lookup(dest)?;
 
 			ensure!(
-				T::PreConditions::check(TransferDetails::new(from, to, currency_id, amount)),
-				Error::<T>::PreConditionsNotMet,
+				T::PreConditions::check(TransferDetails::new(
+					from.clone(),
+					to.clone(),
+					currency_id,
+					amount
+				)),
+				Error::<T>::PreConditionsNotMet
 			);
 
 			Self::do_transfer(currency_id, &from, &to, amount, ExistenceRequirement::AllowDeath)?;
@@ -465,8 +470,13 @@ pub mod module {
 				<Self as fungibles::Inspect<T::AccountId>>::reducible_balance(currency_id, &from, keep_alive);
 
 			ensure!(
-				T::PreConditions::check(TransferDetails::new(from, to, currency_id, amount)),
-				Error::<T>::PreConditionsNotMet,
+				T::PreConditions::check(TransferDetails::new(
+					from.clone(),
+					to.clone(),
+					currency_id,
+					amount
+				)),
+				Error::<T>::PreConditionsNotMet
 			);
 
 			<Self as fungibles::Transfer<_>>::transfer(currency_id, &from, &to, reducible_balance, keep_alive)?;
@@ -502,8 +512,13 @@ pub mod module {
 			let to = T::Lookup::lookup(dest)?;
 
 			ensure!(
-				T::PreConditions::check(TransferDetails::new(from, to, currency_id, amount)),
-				Error::<T>::PreConditionsNotMet,
+				T::PreConditions::check(TransferDetails::new(
+					from.clone(),
+					to.clone(),
+					currency_id,
+					amount
+				)),
+				Error::<T>::PreConditionsNotMet
 			);
 
 			Self::do_transfer(currency_id, &from, &to, amount, ExistenceRequirement::KeepAlive)?;
