@@ -8,7 +8,7 @@ use frame_support::{
 	traits::{ChangeMembers, ContainsLengthBound, Everything, GenesisBuild, SaturatingCurrencyToVote, SortedMembers},
 	PalletId,
 };
-use orml_traits::parameter_type_with_key;
+use orml_traits::{parameter_type_with_key, Always};
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
@@ -232,6 +232,7 @@ impl Config for Runtime {
 	type Amount = i64;
 	type CurrencyId = CurrencyId;
 	type WeightInfo = ();
+	type PreConditions = Always;
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = TransferDust<Runtime, DustReceiver>;
 	type MaxLocks = MaxLocks;

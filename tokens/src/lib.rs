@@ -67,7 +67,7 @@ use orml_traits::{
 	arithmetic::{self, Signed},
 	currency::TransferAll,
 	BalanceStatus, GetByKey, LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency,
-	MultiReservableCurrency, OnDust,
+	MultiReservableCurrency, OnDust, PreConditions,
 };
 
 mod imbalances;
@@ -154,6 +154,14 @@ impl<Balance: Saturating + Copy + Ord> AccountData<Balance> {
 	}
 }
 
+#[derive(Encode, Decode, Clone, PartialEq, Eq, Default, MaxEncodedLen, RuntimeDebug, TypeInfo)]
+pub struct TransferDetails<AccountId, CurrencyId, Balance> {
+	send: AccountId,
+	recv: AccountId,
+	id: CurrencyId,
+	amount: Balance,
+}
+
 pub use module::*;
 
 #[frame_support::pallet]
@@ -189,6 +197,9 @@ pub mod module {
 
 		/// Weight information for extrinsics in this module.
 		type WeightInfo: WeightInfo;
+
+		/// Checks whether all PreConditions for transfers are checked.
+		type PreConditions: PreConditions<TransferDetails<Self::AccountId, Self::CurrencyId, Self::Balance>>;
 
 		/// The minimum amount required to keep an account.
 		/// It's deprecated to config 0 as ED for any currency_id,
@@ -391,6 +402,12 @@ pub mod module {
 		) -> DispatchResult {
 			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
+
+			ensure!(
+				T::PreConditions::check(from, to, currency_id, amount),
+				Error::<T>::PreConditionsNotMet,
+			);
+
 			Self::do_transfer(currency_id, &from, &to, amount, ExistenceRequirement::AllowDeath)?;
 
 			Self::deposit_event(Event::Transfer {
@@ -430,8 +447,15 @@ pub mod module {
 		) -> DispatchResult {
 			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
+
 			let reducible_balance =
 				<Self as fungibles::Inspect<T::AccountId>>::reducible_balance(currency_id, &from, keep_alive);
+
+			ensure!(
+				T::PreConditions::check(from, to, currency_id, reducible_balance),
+				Error::<T>::PreConditionsNotMet,
+			);
+
 			<Self as fungibles::Transfer<_>>::transfer(currency_id, &from, &to, reducible_balance, keep_alive)?;
 
 			Self::deposit_event(Event::Transfer {
@@ -463,6 +487,12 @@ pub mod module {
 		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
+
+			ensure!(
+				T::PreConditions::check(from, to, currency_id, reducible_balance),
+				Error::<T>::PreConditionsNotMet,
+			);
+
 			Self::do_transfer(currency_id, &from, &to, amount, ExistenceRequirement::KeepAlive)?;
 
 			Self::deposit_event(Event::Transfer {

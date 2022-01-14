@@ -86,3 +86,24 @@ impl<T> Handler<T> for Tuple {
 		Ok(())
 	}
 }
+
+#[impl_for_tuples(30)]
+pub trait PreConditions<T> {
+	fn check(t: &T) -> bool;
+}
+
+#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+pub struct Always;
+impl PreConditions<T> for Always {
+	fn check(t: &T) -> bool {
+		true
+	}
+}
+
+#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+pub struct Never;
+impl PreConditions<T> for Never {
+	fn check(t: &T) -> bool {
+		false
+	}
+}
