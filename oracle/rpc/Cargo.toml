@@ -11,8 +11,8 @@ codec = { package = "parity-scale-codec", version = "2.3.1" }
 jsonrpc-core = "18.0.0"
 jsonrpc-core-client = "18.0.0"
 jsonrpc-derive = "18.0.0"
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13" }
-sp-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13" }
-sp-blockchain = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13" }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.15" }
+sp-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.15" }
+sp-blockchain = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.15" }
 
 orml-oracle-rpc-runtime-api = { path = "runtime-api", version = "0.4.1-dev" }
