@@ -52,4 +52,4 @@ pub trait ManageNFT<AccountId, CID, Attributes> {
 
 	/// To burn a NFT token.
 	fn burn(who: AccountId, token: (Self::ClassId, Self::TokenId), remark: Option<Vec<u8>>) -> DispatchResult;
-}	
+}
