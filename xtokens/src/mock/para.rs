@@ -20,7 +20,7 @@ use polkadot_parachain::primitives::Sibling;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin, FixedWeightBounds, LocationInverter,
-	ParentIsDefault, RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
+	ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
 	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 };
 use xcm_executor::{traits::WeightTrader, Assets, Config, XcmExecutor};
@@ -112,7 +112,7 @@ parameter_types! {
 }
 
 pub type LocationToAccountId = (
-	ParentIsDefault<AccountId>,
+	ParentIsPreset<AccountId>,
 	SiblingParachainConvertsVia<Sibling, AccountId>,
 	AccountId32Aliases<RelayNetwork, AccountId>,
 );
