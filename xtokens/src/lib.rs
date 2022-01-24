@@ -115,7 +115,8 @@ pub mod module {
 			sender: T::AccountId,
 			currency_id: T::CurrencyId,
 			amount: T::Balance,
-			fee: T::Balance,
+			fee_id: T::CurrencyId,
+			fee_amount: T::Balance,
 			dest: MultiLocation,
 		},
 		/// Transferred `MultiAsset`.
@@ -160,8 +161,9 @@ pub mod module {
 		/// The version of the `Versioned` value used is not able to be
 		/// interpreted.
 		BadVersion,
-		/// The fee MultiAsset is of different type than the asset to transfer.
-		DistincAssetAndFeeId,
+		/// We tried sending distinct asset and fee but they have different
+		/// reserve chains
+		DistinctReserveForAssetAndFee,
 		/// The fee amount was zero when the fee specification extrinsic is
 		/// being used.
 		FeeCannotBeZero,
@@ -254,18 +256,19 @@ pub mod module {
 			origin: OriginFor<T>,
 			currency_id: T::CurrencyId,
 			amount: T::Balance,
-			fee: T::Balance,
+			fee_id: T::CurrencyId,
+			fee_amount: T::Balance,
 			dest: Box<VersionedMultiLocation>,
 			dest_weight: Weight,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let dest: MultiLocation = (*dest).try_into().map_err(|()| Error::<T>::BadVersion)?;
 			// Zero fee is an error
-			if fee.is_zero() {
+			if fee_amount.is_zero() {
 				return Err(Error::<T>::FeeCannotBeZero.into());
 			}
 
-			Self::do_transfer_with_fee(who, currency_id, amount, fee, dest, dest_weight)
+			Self::do_transfer_with_fee(who, currency_id, amount, fee_id, fee_amount, dest, dest_weight)
 		}
 
 		/// Transfer `MultiAsset` specifying the fee and amount as separate.
@@ -338,22 +341,27 @@ pub mod module {
 			who: T::AccountId,
 			currency_id: T::CurrencyId,
 			amount: T::Balance,
-			fee: T::Balance,
+			fee_id: T::CurrencyId,
+			fee_amount: T::Balance,
 			dest: MultiLocation,
 			dest_weight: Weight,
 		) -> DispatchResult {
 			let location: MultiLocation = T::CurrencyIdConvert::convert(currency_id.clone())
 				.ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
 
+			let fee_location: MultiLocation =
+				T::CurrencyIdConvert::convert(fee_id.clone()).ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
+
 			let asset = (location.clone(), amount.into()).into();
-			let fee_asset: MultiAsset = (location, fee.into()).into();
+			let fee_asset: MultiAsset = (fee_location.clone(), fee_amount.into()).into();
 			Self::do_transfer_multiasset_with_fee(who.clone(), asset, fee_asset, dest.clone(), dest_weight, false)?;
 
 			Self::deposit_event(Event::<T>::TransferredWithFee {
 				sender: who,
 				currency_id,
 				amount,
-				fee,
+				fee_id,
+				fee_amount,
 				dest,
 			});
 			Ok(())
@@ -423,7 +431,10 @@ pub mod module {
 
 			// For now fee and asset id should be identical
 			// We can relax this assumption in the future
-			ensure!(fee.id == asset.id, Error::<T>::DistincAssetAndFeeId);
+			ensure!(
+				fee.reserve() == asset.reserve(),
+				Error::<T>::DistinctReserveForAssetAndFee
+			);
 			// Workaround issue of https://github.com/paritytech/polkadot/pull/4492
 			// TODO: remove this on next Substrate version
 			ensure!(

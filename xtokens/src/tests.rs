@@ -90,6 +90,7 @@ fn send_relay_chain_asset_to_relay_chain_with_fee() {
 			Some(ALICE).into(),
 			CurrencyId::R,
 			450,
+			CurrencyId::R,
 			50,
 			Box::new(
 				MultiLocation::new(
@@ -198,6 +199,7 @@ fn send_relay_chain_asset_to_sibling_with_fee() {
 			Some(ALICE).into(),
 			CurrencyId::R,
 			410,
+			CurrencyId::R,
 			90,
 			Box::new(
 				MultiLocation::new(
@@ -286,6 +288,7 @@ fn send_sibling_asset_to_reserve_sibling_with_fee() {
 			Some(ALICE).into(),
 			CurrencyId::B,
 			450,
+			CurrencyId::B,
 			50,
 			Box::new(
 				(
@@ -374,6 +377,7 @@ fn send_sibling_asset_to_non_reserve_sibling_with_fee() {
 			Some(ALICE).into(),
 			CurrencyId::B,
 			410,
+			CurrencyId::B,
 			90,
 			Box::new(
 				MultiLocation::new(
@@ -453,6 +457,7 @@ fn send_self_parachain_asset_to_sibling_with_fee() {
 			Some(ALICE).into(),
 			CurrencyId::A,
 			450,
+			CurrencyId::A,
 			50,
 			Box::new(
 				MultiLocation::new(
@@ -671,6 +676,7 @@ fn send_with_zero_fee_should_yield_an_error() {
 				Some(ALICE).into(),
 				CurrencyId::A,
 				450,
+				CurrencyId::A,
 				0,
 				Box::new(
 					MultiLocation::new(
@@ -705,6 +711,7 @@ fn send_with_insufficient_fee_traps_assets() {
 			Some(ALICE).into(),
 			CurrencyId::A,
 			450,
+			CurrencyId::A,
 			30,
 			Box::new(
 				MultiLocation::new(
@@ -746,6 +753,7 @@ fn send_with_fee_should_handle_overflow() {
 				Some(ALICE).into(),
 				CurrencyId::A,
 				u128::MAX,
+				CurrencyId::A,
 				1,
 				Box::new(
 					MultiLocation::new(
