@@ -387,7 +387,6 @@ pub mod module {
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let assets: MultiAssets = (*assets).try_into().map_err(|()| Error::<T>::BadVersion)?;
-			ensure!(assets.len() <= MAX_ASSETS_FOR_TRANSFER, Error::<T>::TooManyAssets);
 			let dest: MultiLocation = (*dest).try_into().map_err(|()| Error::<T>::BadVersion)?;
 
 			// We first grab the fee
@@ -558,6 +557,9 @@ pub mod module {
 			dest_weight: Weight,
 			deposit_event: bool,
 		) -> DispatchResult {
+			ensure!(assets.len() <= MAX_ASSETS_FOR_TRANSFER, Error::<T>::TooManyAssets);
+
+			// We check that all assets are valid and share the same reserve
 			for i in 0..assets.clone().len() {
 				let asset = assets.get(i).ok_or(Error::<T>::Empty)?;
 				if !asset.is_fungible(None) {
