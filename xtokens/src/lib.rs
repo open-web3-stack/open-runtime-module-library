@@ -136,7 +136,7 @@ pub mod module {
 			dest: MultiLocation,
 		},
 		/// Transferred `MultiAsset` with fee.
-		TransferredCurrencies {
+		TransferredMultiCurrencies {
 			sender: T::AccountId,
 			currencies: Vec<(T::CurrencyId, T::Balance)>,
 			dest: MultiLocation,
@@ -331,14 +331,14 @@ pub mod module {
 			Self::do_transfer_multiasset_with_fee(who, asset, fee, dest, dest_weight)
 		}
 
-		/// Transfer several `MultiAsset` specifying the item to be used as fee
+		/// Transfer several currencies specifying the item to be used as fee
 		///
 		/// `dest_weight` is the weight for XCM execution on the dest chain, and
 		/// it would be charged from the transferred assets. If set below
 		/// requirements, the execution may fail and assets wouldn't be
 		/// received.
 		///
-		/// `fee_item` is index of the MultiAssets that we want to use for
+		/// `fee_item` is index of the currencies tuple that we want to use for
 		/// payment
 		///
 		/// It's a no-op if any error on local XCM execution or message sending.
@@ -526,6 +526,7 @@ pub mod module {
 			for (currency_id, amount) in currencies.clone() {
 				let location: MultiLocation = T::CurrencyIdConvert::convert(currency_id.clone())
 					.ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
+				// Push contains saturated addition, so we should be able to use it safely
 				assets.push((location.clone(), amount.into()).into())
 			}
 
@@ -541,7 +542,7 @@ pub mod module {
 				false,
 			)?;
 
-			Self::deposit_event(Event::<T>::TransferredCurrencies {
+			Self::deposit_event(Event::<T>::TransferredMultiCurrencies {
 				sender: who,
 				currencies,
 				dest,
@@ -597,7 +598,10 @@ pub mod module {
 			let weight = T::Weigher::weight(&mut msg).map_err(|()| Error::<T>::UnweighableMessage)?;
 			T::XcmExecutor::execute_xcm_in_credit(origin_location, msg, weight, weight)
 				.ensure_complete()
-				.map_err(|_| Error::<T>::XcmExecutionFailed)?;
+				.map_err(|error| {
+					log::error!("Failed execute transfer message with {:?}", error);
+					Error::<T>::XcmExecutionFailed
+				})?;
 
 			if deposit_event {
 				Self::deposit_event(Event::<T>::TransferredMultiAssets {

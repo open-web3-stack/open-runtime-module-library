@@ -829,6 +829,8 @@ fn send_with_fee_should_handle_overflow() {
 	ParaA::execute_with(|| {
 		assert_ok!(ParaTokens::deposit(CurrencyId::A, &ALICE, 1_000));
 
+		// Uses saturated add, so xcm execution should fail because we dont have
+		// enough tokens
 		assert_noop!(
 			ParaXTokens::transfer_with_fee(
 				Some(ALICE).into(),
