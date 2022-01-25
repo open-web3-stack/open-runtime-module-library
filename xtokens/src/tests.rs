@@ -534,6 +534,50 @@ fn send_self_parachain_asset_to_sibling_with_fee() {
 }
 
 #[test]
+fn send_self_parachain_asset_to_sibling_with_distinct_fee() {
+	TestNet::reset();
+
+	ParaA::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::A, &ALICE, 1_000));
+		assert_ok!(ParaTokens::deposit(CurrencyId::A1, &ALICE, 1_000));
+
+		assert_ok!(ParaXTokens::transfer_with_fee(
+			Some(ALICE).into(),
+			CurrencyId::A,
+			450,
+			CurrencyId::A1,
+			50,
+			Box::new(
+				MultiLocation::new(
+					1,
+					X2(
+						Parachain(2),
+						Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: BOB.into(),
+						}
+					)
+				)
+				.into()
+			),
+			40,
+		));
+
+		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &ALICE), 550);
+		assert_eq!(ParaTokens::free_balance(CurrencyId::A1, &ALICE), 950);
+
+		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &sibling_b_account()), 450);
+		assert_eq!(ParaTokens::free_balance(CurrencyId::A1, &sibling_b_account()), 50);
+	});
+
+	// It should use 40 for weight, so 450 A + 10 A1 should reach destination
+	ParaB::execute_with(|| {
+		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &BOB), 450);
+		assert_eq!(ParaTokens::free_balance(CurrencyId::A1, &BOB), 10);
+	});
+}
+
+#[test]
 fn transfer_no_reserve_assets_fails() {
 	TestNet::reset();
 

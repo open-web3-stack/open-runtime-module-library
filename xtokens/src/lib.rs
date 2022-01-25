@@ -508,7 +508,7 @@ pub mod module {
 				WithdrawAsset(assets.clone().into()),
 				DepositReserveAsset {
 					assets: All.into(),
-					max_assets: 1,
+					max_assets: assets.len() as u32,
 					dest: dest.clone(),
 					xcm: Xcm(vec![
 						Self::buy_execution(fee, &dest, dest_weight)?,
