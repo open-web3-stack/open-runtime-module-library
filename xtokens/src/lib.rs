@@ -687,7 +687,7 @@ pub mod module {
 						Self::buy_execution(half(&fee), &reserve, dest_weight)?,
 						DepositReserveAsset {
 							assets: All.into(),
-							max_assets:  assets.len() as u32,
+							max_assets: assets.len() as u32,
 							dest: reanchored_dest,
 							xcm: Xcm(vec![
 								Self::buy_execution(half(&fee), &dest, dest_weight)?,
