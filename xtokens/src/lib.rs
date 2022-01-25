@@ -634,7 +634,7 @@ pub mod module {
 			dest_weight: Weight,
 		) -> Result<Xcm<T::Call>, DispatchError> {
 			Ok(Xcm(vec![
-				WithdrawAsset(assets.clone().into()),
+				WithdrawAsset(assets.clone()),
 				InitiateReserveWithdraw {
 					assets: All.into(),
 					reserve: reserve.clone(),
