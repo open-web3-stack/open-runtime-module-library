@@ -119,7 +119,7 @@ pub mod module {
 			sender: T::AccountId,
 			currency_id: T::CurrencyId,
 			amount: T::Balance,
-			fee_amount: T::Balance,
+			fee: T::Balance,
 			dest: MultiLocation,
 		},
 		/// Transferred `MultiAsset`.
@@ -286,7 +286,7 @@ pub mod module {
 				return Err(Error::<T>::FeeCannotBeZero.into());
 			}
 
-			Self::do_transfer_with_fee(who, currency_id.clone(), amount, fee, dest, dest_weight)
+			Self::do_transfer_with_fee(who, currency_id, amount, fee, dest, dest_weight)
 		}
 
 		/// Transfer `MultiAsset` specifying the fee and amount as separate.
@@ -430,7 +430,7 @@ pub mod module {
 			who: T::AccountId,
 			currency_id: T::CurrencyId,
 			amount: T::Balance,
-			fee_amount: T::Balance,
+			fee: T::Balance,
 			dest: MultiLocation,
 			dest_weight: Weight,
 		) -> DispatchResult {
@@ -438,7 +438,7 @@ pub mod module {
 				.ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
 
 			let asset = (location.clone(), amount.into()).into();
-			let fee_asset: MultiAsset = (location.clone(), fee_amount.into()).into();
+			let fee_asset: MultiAsset = (location.clone(), fee.into()).into();
 
 			// Push contains saturated addition, so we should be able to use it safely
 			let mut assets = MultiAssets::new();
@@ -450,7 +450,7 @@ pub mod module {
 			Self::deposit_event(Event::<T>::TransferredWithFee {
 				sender: who,
 				currency_id,
-				fee_amount,
+				fee,
 				amount,
 				dest,
 			});
@@ -687,7 +687,7 @@ pub mod module {
 						Self::buy_execution(half(&fee), &reserve, dest_weight)?,
 						DepositReserveAsset {
 							assets: All.into(),
-							max_assets: 1,
+							max_assets:  assets.len() as u32,
 							dest: reanchored_dest,
 							xcm: Xcm(vec![
 								Self::buy_execution(half(&fee), &dest, dest_weight)?,
@@ -702,7 +702,7 @@ pub mod module {
 		fn deposit_asset(recipient: MultiLocation, max_assets: u32) -> Instruction<()> {
 			DepositAsset {
 				assets: All.into(),
-				max_assets: max_assets,
+				max_assets,
 				beneficiary: recipient,
 			}
 		}
