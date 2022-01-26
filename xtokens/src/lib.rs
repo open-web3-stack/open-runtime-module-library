@@ -98,11 +98,11 @@ pub mod module {
 
 		/// Means of inverting a location.
 		type LocationInverter: InvertLocation;
-	}
 
-	/// The maximum number of distinct assets allowed to be transferred in a
-	/// single helper extrinsic.
-	const MAX_ASSETS_FOR_TRANSFER: usize = 2;
+		/// The maximum number of distinct assets allowed to be transferred in a
+		/// single helper extrinsic.
+		type MaxAssetsForTransfer: Get<usize>;
+	}
 
 	#[pallet::event]
 	#[pallet::generate_deposit(fn deposit_event)]
@@ -557,7 +557,10 @@ pub mod module {
 			dest_weight: Weight,
 			deposit_event: bool,
 		) -> DispatchResult {
-			ensure!(assets.len() <= MAX_ASSETS_FOR_TRANSFER, Error::<T>::TooManyAssets);
+			ensure!(
+				assets.len() <= T::MaxAssetsForTransfer::get(),
+				Error::<T>::TooManyAssets
+			);
 
 			// We check that all assets are valid and share the same reserve
 			for i in 0..assets.len() {
