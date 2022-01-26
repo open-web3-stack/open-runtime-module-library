@@ -183,9 +183,9 @@ pub mod module {
 		/// being used.
 		FeeCannotBeZero,
 		/// The number of assets to be sent is over the maximum
-		TooManyAssets,
-		/// The specified item does not exist in the vec assets
-		Empty,
+		TooManyAssetsBeingSent,
+		/// The specified index does not exist in a MultiAssets struct
+		AssetIndexNonExistent,
 	}
 
 	#[pallet::hooks]
@@ -390,7 +390,7 @@ pub mod module {
 			let dest: MultiLocation = (*dest).try_into().map_err(|()| Error::<T>::BadVersion)?;
 
 			// We first grab the fee
-			let fee: &MultiAsset = assets.get(fee_item as usize).ok_or(Error::<T>::Empty)?;
+			let fee: &MultiAsset = assets.get(fee_item as usize).ok_or(Error::<T>::AssetIndexNonExistent)?;
 
 			Self::do_transfer_multiassets(who, assets.clone(), fee.clone(), dest, dest_weight, true)
 		}
@@ -530,7 +530,7 @@ pub mod module {
 			}
 
 			// We first grab the fee
-			let fee = assets.get(fee_item as usize).ok_or(Error::<T>::Empty)?;
+			let fee = assets.get(fee_item as usize).ok_or(Error::<T>::AssetIndexNonExistent)?;
 
 			Self::do_transfer_multiassets(
 				who.clone(),
@@ -559,12 +559,12 @@ pub mod module {
 		) -> DispatchResult {
 			ensure!(
 				assets.len() <= T::MaxAssetsForTransfer::get(),
-				Error::<T>::TooManyAssets
+				Error::<T>::TooManyAssetsBeingSent
 			);
 
 			// We check that all assets are valid and share the same reserve
 			for i in 0..assets.len() {
-				let asset = assets.get(i).ok_or(Error::<T>::Empty)?;
+				let asset = assets.get(i).ok_or(Error::<T>::AssetIndexNonExistent)?;
 				if !asset.is_fungible(None) {
 					return Err(Error::<T>::NotFungible.into());
 				}
