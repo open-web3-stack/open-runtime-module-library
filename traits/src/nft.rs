@@ -1,7 +1,7 @@
 use codec::FullCodec;
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize},
-	DispatchResult,
+	DispatchResult, DispatchError,
 };
 use sp_std::{fmt::Debug, vec::*};
 
@@ -48,7 +48,7 @@ pub trait ManageNFT<AccountId, CID, Attributes> {
 		metadata: CID,
 		attributes: Attributes,
 		quantity: u32,
-	) -> DispatchResult;
+	) -> Result<Vec<Self::TokenId>, DispatchError>;
 
 	/// To burn a NFT token.
 	fn burn(who: AccountId, token: (Self::ClassId, Self::TokenId), remark: Option<Vec<u8>>) -> DispatchResult;
