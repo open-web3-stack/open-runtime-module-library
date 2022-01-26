@@ -856,3 +856,122 @@ fn send_with_fee_should_handle_overflow() {
 		);
 	});
 }
+
+#[test]
+fn specifying_more_than_two_assets_should_error() {
+	TestNet::reset();
+
+	ParaA::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::B, &ALICE, 1_000));
+		assert_ok!(ParaTokens::deposit(CurrencyId::B1, &ALICE, 1_000));
+		assert_ok!(ParaTokens::deposit(CurrencyId::R, &ALICE, 1_000));
+
+	});
+
+	ParaB::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::B, &sibling_a_account(), 1_000));
+		assert_ok!(ParaTokens::deposit(CurrencyId::B1, &sibling_a_account(), 1_000));
+	});
+
+	Relay::execute_with(|| {
+		let _ = RelayBalances::deposit_creating(&para_a_account(), 1_000);
+	});
+
+	ParaA::execute_with(|| {
+		assert_noop!(ParaXTokens::transfer_multicurrencies(
+			Some(ALICE).into(),
+			vec![(CurrencyId::B, 450), (CurrencyId::B1, 50),  (CurrencyId::R, 5000)],
+			1,
+			Box::new(
+				(
+					Parent,
+					Parachain(2),
+					Junction::AccountId32 {
+						network: NetworkId::Any,
+						id: BOB.into(),
+					},
+				)
+					.into()
+			),
+			40,
+		),
+		Error::<para::Runtime>::TooManyAssetsBeingSent
+		);
+	});
+}
+
+#[test]
+fn sending_assets_with_different_reserve_should_fail() {
+	TestNet::reset();
+
+	ParaA::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::B, &ALICE, 1_000));
+		assert_ok!(ParaTokens::deposit(CurrencyId::R, &ALICE, 1_000));
+
+	});
+
+	ParaB::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::B, &sibling_a_account(), 1_000));
+	});
+
+	Relay::execute_with(|| {
+		let _ = RelayBalances::deposit_creating(&para_a_account(), 1_000);
+	});
+
+	ParaA::execute_with(|| {
+		assert_noop!(ParaXTokens::transfer_multicurrencies(
+			Some(ALICE).into(),
+			vec![(CurrencyId::B, 450), (CurrencyId::R, 5000)],
+			1,
+			Box::new(
+				(
+					Parent,
+					Parachain(2),
+					Junction::AccountId32 {
+						network: NetworkId::Any,
+						id: BOB.into(),
+					},
+				)
+					.into()
+			),
+			40,
+		),
+		Error::<para::Runtime>::DistinctReserveForAssetAndFee
+		);
+	});
+}
+
+#[test]
+fn specifying_a_non_existent_asset_index_should_fail() {
+	TestNet::reset();
+
+	ParaA::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::B, &ALICE, 1_000));
+	});
+
+	ParaB::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::B, &sibling_a_account(), 1_000));
+	});
+
+	ParaA::execute_with(|| {
+		assert_noop!(ParaXTokens::transfer_multicurrencies(
+			Some(ALICE).into(),
+			vec![(CurrencyId::B, 450)],
+			1,
+			Box::new(
+				(
+					Parent,
+					Parachain(2),
+					Junction::AccountId32 {
+						network: NetworkId::Any,
+						id: BOB.into(),
+					},
+				)
+					.into()
+			),
+			40,
+		),
+		Error::<para::Runtime>::AssetIndexNonExistent
+		);
+	});
+}
