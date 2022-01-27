@@ -36,10 +36,7 @@ pub trait ManageNFT<AccountId, CID, Attributes> {
 
 	/// The NFT token identifier.
 	type TokenId: Default + Copy;
-
-	/// The balance of account.
-	type Balance: AtLeast32BitUnsigned + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default;
-
+	
 	/// To mint new NFT tokens.
 	fn mint(
 		who: AccountId,
