@@ -30,15 +30,18 @@ pub trait NFT<AccountId> {
 
 // This trait provides interface to manage NFTs
 #[allow(clippy::upper_case_acronyms)]
-pub trait ManageNFT<AccountId, CID, Attributes> {
-	/// The NFT class identifier.
-	type ClassId: Default + Copy;
-
-	/// The NFT token identifier.
-	type TokenId: Default + Copy;
-
-	/// To mint new NFT tokens.
+pub trait MintNFT<AccountId, CID, Attributes>: NFT<AccountId> {
+	/// To mint a single new NFT tokens.
 	fn mint(
+		who: AccountId,
+		to: AccountId,
+		class_id: Self::ClassId,
+		metadata: CID,
+		attributes: Attributes,
+	) -> Result<Self::TokenId, DispatchError>;
+
+	// Mint multiple tokens of the same type
+	fn batch_mint(
 		who: AccountId,
 		to: AccountId,
 		class_id: Self::ClassId,
@@ -46,7 +49,12 @@ pub trait ManageNFT<AccountId, CID, Attributes> {
 		attributes: Attributes,
 		quantity: u32,
 	) -> Result<Vec<Self::TokenId>, DispatchError>;
+}
 
+// This trait provides interface to manage NFTs
+#[allow(clippy::upper_case_acronyms)]
+pub trait BurnNFT<AccountId, CID, Attributes>: NFT<AccountId> {
+	/// To mint a single new NFT tokens.
 	/// To burn a NFT token.
 	fn burn(who: AccountId, token: (Self::ClassId, Self::TokenId), remark: Option<Vec<u8>>) -> DispatchResult;
 }
