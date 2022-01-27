@@ -312,6 +312,52 @@ fn send_sibling_asset_to_reserve_sibling_with_fee() {
 }
 
 #[test]
+fn send_sibling_asset_to_reserve_sibling_with_distinc_fee() {
+	TestNet::reset();
+
+	ParaA::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::B, &ALICE, 1_000));
+		assert_ok!(ParaTokens::deposit(CurrencyId::B1, &ALICE, 1_000));
+	});
+
+	ParaB::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::B, &sibling_a_account(), 1_000));
+		assert_ok!(ParaTokens::deposit(CurrencyId::B1, &sibling_a_account(), 1_000));
+	});
+
+	ParaA::execute_with(|| {
+		assert_ok!(ParaXTokens::transfer_multicurrencies(
+			Some(ALICE).into(),
+			vec![(CurrencyId::B, 450), (CurrencyId::B1, 50)],
+			1,
+			Box::new(
+				(
+					Parent,
+					Parachain(2),
+					Junction::AccountId32 {
+						network: NetworkId::Any,
+						id: BOB.into(),
+					},
+				)
+					.into()
+			),
+			40,
+		));
+
+		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &ALICE), 550);
+		assert_eq!(ParaTokens::free_balance(CurrencyId::B1, &ALICE), 950);
+	});
+
+	// It should use 40 for weight, so 450 B and 10 B1 should reach destination
+	ParaB::execute_with(|| {
+		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &sibling_a_account()), 550);
+		assert_eq!(ParaTokens::free_balance(CurrencyId::B1, &sibling_a_account()), 950);
+		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &BOB), 450);
+		assert_eq!(ParaTokens::free_balance(CurrencyId::B1, &BOB), 10);
+	});
+}
+
+#[test]
 fn send_sibling_asset_to_non_reserve_sibling() {
 	TestNet::reset();
 
@@ -477,6 +523,48 @@ fn send_self_parachain_asset_to_sibling_with_fee() {
 	// It should use 40 for weight, so 460 should reach destination
 	ParaB::execute_with(|| {
 		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &BOB), 460);
+	});
+}
+
+#[test]
+fn send_self_parachain_asset_to_sibling_with_distinct_fee() {
+	TestNet::reset();
+
+	ParaA::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::A, &ALICE, 1_000));
+		assert_ok!(ParaTokens::deposit(CurrencyId::A1, &ALICE, 1_000));
+
+		assert_ok!(ParaXTokens::transfer_multicurrencies(
+			Some(ALICE).into(),
+			vec![(CurrencyId::A, 450), (CurrencyId::A1, 50)],
+			1,
+			Box::new(
+				MultiLocation::new(
+					1,
+					X2(
+						Parachain(2),
+						Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: BOB.into(),
+						}
+					)
+				)
+				.into()
+			),
+			40,
+		));
+
+		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &ALICE), 550);
+		assert_eq!(ParaTokens::free_balance(CurrencyId::A1, &ALICE), 950);
+
+		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &sibling_b_account()), 450);
+		assert_eq!(ParaTokens::free_balance(CurrencyId::A1, &sibling_b_account()), 50);
+	});
+
+	// It should use 40 for weight, so 450 A + 10 A1 should reach destination
+	ParaB::execute_with(|| {
+		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &BOB), 450);
+		assert_eq!(ParaTokens::free_balance(CurrencyId::A1, &BOB), 10);
 	});
 }
 
@@ -741,6 +829,8 @@ fn send_with_fee_should_handle_overflow() {
 	ParaA::execute_with(|| {
 		assert_ok!(ParaTokens::deposit(CurrencyId::A, &ALICE, 1_000));
 
+		// Uses saturated add, so xcm execution should fail because we dont have
+		// enough tokens
 		assert_noop!(
 			ParaXTokens::transfer_with_fee(
 				Some(ALICE).into(),
@@ -762,7 +852,127 @@ fn send_with_fee_should_handle_overflow() {
 				),
 				40,
 			),
-			ArithmeticError::Overflow
+			Error::<para::Runtime>::XcmExecutionFailed
+		);
+	});
+}
+
+#[test]
+fn specifying_more_than_two_assets_should_error() {
+	TestNet::reset();
+
+	ParaA::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::B, &ALICE, 1_000));
+		assert_ok!(ParaTokens::deposit(CurrencyId::B1, &ALICE, 1_000));
+		assert_ok!(ParaTokens::deposit(CurrencyId::R, &ALICE, 1_000));
+	});
+
+	ParaB::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::B, &sibling_a_account(), 1_000));
+		assert_ok!(ParaTokens::deposit(CurrencyId::B1, &sibling_a_account(), 1_000));
+	});
+
+	Relay::execute_with(|| {
+		let _ = RelayBalances::deposit_creating(&para_a_account(), 1_000);
+	});
+
+	ParaA::execute_with(|| {
+		assert_noop!(
+			ParaXTokens::transfer_multicurrencies(
+				Some(ALICE).into(),
+				vec![(CurrencyId::B, 450), (CurrencyId::B1, 50), (CurrencyId::R, 5000)],
+				1,
+				Box::new(
+					(
+						Parent,
+						Parachain(2),
+						Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: BOB.into(),
+						},
+					)
+						.into()
+				),
+				40,
+			),
+			Error::<para::Runtime>::TooManyAssetsBeingSent
+		);
+	});
+}
+
+#[test]
+fn sending_assets_with_different_reserve_should_fail() {
+	TestNet::reset();
+
+	ParaA::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::B, &ALICE, 1_000));
+		assert_ok!(ParaTokens::deposit(CurrencyId::R, &ALICE, 1_000));
+	});
+
+	ParaB::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::B, &sibling_a_account(), 1_000));
+	});
+
+	Relay::execute_with(|| {
+		let _ = RelayBalances::deposit_creating(&para_a_account(), 1_000);
+	});
+
+	ParaA::execute_with(|| {
+		assert_noop!(
+			ParaXTokens::transfer_multicurrencies(
+				Some(ALICE).into(),
+				vec![(CurrencyId::B, 450), (CurrencyId::R, 5000)],
+				1,
+				Box::new(
+					(
+						Parent,
+						Parachain(2),
+						Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: BOB.into(),
+						},
+					)
+						.into()
+				),
+				40,
+			),
+			Error::<para::Runtime>::DistinctReserveForAssetAndFee
+		);
+	});
+}
+
+#[test]
+fn specifying_a_non_existent_asset_index_should_fail() {
+	TestNet::reset();
+
+	ParaA::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::B, &ALICE, 1_000));
+	});
+
+	ParaB::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::B, &sibling_a_account(), 1_000));
+	});
+
+	ParaA::execute_with(|| {
+		assert_noop!(
+			ParaXTokens::transfer_multicurrencies(
+				Some(ALICE).into(),
+				vec![(CurrencyId::B, 450)],
+				1,
+				Box::new(
+					(
+						Parent,
+						Parachain(2),
+						Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: BOB.into(),
+						},
+					)
+						.into()
+				),
+				40,
+			),
+			Error::<para::Runtime>::AssetIndexNonExistent
 		);
 	});
 }
