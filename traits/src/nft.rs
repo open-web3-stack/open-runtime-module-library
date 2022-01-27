@@ -1,7 +1,7 @@
 use codec::FullCodec;
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize},
-	DispatchResult, DispatchError,
+	DispatchError, DispatchResult,
 };
 use sp_std::{fmt::Debug, vec::*};
 
@@ -36,7 +36,7 @@ pub trait ManageNFT<AccountId, CID, Attributes> {
 
 	/// The NFT token identifier.
 	type TokenId: Default + Copy;
-	
+
 	/// To mint new NFT tokens.
 	fn mint(
 		who: AccountId,
