@@ -522,24 +522,20 @@ pub mod module {
 			dest_weight: Weight,
 		) -> DispatchResult {
 			let mut assets = MultiAssets::new();
-			for (currency_id, amount) in currencies.clone() {
+			for (currency_id, amount) in &currencies {
 				let location: MultiLocation = T::CurrencyIdConvert::convert(currency_id.clone())
 					.ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
 				// Push contains saturated addition, so we should be able to use it safely
-				assets.push((location.clone(), amount.into()).into())
+				assets.push((location, amount.clone().into()).into())
 			}
 
 			// We first grab the fee
-			let fee = assets.get(fee_item as usize).ok_or(Error::<T>::AssetIndexNonExistent)?;
+			let fee = assets
+				.get(fee_item as usize)
+				.ok_or(Error::<T>::AssetIndexNonExistent)?
+				.clone();
 
-			Self::do_transfer_multiassets(
-				who.clone(),
-				assets.clone(),
-				fee.clone(),
-				dest.clone(),
-				dest_weight,
-				false,
-			)?;
+			Self::do_transfer_multiassets(who.clone(), assets, fee, dest.clone(), dest_weight, false)?;
 
 			Self::deposit_event(Event::<T>::TransferredMultiCurrencies {
 				sender: who,
