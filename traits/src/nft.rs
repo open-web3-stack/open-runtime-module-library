@@ -28,7 +28,6 @@ pub trait NFT<AccountId> {
 	fn transfer(from: &AccountId, to: &AccountId, token: (Self::ClassId, Self::TokenId)) -> DispatchResult;
 }
 
-// This trait provides interface to manage NFTs
 #[allow(clippy::upper_case_acronyms)]
 pub trait MintNFT<AccountId, CID, Attributes>: NFT<AccountId> {
 	/// To mint a single new NFT tokens.
@@ -51,7 +50,6 @@ pub trait MintNFT<AccountId, CID, Attributes>: NFT<AccountId> {
 	) -> Result<Vec<Self::TokenId>, DispatchError>;
 }
 
-// This trait provides interface to manage NFTs
 #[allow(clippy::upper_case_acronyms)]
 pub trait BurnNFT<AccountId, CID, Attributes>: NFT<AccountId> {
 	/// To mint a single new NFT tokens.
