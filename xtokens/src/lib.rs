@@ -526,7 +526,7 @@ pub mod module {
 				let location: MultiLocation = T::CurrencyIdConvert::convert(currency_id.clone())
 					.ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
 				// Push contains saturated addition, so we should be able to use it safely
-				assets.push((location, amount.clone().into()).into())
+				assets.push((location, (*amount).into()).into())
 			}
 
 			// We first grab the fee
