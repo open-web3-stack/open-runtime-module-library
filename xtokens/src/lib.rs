@@ -702,7 +702,7 @@ pub mod module {
 		) -> Result<Instruction<()>, DispatchError> {
 			let ancestry = T::LocationInverter::ancestry();
 			let fees = asset
-				.reanchored(&at, &ancestry)
+				.reanchored(at, &ancestry)
 				.map_err(|_| Error::<T>::CannotReanchor)?;
 			Ok(BuyExecution {
 				fees,
