@@ -1,9 +1,9 @@
 use codec::FullCodec;
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize},
-	DispatchError, DispatchResult,
+	DispatchResult,
 };
-use sp_std::{fmt::Debug, vec::*};
+use sp_std::fmt::Debug;
 
 /// Abstraction over a non-fungible token system.
 #[allow(clippy::upper_case_acronyms)]
@@ -26,33 +26,7 @@ pub trait NFT<AccountId> {
 
 	/// Transfer the given token ID from one account to another.
 	fn transfer(from: &AccountId, to: &AccountId, token: (Self::ClassId, Self::TokenId)) -> DispatchResult;
-}
 
-#[allow(clippy::upper_case_acronyms)]
-pub trait MintNFT<AccountId, CID, Attributes>: NFT<AccountId> {
-	/// To mint a single new NFT tokens.
-	fn mint(
-		who: AccountId,
-		to: AccountId,
-		class_id: Self::ClassId,
-		metadata: CID,
-		attributes: Attributes,
-	) -> Result<Self::TokenId, DispatchError>;
-
-	// Mint multiple tokens of the same type
-	fn batch_mint(
-		who: AccountId,
-		to: AccountId,
-		class_id: Self::ClassId,
-		metadata: CID,
-		attributes: Attributes,
-		quantity: u32,
-	) -> Result<Vec<Self::TokenId>, DispatchError>;
-}
-
-#[allow(clippy::upper_case_acronyms)]
-pub trait BurnNFT<AccountId, CID, Attributes>: NFT<AccountId> {
-	/// To mint a single new NFT tokens.
-	/// To burn a NFT token.
-	fn burn(who: AccountId, token: (Self::ClassId, Self::TokenId), remark: Option<Vec<u8>>) -> DispatchResult;
+	/// Get the next token ID to be minted for a Class
+	fn next_token_id(class: Self::ClassId) -> Self::TokenId;
 }
