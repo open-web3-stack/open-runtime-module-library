@@ -24,11 +24,11 @@ use frame_support::{
 	pallet_prelude::*,
 	traits::{
 		schedule::{DispatchTime, Named as ScheduleNamed, Priority},
-		EnsureOrigin, Get, IsType, OriginTrait,
+		EnsureOneOf, EnsureOrigin, Get, IsType, OriginTrait,
 	},
 	weights::{DispatchClass, GetDispatchInfo, Pays},
 };
-use frame_system::{pallet_prelude::*, EnsureOneOf, EnsureRoot, EnsureSigned};
+use frame_system::{pallet_prelude::*, EnsureRoot, EnsureSigned};
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{CheckedSub, Dispatchable, Hash, Saturating},
@@ -228,6 +228,8 @@ pub mod module {
 	pub type SavedCalls<T: Config> = StorageMap<_, Identity, T::Hash, (CallOf<T>, Option<T::AccountId>), OptionQuery>;
 
 	#[pallet::pallet]
+	#[pallet::generate_store(pub(super) trait Store)]
+	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
 	#[pallet::hooks]
@@ -392,9 +394,7 @@ pub mod module {
 		#[pallet::weight(T::WeightInfo::remove_authorized_call())]
 		pub fn remove_authorized_call(origin: OriginFor<T>, hash: T::Hash) -> DispatchResult {
 			let root_or_sigend =
-				EnsureOneOf::<T::AccountId, EnsureRoot<T::AccountId>, EnsureSigned<T::AccountId>>::ensure_origin(
-					origin,
-				)?;
+				EnsureOneOf::<EnsureRoot<T::AccountId>, EnsureSigned<T::AccountId>>::ensure_origin(origin)?;
 
 			SavedCalls::<T>::try_mutate_exists(hash, |maybe_call| {
 				let (_, maybe_caller) = maybe_call.take().ok_or(Error::<T>::CallNotAuthorized)?;

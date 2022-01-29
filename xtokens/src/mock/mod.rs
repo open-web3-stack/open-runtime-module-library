@@ -60,6 +60,13 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
 				X2(Parachain(2), GeneralKey(k)) if k == b1 => Some(CurrencyId::B1),
 				_ => None,
 			},
+			MultiLocation { parents, interior } if parents == 0 => match interior {
+				X1(GeneralKey(k)) if k == a => Some(CurrencyId::A),
+				X1(GeneralKey(k)) if k == b => Some(CurrencyId::B),
+				X1(GeneralKey(k)) if k == a1 => Some(CurrencyId::A1),
+				X1(GeneralKey(k)) if k == b1 => Some(CurrencyId::B1),
+				_ => None,
+			},
 			_ => None,
 		}
 	}

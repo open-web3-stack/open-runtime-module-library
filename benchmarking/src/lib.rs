@@ -24,7 +24,7 @@ pub use sp_runtime::traits::Zero;
 #[doc(hidden)]
 pub use sp_std::{self, boxed::Box, prelude::Vec, str, vec};
 #[doc(hidden)]
-pub use sp_storage::TrackedStorageKey;
+pub use sp_storage::{StateVersion, TrackedStorageKey};
 
 /// Whitelist the given account.
 #[macro_export]

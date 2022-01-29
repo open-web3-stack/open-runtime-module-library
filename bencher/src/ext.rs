@@ -3,7 +3,7 @@ use hash_db::Hasher;
 use sp_externalities::{Extension, ExtensionStore, Externalities};
 use sp_state_machine::{Backend, Ext};
 use sp_std::sync::Arc;
-use sp_storage::{ChildInfo, TrackedStorageKey};
+use sp_storage::{ChildInfo, StateVersion, TrackedStorageKey};
 
 use super::tracker::BenchTracker;
 
@@ -91,12 +91,12 @@ where
 		self.ext.place_child_storage(child_info, key, value);
 	}
 
-	fn storage_root(&mut self) -> Vec<u8> {
-		self.ext.storage_root()
+	fn storage_root(&mut self, state_version: StateVersion) -> Vec<u8> {
+		self.ext.storage_root(state_version)
 	}
 
-	fn child_storage_root(&mut self, child_info: &ChildInfo) -> Vec<u8> {
-		self.ext.child_storage_root(child_info)
+	fn child_storage_root(&mut self, child_info: &ChildInfo, state_version: StateVersion) -> Vec<u8> {
+		self.ext.child_storage_root(child_info, state_version)
 	}
 
 	fn storage_append(&mut self, key: Vec<u8>, value: Vec<u8>) {

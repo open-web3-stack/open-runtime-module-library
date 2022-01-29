@@ -235,10 +235,12 @@ fn send_sibling_asset_to_reserve_sibling() {
 
 	ParaA::execute_with(|| {
 		assert_ok!(ParaTokens::deposit(CurrencyId::B, &ALICE, 1_000));
+		assert_ok!(ParaTokens::deposit(CurrencyId::A, &sibling_b_account(), 1_000));
 	});
 
 	ParaB::execute_with(|| {
 		assert_ok!(ParaTokens::deposit(CurrencyId::B, &sibling_a_account(), 1_000));
+		assert_ok!(ParaTokens::deposit(CurrencyId::A, &BOB, 1_000));
 	});
 
 	ParaA::execute_with(|| {
@@ -266,6 +268,30 @@ fn send_sibling_asset_to_reserve_sibling() {
 	ParaB::execute_with(|| {
 		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &sibling_a_account()), 500);
 		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &BOB), 460);
+
+		assert_ok!(ParaXTokens::transfer(
+			Some(BOB).into(),
+			CurrencyId::A,
+			500,
+			Box::new(
+				(
+					Parent,
+					Parachain(1),
+					Junction::AccountId32 {
+						network: NetworkId::Any,
+						id: ALICE.into(),
+					},
+				)
+					.into()
+			),
+			40,
+		));
+		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &BOB), 500);
+	});
+
+	ParaA::execute_with(|| {
+		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &sibling_b_account()), 500);
+		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &ALICE), 460);
 	});
 }
 
@@ -686,7 +712,7 @@ fn send_as_sovereign() {
 		assert!(relay::System::events().iter().any(|r| {
 			matches!(
 				r.event,
-				relay::Event::System(frame_system::Event::<relay::Runtime>::Remarked(_, _))
+				relay::Event::System(frame_system::Event::<relay::Runtime>::Remarked { sender: _, hash: _ })
 			)
 		}));
 	})

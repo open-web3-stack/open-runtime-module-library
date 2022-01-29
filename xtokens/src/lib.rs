@@ -700,8 +700,10 @@ pub mod module {
 			at: &MultiLocation,
 			weight: Weight,
 		) -> Result<Instruction<()>, DispatchError> {
-			let inv_at = T::LocationInverter::invert_location(at).map_err(|()| Error::<T>::DestinationNotInvertible)?;
-			let fees = asset.reanchored(&inv_at).map_err(|_| Error::<T>::CannotReanchor)?;
+			let ancestry = T::LocationInverter::ancestry();
+			let fees = asset
+				.reanchored(at, &ancestry)
+				.map_err(|_| Error::<T>::CannotReanchor)?;
 			Ok(BuyExecution {
 				fees,
 				weight_limit: WeightLimit::Limited(weight),

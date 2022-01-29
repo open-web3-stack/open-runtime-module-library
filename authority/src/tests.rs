@@ -84,11 +84,11 @@ fn schedule_dispatch_at_work() {
 		}));
 
 		run_to_block(2);
-		System::assert_last_event(mock::Event::Scheduler(pallet_scheduler::Event::<Runtime>::Dispatched(
-			(2, 0),
-			Some([1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0].to_vec()),
-			Ok(()),
-		)));
+		System::assert_last_event(mock::Event::Scheduler(pallet_scheduler::Event::<Runtime>::Dispatched {
+			task: (2, 0),
+			id: Some([1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0].to_vec()),
+			result: Ok(()),
+		}));
 
 		// with_delayed_origin = false
 		assert_ok!(Authority::schedule_dispatch(
@@ -104,11 +104,11 @@ fn schedule_dispatch_at_work() {
 		}));
 
 		run_to_block(3);
-		System::assert_last_event(mock::Event::Scheduler(pallet_scheduler::Event::<Runtime>::Dispatched(
-			(3, 0),
-			Some([0, 0, 2, 0, 0, 0].to_vec()),
-			Ok(()),
-		)));
+		System::assert_last_event(mock::Event::Scheduler(pallet_scheduler::Event::<Runtime>::Dispatched {
+			task: (3, 0),
+			id: Some([0, 0, 2, 0, 0, 0].to_vec()),
+			result: Ok(()),
+		}));
 	});
 }
 
@@ -142,11 +142,11 @@ fn schedule_dispatch_after_work() {
 		}));
 
 		run_to_block(2);
-		System::assert_last_event(mock::Event::Scheduler(pallet_scheduler::Event::<Runtime>::Dispatched(
-			(2, 0),
-			Some([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0].to_vec()),
-			Ok(()),
-		)));
+		System::assert_last_event(mock::Event::Scheduler(pallet_scheduler::Event::<Runtime>::Dispatched {
+			task: (2, 0),
+			id: Some([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0].to_vec()),
+			result: Ok(()),
+		}));
 
 		// with_delayed_origin = false
 		assert_ok!(Authority::schedule_dispatch(
@@ -162,11 +162,11 @@ fn schedule_dispatch_after_work() {
 		}));
 
 		run_to_block(3);
-		System::assert_last_event(mock::Event::Scheduler(pallet_scheduler::Event::<Runtime>::Dispatched(
-			(3, 0),
-			Some([0, 0, 2, 0, 0, 0].to_vec()),
-			Ok(()),
-		)));
+		System::assert_last_event(mock::Event::Scheduler(pallet_scheduler::Event::<Runtime>::Dispatched {
+			task: (3, 0),
+			id: Some([0, 0, 2, 0, 0, 0].to_vec()),
+			result: Ok(()),
+		}));
 	});
 }
 
