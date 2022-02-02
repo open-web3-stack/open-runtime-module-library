@@ -638,7 +638,8 @@ where
 		+ Copy
 		+ MaybeSerializeDeserialize
 		+ Debug
-		+ Default,
+		+ Default
+		+ codec::MaxEncodedLen,
 	Currency: PalletCurrency<AccountId>,
 	T: Config,
 {
