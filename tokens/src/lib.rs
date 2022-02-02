@@ -182,10 +182,11 @@ pub mod module {
 			+ arithmetic::SimpleArithmetic
 			+ Default
 			+ Copy
-			+ MaybeSerializeDeserialize;
+			+ MaybeSerializeDeserialize
+			+ MaxEncodedLen;
 
 		/// The currency ID type
-		type CurrencyId: Parameter + Member + Copy + MaybeSerializeDeserialize + Ord + TypeInfo;
+		type CurrencyId: Parameter + Member + Copy + MaybeSerializeDeserialize + Ord + TypeInfo + MaxEncodedLen;
 
 		/// Weight information for extrinsics in this module.
 		type WeightInfo: WeightInfo;
