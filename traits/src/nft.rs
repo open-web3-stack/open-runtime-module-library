@@ -1,7 +1,7 @@
 use codec::FullCodec;
+use frame_support::traits::tokens::nonfungibles::Inspect;
 use sp_runtime::traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize};
 use sp_std::fmt::Debug;
-use frame_support::traits::tokens::nonfungibles::Inspect;
 
 /// Trait to complement the Inspect trait
 #[allow(clippy::upper_case_acronyms)]
