@@ -1,16 +1,11 @@
 use codec::FullCodec;
 use sp_runtime::traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize};
 use sp_std::fmt::Debug;
+use frame_support::traits::tokens::nonfungibles::Inspect;
 
-/// Abstraction over a non-fungible token system.
+/// Trait to complement the Inspect trait
 #[allow(clippy::upper_case_acronyms)]
-pub trait NFT<AccountId> {
-	/// The NFT class identifier.
-	type ClassId: Default + Copy;
-
-	/// The NFT token identifier.
-	type TokenId: Default + Copy;
-
+pub trait InspectExtended<AccountId>: Inspect<AccountId> {
 	/// The balance of account.
 	type Balance: AtLeast32BitUnsigned + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default;
 
@@ -18,5 +13,5 @@ pub trait NFT<AccountId> {
 	fn balance(who: &AccountId) -> Self::Balance;
 
 	/// Get the next token ID to be minted for a Class
-	fn next_token_id(class: Self::ClassId) -> Self::TokenId;
+	fn next_token_id(class: Self::ClassId) -> Self::InstanceId;
 }
