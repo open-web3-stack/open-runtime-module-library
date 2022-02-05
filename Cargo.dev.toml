@@ -86,12 +86,12 @@ cumulus-pallet-xcmp-queue = { git = "https://github.com/paritytech//cumulus", re
 cumulus-pallet-xcm = { git = "https://github.com/paritytech//cumulus", rev = "867bfcd8f87cc986d1a3e9eeaf16c8b4e9a27790" }
 
 [patch.'https://github.com/paritytech/polkadot']
-xcm = { git = "https://github.com/paritytech//polkadot", rev = "6e3e9e60c2615f1cd715923aea9816ac6b9b59f7" }
-xcm-executor = { git = "https://github.com/paritytech//polkadot", rev = "6e3e9e60c2615f1cd715923aea9816ac6b9b59f7" }
-xcm-builder = { git = "https://github.com/paritytech//polkadot", rev = "6e3e9e60c2615f1cd715923aea9816ac6b9b59f7" }
-pallet-xcm = { git = "https://github.com/paritytech//polkadot", rev = "6e3e9e60c2615f1cd715923aea9816ac6b9b59f7" }
-polkadot-core-primitives = { git = "https://github.com/paritytech//polkadot", rev = "6e3e9e60c2615f1cd715923aea9816ac6b9b59f7" }
-polkadot-runtime-parachains = { git = "https://github.com/paritytech//polkadot", rev = "6e3e9e60c2615f1cd715923aea9816ac6b9b59f7" }
-polkadot-parachain = { git = "https://github.com/paritytech//polkadot", rev = "6e3e9e60c2615f1cd715923aea9816ac6b9b59f7" }
-polkadot-primitives = { git = "https://github.com/paritytech//polkadot", rev = "6e3e9e60c2615f1cd715923aea9816ac6b9b59f7" }
-xcm-simulator = { git = "https://github.com/paritytech//polkadot", rev = "6e3e9e60c2615f1cd715923aea9816ac6b9b59f7" }
+xcm = { git = "https://github.com/paritytech//polkadot", rev = "41ab002d7451766324a9f314fee11c9c53314350" }
+xcm-executor = { git = "https://github.com/paritytech//polkadot", rev = "41ab002d7451766324a9f314fee11c9c53314350" }
+xcm-builder = { git = "https://github.com/paritytech//polkadot", rev = "41ab002d7451766324a9f314fee11c9c53314350" }
+pallet-xcm = { git = "https://github.com/paritytech//polkadot", rev = "41ab002d7451766324a9f314fee11c9c53314350" }
+polkadot-core-primitives = { git = "https://github.com/paritytech//polkadot", rev = "41ab002d7451766324a9f314fee11c9c53314350" }
+polkadot-runtime-parachains = { git = "https://github.com/paritytech//polkadot", rev = "41ab002d7451766324a9f314fee11c9c53314350" }
+polkadot-parachain = { git = "https://github.com/paritytech//polkadot", rev = "41ab002d7451766324a9f314fee11c9c53314350" }
+polkadot-primitives = { git = "https://github.com/paritytech//polkadot", rev = "41ab002d7451766324a9f314fee11c9c53314350" }
+xcm-simulator = { git = "https://github.com/paritytech//polkadot", rev = "41ab002d7451766324a9f314fee11c9c53314350" }
