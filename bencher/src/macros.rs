@@ -7,9 +7,8 @@
 /// name = "your-module"
 /// ..
 /// [[bench]]
-/// name = 'your-module-benches'
+/// name = 'module_benches'
 /// harness = false
-/// path = 'src/benches.rs'
 /// required-features = ['bench']
 ///
 /// [features]
@@ -20,68 +19,71 @@
 /// ..
 /// ```
 ///
+/// Create a file `benches/module_benches.rs` must be the same as bench name.
+/// ```.ignore
+/// use your_module::mock::{AllPalletsWithSystem, Block};
+/// orml_bencher::run_benches!(AllPalletsWithSystem, Block);
+/// ```
+///
 /// Define benches
 ///
-/// Create a file `src/benches.rs`:
-/// ```.ignore
-/// #![allow(dead_code)]
+/// Create a file `src/benches.rs`
+/// ```ignore
+/// #!#[cfg(feature = "bench")]
 ///
-/// use orml_bencher::{Bencher, bench};
-/// use your_module::mock::{Block, YourModule};
+/// use orml_bencher::{Bencher, benches};
+/// use crate::mock::*;
 ///
 /// fn foo(b: &mut Bencher) {
-///     b.prepare(|| {
-///         // optional. prepare block, runs before bench
-///     })
-///     .bench(|| {
-///         // foo must have macro `[orml_weight_meter::weight(..)]`
-///         YourModule::foo();
-///     })
-///     .verify(|| {
-///         // optional. verify block, runs before bench
+///     // Run any before code here
+///     let ret = b.bench(|| {
+///         // foo must have macro `[orml_weight_meter::weight(..)]` to measure correct redundant info
+///         YourModule::foo()
 ///     });
+///     // Run any after code here
 /// }
 ///
 /// fn bar(b: &mut Bencher) {
 ///     // optional. method name is used by default i.e: `bar`
 ///     b.name("bench_name")
 ///     .bench(|| {
-///         // bar must have macro `[orml_weight_meter::weight(..)]`
+///         // bar must have macro `[orml_weight_meter::weight(..)]` to measure correct redundant info
 ///         YourModule::bar();
 ///     });
 /// }
 ///
-/// bench!(Block, foo, bar); // Tests are generated automatically
+/// benches!(foo, bar); // Tests are generated automatically
 /// ```
-/// Update `src/lib.rs`:
-/// ```.ignore
+/// Update `src/lib.rs`
+/// ```ignore
 /// #[cfg(any(feature = "bench", test))]
 /// pub mod mock; /* mock runtime needs to be compiled into wasm */
-/// #[cfg(any(feature = "bench", test))]
 /// pub mod benches;
-///
-/// extern crate self as your_module;
 /// ```
 ///
 /// Run benchmarking: `cargo bench --features=bench`
 #[macro_export]
-macro_rules! bench {
-    (
-        $block:tt,
-        $($method:path),+
-    ) => {
+macro_rules! benches {
+    ($($method:path),+) => {
         #[cfg(feature = "bench")]
         $crate::sp_core::wasm_export_functions! {
             fn run_benches() -> $crate::sp_std::vec::Vec<$crate::BenchResult> {
+                $crate::bench::print_info("\nRunning benches ...\n".as_bytes().to_vec());
                 let mut bencher = $crate::Bencher::default();
                 $(
-                    bencher.reset();
-                    $method(&mut bencher);
-                    if bencher.name.len() == 0 {
-                        // use method name as default bench name
-                        bencher.name(stringify!($method));
+                    $crate::bench::reset();
+
+                    let name = stringify!($method);
+                    bencher.current = $crate::BenchResult::with_name(name);
+
+                    for _ in 0..1_000 {
+                        bencher.prepare();
+                        $method(&mut bencher);
                     }
-                    bencher.run();
+
+                    bencher.print_warnings(name);
+
+                    bencher.results.push(bencher.current);
                 )+
                 bencher.results
             }
@@ -91,36 +93,51 @@ macro_rules! bench {
         #[panic_handler]
         #[no_mangle]
         fn panic_handler(info: &::core::panic::PanicInfo) -> ! {
-            unsafe {
-                let message = $crate::sp_std::alloc::format!("{}", info);
-                $crate::bencher::panic(message.as_bytes().to_vec());
-                core::arch::wasm32::unreachable();
-            }
-        }
-
-        #[cfg(all(feature = "std", feature = "bench"))]
-        pub fn main() -> std::io::Result<()> {
-            let wasm = $crate::build_wasm::build()?;
-            match $crate::bench_runner::run::<$block>(wasm) {
-                Ok(output) => { $crate::handler::handle(output); }
-                Err(e) => { eprintln!("{:?}", e); }
-            };
-            Ok(())
+            let message = $crate::sp_std::alloc::format!("{}", info);
+            $crate::bench::print_error(message.as_bytes().to_vec());
+            unsafe {core::arch::wasm32::unreachable(); }
         }
 
         // Tests
-        $(
-            $crate::paste::item! {
-                #[test]
-                fn [<test_ $method>] () {
-                    $crate::sp_io::TestExternalities::new_empty().execute_with(|| {
-                        let mut bencher = $crate::Bencher::default();
-                        $method(&mut bencher);
-                        bencher.run();
-                    });
+        #[cfg(test)]
+        mod tests {
+            $(
+                $crate::paste::item! {
+                    #[test]
+                    fn [<bench_ $method>] () {
+                        $crate::sp_io::TestExternalities::new_empty().execute_with(|| {
+                            let mut bencher = $crate::Bencher::default();
+                            super::$method(&mut bencher);
+                        });
+                    }
                 }
-            }
-        )+
+            )+
+        }
 
     }
+}
+
+#[macro_export]
+macro_rules! run_benches {
+	(
+        $all_pallets_with_system:ident,
+        $block:tt
+    ) => {
+		#[cfg(all(feature = "std", feature = "bench"))]
+		#[main]
+		pub fn main() -> std::io::Result<()> {
+			use $crate::frame_benchmarking::frame_support::traits::StorageInfoTrait;
+			let wasm = $crate::build_wasm::build()?;
+			let storage_info = $all_pallets_with_system::storage_info();
+			match $crate::bench_runner::run::<$block>(wasm) {
+				Ok(output) => {
+					$crate::handler::handle(output, storage_info);
+				}
+				Err(e) => {
+					eprintln!("{:?}", e);
+				}
+			};
+			Ok(())
+		}
+	};
 }

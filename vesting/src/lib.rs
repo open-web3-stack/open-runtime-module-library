@@ -42,7 +42,6 @@ use sp_runtime::{
 };
 use sp_std::{
 	cmp::{Eq, PartialEq},
-	convert::TryInto,
 	vec::Vec,
 };
 
@@ -162,12 +161,16 @@ pub mod module {
 	#[pallet::event]
 	#[pallet::generate_deposit(fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// Added new vesting schedule. \[from, to, vesting_schedule\]
-		VestingScheduleAdded(T::AccountId, T::AccountId, VestingScheduleOf<T>),
-		/// Claimed vesting. \[who, locked_amount\]
-		Claimed(T::AccountId, BalanceOf<T>),
-		/// Updated vesting schedules. \[who\]
-		VestingSchedulesUpdated(T::AccountId),
+		/// Added new vesting schedule.
+		VestingScheduleAdded {
+			from: T::AccountId,
+			to: T::AccountId,
+			vesting_schedule: VestingScheduleOf<T>,
+		},
+		/// Claimed vesting.
+		Claimed { who: T::AccountId, amount: BalanceOf<T> },
+		/// Updated vesting schedules.
+		VestingSchedulesUpdated { who: T::AccountId },
 	}
 
 	/// Vesting schedules of an account.
@@ -242,7 +245,10 @@ pub mod module {
 			let who = ensure_signed(origin)?;
 			let locked_amount = Self::do_claim(&who);
 
-			Self::deposit_event(Event::Claimed(who, locked_amount));
+			Self::deposit_event(Event::Claimed {
+				who,
+				amount: locked_amount,
+			});
 			Ok(())
 		}
 
@@ -256,7 +262,11 @@ pub mod module {
 			let to = T::Lookup::lookup(dest)?;
 			Self::do_vested_transfer(&from, &to, schedule.clone())?;
 
-			Self::deposit_event(Event::VestingScheduleAdded(from, to, schedule));
+			Self::deposit_event(Event::VestingScheduleAdded {
+				from,
+				to,
+				vesting_schedule: schedule,
+			});
 			Ok(())
 		}
 
@@ -271,7 +281,7 @@ pub mod module {
 			let account = T::Lookup::lookup(who)?;
 			Self::do_update_vesting_schedules(&account, vesting_schedules)?;
 
-			Self::deposit_event(Event::VestingSchedulesUpdated(account));
+			Self::deposit_event(Event::VestingSchedulesUpdated { who: account });
 			Ok(())
 		}
 
@@ -281,7 +291,10 @@ pub mod module {
 			let who = T::Lookup::lookup(dest)?;
 			let locked_amount = Self::do_claim(&who);
 
-			Self::deposit_event(Event::Claimed(who, locked_amount));
+			Self::deposit_event(Event::Claimed {
+				who,
+				amount: locked_amount,
+			});
 			Ok(())
 		}
 	}

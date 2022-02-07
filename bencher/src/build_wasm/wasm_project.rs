@@ -34,8 +34,6 @@ use std::{
 
 use toml::value::Table;
 
-use build_helper::rerun_if_changed;
-
 use cargo_metadata::{Metadata, MetadataCommand};
 
 /// Environment variable that tells us to skip building the wasm binary.
@@ -56,17 +54,6 @@ const WASM_BUILD_RUSTFLAGS_ENV: &str = "WASM_BUILD_RUSTFLAGS";
 ///
 /// The directory needs to be an absolute path.
 const WASM_TARGET_DIRECTORY: &str = "WASM_TARGET_DIRECTORY";
-
-/// Colorize an info message.
-///
-/// Returns the colorized message.
-fn colorize_info_message(message: &str) -> String {
-	if color_output_enabled() {
-		ansi_term::Color::Yellow.bold().paint(message).to_string()
-	} else {
-		message.into()
-	}
-}
 
 /// Holds the path to the bloaty WASM binary.
 pub struct WasmBinaryBloaty(PathBuf);
@@ -152,8 +139,6 @@ pub fn create_and_compile(
 	wasm_binary_compressed
 		.as_ref()
 		.map(|wasm_binary_compressed| copy_wasm_to_target_directory(project_cargo_toml, wasm_binary_compressed));
-
-	generate_rerun_if_changed_instructions(project_cargo_toml, &project, &wasm_workspace);
 
 	(wasm_binary_compressed.or(wasm_binary), bloaty)
 }
@@ -288,8 +273,7 @@ fn create_project_cargo_toml(
 	let mut package = Table::new();
 	package.insert("name".into(), format!("{}-wasm", crate_name).into());
 	package.insert("version".into(), "1.0.0".into());
-	package.insert("edition".into(), "2018".into());
-	package.insert("resolver".into(), "2".into());
+	package.insert("edition".into(), "2021".into());
 
 	wasm_workspace_toml.insert("package".into(), package.into());
 
@@ -462,17 +446,6 @@ fn build_project(project: &Path, default_rustflags: &str, cargo_cmd: CargoComman
 		build_cmd.arg("--release");
 	};
 
-	println!(
-		"{}",
-		colorize_info_message("Information that should be included in a bug report.")
-	);
-	println!("{} {:?}", colorize_info_message("Executing build command:"), build_cmd);
-	println!(
-		"{} {}",
-		colorize_info_message("Using rustc version:"),
-		cargo_cmd.rustc_version()
-	);
-
 	match build_cmd.status().map(|s| s.success()) {
 		Ok(true) => {}
 		// Use `process.exit(1)` to have a clean error output.
@@ -595,94 +568,6 @@ impl<'a> Deref for DeduplicatePackage<'a> {
 	}
 }
 
-/// Generate the `rerun-if-changed` instructions for cargo to make sure that the
-/// WASM binary is rebuilt when needed.
-fn generate_rerun_if_changed_instructions(cargo_manifest: &Path, project_folder: &Path, wasm_workspace: &Path) {
-	// Rerun `build.rs` if the `Cargo.lock` changes
-	if let Some(cargo_lock) = find_cargo_lock(cargo_manifest) {
-		rerun_if_changed(cargo_lock);
-	}
-
-	let metadata = MetadataCommand::new()
-		.manifest_path(project_folder.join("Cargo.toml"))
-		.exec()
-		.expect("`cargo metadata` can not fail!");
-
-	let package = metadata
-		.packages
-		.iter()
-		.find(|p| p.manifest_path == cargo_manifest)
-		.expect("The crate package is contained in its own metadata; qed");
-
-	// Start with the dependencies of the crate we want to compile for wasm.
-	let mut dependencies = package.dependencies.iter().collect::<Vec<_>>();
-
-	// Collect all packages by follow the dependencies of all packages we find.
-	let mut packages = HashSet::new();
-	packages.insert(DeduplicatePackage::from(package));
-
-	while let Some(dependency) = dependencies.pop() {
-		let path_or_git_dep = dependency
-			.source
-			.as_ref()
-			.map(|s| s.starts_with("git+"))
-			.unwrap_or(true);
-
-		let package = metadata
-			.packages
-			.iter()
-			.filter(|p| !p.manifest_path.starts_with(wasm_workspace))
-			.find(|p| {
-				// Check that the name matches and that the version matches or this is
-				// a git or path dep. A git or path dependency can only occur once, so we don't
-				// need to check the version.
-				(path_or_git_dep || dependency.req.matches(&p.version)) && dependency.name == p.name
-			});
-
-		if let Some(package) = package {
-			if packages.insert(DeduplicatePackage::from(package)) {
-				dependencies.extend(package.dependencies.iter());
-			}
-		}
-	}
-
-	// Make sure that if any file/folder of a dependency change, we need to rerun
-	// the `build.rs`
-	packages.iter().for_each(package_rerun_if_changed);
-
-	// Register our env variables
-	println!("cargo:rerun-if-env-changed={}", SKIP_BUILD_ENV);
-	println!("cargo:rerun-if-env-changed={}", WASM_BUILD_TYPE_ENV);
-	println!("cargo:rerun-if-env-changed={}", WASM_BUILD_RUSTFLAGS_ENV);
-	println!("cargo:rerun-if-env-changed={}", WASM_TARGET_DIRECTORY);
-	println!(
-		"cargo:rerun-if-env-changed={}",
-		super::prerequisites::WASM_BUILD_TOOLCHAIN
-	);
-}
-
-/// Track files and paths related to the given package to rerun `build.rs` on
-/// any relevant change.
-fn package_rerun_if_changed(package: &DeduplicatePackage) {
-	let mut manifest_path = package.manifest_path.clone();
-	if manifest_path.ends_with("Cargo.toml") {
-		manifest_path.pop();
-	}
-
-	walkdir::WalkDir::new(&manifest_path)
-		.into_iter()
-		.filter_entry(|p| {
-			// Ignore this entry if it is a directory that contains a `Cargo.toml` that is
-			// not the `Cargo.toml` related to the current package. This is done to ignore
-			// sub-crates of a crate. If such a sub-crate is a dependency, it will be
-			// processed independently anyway.
-			p.path() == manifest_path || !p.path().is_dir() || !p.path().join("Cargo.toml").exists()
-		})
-		.filter_map(|p| p.ok().map(|p| p.into_path()))
-		.filter(|p| p.is_dir() || p.extension().map(|e| e == "rs" || e == "toml").unwrap_or_default())
-		.for_each(rerun_if_changed);
-}
-
 /// Copy the WASM binary to the target directory set in `WASM_TARGET_DIRECTORY`
 /// environment variable. If the variable is not set, this is a no-op.
 fn copy_wasm_to_target_directory(cargo_manifest: &Path, wasm_binary: &WasmBinary) {
@@ -691,13 +576,12 @@ fn copy_wasm_to_target_directory(cargo_manifest: &Path, wasm_binary: &WasmBinary
 		Err(_) => return,
 	};
 
-	if !target_dir.is_absolute() {
-		panic!(
-			"Environment variable `{}` with `{}` is not an absolute path!",
-			WASM_TARGET_DIRECTORY,
-			target_dir.display(),
-		);
-	}
+	assert!(
+		target_dir.is_absolute(),
+		"Environment variable `{}` with `{}` is not an absolute path!",
+		WASM_TARGET_DIRECTORY,
+		target_dir.display()
+	);
 
 	fs::create_dir_all(&target_dir).expect("Creates `WASM_TARGET_DIRECTORY`.");
 

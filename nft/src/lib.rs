@@ -28,7 +28,7 @@ use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, One, Zero},
 	ArithmeticError, DispatchError, DispatchResult, RuntimeDebug,
 };
-use sp_std::{convert::TryInto, vec::Vec};
+use sp_std::vec::Vec;
 
 mod mock;
 mod tests;
@@ -188,6 +188,8 @@ pub mod module {
 	}
 
 	#[pallet::pallet]
+	#[pallet::generate_store(pub(super) trait Store)]
+	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
 	#[pallet::hooks]

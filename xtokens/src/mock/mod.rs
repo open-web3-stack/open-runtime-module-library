@@ -16,15 +16,19 @@ pub mod relay;
 pub const ALICE: AccountId32 = AccountId32::new([0u8; 32]);
 pub const BOB: AccountId32 = AccountId32::new([1u8; 32]);
 
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord, TypeInfo)]
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord, codec::MaxEncodedLen, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum CurrencyId {
 	/// Relay chain token.
 	R,
 	/// Parachain A token.
 	A,
+	/// Parachain A A1 token.
+	A1,
 	/// Parachain B token.
 	B,
+	/// Parachain B B1 token
+	B1,
 }
 
 pub struct CurrencyIdConvert;
@@ -33,21 +37,34 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
 		match id {
 			CurrencyId::R => Some(Parent.into()),
 			CurrencyId::A => Some((Parent, Parachain(1), GeneralKey("A".into())).into()),
+			CurrencyId::A1 => Some((Parent, Parachain(1), GeneralKey("A1".into())).into()),
 			CurrencyId::B => Some((Parent, Parachain(2), GeneralKey("B".into())).into()),
+			CurrencyId::B1 => Some((Parent, Parachain(2), GeneralKey("B1".into())).into()),
 		}
 	}
 }
 impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
 	fn convert(l: MultiLocation) -> Option<CurrencyId> {
 		let a: Vec<u8> = "A".into();
+		let a1: Vec<u8> = "A1".into();
 		let b: Vec<u8> = "B".into();
+		let b1: Vec<u8> = "B1".into();
 		if l == MultiLocation::parent() {
 			return Some(CurrencyId::R);
 		}
 		match l {
 			MultiLocation { parents, interior } if parents == 1 => match interior {
 				X2(Parachain(1), GeneralKey(k)) if k == a => Some(CurrencyId::A),
+				X2(Parachain(1), GeneralKey(k)) if k == a1 => Some(CurrencyId::A1),
 				X2(Parachain(2), GeneralKey(k)) if k == b => Some(CurrencyId::B),
+				X2(Parachain(2), GeneralKey(k)) if k == b1 => Some(CurrencyId::B1),
+				_ => None,
+			},
+			MultiLocation { parents, interior } if parents == 0 => match interior {
+				X1(GeneralKey(k)) if k == a => Some(CurrencyId::A),
+				X1(GeneralKey(k)) if k == b => Some(CurrencyId::B),
+				X1(GeneralKey(k)) if k == a1 => Some(CurrencyId::A1),
+				X1(GeneralKey(k)) if k == b1 => Some(CurrencyId::B1),
 				_ => None,
 			},
 			_ => None,

@@ -74,7 +74,11 @@ fn vested_transfer_works() {
 		};
 		assert_ok!(Vesting::vested_transfer(Origin::signed(ALICE), BOB, schedule.clone()));
 		assert_eq!(Vesting::vesting_schedules(&BOB), vec![schedule.clone()]);
-		System::assert_last_event(Event::Vesting(crate::Event::VestingScheduleAdded(ALICE, BOB, schedule)));
+		System::assert_last_event(Event::Vesting(crate::Event::VestingScheduleAdded {
+			from: ALICE,
+			to: BOB,
+			vesting_schedule: schedule,
+		}));
 	});
 }
 
