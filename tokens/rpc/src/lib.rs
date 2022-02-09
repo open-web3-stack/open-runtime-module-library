@@ -1,7 +1,8 @@
 //! RPC interface for the orml-tokens pallet.
 
 pub use self::gen_client::Client as TokensClient;
-use codec::{Codec};
+use codec::Codec;
+use frame_support::pallet_prelude::*;
 use jsonrpc_core::{Error as RpcError, ErrorCode, Result};
 use jsonrpc_derive::rpc;
 pub use orml_tokens_rpc_runtime_api::TokensApi as TokensRuntimeApi;
@@ -12,7 +13,6 @@ use sp_runtime::{
 	generic::BlockId,
 	traits::{Block as BlockT, MaybeDisplay, MaybeSerializeDeserialize, Member},
 };
-use frame_support::pallet_prelude::*;
 
 use std::sync::Arc;
 
@@ -31,7 +31,10 @@ pub struct Tokens<C, P> {
 impl<C, P> Tokens<C, P> {
 	/// Create new `Tokens` with the given reference to the client.
 	pub fn new(client: Arc<C>) -> Self {
-		Self { client, _marker: Default::default() }
+		Self {
+			client,
+			_marker: Default::default(),
+		}
 	}
 }
 
@@ -52,14 +55,13 @@ impl From<Error> for i64 {
 	}
 }
 
-impl<C, Block, CurrencyId, Balance> TokensRpcApi<<Block as BlockT>::Hash, CurrencyId, Balance>
-	for Tokens<C, Block>
+impl<C, Block, CurrencyId, Balance> TokensRpcApi<<Block as BlockT>::Hash, CurrencyId, Balance> for Tokens<C, Block>
 where
 	Block: BlockT,
 	C: 'static + ProvideRuntimeApi<Block> + HeaderBackend<Block>,
 	C::Api: TokensRuntimeApi<Block, CurrencyId, Balance>,
 	Balance: Codec + MaybeDisplay + Copy + TryInto<NumberOrHex>,
-	CurrencyId: Parameter + Member + Copy + MaybeSerializeDeserialize + Ord
+	CurrencyId: Parameter + Member + Copy + MaybeSerializeDeserialize + Ord,
 {
 	fn query_existential_deposit(
 		&self,
