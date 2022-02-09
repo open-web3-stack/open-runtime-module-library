@@ -43,11 +43,6 @@ pub mod test {
 			let _sender = frame_system::ensure_none(origin)?;
 			Ok(())
 		}
-
-		#[pallet::weight(0)]
-		pub fn always_error(_origin: OriginFor<T>) -> DispatchResult {
-			return Err("I always fail".into());
-		}
 	}
 }
 
