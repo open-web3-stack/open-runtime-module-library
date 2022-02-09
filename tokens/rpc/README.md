@@ -1,3 +1,3 @@
-RPC interface for the tokens pallet.
+RPC interface for the orml tokens pallet.
 
 License: Apache-2.0

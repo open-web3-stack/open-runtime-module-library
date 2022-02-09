@@ -40,8 +40,6 @@ impl<C, P> Tokens<C, P> {
 
 /// Error type of this RPC api.
 pub enum Error {
-	/// The transaction was not decodable.
-	DecodeError,
 	/// The call to runtime failed.
 	RuntimeError,
 }
@@ -50,7 +48,6 @@ impl From<Error> for i64 {
 	fn from(e: Error) -> i64 {
 		match e {
 			Error::RuntimeError => 1,
-			Error::DecodeError => 2,
 		}
 	}
 }
@@ -75,7 +72,7 @@ where
 
 		api.query_existential_deposit(&at, currency_id).map_err(|e| RpcError {
 			code: ErrorCode::ServerError(Error::RuntimeError.into()),
-			message: "Unable to query dispatch info.".into(),
+			message: "Unable to query existential_deposit.".into(),
 			data: Some(format!("{:?}", e).into()),
 		})
 	}
