@@ -3,9 +3,9 @@
 #![cfg(test)]
 
 use super::*;
-use frame_system::RawOrigin;
 use frame_benchmarking::account;
 use frame_support::{assert_err, assert_ok, construct_runtime, ensure, traits::Everything};
+use frame_system::RawOrigin;
 use sp_runtime::{
 	testing::{Header, H256},
 	traits::{BlakeTwo256, IdentityLookup},
@@ -19,8 +19,7 @@ pub mod test {
 	use frame_system::pallet_prelude::*;
 
 	#[pallet::config]
-	pub trait Config: frame_system::Config {
-	}
+	pub trait Config: frame_system::Config {}
 
 	#[pallet::storage]
 	#[pallet::getter(fn value)]
@@ -47,7 +46,7 @@ pub mod test {
 
 		#[pallet::weight(0)]
 		pub fn always_error(_origin: OriginFor<T>) -> DispatchResult {
-			return Err("I always fail".into())
+			return Err("I always fail".into());
 		}
 	}
 }
@@ -81,8 +80,7 @@ impl frame_system::Config for Test {
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
-impl Config for Test {
-}
+impl Config for Test {}
 
 pub type Block = sp_runtime::generic::Block<Header, UncheckedExtrinsic>;
 pub type UncheckedExtrinsic = sp_runtime::generic::UncheckedExtrinsic<u32, Call, u32, ()>;
