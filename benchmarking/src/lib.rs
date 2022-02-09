@@ -1401,7 +1401,7 @@ macro_rules! define_benchmarks {
 		/// list_benchmarks!(list, extra);
 		/// ```
 		#[macro_export]
-        macro_rules! list_benchmarks {
+		macro_rules! list_benchmarks {
             ( $list:ident, $extra:ident ) => {
                 cb_list_benchmarks!( $list, $extra, $([ $names, $( $locations )* ])+ );
             }
@@ -1415,7 +1415,7 @@ macro_rules! define_benchmarks {
 		/// add_benchmarks!(params, batches);
 		/// ```
 		#[macro_export]
-        macro_rules! add_benchmarks {
+		macro_rules! add_benchmarks {
             ( $params:ident, $batches:ident ) => {
                 cb_add_benchmarks!( $params, $batches, $([ $names, $( $locations )* ])+ );
             }
