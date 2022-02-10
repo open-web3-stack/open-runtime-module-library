@@ -11,18 +11,14 @@ use sp_runtime::{
 	generic::BlockId,
 	traits::{Block as BlockT, MaybeDisplay},
 };
-use sp_std::collections::btree_map::BTreeMap;
-use sp_std::prelude::*;
 
 pub use self::gen_client::Client as TokensClient;
 pub use orml_tokens_rpc_runtime_api::TokensApi as TokensRuntimeApi;
 
 #[rpc]
-pub trait TokensApi<BlockHash, CurrencyId, Balance> where CurrencyId: Ord {
+pub trait TokensApi<BlockHash, CurrencyId, Balance> {
 	#[rpc(name = "tokens_queryExistentialDeposit")]
 	fn query_existential_deposit(&self, currency_id: CurrencyId, at: Option<BlockHash>) -> Result<Balance>;
-	#[rpc(name = "tokens_existentialDeposits")]
-	fn existential_deposits(&self, at: Option<BlockHash>) -> Result<BTreeMap<CurrencyId, Balance>>;
 }
 
 /// A struct that implements the [`TokensApi`].
@@ -61,7 +57,7 @@ where
 	C: Send + Sync + 'static + ProvideRuntimeApi<Block> + HeaderBackend<Block>,
 	C::Api: TokensRuntimeApi<Block, CurrencyId, Balance>,
 	Balance: Codec + MaybeDisplay + Copy + TryInto<NumberOrHex>,
-	CurrencyId: Codec + Ord,
+	CurrencyId: Codec,
 {
 	fn query_existential_deposit(
 		&self,
@@ -75,23 +71,7 @@ where
 
 		api.query_existential_deposit(&at, currency_id).map_err(|e| RpcError {
 			code: ErrorCode::ServerError(Error::RuntimeError.into()),
-			message: "Unable to query existential deposit.".into(),
-			data: Some(format!("{:?}", e).into()),
-		})
-	}
-
-	fn existential_deposits(
-		&self,
-		at: Option<<Block as BlockT>::Hash>,
-	) -> Result<BTreeMap<CurrencyId, Balance>> {
-		let api = self.client.runtime_api();
-		let at = BlockId::hash(at.unwrap_or_else(||
-			// If the block hash is not supplied assume the best block.
-			self.client.info().best_hash));
-
-		api.existential_deposits(&at).map_err(|e| RpcError {
-			code: ErrorCode::ServerError(Error::RuntimeError.into()),
-			message: "Unable to query existential deposits.".into(),
+			message: "Unable to query existential_deposit.".into(),
 			data: Some(format!("{:?}", e).into()),
 		})
 	}
