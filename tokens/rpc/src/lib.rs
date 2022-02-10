@@ -2,7 +2,6 @@
 use std::sync::Arc;
 
 use codec::Codec;
-use frame_support::pallet_prelude::*;
 use jsonrpc_core::{Error as RpcError, ErrorCode, Result};
 use jsonrpc_derive::rpc;
 use sp_api::ProvideRuntimeApi;
@@ -10,7 +9,7 @@ use sp_blockchain::HeaderBackend;
 use sp_rpc::number::NumberOrHex;
 use sp_runtime::{
 	generic::BlockId,
-	traits::{Block as BlockT, MaybeDisplay, MaybeSerializeDeserialize, Member},
+	traits::{Block as BlockT, MaybeDisplay},
 };
 
 pub use self::gen_client::Client as TokensClient;
@@ -58,7 +57,7 @@ where
 	C: Send + Sync + 'static + ProvideRuntimeApi<Block> + HeaderBackend<Block>,
 	C::Api: TokensRuntimeApi<Block, CurrencyId, Balance>,
 	Balance: Codec + MaybeDisplay + Copy + TryInto<NumberOrHex>,
-	CurrencyId: Parameter + Member + Copy + MaybeSerializeDeserialize + Ord,
+	CurrencyId: Codec,
 {
 	fn query_existential_deposit(
 		&self,
