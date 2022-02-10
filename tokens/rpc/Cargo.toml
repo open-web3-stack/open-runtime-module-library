@@ -15,6 +15,7 @@ jsonrpc-derive = "18.0.0"
 
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16" }
 sp-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16" }
+sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16" }
 sp-blockchain = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16" }
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16" }
 sp-rpc = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16" }
