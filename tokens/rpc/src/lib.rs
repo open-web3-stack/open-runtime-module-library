@@ -1,11 +1,10 @@
 //! RPC interface for the orml-tokens pallet.
+use std::sync::Arc;
 
-pub use self::gen_client::Client as TokensClient;
 use codec::Codec;
 use frame_support::pallet_prelude::*;
 use jsonrpc_core::{Error as RpcError, ErrorCode, Result};
 use jsonrpc_derive::rpc;
-pub use orml_tokens_rpc_runtime_api::TokensApi as TokensRuntimeApi;
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
 use sp_rpc::number::NumberOrHex;
@@ -14,15 +13,16 @@ use sp_runtime::{
 	traits::{Block as BlockT, MaybeDisplay, MaybeSerializeDeserialize, Member},
 };
 
-use std::sync::Arc;
+pub use self::gen_client::Client as TokensClient;
+pub use orml_tokens_rpc_runtime_api::TokensApi as TokensRuntimeApi;
 
 #[rpc]
-pub trait TokensRpcApi<BlockHash, CurrencyId, Balance> {
+pub trait TokensApi<BlockHash, CurrencyId, Balance> {
 	#[rpc(name = "existential_deposit")]
 	fn query_existential_deposit(&self, currency_id: CurrencyId, at: Option<BlockHash>) -> Result<Balance>;
 }
 
-/// A struct that implements the [`TokensRpcApi`].
+/// A struct that implements the [`TokensApi`].
 pub struct Tokens<C, P> {
 	client: Arc<C>,
 	_marker: std::marker::PhantomData<P>,
@@ -52,10 +52,10 @@ impl From<Error> for i64 {
 	}
 }
 
-impl<C, Block, CurrencyId, Balance> TokensRpcApi<<Block as BlockT>::Hash, CurrencyId, Balance> for Tokens<C, Block>
+impl<C, Block, CurrencyId, Balance> TokensApi<<Block as BlockT>::Hash, CurrencyId, Balance> for Tokens<C, Block>
 where
 	Block: BlockT,
-	C: 'static + ProvideRuntimeApi<Block> + HeaderBackend<Block>,
+	C: Send + Sync + 'static + ProvideRuntimeApi<Block> + HeaderBackend<Block>,
 	C::Api: TokensRuntimeApi<Block, CurrencyId, Balance>,
 	Balance: Codec + MaybeDisplay + Copy + TryInto<NumberOrHex>,
 	CurrencyId: Parameter + Member + Copy + MaybeSerializeDeserialize + Ord,
