@@ -18,7 +18,7 @@ pub use orml_tokens_rpc_runtime_api::TokensApi as TokensRuntimeApi;
 
 #[rpc]
 pub trait TokensApi<BlockHash, CurrencyId, Balance> {
-	#[rpc(name = "existential_deposit")]
+	#[rpc(name = "tokens_queryExistentialDeposit")]
 	fn query_existential_deposit(&self, currency_id: CurrencyId, at: Option<BlockHash>) -> Result<Balance>;
 }
 
