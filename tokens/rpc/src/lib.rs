@@ -82,6 +82,6 @@ where
 			message: "Unable to query existential_deposit.".into(),
 			data: Some(format!("{:?}", e).into()),
 		});
-		try_into_rpc_balance(balance)
+		try_into_rpc_balance(balance?)
 	}
 }
