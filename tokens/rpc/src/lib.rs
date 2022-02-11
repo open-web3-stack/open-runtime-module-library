@@ -56,7 +56,7 @@ where
 	Block: BlockT,
 	C: Send + Sync + 'static + ProvideRuntimeApi<Block> + HeaderBackend<Block>,
 	C::Api: TokensRuntimeApi<Block, CurrencyId, Balance>,
-	Balance: Codec + MaybeDisplay + Copy + TryInto<NumberOrHex>,
+	Balance: Codec + MaybeDisplay + Copy + TryInto<NumberOrHex> + std::fmt::Debug,
 	CurrencyId: Codec,
 {
 	fn query_existential_deposit(
@@ -82,6 +82,7 @@ where
 			message: "Unable to query existential_deposit.".into(),
 			data: Some(format!("{:?}", e).into()),
 		});
+		log::info!("ed balance: {:?}", balance);
 		try_into_rpc_balance(balance?)
 	}
 }
