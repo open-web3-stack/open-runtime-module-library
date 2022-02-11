@@ -18,7 +18,7 @@ pub use orml_tokens_rpc_runtime_api::TokensApi as TokensRuntimeApi;
 #[rpc]
 pub trait TokensApi<BlockHash, CurrencyId, Balance> {
 	#[rpc(name = "tokens_queryExistentialDeposit")]
-	fn query_existential_deposit(&self, currency_id: CurrencyId, at: Option<BlockHash>) -> Result<Balance>;
+	fn query_existential_deposit(&self, currency_id: CurrencyId, at: Option<BlockHash>) -> Result<NumberOrHex>;
 }
 
 /// A struct that implements the [`TokensApi`].
@@ -63,13 +63,23 @@ where
 		&self,
 		currency_id: CurrencyId,
 		at: Option<<Block as BlockT>::Hash>,
-	) -> Result<Balance> {
+	) -> Result<NumberOrHex> {
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.
 			self.client.info().best_hash));
 
-		api.query_existential_deposit(&at, currency_id).map_err(|e| RpcError {
+		let try_into_rpc_balance = |value: Balance| {
+			value.try_into().map_err(|_| RpcError {
+				code: ErrorCode::ServerError(Error::RuntimeError.into()),
+				message: format!("{} doesn't fit in NumberOrHex representation", value),
+				data: None,
+			})
+		};
+
+		api.query_existential_deposit(&at, currency_id).map(|balance| {
+			try_into_rpc_balance(balance).unwrap()
+		}).map_err(|e| RpcError {
 			code: ErrorCode::ServerError(Error::RuntimeError.into()),
 			message: "Unable to query existential_deposit.".into(),
 			data: Some(format!("{:?}", e).into()),

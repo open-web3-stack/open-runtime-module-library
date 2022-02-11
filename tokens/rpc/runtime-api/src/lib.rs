@@ -7,11 +7,10 @@
 #![allow(clippy::unnecessary_mut_passed)]
 
 use codec::Codec;
-use sp_runtime::traits::MaybeDisplay;
 
 sp_api::decl_runtime_apis! {
 	pub trait TokensApi<CurrencyId, Balance> where
-		Balance: Codec + MaybeDisplay,
+		Balance: Codec,
 		CurrencyId: Codec
 	{
 		fn query_existential_deposit(currency_id: CurrencyId) -> Balance;
