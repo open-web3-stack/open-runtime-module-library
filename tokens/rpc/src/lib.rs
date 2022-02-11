@@ -71,18 +71,17 @@ where
 
 		let try_into_rpc_balance = |value: Balance| {
 			value.try_into().map_err(|_| RpcError {
-				code: ErrorCode::ServerError(Error::RuntimeError.into()),
+				code: ErrorCode::InvalidParams,
 				message: format!("{} doesn't fit in NumberOrHex representation", value),
 				data: None,
 			})
 		};
 
-		api.query_existential_deposit(&at, currency_id).map(|balance| {
-			try_into_rpc_balance(balance).unwrap()
-		}).map_err(|e| RpcError {
+		let balance = api.query_existential_deposit(&at, currency_id).map_err(|e| RpcError {
 			code: ErrorCode::ServerError(Error::RuntimeError.into()),
 			message: "Unable to query existential_deposit.".into(),
 			data: Some(format!("{:?}", e).into()),
-		})
+		});
+		try_into_rpc_balance(balance)
 	}
 }
