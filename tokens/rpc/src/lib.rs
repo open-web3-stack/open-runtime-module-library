@@ -69,6 +69,12 @@ where
 			// If the block hash is not supplied assume the best block.
 			self.client.info().best_hash));
 
+		let balance = api.query_existential_deposit(&at, currency_id).map_err(|e| RpcError {
+			code: ErrorCode::ServerError(Error::RuntimeError.into()),
+			message: "Unable to query existential_deposit.".into(),
+			data: Some(format!("{:?}", e).into()),
+		});
+
 		let try_into_rpc_balance = |value: Balance| {
 			value.try_into().map_err(|_| RpcError {
 				code: ErrorCode::InvalidParams,
@@ -77,12 +83,6 @@ where
 			})
 		};
 
-		let balance = api.query_existential_deposit(&at, currency_id).map_err(|e| RpcError {
-			code: ErrorCode::ServerError(Error::RuntimeError.into()),
-			message: "Unable to query existential_deposit.".into(),
-			data: Some(format!("{:?}", e).into()),
-		});
-		log::info!("ed balance: {:?}", balance);
 		try_into_rpc_balance(balance?)
 	}
 }

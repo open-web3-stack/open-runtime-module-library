@@ -965,11 +965,6 @@ impl<T: Config> Pallet<T> {
 			Ok(())
 		})
 	}
-
-	/// Get existential deposit of specified currency.
-	pub fn get_existential_deposit(currency_id: T::CurrencyId) -> T::Balance {
-		T::ExistentialDeposits::get(&currency_id)
-	}
 }
 
 impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
