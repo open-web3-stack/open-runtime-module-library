@@ -44,6 +44,7 @@ pallet-staking = { git = "https://github.com/paritytech//substrate", rev = "4aeb
 pallet-timestamp = { git = "https://github.com/paritytech//substrate", rev = "4aeb95f7f38fcd519e2628f32f79044a8fef99d5" }
 pallet-treasury = { git = "https://github.com/paritytech//substrate", rev = "4aeb95f7f38fcd519e2628f32f79044a8fef99d5" }
 pallet-vesting = { git = "https://github.com/paritytech//substrate", rev = "4aeb95f7f38fcd519e2628f32f79044a8fef99d5" }
+pallet-transaction-payment = { git = "https://github.com/paritytech//substrate", rev = "4aeb95f7f38fcd519e2628f32f79044a8fef99d5" }
 sc-client-api = { git = "https://github.com/paritytech//substrate", rev = "4aeb95f7f38fcd519e2628f32f79044a8fef99d5" }
 sc-client-db = { git = "https://github.com/paritytech//substrate", rev = "4aeb95f7f38fcd519e2628f32f79044a8fef99d5" }
 sc-executor = { git = "https://github.com/paritytech//substrate", rev = "4aeb95f7f38fcd519e2628f32f79044a8fef99d5" }
@@ -57,6 +58,7 @@ sp-authority-discovery = { git = "https://github.com/paritytech//substrate", rev
 sp-authorship = { git = "https://github.com/paritytech//substrate", rev = "4aeb95f7f38fcd519e2628f32f79044a8fef99d5" }
 sp-blockchain = { git = "https://github.com/paritytech//substrate", rev = "4aeb95f7f38fcd519e2628f32f79044a8fef99d5" }
 sp-consensus = { git = "https://github.com/paritytech//substrate", rev = "4aeb95f7f38fcd519e2628f32f79044a8fef99d5" }
+sp-consensus-slots = { git = "https://github.com/paritytech//substrate", rev = "4aeb95f7f38fcd519e2628f32f79044a8fef99d5" }
 sp-core = { git = "https://github.com/paritytech//substrate", rev = "4aeb95f7f38fcd519e2628f32f79044a8fef99d5" }
 sp-debug-derive = { git = "https://github.com/paritytech//substrate", rev = "4aeb95f7f38fcd519e2628f32f79044a8fef99d5" }
 sp-externalities = { git = "https://github.com/paritytech//substrate", rev = "4aeb95f7f38fcd519e2628f32f79044a8fef99d5" }
@@ -77,6 +79,8 @@ sp-timestamp = { git = "https://github.com/paritytech//substrate", rev = "4aeb95
 sp-trie = { git = "https://github.com/paritytech//substrate", rev = "4aeb95f7f38fcd519e2628f32f79044a8fef99d5" }
 sp-version = { git = "https://github.com/paritytech//substrate", rev = "4aeb95f7f38fcd519e2628f32f79044a8fef99d5" }
 sp-wasm-interface = { git = "https://github.com/paritytech//substrate", rev = "4aeb95f7f38fcd519e2628f32f79044a8fef99d5" }
+sp-tracing = { git = "https://github.com/paritytech//substrate", rev = "4aeb95f7f38fcd519e2628f32f79044a8fef99d5" }
+sp-maybe-compressed-blob = { git = "https://github.com/paritytech//substrate", rev = "4aeb95f7f38fcd519e2628f32f79044a8fef99d5" }
 
 [patch.'https://github.com/paritytech/cumulus']
 cumulus-primitives-core = { git = "https://github.com/paritytech//cumulus", rev = "867bfcd8f87cc986d1a3e9eeaf16c8b4e9a27790" }
