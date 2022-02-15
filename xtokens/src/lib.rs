@@ -522,6 +522,12 @@ pub mod module {
 			dest_weight: Weight,
 		) -> DispatchResult {
 			let mut assets = MultiAssets::new();
+
+			// Lets grab the fee amount and location first
+			let (fee_currency_id, fee_amount) = currencies
+				.get(fee_item as usize)
+				.ok_or(Error::<T>::AssetIndexNonExistent)?;
+
 			for (currency_id, amount) in &currencies {
 				let location: MultiLocation = T::CurrencyIdConvert::convert(currency_id.clone())
 					.ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
@@ -529,11 +535,12 @@ pub mod module {
 				assets.push((location, (*amount).into()).into())
 			}
 
-			// We first grab the fee
-			let fee = assets
-				.get(fee_item as usize)
-				.ok_or(Error::<T>::AssetIndexNonExistent)?
-				.clone();
+			// We construct the fee now, since getting it from assets wont work as assets
+			// sorts it
+			let fee_location: MultiLocation = T::CurrencyIdConvert::convert(fee_currency_id.clone())
+				.ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
+
+			let fee: MultiAsset = (fee_location, (*fee_amount).into()).into();
 
 			Self::do_transfer_multiassets(who.clone(), assets, fee, dest.clone(), dest_weight, false)?;
 

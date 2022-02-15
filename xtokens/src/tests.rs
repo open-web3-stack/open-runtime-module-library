@@ -354,6 +354,52 @@ fn send_sibling_asset_to_reserve_sibling_with_distinc_fee() {
 	ParaA::execute_with(|| {
 		assert_ok!(ParaXTokens::transfer_multicurrencies(
 			Some(ALICE).into(),
+			vec![(CurrencyId::B1, 50), (CurrencyId::B, 450)],
+			0,
+			Box::new(
+				(
+					Parent,
+					Parachain(2),
+					Junction::AccountId32 {
+						network: NetworkId::Any,
+						id: BOB.into(),
+					},
+				)
+					.into()
+			),
+			40,
+		));
+
+		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &ALICE), 550);
+		assert_eq!(ParaTokens::free_balance(CurrencyId::B1, &ALICE), 950);
+	});
+
+	// It should use 40 for weight, so 450 B and 10 B1 should reach destination
+	ParaB::execute_with(|| {
+		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &sibling_a_account()), 550);
+		assert_eq!(ParaTokens::free_balance(CurrencyId::B1, &sibling_a_account()), 950);
+		assert_eq!(ParaTokens::free_balance(CurrencyId::B, &BOB), 450);
+		assert_eq!(ParaTokens::free_balance(CurrencyId::B1, &BOB), 10);
+	});
+}
+
+#[test]
+fn send_sibling_asset_to_reserve_sibling_with_distinc_fee_index_works() {
+	TestNet::reset();
+
+	ParaA::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::B, &ALICE, 1_000));
+		assert_ok!(ParaTokens::deposit(CurrencyId::B1, &ALICE, 1_000));
+	});
+
+	ParaB::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::B, &sibling_a_account(), 1_000));
+		assert_ok!(ParaTokens::deposit(CurrencyId::B1, &sibling_a_account(), 1_000));
+	});
+
+	ParaA::execute_with(|| {
+		assert_ok!(ParaXTokens::transfer_multicurrencies(
+			Some(ALICE).into(),
 			vec![(CurrencyId::B, 450), (CurrencyId::B1, 50)],
 			1,
 			Box::new(
