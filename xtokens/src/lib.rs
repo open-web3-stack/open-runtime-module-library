@@ -506,10 +506,10 @@ pub mod module {
 
 			// Push contains saturated addition, so we should be able to use it safely
 			let mut assets = MultiAssets::new();
-			assets.push(asset);
+			assets.push(asset.clone());
 			assets.push(fee.clone());
 
-			Self::do_transfer_multiassets(who, assets, fee, dest, dest_weight, false)?;
+			Self::do_transfer_multiassets(who.clone(), assets, fee.clone(), dest.clone(), dest_weight, false)?;
 
 			Self::deposit_event(Event::<T>::TransferredMultiAssetWithFee {
 				sender: who,
