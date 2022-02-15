@@ -511,7 +511,12 @@ pub mod module {
 
 			Self::do_transfer_multiassets(who, assets, fee, dest, dest_weight, false)?;
 
-			Self::deposit_event(Event::<T>::TransferredMultiAssetWithFee(who, asset, fee, dest));
+			Self::deposit_event(Event::<T>::TransferredMultiAssetWithFee {
+				sender: who,
+				asset,
+				fee,
+				dest,
+			});
 
 			Ok(())
 		}
