@@ -2,12 +2,14 @@
 
 use super::*;
 
-use frame_support::{impl_outer_dispatch, impl_outer_event, impl_outer_origin, parameter_types, weights::Weight};
+use frame_support::{
+	construct_runtime, parameter_types,
+	traits::{Everything, SortedMembers},
+};
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
-	Perbill,
 };
 
 use std::cell::RefCell;
@@ -16,39 +18,14 @@ mod oracle {
 	pub use super::super::*;
 }
 
-impl_outer_event! {
-	pub enum TestEvent for Test {
-		frame_system<T>,
-		oracle<T>,
-	}
-}
-
-impl_outer_origin! {
-	pub enum Origin for Test {}
-}
-
-impl_outer_dispatch! {
-	pub enum Call for Test where origin: Origin {
-		oracle::ModuleOracle,
-	}
-}
-
 pub type AccountId = u128;
 type Key = u32;
 type Value = u32;
 
-// For testing the module, we construct most of a mock runtime. This means
-// first constructing a configuration type (`Test`) which `impl`s each of the
-// configuration traits of modules we want to use.
-#[derive(Clone, Eq, PartialEq, Debug)]
-pub struct Test;
 parameter_types! {
 	pub const BlockHashCount: u64 = 250;
-	pub const MaximumBlockWeight: Weight = 1024;
-	pub const MaximumBlockLength: u32 = 2 * 1024;
-	pub const AvailableBlockRatio: Perbill = Perbill::from_percent(75);
 }
-impl frame_system::Trait for Test {
+impl frame_system::Config for Test {
 	type Origin = Origin;
 	type Call = Call;
 	type Index = u64;
@@ -58,24 +35,22 @@ impl frame_system::Trait for Test {
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
-	type Event = TestEvent;
+	type Event = Event;
 	type BlockHashCount = BlockHashCount;
-	type MaximumBlockWeight = MaximumBlockWeight;
-	type MaximumBlockLength = MaximumBlockLength;
-	type AvailableBlockRatio = AvailableBlockRatio;
+	type BlockWeights = ();
+	type BlockLength = ();
 	type Version = ();
-	type PalletInfo = ();
+	type PalletInfo = PalletInfo;
 	type AccountData = ();
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type DbWeight = ();
-	type BlockExecutionWeight = ();
-	type ExtrinsicBaseWeight = ();
-	type MaximumExtrinsicWeight = ();
-	type BaseCallFilter = ();
+	type BaseCallFilter = Everything;
 	type SystemWeightInfo = ();
+	type SS58Prefix = ();
+	type OnSetCode = ();
+	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
-pub type System = frame_system::Module<Test>;
 
 thread_local! {
 	static TIME: RefCell<u32> = RefCell::new(0);
@@ -100,30 +75,52 @@ parameter_types! {
 	pub const MinimumCount: u32 = 3;
 	pub const ExpiresIn: u32 = 600;
 	pub const RootOperatorAccountId: AccountId = 4;
+	pub static OracleMembers: Vec<AccountId> = vec![1, 2, 3];
 }
 
-impl Trait for Test {
-	type Event = TestEvent;
+pub struct Members;
+
+impl SortedMembers<AccountId> for Members {
+	fn sorted_members() -> Vec<AccountId> {
+		OracleMembers::get()
+	}
+}
+
+parameter_types! {
+	pub const MaxHasDispatchedSize: u32 = 100;
+}
+
+impl Config for Test {
+	type Event = Event;
 	type OnNewData = ();
 	type CombineData = DefaultCombineData<Self, MinimumCount, ExpiresIn>;
 	type Time = Timestamp;
 	type OracleKey = Key;
 	type OracleValue = Value;
 	type RootOperatorAccountId = RootOperatorAccountId;
+	type Members = Members;
 	type WeightInfo = ();
+	type MaxHasDispatchedSize = MaxHasDispatchedSize;
 }
 
-pub type ModuleOracle = Module<Test>;
+type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
+type Block = frame_system::mocking::MockBlock<Test>;
+
+construct_runtime!(
+	pub enum Test where
+		Block = Block,
+		NodeBlock = Block,
+		UncheckedExtrinsic = UncheckedExtrinsic,
+	{
+		System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
+		ModuleOracle: oracle::{Pallet, Storage, Call, Event<T>},
+	}
+);
+
 // This function basically just builds a genesis storage key/value store
 // according to our desired mockup.
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	let mut storage = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
-
-	let _ = GenesisConfig::<Test> {
-		members: vec![1, 2, 3].into(),
-		phantom: Default::default(),
-	}
-	.assimilate_storage(&mut storage);
+	let storage = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
 
 	let mut t: sp_io::TestExternalities = storage.into();
 

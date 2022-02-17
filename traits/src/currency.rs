@@ -1,13 +1,15 @@
 use crate::arithmetic;
-use codec::{Codec, FullCodec};
-pub use frame_support::traits::{BalanceStatus, LockIdentifier};
+use codec::{Codec, FullCodec, MaxEncodedLen};
+pub use frame_support::{
+	traits::{BalanceStatus, LockIdentifier},
+	transactional,
+};
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize},
 	DispatchError, DispatchResult,
 };
 use sp_std::{
 	cmp::{Eq, PartialEq},
-	convert::{TryFrom, TryInto},
 	fmt::Debug,
 	result,
 };
@@ -15,12 +17,29 @@ use sp_std::{
 /// Abstraction over a fungible multi-currency system.
 pub trait MultiCurrency<AccountId> {
 	/// The currency identifier.
-	type CurrencyId: FullCodec + Eq + PartialEq + Copy + MaybeSerializeDeserialize + Debug;
+	type CurrencyId: FullCodec
+		+ Eq
+		+ PartialEq
+		+ Copy
+		+ MaybeSerializeDeserialize
+		+ Debug
+		+ scale_info::TypeInfo
+		+ MaxEncodedLen;
 
 	/// The balance of an account.
-	type Balance: AtLeast32BitUnsigned + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default;
+	type Balance: AtLeast32BitUnsigned
+		+ FullCodec
+		+ Copy
+		+ MaybeSerializeDeserialize
+		+ Debug
+		+ Default
+		+ scale_info::TypeInfo
+		+ MaxEncodedLen;
 
 	// Public immutables
+
+	/// Existential deposit of `currency_id`.
+	fn minimum_balance(currency_id: Self::CurrencyId) -> Self::Balance;
 
 	/// The total amount of issuance of `currency_id`.
 	fn total_issuance(currency_id: Self::CurrencyId) -> Self::Balance;
@@ -76,7 +95,9 @@ pub trait MultiCurrencyExtended<AccountId>: MultiCurrency<AccountId> {
 		+ Copy
 		+ MaybeSerializeDeserialize
 		+ Debug
-		+ Default;
+		+ Default
+		+ scale_info::TypeInfo
+		+ MaxEncodedLen;
 
 	/// Add or remove abs(`by_amount`) from the balance of `who` under
 	/// `currency_id`. If positive `by_amount`, do add, else do remove.
@@ -96,7 +117,12 @@ pub trait MultiLockableCurrency<AccountId>: MultiCurrency<AccountId> {
 	/// than a user has.
 	///
 	/// If the lock `lock_id` already exists, this will update it.
-	fn set_lock(lock_id: LockIdentifier, currency_id: Self::CurrencyId, who: &AccountId, amount: Self::Balance);
+	fn set_lock(
+		lock_id: LockIdentifier,
+		currency_id: Self::CurrencyId,
+		who: &AccountId,
+		amount: Self::Balance,
+	) -> DispatchResult;
 
 	/// Changes a balance lock (selected by `lock_id`) so that it becomes less
 	/// liquid in all parameters or creates a new one if it does not exist.
@@ -106,10 +132,15 @@ pub trait MultiLockableCurrency<AccountId>: MultiCurrency<AccountId> {
 	/// while `set_lock` replaces the lock with the new parameters. As in,
 	/// `extend_lock` will set:
 	/// - maximum `amount`
-	fn extend_lock(lock_id: LockIdentifier, currency_id: Self::CurrencyId, who: &AccountId, amount: Self::Balance);
+	fn extend_lock(
+		lock_id: LockIdentifier,
+		currency_id: Self::CurrencyId,
+		who: &AccountId,
+		amount: Self::Balance,
+	) -> DispatchResult;
 
 	/// Remove an existing lock.
-	fn remove_lock(lock_id: LockIdentifier, currency_id: Self::CurrencyId, who: &AccountId);
+	fn remove_lock(lock_id: LockIdentifier, currency_id: Self::CurrencyId, who: &AccountId) -> DispatchResult;
 }
 
 /// A fungible multi-currency system where funds can be reserved from the user.
@@ -173,9 +204,12 @@ pub trait MultiReservableCurrency<AccountId>: MultiCurrency<AccountId> {
 /// Abstraction over a fungible (single) currency system.
 pub trait BasicCurrency<AccountId> {
 	/// The balance of an account.
-	type Balance: AtLeast32BitUnsigned + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default;
+	type Balance: AtLeast32BitUnsigned + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default + MaxEncodedLen;
 
 	// Public immutables
+
+	/// Existential deposit.
+	fn minimum_balance() -> Self::Balance;
 
 	/// The total amount of issuance.
 	fn total_issuance() -> Self::Balance;
@@ -224,7 +258,8 @@ pub trait BasicCurrencyExtended<AccountId>: BasicCurrency<AccountId> {
 		+ Copy
 		+ MaybeSerializeDeserialize
 		+ Debug
-		+ Default;
+		+ Default
+		+ MaxEncodedLen;
 
 	/// Add or remove abs(`by_amount`) from the balance of `who`. If positive
 	/// `by_amount`, do add, else do remove.
@@ -244,7 +279,7 @@ pub trait BasicLockableCurrency<AccountId>: BasicCurrency<AccountId> {
 	/// than a user has.
 	///
 	/// If the lock `lock_id` already exists, this will update it.
-	fn set_lock(lock_id: LockIdentifier, who: &AccountId, amount: Self::Balance);
+	fn set_lock(lock_id: LockIdentifier, who: &AccountId, amount: Self::Balance) -> DispatchResult;
 
 	/// Changes a balance lock (selected by `lock_id`) so that it becomes less
 	/// liquid in all parameters or creates a new one if it does not exist.
@@ -254,10 +289,10 @@ pub trait BasicLockableCurrency<AccountId>: BasicCurrency<AccountId> {
 	/// while `set_lock` replaces the lock with the new parameters. As in,
 	/// `extend_lock` will set:
 	/// - maximum `amount`
-	fn extend_lock(lock_id: LockIdentifier, who: &AccountId, amount: Self::Balance);
+	fn extend_lock(lock_id: LockIdentifier, who: &AccountId, amount: Self::Balance) -> DispatchResult;
 
 	/// Remove an existing lock.
-	fn remove_lock(lock_id: LockIdentifier, who: &AccountId);
+	fn remove_lock(lock_id: LockIdentifier, who: &AccountId) -> DispatchResult;
 }
 
 /// A fungible single currency system where funds can be reserved from the user.
@@ -317,9 +352,26 @@ pub trait BasicReservableCurrency<AccountId>: BasicCurrency<AccountId> {
 	) -> result::Result<Self::Balance, DispatchError>;
 }
 
-/// Handler when an account received some assets
-#[impl_trait_for_tuples::impl_for_tuples(30)]
-pub trait OnReceived<AccountId, CurrencyId, Balance> {
-	/// An account have received some assets
-	fn on_received(account: &AccountId, currency: CurrencyId, amount: Balance);
+/// Handler for account which has dust, need to burn or recycle it
+pub trait OnDust<AccountId, CurrencyId, Balance> {
+	fn on_dust(who: &AccountId, currency_id: CurrencyId, amount: Balance);
+}
+
+impl<AccountId, CurrencyId, Balance> OnDust<AccountId, CurrencyId, Balance> for () {
+	fn on_dust(_: &AccountId, _: CurrencyId, _: Balance) {}
+}
+
+pub trait TransferAll<AccountId> {
+	fn transfer_all(source: &AccountId, dest: &AccountId) -> DispatchResult;
+}
+
+#[impl_trait_for_tuples::impl_for_tuples(5)]
+impl<AccountId> TransferAll<AccountId> for Tuple {
+	#[transactional]
+	fn transfer_all(source: &AccountId, dest: &AccountId) -> DispatchResult {
+		for_tuples!( #( {
+			Tuple::transfer_all(source, dest)?;
+		} )* );
+		Ok(())
+	}
 }

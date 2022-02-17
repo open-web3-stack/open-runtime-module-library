@@ -3,29 +3,37 @@ name: Test
 on:
   pull_request:
     branches:
-    - master
+      - master
+    paths-ignore:
+      - '**/README.md'
   push:
     branches:
-    - master
+      - master
+    paths-ignore:
+      - '**/README.md'
 
 jobs:
+  cancel:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cancel Previous Runs
+        # Only cancel non-master branch runs
+        if: ${{ github.ref != 'refs/heads/master' }}
+        uses: styfle/cancel-workflow-action@0.9.0
+        with:
+          access_token: ${{ github.token }}
   build:
-    runs-on: ubuntu-18.04
+    runs-on: [self-hosted, linux]
+    env:
+      SCCACHE_CACHE_SIZE: "50G"
+    needs: cancel
     steps:
     - uses: actions/checkout@v2
-    - name: Cache cargo
-      uses: actions/cache@v2
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: ${{ runner.os }}-cargo
     - name: Install toolchain
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
-        toolchain: nightly-2020-05-07
+        toolchain: nightly-2021-11-07
         components: rustfmt
         target: wasm32-unknown-unknown
         override: true
@@ -36,10 +44,10 @@ jobs:
       run: make dev-format-check
     - name: Install clippy
       run: rustup component add clippy
-    - name: Run clippy
-      run: cargo clippy -- -D warnings
     - name: Update
       run: cargo update
+    - name: Run clippy
+      run: cargo clippy -- -D warnings
     - name: Check for Wasm
       run: make dev-check
     - name: Run tests

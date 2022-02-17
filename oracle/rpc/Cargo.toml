@@ -1,15 +1,18 @@
 [package]
 name = "orml-oracle-rpc"
-version = "0.3.1"
+version = "0.4.1-dev"
 authors = ["Laminar Developers <hello@laminar.one>"]
-edition = "2018"
+edition = "2021"
+license = "Apache-2.0"
+description = "RPC module for orml-oracle."
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "1.3.0" }
-jsonrpc-core = "15.0.0"
-jsonrpc-core-client = "15.0.0"
-jsonrpc-derive = "15.0.0"
-sp-runtime = { version = "2.0.0" }
-sp-api = { version = "2.0.0" }
-sp-blockchain = { version = "2.0.0" }
-orml-oracle-rpc-runtime-api = { path = "runtime-api" }
+codec = { package = "parity-scale-codec", version = "2.3.1" }
+jsonrpc-core = "18.0.0"
+jsonrpc-core-client = "18.0.0"
+jsonrpc-derive = "18.0.0"
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16" }
+sp-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16" }
+sp-blockchain = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16" }
+
+orml-oracle-rpc-runtime-api = { path = "runtime-api", version = "0.4.1-dev" }

@@ -2,19 +2,21 @@
 
 #![cfg(test)]
 
+use super::*;
+use codec::{Decode, Encode};
 use frame_support::{
 	parameter_types,
-	traits::{OnFinalize, OnInitialize},
+	traits::{EqualPrivilegeOnly, Everything},
+	weights::Weight,
 };
 use frame_system::{ensure_root, ensure_signed, EnsureRoot};
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
-	traits::{BadOrigin, Block as BlockT, IdentityLookup},
+	traits::{BadOrigin, IdentityLookup},
 	Perbill,
 };
 
-use super::*;
 pub use crate as authority;
 
 pub type AccountId = u128;
@@ -22,12 +24,11 @@ pub type BlockNumber = u64;
 
 parameter_types! {
 	pub const BlockHashCount: u64 = 250;
-	pub const MaximumBlockWeight: u32 = 1024;
-	pub const MaximumBlockLength: u32 = 2 * 1024;
-	pub const AvailableBlockRatio: Perbill = Perbill::one();
+	pub BlockWeights: frame_system::limits::BlockWeights =
+			frame_system::limits::BlockWeights::simple_max(2_000_000_000_000);
 }
 
-impl frame_system::Trait for Runtime {
+impl frame_system::Config for Runtime {
 	type Origin = Origin;
 	type Index = u64;
 	type BlockNumber = BlockNumber;
@@ -39,26 +40,27 @@ impl frame_system::Trait for Runtime {
 	type Header = Header;
 	type Event = Event;
 	type BlockHashCount = BlockHashCount;
-	type MaximumBlockWeight = MaximumBlockWeight;
-	type MaximumBlockLength = MaximumBlockLength;
-	type AvailableBlockRatio = AvailableBlockRatio;
+	type BlockWeights = ();
+	type BlockLength = ();
 	type Version = ();
-	type PalletInfo = ();
+	type PalletInfo = PalletInfo;
 	type AccountData = ();
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type DbWeight = ();
-	type BlockExecutionWeight = ();
-	type ExtrinsicBaseWeight = ();
-	type MaximumExtrinsicWeight = ();
-	type BaseCallFilter = ();
+	type BaseCallFilter = Everything;
 	type SystemWeightInfo = ();
+	type SS58Prefix = ();
+	type OnSetCode = ();
+	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
 parameter_types! {
-	pub MaximumSchedulerWeight: u32 = Perbill::from_percent(80) * MaximumBlockWeight::get();
+	pub MaximumSchedulerWeight: Weight = Perbill::from_percent(80) * BlockWeights::get().max_block;
+	// Retry a scheduled item every 10 blocks (1 minute) until the preimage exists.
+	pub const NoPreimagePostponement: Option<u64> = Some(10);
 }
-impl pallet_scheduler::Trait for Runtime {
+impl pallet_scheduler::Config for Runtime {
 	type Event = Event;
 	type Origin = Origin;
 	type PalletsOrigin = OriginCaller;
@@ -67,9 +69,12 @@ impl pallet_scheduler::Trait for Runtime {
 	type ScheduleOrigin = EnsureRoot<u128>;
 	type MaxScheduledPerBlock = ();
 	type WeightInfo = ();
+	type OriginPrivilegeCmp = EqualPrivilegeOnly;
+	type PreimageProvider = ();
+	type NoPreimagePostponement = NoPreimagePostponement;
 }
 
-#[derive(Clone, Encode, Decode, Eq, PartialEq, Ord, PartialOrd, Debug)]
+#[derive(Clone, Encode, Decode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
 pub enum MockAsOriginId {
 	Root,
 	Account1,
@@ -126,7 +131,7 @@ impl AsOriginId<Origin, OriginCaller> for MockAsOriginId {
 	}
 	fn check_dispatch_from(&self, origin: Origin) -> DispatchResult {
 		ensure_root(origin.clone()).or_else(|_| {
-			if let OriginCaller::authority(ref sign) = origin.caller() {
+			if let OriginCaller::Authority(ref sign) = origin.caller() {
 				if sign.origin == Box::new(Origin::root().caller().clone()) {
 					return Ok(());
 				} else {
@@ -139,12 +144,16 @@ impl AsOriginId<Origin, OriginCaller> for MockAsOriginId {
 				MockAsOriginId::Account1 => ensure_signed(origin)? == 1,
 				MockAsOriginId::Account2 => ensure_signed(origin)? == 2,
 			};
-			return if ok { Ok(()) } else { Err(BadOrigin.into()) };
+			if ok {
+				Ok(())
+			} else {
+				Err(BadOrigin.into())
+			}
 		})
 	}
 }
 
-impl Trait for Runtime {
+impl Config for Runtime {
 	type Event = Event;
 	type Origin = Origin;
 	type PalletsOrigin = OriginCaller;
@@ -155,8 +164,8 @@ impl Trait for Runtime {
 	type WeightInfo = ();
 }
 
-pub type Block = sp_runtime::generic::Block<Header, UncheckedExtrinsic>;
-pub type UncheckedExtrinsic = sp_runtime::generic::UncheckedExtrinsic<u32, u64, u64, ()>;
+type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
+type Block = frame_system::mocking::MockBlock<Runtime>;
 
 frame_support::construct_runtime!(
 	pub enum Runtime where
@@ -164,9 +173,9 @@ frame_support::construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
-		System: frame_system::{Module, Call, Event<T>},
-		Authority: authority::{Module, Call, Origin<T>, Event<T>},
-		Scheduler: pallet_scheduler::{Module, Call, Storage, Event<T>},
+		System: frame_system::{Pallet, Call, Config, Event<T>},
+		Authority: authority::{Pallet, Call, Origin<T>, Event<T>},
+		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
 	}
 );
 

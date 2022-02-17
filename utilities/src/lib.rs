@@ -4,11 +4,17 @@ use frame_support::storage::{with_transaction, TransactionOutcome};
 use sp_runtime::DispatchError;
 use sp_std::result::Result;
 
+#[deprecated(
+	since = "0.4.1",
+	note = "iterator module's functionality is now available in substrate's frame-support"
+)]
 pub mod iterator;
 pub mod offchain_worker;
 pub mod ordered_set;
 
+#[allow(deprecated)]
 pub use iterator::{IterableStorageDoubleMapExtended, IterableStorageMapExtended};
+
 pub use offchain_worker::OffchainErr;
 pub use ordered_set::OrderedSet;
 
@@ -37,14 +43,14 @@ mod tests {
 	use sp_io::TestExternalities;
 	use sp_runtime::{DispatchError, DispatchResult};
 
-	pub trait Trait: frame_system::Trait {}
+	pub trait Config: frame_system::Config {}
 
 	decl_module! {
-		pub struct Module<T: Trait> for enum Call where origin: T::Origin {}
+		pub struct Module<T: Config> for enum Call where origin: T::Origin {}
 	}
 
 	decl_storage! {
-		trait Store for Module<T: Trait> as StorageTransactions {
+		trait Store for Module<T: Config> as StorageTransactions {
 			pub Value: u32;
 			pub Map: map hasher(twox_64_concat) String => u32;
 		}

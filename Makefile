@@ -46,4 +46,18 @@ dev-check-tests: Cargo.toml
 	cargo check --tests --all
 
 dev-test: Cargo.toml
-	cargo test --all
+	cargo test --all --features runtime-benchmarks
+
+# run benchmarks via Acala node
+benchmark-all:
+	cargo run --release --bin=acala --features=runtime-benchmarks -- benchmark --chain=dev --steps=50 --repeat=20 --pallet=orml_auction --extrinsic="*" --execution=wasm --wasm-execution=compiled --heap-pages=4096 --output=./auction/src/weights.rs --template ../templates/orml-weight-template.hbs
+
+	cargo run --release --bin=acala --features=runtime-benchmarks -- benchmark --chain=dev --steps=50 --repeat=20 --pallet=orml_authority --extrinsic="*" --execution=wasm --wasm-execution=compiled --heap-pages=4096 --output=./authority/src/weights.rs --template ../templates/orml-weight-template.hbs
+
+	cargo run --release --bin=acala --features=runtime-benchmarks -- benchmark --chain=dev --steps=50 --repeat=20 --pallet=module_currencies --extrinsic="*" --execution=wasm --wasm-execution=compiled --heap-pages=4096 --output=./currencies/src/weights.rs --template ../templates/orml-weight-template.hbs
+
+	cargo run --release --bin=acala --features=runtime-benchmarks -- benchmark --chain=dev --steps=50 --repeat=20 --pallet=orml_oracle --extrinsic="*" --execution=wasm --wasm-execution=compiled --heap-pages=4096 --output=./oracle/src/weights.rs --template ../templates/orml-weight-template.hbs
+
+	cargo run --release --bin=acala --features=runtime-benchmarks -- benchmark --chain=dev --steps=50 --repeat=20 --pallet=orml_tokens --extrinsic="*" --execution=wasm --wasm-execution=compiled --heap-pages=4096 --output=./tokens/src/weights.rs --template ../templates/orml-weight-template.hbs
+
+	cargo run --release --bin=acala --features=runtime-benchmarks -- benchmark --chain=dev --steps=50 --repeat=20 --pallet=orml_vesting --extrinsic="*" --execution=wasm --wasm-execution=compiled --heap-pages=4096 --output=./vesting/src/weights.rs --template ../templates/orml-weight-template.hbs

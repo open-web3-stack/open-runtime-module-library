@@ -3,91 +3,93 @@
 #![cfg(test)]
 
 use super::*;
-use codec::Decode;
 use frame_benchmarking::account;
-use frame_support::{
-	assert_err, assert_ok, decl_module, decl_storage, dispatch::DispatchResult, ensure, impl_outer_origin,
-};
-use frame_system::{ensure_none, ensure_signed, RawOrigin};
+use frame_support::{assert_err, assert_ok, construct_runtime, ensure, traits::Everything};
+use frame_system::RawOrigin;
 use sp_runtime::{
 	testing::{Header, H256},
 	traits::{BlakeTwo256, IdentityLookup},
 };
 use sp_std::prelude::*;
+pub use test::*;
 
-decl_storage! {
-	trait Store for Module<T: Trait> as Test {
-		Value get(fn value): Option<u32>;
-	}
-}
+#[frame_support::pallet]
+pub mod test {
+	use frame_support::pallet_prelude::*;
+	use frame_system::pallet_prelude::*;
 
-decl_module! {
-	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
-		#[weight = 0]
-		fn set_value(origin, n: u32) -> DispatchResult {
-			let _sender = ensure_signed(origin)?;
-			Value::put(n);
+	#[pallet::config]
+	pub trait Config: frame_system::Config {}
+
+	#[pallet::storage]
+	#[pallet::getter(fn value)]
+	pub(crate) type Value<T: Config> = StorageValue<_, u32, OptionQuery>;
+
+	#[pallet::pallet]
+	#[pallet::generate_store(pub(super) trait Store)]
+	pub struct Pallet<T>(_);
+
+	#[pallet::call]
+	impl<T: Config> Pallet<T> {
+		#[pallet::weight(0)]
+		pub fn set_value(origin: OriginFor<T>, n: u32) -> DispatchResult {
+			let _sender = frame_system::ensure_signed(origin)?;
+			Value::<T>::put(n);
 			Ok(())
 		}
 
-		#[weight = 0]
-		fn dummy(origin, _n: u32) -> DispatchResult {
-			let _sender = ensure_none(origin)?;
+		#[pallet::weight(0)]
+		pub fn dummy(origin: OriginFor<T>, _n: u32) -> DispatchResult {
+			let _sender = frame_system::ensure_none(origin)?;
 			Ok(())
 		}
 	}
-}
-
-impl_outer_origin! {
-	pub enum Origin for Test {}
-}
-
-pub trait Trait {
-	type Event;
-	type BlockNumber;
-	type AccountId: 'static + Default + Decode;
-	type Origin: From<frame_system::RawOrigin<Self::AccountId>> + Into<Result<RawOrigin<Self::AccountId>, Self::Origin>>;
 }
 
 type AccountId = u128;
 
-#[derive(Clone, Eq, PartialEq)]
-pub struct Test;
-
-impl frame_system::Trait for Test {
+impl frame_system::Config for Test {
 	type Origin = Origin;
 	type Index = u64;
 	type BlockNumber = u64;
 	type Hash = H256;
-	type Call = ();
+	type Call = Call;
 	type Hashing = BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
-	type Event = ();
+	type Event = Event;
 	type BlockHashCount = ();
-	type MaximumBlockWeight = ();
 	type DbWeight = ();
-	type BlockExecutionWeight = ();
-	type ExtrinsicBaseWeight = ();
-	type MaximumBlockLength = ();
-	type AvailableBlockRatio = ();
+	type BlockWeights = ();
+	type BlockLength = ();
 	type Version = ();
-	type PalletInfo = ();
+	type PalletInfo = PalletInfo;
 	type AccountData = ();
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
-	type MaximumExtrinsicWeight = ();
-	type BaseCallFilter = ();
+	type BaseCallFilter = Everything;
 	type SystemWeightInfo = ();
+	type SS58Prefix = ();
+	type OnSetCode = ();
+	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
-impl Trait for Test {
-	type Event = ();
-	type BlockNumber = u32;
-	type Origin = Origin;
-	type AccountId = u128;
-}
+impl Config for Test {}
+
+pub type Block = sp_runtime::generic::Block<Header, UncheckedExtrinsic>;
+pub type UncheckedExtrinsic = sp_runtime::generic::UncheckedExtrinsic<u32, Call, u32, ()>;
+
+construct_runtime!(
+	pub enum Test where
+		Block = Block,
+		NodeBlock = Block,
+		UncheckedExtrinsic = UncheckedExtrinsic,
+	{
+		System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
+		Pallet: test::{Pallet, Call, Storage},
+	}
+);
 
 // This function basically just builds a genesis storage key/value store
 // according to our desired mockup.
@@ -99,24 +101,19 @@ fn new_test_ext() -> sp_io::TestExternalities {
 }
 
 runtime_benchmarks! {
-	{ Test, self }
-
-	_ {
-		// Define a common range for `b`.
-		let b in 1 .. 1000 => ();
-	}
+	{ Test, test }
 
 	set_value {
-		let b in ...;
+		let b in 1 .. 1000;
 		let caller = account::<AccountId>("caller", 0, 0);
-	}: _ (RawOrigin::Signed(caller), b.into())
+	}: _ (RawOrigin::Signed(caller), b)
 	verify {
-		assert_eq!(Value::get(), Some(b));
+		assert_eq!(Pallet::value(), Some(b));
 	}
 
 	other_name {
-		let b in ...;
-	}: dummy (RawOrigin::None, b.into())
+		let b in 1 .. 1000;
+	}: dummy (RawOrigin::None, b)
 
 	sort_vector {
 		let x in 1 .. 10000;
@@ -125,15 +122,15 @@ runtime_benchmarks! {
 			m.push(i);
 		}
 	}: {
-		m.sort();
+		m.sort_unstable();
 	} verify {
 		ensure!(m[0] == 0, "You forgot to sort!")
 	}
 
 	bad_origin {
-		let b in ...;
+		let b in 1 .. 1000;
 		let caller = account::<AccountId>("caller", 0, 0);
-	}: dummy (RawOrigin::Signed(caller), b.into())
+	}: dummy (RawOrigin::Signed(caller), b)
 
 	bad_verify {
 		let x in 1 .. 10000;
@@ -234,10 +231,10 @@ fn benchmarks_macro_verify_works() {
 #[test]
 fn benchmarks_generate_unit_tests() {
 	new_test_ext().execute_with(|| {
-		assert_ok!(test_benchmark_set_value());
-		assert_ok!(test_benchmark_other_name());
-		assert_ok!(test_benchmark_sort_vector());
-		assert_err!(test_benchmark_bad_origin(), "Bad origin");
-		assert_err!(test_benchmark_bad_verify(), "You forgot to sort!");
+		assert_ok!(Benchmark::test_benchmark_set_value());
+		assert_ok!(Benchmark::test_benchmark_other_name());
+		assert_ok!(Benchmark::test_benchmark_sort_vector());
+		assert_err!(Benchmark::test_benchmark_bad_origin(), "Bad origin");
+		assert_err!(Benchmark::test_benchmark_bad_verify(), "You forgot to sort!");
 	});
 }

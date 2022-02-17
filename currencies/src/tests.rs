@@ -4,10 +4,7 @@
 
 use super::*;
 use frame_support::{assert_noop, assert_ok};
-use mock::{
-	AccountId, AdaptedBasicCurrency, Currencies, ExtBuilder, NativeCurrency, Origin, PalletBalances, System, TestEvent,
-	Tokens, ALICE, BOB, EVA, ID_1, NATIVE_CURRENCY_ID, X_TOKEN_ID,
-};
+use mock::{Event, *};
 use sp_runtime::traits::BadOrigin;
 
 #[test]
@@ -16,9 +13,9 @@ fn multi_lockable_currency_should_work() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
-			Currencies::set_lock(ID_1, X_TOKEN_ID, &ALICE, 50);
+			assert_ok!(Currencies::set_lock(ID_1, X_TOKEN_ID, &ALICE, 50));
 			assert_eq!(Tokens::locks(&ALICE, X_TOKEN_ID).len(), 1);
-			Currencies::set_lock(ID_1, NATIVE_CURRENCY_ID, &ALICE, 50);
+			assert_ok!(Currencies::set_lock(ID_1, NATIVE_CURRENCY_ID, &ALICE, 50));
 			assert_eq!(PalletBalances::locks(&ALICE).len(), 1);
 		});
 }
@@ -47,9 +44,9 @@ fn native_currency_lockable_should_work() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
-			NativeCurrency::set_lock(ID_1, &ALICE, 10);
+			assert_ok!(NativeCurrency::set_lock(ID_1, &ALICE, 10));
 			assert_eq!(PalletBalances::locks(&ALICE).len(), 1);
-			NativeCurrency::remove_lock(ID_1, &ALICE);
+			assert_ok!(NativeCurrency::remove_lock(ID_1, &ALICE));
 			assert_eq!(PalletBalances::locks(&ALICE).len(), 0);
 		});
 }
@@ -71,9 +68,9 @@ fn basic_currency_adapting_pallet_balances_lockable() {
 		.one_hundred_for_alice_n_bob()
 		.build()
 		.execute_with(|| {
-			AdaptedBasicCurrency::set_lock(ID_1, &ALICE, 10);
+			assert_ok!(AdaptedBasicCurrency::set_lock(ID_1, &ALICE, 10));
 			assert_eq!(PalletBalances::locks(&ALICE).len(), 1);
-			AdaptedBasicCurrency::remove_lock(ID_1, &ALICE);
+			assert_ok!(AdaptedBasicCurrency::remove_lock(ID_1, &ALICE));
 			assert_eq!(PalletBalances::locks(&ALICE).len(), 0);
 		});
 }
@@ -182,6 +179,23 @@ fn basic_currency_adapting_pallet_balances_deposit() {
 }
 
 #[test]
+fn basic_currency_adapting_pallet_balances_deposit_throw_error_when_actual_deposit_is_not_expected() {
+	ExtBuilder::default()
+		.one_hundred_for_alice_n_bob()
+		.build()
+		.execute_with(|| {
+			assert_eq!(PalletBalances::total_balance(&EVA), 0);
+			assert_eq!(PalletBalances::total_issuance(), 200);
+			assert_noop!(AdaptedBasicCurrency::deposit(&EVA, 1), Error::<Runtime>::DepositFailed);
+			assert_eq!(PalletBalances::total_balance(&EVA), 0);
+			assert_eq!(PalletBalances::total_issuance(), 200);
+			assert_ok!(AdaptedBasicCurrency::deposit(&EVA, 2));
+			assert_eq!(PalletBalances::total_balance(&EVA), 2);
+			assert_eq!(PalletBalances::total_issuance(), 202);
+		});
+}
+
+#[test]
 fn basic_currency_adapting_pallet_balances_withdraw() {
 	ExtBuilder::default()
 		.one_hundred_for_alice_n_bob()
@@ -257,33 +271,43 @@ fn call_event_should_work() {
 			assert_ok!(Currencies::transfer(Some(ALICE).into(), BOB, X_TOKEN_ID, 50));
 			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &ALICE), 50);
 			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &BOB), 150);
-
-			let transferred_event = TestEvent::currencies(RawEvent::Transferred(X_TOKEN_ID, ALICE, BOB, 50));
-			assert!(System::events().iter().any(|record| record.event == transferred_event));
+			System::assert_last_event(Event::Currencies(crate::Event::Transferred {
+				currency_id: X_TOKEN_ID,
+				from: ALICE,
+				to: BOB,
+				amount: 50,
+			}));
 
 			assert_ok!(<Currencies as MultiCurrency<AccountId>>::transfer(
 				X_TOKEN_ID, &ALICE, &BOB, 10
 			));
 			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &ALICE), 40);
 			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &BOB), 160);
-
-			let transferred_event = TestEvent::currencies(RawEvent::Transferred(X_TOKEN_ID, ALICE, BOB, 10));
-			assert!(System::events().iter().any(|record| record.event == transferred_event));
+			System::assert_last_event(Event::Currencies(crate::Event::Transferred {
+				currency_id: X_TOKEN_ID,
+				from: ALICE,
+				to: BOB,
+				amount: 10,
+			}));
 
 			assert_ok!(<Currencies as MultiCurrency<AccountId>>::deposit(
 				X_TOKEN_ID, &ALICE, 100
 			));
 			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &ALICE), 140);
-
-			let transferred_event = TestEvent::currencies(RawEvent::Deposited(X_TOKEN_ID, ALICE, 100));
-			assert!(System::events().iter().any(|record| record.event == transferred_event));
+			System::assert_last_event(Event::Currencies(crate::Event::Deposited {
+				currency_id: X_TOKEN_ID,
+				who: ALICE,
+				amount: 100,
+			}));
 
 			assert_ok!(<Currencies as MultiCurrency<AccountId>>::withdraw(
 				X_TOKEN_ID, &ALICE, 20
 			));
 			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &ALICE), 120);
-
-			let transferred_event = TestEvent::currencies(RawEvent::Withdrawn(X_TOKEN_ID, ALICE, 20));
-			assert!(System::events().iter().any(|record| record.event == transferred_event));
+			System::assert_last_event(Event::Currencies(crate::Event::Withdrawn {
+				currency_id: X_TOKEN_ID,
+				who: ALICE,
+				amount: 20,
+			}));
 		});
 }

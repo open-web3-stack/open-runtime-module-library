@@ -7,26 +7,20 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-18.04
+    runs-on: [self-hosted, linux]
+    env:
+      SCCACHE_CACHE_SIZE: "50G"
     steps:
     - uses: actions/checkout@v2
-    - name: Cache cargo
-      uses: actions/cache@v2
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: ${{ runner.os }}-cargo
     - name: Install toolchain
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
-        toolchain: nightly
+        toolchain: nightly-2021-11-07
         override: true
         default: true
     - name: Install cargo-unleash
-      run: cargo install cargo-unleash --version 1.0.0-alpha.10 #FIXME: change to release once it's ready
+      run: cargo install cargo-unleash --git https://github.com/xlc/cargo-unleash.git # https://github.com/paritytech/cargo-unleash/pull/38
     - name: Prepare
       run: make Cargo.toml
     - name: Cargo unleash check

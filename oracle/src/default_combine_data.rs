@@ -1,24 +1,22 @@
-use crate::{DefaultInstance, Instance, MomentOf, TimestampedValueOf, Trait};
+use crate::{Config, MomentOf, TimestampedValueOf};
 use frame_support::traits::{Get, Time};
 use orml_traits::CombineData;
 use sp_std::{marker, prelude::*};
 
 /// Sort by value and returns median timestamped value.
 /// Returns prev_value if not enough valid values.
-pub struct DefaultCombineData<T, MinimumCount, ExpiresIn, I = DefaultInstance>(
-	marker::PhantomData<(T, I, MinimumCount, ExpiresIn)>,
-);
+pub struct DefaultCombineData<T, MinimumCount, ExpiresIn, I = ()>(marker::PhantomData<(T, I, MinimumCount, ExpiresIn)>);
 
-impl<T, I, MinimumCount, ExpiresIn> CombineData<<T as Trait<I>>::OracleKey, TimestampedValueOf<T, I>>
+impl<T, I, MinimumCount, ExpiresIn> CombineData<<T as Config<I>>::OracleKey, TimestampedValueOf<T, I>>
 	for DefaultCombineData<T, MinimumCount, ExpiresIn, I>
 where
-	T: Trait<I>,
-	I: Instance,
+	T: Config<I>,
+	I: 'static,
 	MinimumCount: Get<u32>,
 	ExpiresIn: Get<MomentOf<T, I>>,
 {
 	fn combine_data(
-		_key: &<T as Trait<I>>::OracleKey,
+		_key: &<T as Config<I>>::OracleKey,
 		mut values: Vec<TimestampedValueOf<T, I>>,
 		prev_value: Option<TimestampedValueOf<T, I>>,
 	) -> Option<TimestampedValueOf<T, I>> {
@@ -29,13 +27,13 @@ where
 
 		let count = values.len() as u32;
 		let minimum_count = MinimumCount::get();
-		if count < minimum_count {
+		if count < minimum_count || count == 0 {
 			return prev_value;
 		}
 
-		values.sort_by(|a, b| a.value.cmp(&b.value));
-
-		let median_index = count / 2;
-		Some(values[median_index as usize].clone())
+		let mid_index = count / 2;
+		// Won't panic as `values` ensured not empty.
+		let (_, value, _) = values.select_nth_unstable_by(mid_index as usize, |a, b| a.value.cmp(&b.value));
+		Some(value.clone())
 	}
 }

@@ -1,8 +1,7 @@
 // wrapping these imbalances in a private module is necessary to ensure absolute
 // privacy of the inner member.
-use crate::{TotalIssuance, Trait};
-use frame_support::storage::StorageMap;
-use frame_support::traits::{Get, Imbalance, TryDrop};
+use crate::{Config, TotalIssuance};
+use frame_support::traits::{Get, Imbalance, SameOrOther, TryDrop};
 use sp_runtime::traits::{Saturating, Zero};
 use sp_std::{marker, mem, result};
 
@@ -10,15 +9,21 @@ use sp_std::{marker, mem, result};
 /// denoting that funds have been created without any equal and opposite
 /// accounting.
 #[must_use]
-pub struct PositiveImbalance<T: Trait, GetCurrencyId: Get<T::CurrencyId>>(
+pub struct PositiveImbalance<T: Config, GetCurrencyId: Get<T::CurrencyId>>(
 	T::Balance,
 	marker::PhantomData<GetCurrencyId>,
 );
 
-impl<T: Trait, GetCurrencyId: Get<T::CurrencyId>> PositiveImbalance<T, GetCurrencyId> {
+impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> PositiveImbalance<T, GetCurrencyId> {
 	/// Create a new positive imbalance from a balance.
 	pub fn new(amount: T::Balance) -> Self {
 		PositiveImbalance(amount, marker::PhantomData::<GetCurrencyId>)
+	}
+}
+
+impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> Default for PositiveImbalance<T, GetCurrencyId> {
+	fn default() -> Self {
+		Self::zero()
 	}
 }
 
@@ -26,25 +31,31 @@ impl<T: Trait, GetCurrencyId: Get<T::CurrencyId>> PositiveImbalance<T, GetCurren
 /// denoting that funds have been destroyed without any equal and opposite
 /// accounting.
 #[must_use]
-pub struct NegativeImbalance<T: Trait, GetCurrencyId: Get<T::CurrencyId>>(
+pub struct NegativeImbalance<T: Config, GetCurrencyId: Get<T::CurrencyId>>(
 	T::Balance,
 	marker::PhantomData<GetCurrencyId>,
 );
 
-impl<T: Trait, GetCurrencyId: Get<T::CurrencyId>> NegativeImbalance<T, GetCurrencyId> {
+impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> NegativeImbalance<T, GetCurrencyId> {
 	/// Create a new negative imbalance from a balance.
 	pub fn new(amount: T::Balance) -> Self {
 		NegativeImbalance(amount, marker::PhantomData::<GetCurrencyId>)
 	}
 }
 
-impl<T: Trait, GetCurrencyId: Get<T::CurrencyId>> TryDrop for PositiveImbalance<T, GetCurrencyId> {
+impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> Default for NegativeImbalance<T, GetCurrencyId> {
+	fn default() -> Self {
+		Self::zero()
+	}
+}
+
+impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> TryDrop for PositiveImbalance<T, GetCurrencyId> {
 	fn try_drop(self) -> result::Result<(), Self> {
 		self.drop_zero()
 	}
 }
 
-impl<T: Trait, GetCurrencyId: Get<T::CurrencyId>> Imbalance<T::Balance> for PositiveImbalance<T, GetCurrencyId> {
+impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> Imbalance<T::Balance> for PositiveImbalance<T, GetCurrencyId> {
 	type Opposite = NegativeImbalance<T, GetCurrencyId>;
 
 	fn zero() -> Self {
@@ -74,14 +85,18 @@ impl<T: Trait, GetCurrencyId: Get<T::CurrencyId>> Imbalance<T::Balance> for Posi
 		self.0 = self.0.saturating_add(other.0);
 		mem::forget(other);
 	}
-	fn offset(self, other: Self::Opposite) -> result::Result<Self, Self::Opposite> {
+	// allow to make the impl same with `pallet-balances`
+	#[allow(clippy::comparison_chain)]
+	fn offset(self, other: Self::Opposite) -> SameOrOther<Self, Self::Opposite> {
 		let (a, b) = (self.0, other.0);
 		mem::forget((self, other));
 
-		if a >= b {
-			Ok(Self::new(a - b))
+		if a > b {
+			SameOrOther::Same(Self::new(a - b))
+		} else if b > a {
+			SameOrOther::Other(NegativeImbalance::new(b - a))
 		} else {
-			Err(NegativeImbalance::new(b - a))
+			SameOrOther::None
 		}
 	}
 	fn peek(&self) -> T::Balance {
@@ -89,13 +104,13 @@ impl<T: Trait, GetCurrencyId: Get<T::CurrencyId>> Imbalance<T::Balance> for Posi
 	}
 }
 
-impl<T: Trait, GetCurrencyId: Get<T::CurrencyId>> TryDrop for NegativeImbalance<T, GetCurrencyId> {
+impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> TryDrop for NegativeImbalance<T, GetCurrencyId> {
 	fn try_drop(self) -> result::Result<(), Self> {
 		self.drop_zero()
 	}
 }
 
-impl<T: Trait, GetCurrencyId: Get<T::CurrencyId>> Imbalance<T::Balance> for NegativeImbalance<T, GetCurrencyId> {
+impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> Imbalance<T::Balance> for NegativeImbalance<T, GetCurrencyId> {
 	type Opposite = PositiveImbalance<T, GetCurrencyId>;
 
 	fn zero() -> Self {
@@ -125,14 +140,18 @@ impl<T: Trait, GetCurrencyId: Get<T::CurrencyId>> Imbalance<T::Balance> for Nega
 		self.0 = self.0.saturating_add(other.0);
 		mem::forget(other);
 	}
-	fn offset(self, other: Self::Opposite) -> result::Result<Self, Self::Opposite> {
+	// allow to make the impl same with `pallet-balances`
+	#[allow(clippy::comparison_chain)]
+	fn offset(self, other: Self::Opposite) -> SameOrOther<Self, Self::Opposite> {
 		let (a, b) = (self.0, other.0);
 		mem::forget((self, other));
 
-		if a >= b {
-			Ok(Self::new(a - b))
+		if a > b {
+			SameOrOther::Same(Self::new(a - b))
+		} else if b > a {
+			SameOrOther::Other(PositiveImbalance::new(b - a))
 		} else {
-			Err(PositiveImbalance::new(b - a))
+			SameOrOther::None
 		}
 	}
 	fn peek(&self) -> T::Balance {
@@ -140,16 +159,16 @@ impl<T: Trait, GetCurrencyId: Get<T::CurrencyId>> Imbalance<T::Balance> for Nega
 	}
 }
 
-impl<T: Trait, GetCurrencyId: Get<T::CurrencyId>> Drop for PositiveImbalance<T, GetCurrencyId> {
+impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> Drop for PositiveImbalance<T, GetCurrencyId> {
 	/// Basic drop handler will just square up the total issuance.
 	fn drop(&mut self) {
-		<TotalIssuance<T>>::mutate(GetCurrencyId::get(), |v| *v = v.saturating_add(self.0));
+		TotalIssuance::<T>::mutate(GetCurrencyId::get(), |v| *v = v.saturating_add(self.0));
 	}
 }
 
-impl<T: Trait, GetCurrencyId: Get<T::CurrencyId>> Drop for NegativeImbalance<T, GetCurrencyId> {
+impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> Drop for NegativeImbalance<T, GetCurrencyId> {
 	/// Basic drop handler will just square up the total issuance.
 	fn drop(&mut self) {
-		<TotalIssuance<T>>::mutate(GetCurrencyId::get(), |v| *v = v.saturating_sub(self.0));
+		TotalIssuance::<T>::mutate(GetCurrencyId::get(), |v| *v = v.saturating_sub(self.0));
 	}
 }

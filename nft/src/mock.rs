@@ -2,72 +2,82 @@
 
 #![cfg(test)]
 
-use frame_support::{impl_outer_origin, parameter_types};
+use frame_support::{construct_runtime, parameter_types, traits::Everything};
 use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
+use sp_runtime::{testing::Header, traits::IdentityLookup};
 
 use super::*;
 
-impl_outer_origin! {
-	pub enum Origin for Runtime {}
-}
+use crate as nft;
 
-// Workaround for https://github.com/rust-lang/rust/issues/26925 . Remove when sorted.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct Runtime;
 parameter_types! {
 	pub const BlockHashCount: u64 = 250;
-	pub const MaximumBlockWeight: u32 = 1024;
-	pub const MaximumBlockLength: u32 = 2 * 1024;
-	pub const AvailableBlockRatio: Perbill = Perbill::one();
 }
 
 pub type AccountId = u128;
 pub type BlockNumber = u64;
 
-impl frame_system::Trait for Runtime {
+impl frame_system::Config for Runtime {
 	type Origin = Origin;
 	type Index = u64;
 	type BlockNumber = BlockNumber;
-	type Call = ();
+	type Call = Call;
 	type Hash = H256;
 	type Hashing = ::sp_runtime::traits::BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
-	type Event = ();
+	type Event = Event;
 	type BlockHashCount = BlockHashCount;
-	type MaximumBlockWeight = MaximumBlockWeight;
-	type MaximumBlockLength = MaximumBlockLength;
-	type AvailableBlockRatio = AvailableBlockRatio;
+	type BlockWeights = ();
+	type BlockLength = ();
 	type Version = ();
-	type PalletInfo = ();
+	type PalletInfo = PalletInfo;
 	type AccountData = ();
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type DbWeight = ();
-	type BlockExecutionWeight = ();
-	type ExtrinsicBaseWeight = ();
-	type MaximumExtrinsicWeight = ();
-	type BaseCallFilter = ();
+	type BaseCallFilter = Everything;
 	type SystemWeightInfo = ();
+	type SS58Prefix = ();
+	type OnSetCode = ();
+	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
-pub type System = frame_system::Module<Runtime>;
 
-impl Trait for Runtime {
+parameter_types! {
+	pub const MaxClassMetadata: u32 = 1;
+	pub const MaxTokenMetadata: u32 = 1;
+}
+
+impl Config for Runtime {
 	type ClassId = u64;
 	type TokenId = u64;
 	type ClassData = ();
 	type TokenData = ();
+	type MaxClassMetadata = MaxClassMetadata;
+	type MaxTokenMetadata = MaxTokenMetadata;
 }
-pub type NonFungibleTokenModule = Module<Runtime>;
+
+type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
+type Block = frame_system::mocking::MockBlock<Runtime>;
+
+construct_runtime!(
+	pub enum Runtime where
+		Block = Block,
+		NodeBlock = Block,
+		UncheckedExtrinsic = UncheckedExtrinsic,
+	{
+		System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
+		NonFungibleTokenModule: nft::{Pallet, Storage, Config<T>},
+	}
+);
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
-pub const CLASS_ID: <Runtime as Trait>::ClassId = 0;
-pub const CLASS_ID_NOT_EXIST: <Runtime as Trait>::ClassId = 1;
-pub const TOKEN_ID: <Runtime as Trait>::TokenId = 0;
-pub const TOKEN_ID_NOT_EXIST: <Runtime as Trait>::TokenId = 1;
+pub const CLASS_ID: <Runtime as Config>::ClassId = 0;
+pub const CLASS_ID_NOT_EXIST: <Runtime as Config>::ClassId = 100;
+pub const TOKEN_ID: <Runtime as Config>::TokenId = 0;
+pub const TOKEN_ID_NOT_EXIST: <Runtime as Config>::TokenId = 100;
 
 pub struct ExtBuilder;
 
