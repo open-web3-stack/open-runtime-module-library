@@ -21,10 +21,10 @@ fn should_feed_values_from_member() {
 				.pays_fee,
 			Pays::No
 		);
-		System::assert_last_event(Event::ModuleOracle(crate::Event::NewFeedData(
-			1,
-			vec![(50, 1000), (51, 900), (52, 800)],
-		)));
+		System::assert_last_event(Event::ModuleOracle(crate::Event::NewFeedData {
+			sender: 1,
+			values: vec![(50, 1000), (51, 900), (52, 800)],
+		}));
 
 		assert_eq!(
 			ModuleOracle::raw_values(&account_id, &50),
@@ -84,6 +84,18 @@ fn should_feed_values_from_root() {
 				value: 800,
 				timestamp: 12345,
 			})
+		);
+	});
+}
+
+#[test]
+fn should_not_feed_values_from_root_directly() {
+	new_test_ext().execute_with(|| {
+		let root_feeder: AccountId = RootOperatorAccountId::get();
+
+		assert_noop!(
+			ModuleOracle::feed_values(Origin::signed(root_feeder), vec![(50, 1000), (51, 900), (52, 800)]),
+			Error::<Test, _>::NoPermission,
 		);
 	});
 }

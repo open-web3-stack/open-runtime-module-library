@@ -11,14 +11,14 @@
 
 use frame_support::dispatch::{DispatchError, DispatchResult};
 use sp_runtime::traits::{CheckedConversion, Convert};
-use sp_std::{convert::TryFrom, marker::PhantomData, prelude::*};
+use sp_std::{marker::PhantomData, prelude::*};
 
 use xcm::latest::prelude::*;
 use xcm_executor::traits::{FilterAssetLocation, MatchesFungible};
 
 use orml_traits::location::Reserve;
 
-pub use currency_adapter::MultiCurrencyAdapter;
+pub use currency_adapter::{DepositToAlternative, MultiCurrencyAdapter, OnDepositFail};
 
 mod currency_adapter;
 

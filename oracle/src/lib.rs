@@ -106,8 +106,11 @@ pub mod module {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event<T: Config<I>, I: 'static = ()> {
-		/// New feed data is submitted. [sender, values]
-		NewFeedData(T::AccountId, Vec<(T::OracleKey, T::OracleValue)>),
+		/// New feed data is submitted.
+		NewFeedData {
+			sender: T::AccountId,
+			values: Vec<(T::OracleKey, T::OracleValue)>,
+		},
 	}
 
 	/// Raw values for each oracle operators
@@ -134,6 +137,8 @@ pub mod module {
 		StorageValue<_, OrderedSet<T::AccountId, T::MaxHasDispatchedSize>, ValueQuery>;
 
 	#[pallet::pallet]
+	#[pallet::generate_store(pub(super) trait Store)]
+	#[pallet::without_storage_info]
 	pub struct Pallet<T, I = ()>(PhantomData<(T, I)>);
 
 	#[pallet::hooks]
@@ -160,7 +165,8 @@ pub mod module {
 			values: Vec<(T::OracleKey, T::OracleValue)>,
 		) -> DispatchResultWithPostInfo {
 			let feeder = ensure_signed(origin.clone())
-				.or_else(|_| ensure_root(origin).map(|_| T::RootOperatorAccountId::get()))?;
+				.map(Some)
+				.or_else(|_| ensure_root(origin).map(|_| None))?;
 			Self::do_feed_values(feeder, values)?;
 			Ok(Pays::No.into())
 		}
@@ -219,12 +225,14 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		T::CombineData::combine_data(key, values, Self::values(key))
 	}
 
-	fn do_feed_values(who: T::AccountId, values: Vec<(T::OracleKey, T::OracleValue)>) -> DispatchResult {
+	fn do_feed_values(who: Option<T::AccountId>, values: Vec<(T::OracleKey, T::OracleValue)>) -> DispatchResult {
 		// ensure feeder is authorized
-		ensure!(
-			T::Members::contains(&who) || who == T::RootOperatorAccountId::get(),
-			Error::<T, I>::NoPermission
-		);
+		let who = if let Some(who) = who {
+			ensure!(T::Members::contains(&who), Error::<T, I>::NoPermission);
+			who
+		} else {
+			T::RootOperatorAccountId::get()
+		};
 
 		// ensure account hasn't dispatched an updated yet
 		ensure!(
@@ -243,7 +251,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
 			T::OnNewData::on_new_data(&who, key, value);
 		}
-		Self::deposit_event(Event::NewFeedData(who, values));
+		Self::deposit_event(Event::NewFeedData { sender: who, values });
 		Ok(())
 	}
 }
@@ -273,6 +281,7 @@ impl<T: Config<I>, I: 'static> DataProviderExtended<T::OracleKey, TimestampedVal
 	fn get_no_op(key: &T::OracleKey) -> Option<TimestampedValueOf<T, I>> {
 		Self::get_no_op(key)
 	}
+
 	#[allow(clippy::complexity)]
 	fn get_all_values() -> Vec<(T::OracleKey, Option<TimestampedValueOf<T, I>>)> {
 		Self::get_all_values()
@@ -281,7 +290,6 @@ impl<T: Config<I>, I: 'static> DataProviderExtended<T::OracleKey, TimestampedVal
 
 impl<T: Config<I>, I: 'static> DataFeeder<T::OracleKey, T::OracleValue, T::AccountId> for Pallet<T, I> {
 	fn feed_value(who: T::AccountId, key: T::OracleKey, value: T::OracleValue) -> DispatchResult {
-		Self::do_feed_values(who, vec![(key, value)])?;
-		Ok(())
+		Self::do_feed_values(Some(who), vec![(key, value)])
 	}
 }

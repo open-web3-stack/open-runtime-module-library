@@ -24,10 +24,10 @@ pub mod module {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event {
-		/// Deposit success. [asset, to]
-		Deposited(MultiAsset, MultiLocation),
-		/// Withdraw success. [asset, from]
-		Withdrawn(MultiAsset, MultiLocation),
+		/// Deposit success.
+		Deposited { asset: MultiAsset, who: MultiLocation },
+		/// Withdraw success.
+		Withdrawn { asset: MultiAsset, who: MultiLocation },
 	}
 
 	#[pallet::error]
@@ -41,6 +41,8 @@ pub mod module {
 	}
 
 	#[pallet::pallet]
+	#[pallet::generate_store(pub(super) trait Store)]
+	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
 	#[pallet::hooks]
@@ -88,7 +90,10 @@ impl<T: Config> UnknownAsset for Pallet<T> {
 			_ => Err(Error::<T>::UnhandledAsset.into()),
 		}?;
 
-		Self::deposit_event(Event::Deposited(asset.clone(), to.clone()));
+		Self::deposit_event(Event::Deposited {
+			asset: asset.clone(),
+			who: to.clone(),
+		});
 
 		Ok(())
 	}
@@ -112,7 +117,10 @@ impl<T: Config> UnknownAsset for Pallet<T> {
 			_ => Err(Error::<T>::UnhandledAsset.into()),
 		}?;
 
-		Self::deposit_event(Event::Withdrawn(asset.clone(), from.clone()));
+		Self::deposit_event(Event::Withdrawn {
+			asset: asset.clone(),
+			who: from.clone(),
+		});
 
 		Ok(())
 	}

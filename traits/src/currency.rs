@@ -1,5 +1,5 @@
 use crate::arithmetic;
-use codec::{Codec, FullCodec};
+use codec::{Codec, FullCodec, MaxEncodedLen};
 pub use frame_support::{
 	traits::{BalanceStatus, LockIdentifier},
 	transactional,
@@ -10,7 +10,6 @@ use sp_runtime::{
 };
 use sp_std::{
 	cmp::{Eq, PartialEq},
-	convert::{TryFrom, TryInto},
 	fmt::Debug,
 	result,
 };
@@ -18,7 +17,14 @@ use sp_std::{
 /// Abstraction over a fungible multi-currency system.
 pub trait MultiCurrency<AccountId> {
 	/// The currency identifier.
-	type CurrencyId: FullCodec + Eq + PartialEq + Copy + MaybeSerializeDeserialize + Debug + scale_info::TypeInfo;
+	type CurrencyId: FullCodec
+		+ Eq
+		+ PartialEq
+		+ Copy
+		+ MaybeSerializeDeserialize
+		+ Debug
+		+ scale_info::TypeInfo
+		+ MaxEncodedLen;
 
 	/// The balance of an account.
 	type Balance: AtLeast32BitUnsigned
@@ -27,7 +33,8 @@ pub trait MultiCurrency<AccountId> {
 		+ MaybeSerializeDeserialize
 		+ Debug
 		+ Default
-		+ scale_info::TypeInfo;
+		+ scale_info::TypeInfo
+		+ MaxEncodedLen;
 
 	// Public immutables
 
@@ -89,7 +96,8 @@ pub trait MultiCurrencyExtended<AccountId>: MultiCurrency<AccountId> {
 		+ MaybeSerializeDeserialize
 		+ Debug
 		+ Default
-		+ scale_info::TypeInfo;
+		+ scale_info::TypeInfo
+		+ MaxEncodedLen;
 
 	/// Add or remove abs(`by_amount`) from the balance of `who` under
 	/// `currency_id`. If positive `by_amount`, do add, else do remove.
@@ -196,7 +204,7 @@ pub trait MultiReservableCurrency<AccountId>: MultiCurrency<AccountId> {
 /// Abstraction over a fungible (single) currency system.
 pub trait BasicCurrency<AccountId> {
 	/// The balance of an account.
-	type Balance: AtLeast32BitUnsigned + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default;
+	type Balance: AtLeast32BitUnsigned + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default + MaxEncodedLen;
 
 	// Public immutables
 
@@ -250,7 +258,8 @@ pub trait BasicCurrencyExtended<AccountId>: BasicCurrency<AccountId> {
 		+ Copy
 		+ MaybeSerializeDeserialize
 		+ Debug
-		+ Default;
+		+ Default
+		+ MaxEncodedLen;
 
 	/// Add or remove abs(`by_amount`) from the balance of `who`. If positive
 	/// `by_amount`, do add, else do remove.
