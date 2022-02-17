@@ -1,5 +1,5 @@
 use codec::FullCodec;
-use frame_support::traits::tokens::nonfungibles::Inspect;
+use frame_support::traits::tokens::nonfungibles::{Create, Inspect};
 use sp_runtime::traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize};
 use sp_std::fmt::Debug;
 
@@ -13,4 +13,9 @@ pub trait InspectExtended<AccountId>: Inspect<AccountId> {
 
 	/// Get the next token ID to be minted for a Class
 	fn next_token_id(class: Self::ClassId) -> Self::InstanceId;
+}
+
+// Supplement trait to the nonfungibles::Create trait
+pub trait CreateExtended<AccountId>: Create<AccountId> {
+	fn next_class_id() -> Self::ClassId;
 }
