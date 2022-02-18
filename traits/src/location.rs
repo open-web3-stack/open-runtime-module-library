@@ -22,6 +22,8 @@ impl Parse for MultiLocation {
 			(1, _) => Some(MultiLocation::parent()),
 			// children parachain
 			(0, Some(Parachain(id))) => Some(MultiLocation::new(0, X1(Parachain(*id)))),
+			// self reserve
+			(0, None) => Some(MultiLocation::here()),
 			_ => None,
 		}
 	}
