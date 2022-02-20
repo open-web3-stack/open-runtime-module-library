@@ -296,6 +296,70 @@ fn send_sibling_asset_to_reserve_sibling() {
 }
 
 #[test]
+fn send_sibling_asset_to_reserve_sibling_c() {
+	TestNet::reset();
+
+	ParaA::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::C, &ALICE, 1_000));
+	});
+
+	ParaC::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::C, &sibling_a_account(), 1_000));
+	});
+
+	ParaA::execute_with(|| {
+		assert_ok!(ParaXTokens::transfer(
+			Some(ALICE).into(),
+			CurrencyId::C,
+			500,
+			Box::new(
+				(
+					Parent,
+					Parachain(3),
+					Junction::AccountId32 {
+						network: NetworkId::Any,
+						id: BOB.into(),
+					},
+				)
+					.into()
+			),
+			40,
+		));
+
+		assert_eq!(ParaTokens::free_balance(CurrencyId::C, &ALICE), 500);
+	});
+
+	ParaC::execute_with(|| {
+		assert_eq!(ParaTokens::free_balance(CurrencyId::C, &sibling_a_account()), 500);
+		assert_eq!(ParaTokens::free_balance(CurrencyId::C, &BOB), 460);
+
+		assert_ok!(ParaXTokens::transfer(
+			Some(BOB).into(),
+			CurrencyId::C,
+			100,
+			Box::new(
+				(
+					Parent,
+					Parachain(1),
+					Junction::AccountId32 {
+						network: NetworkId::Any,
+						id: ALICE.into(),
+					},
+				)
+					.into()
+			),
+			40,
+		));
+		assert_eq!(ParaTokens::free_balance(CurrencyId::C, &BOB), 360);
+		assert_eq!(ParaTokens::free_balance(CurrencyId::C, &sibling_a_account()), 600);
+	});
+
+	ParaA::execute_with(|| {
+		assert_eq!(ParaTokens::free_balance(CurrencyId::C, &ALICE), 560);
+	});
+}
+
+#[test]
 fn send_sibling_asset_to_reserve_sibling_with_fee() {
 	TestNet::reset();
 
