@@ -30,7 +30,7 @@ pub enum CurrencyId {
 	/// Parachain B B1 token
 	B1,
 	/// Parachain C native token
-	C
+	C,
 }
 
 pub struct CurrencyIdConvert;
