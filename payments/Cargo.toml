@@ -1,8 +1,45 @@
 [package]
-name = "payments"
-version = "0.1.0"
-edition = "2021"
+authors = ["Virto Network <we@virto.team>"]
+edition = '2021'
+name = "orml-payments"
+version = "0.4.1-dev"
+license = "Apache-2.0"
+homepage = "https://github.com/virto-network/virto-node"
+repository = "https://github.com/virto-network/virto-node"
+description = "Allows users to post payment on-chain"
+readme = "README.md"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
+parity-scale-codec = { default-features = false, features = ['derive'], version = "2.0.0" }
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false }
+frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false }
+sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false }
+frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false, optional = true }
+orml-traits = { git = "https://github.com/open-web3-stack/open-runtime-module-library", default-features = false }
+scale-info = { version = "1.0.0", default-features = false, features = ["derive"] }
+
+[dev-dependencies]
+serde = { version = "1.0.101" }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false }
+orml-tokens = { git = "https://github.com/open-web3-stack/open-runtime-module-library" }
+
+[features]
+default = ['std']
+std = [
+	'parity-scale-codec/std',
+	'frame-support/std',
+	'frame-system/std',
+	'sp-runtime/std',
+	'sp-std/std',
+	'scale-info/std',
+	'orml-traits/std',
+	'frame-benchmarking/std',
+]
+runtime-benchmarks = [
+	"frame-benchmarking",
+]
