@@ -20,6 +20,8 @@ This pallet allows users to create secure reversible payments that keep funds lo
 - `PaymentCancelled { from: T::AccountId, to: T::AccountId }`,
 - `PaymentCreatorRequestedRefund { from: T::AccountId, to: T::AccountId, expiry: T::BlockNumber}`
 - `PaymentRefundDisputed { from: T::AccountId, to: T::AccountId }`
+- `PaymentRequestCreated { from: T::AccountId, to: T::AccountId }`
+- `PaymentRequestCompleted { from: T::AccountId, to: T::AccountId }`
 
 #### Extrinsics
 
@@ -32,6 +34,8 @@ This pallet allows users to create secure reversible payments that keep funds lo
 - `request_refund` - Allows the creator of the payment to trigger cancel with a buffer time.
 - `claim_refund` - Allows the creator to claim payment refund after buffer time
 - `dispute_refund` - Allows the recipient to dispute the payment request of sender
+- `request_payment` - Create a payment that can be completed by the sender using the `accept_and_pay` extrinsic.
+- `accept_and_pay` - Allows the sender to fulfill a payment request created by a recipient
 
 ## Implementations
 
@@ -79,4 +83,3 @@ pub enum PaymentState<BlockNumber> {
 The rates_provider pallet does not depend on the `GenesisConfig`
 
 License: Apache-2.0
-
