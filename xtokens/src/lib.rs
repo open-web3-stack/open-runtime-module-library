@@ -725,13 +725,12 @@ pub mod module {
 		}
 
 		/// Ensure has the `dest` has chain part and recipient part.
-		/// Also, make sure `dest` is not self. 
+		/// Also, make sure `dest` is not self.
 		fn ensure_valid_dest(dest: &MultiLocation) -> Result<(MultiLocation, MultiLocation), DispatchError> {
 			if let (Some(dest), Some(recipient)) = (dest.chain_part(), dest.non_chain_part()) {
 				if dest == MultiLocation::here() {
 					Err(Error::<T>::InvalidDest.into())
-				}
-				else {
+				} else {
 					Ok((dest, recipient))
 				}
 			} else {
