@@ -1014,6 +1014,49 @@ fn sending_assets_with_different_reserve_should_fail() {
 }
 
 #[test]
+fn sending_assets_with_relaychain_as_fee() {
+	env_logger::init();
+	TestNet::reset();
+
+	ParaA::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::B, &ALICE, 1_000));
+	});
+
+	ParaB::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::B, &sibling_a_account(), 1_000));
+		assert_ok!(ParaTokens::deposit(CurrencyId::R, &sibling_a_account(), 1_000));
+	});
+
+	ParaA::execute_with(|| {
+		assert_ok!(ParaXTokens::transfer_using_relaychain_as_fee(
+			Some(ALICE).into(),
+			CurrencyId::B,
+			500,
+			Box::new(
+				(
+					Parent,
+					Parachain(2),
+					Junction::AccountId32 {
+						network: NetworkId::Any,
+						id: BOB.into(),
+					},
+				)
+					.into()
+			),
+		));
+
+		assert_eq!(500, ParaTokens::free_balance(CurrencyId::B, &ALICE));
+		assert_eq!(960, ParaTokens::free_balance(CurrencyId::R, &ALICE));
+	});
+
+	ParaB::execute_with(|| {
+		assert_eq!(500, ParaTokens::free_balance(CurrencyId::B, &BOB));
+		assert_eq!(500, ParaTokens::free_balance(CurrencyId::B, &sibling_a_account()));
+		assert_eq!(960, ParaTokens::free_balance(CurrencyId::R, &sibling_a_account()));
+	});
+}
+
+#[test]
 fn specifying_a_non_existent_asset_index_should_fail() {
 	TestNet::reset();
 

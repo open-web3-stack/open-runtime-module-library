@@ -394,6 +394,46 @@ pub mod module {
 
 			Self::do_transfer_multiassets(who, assets.clone(), fee.clone(), dest, dest_weight, true)
 		}
+
+		#[pallet::weight(Pallet::<T>::weight_of_transfer(currency_id.clone(), *amount, dest))]
+		#[transactional]
+		pub fn transfer_using_relaychain_as_fee(
+			origin: OriginFor<T>,
+			currency_id: T::CurrencyId,
+			amount: T::Balance,
+			dest: Box<VersionedMultiLocation>,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let dest: MultiLocation = (*dest).try_into().map_err(|()| Error::<T>::BadVersion)?;
+
+			let location: MultiLocation = T::CurrencyIdConvert::convert(currency_id.clone())
+				.ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
+			let asset: MultiAsset = (location, amount.into()).into();
+
+			let dest_weight = 4 * T::BaseXcmWeight::get();
+			let fee = MultiAsset {
+				id: AssetId::Concrete(MultiLocation::new(1, Junctions::Here)),
+				fun: Fungibility::Fungible(dest_weight.into()),
+			};
+
+			let mut assets = MultiAssets::new();
+			assets.push(asset.clone());
+			assets.push(fee.clone());
+
+			let (_, dest, reserve, recipient) = Self::transfer_kind(&asset, &dest)?;
+			ensure!(dest == reserve, "Asset should match to destination!");
+			let mut msg = Self::transfer_to_reserve(assets, fee, dest.clone(), recipient, dest_weight)?;
+
+			let origin_location = T::AccountIdToMultiLocation::convert(who.clone());
+			let weight = T::Weigher::weight(&mut msg).map_err(|()| Error::<T>::UnweighableMessage)?;
+			T::XcmExecutor::execute_xcm_in_credit(origin_location, msg, weight, weight)
+				.ensure_complete()
+				.map_err(|error| {
+					log::error!("Failed execute transfer message with {:?}", error);
+					Error::<T>::XcmExecutionFailed
+				})?;
+			Ok(())
+		}
 	}
 
 	impl<T: Config> Pallet<T> {
