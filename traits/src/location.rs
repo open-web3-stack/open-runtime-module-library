@@ -23,7 +23,8 @@ impl Parse for MultiLocation {
 			// children parachain
 			(0, Some(Parachain(id))) => Some(MultiLocation::new(0, X1(Parachain(*id)))),
 			// self reserve
-			(0, None) => Some(MultiLocation::here()),
+			// All asset that is not a children parachain is a self reserved asset
+			(0, _) => Some(MultiLocation::here()),
 			_ => None,
 		}
 	}
