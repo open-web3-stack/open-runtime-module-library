@@ -1,6 +1,9 @@
 use codec::FullCodec;
 use frame_support::traits::tokens::nonfungibles::{Create, Inspect};
-use sp_runtime::{DispatchResult, traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize}};
+use sp_runtime::{
+	traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize},
+	DispatchResult,
+};
 use sp_std::fmt::Debug;
 
 /// Trait to complement the Inspect trait
