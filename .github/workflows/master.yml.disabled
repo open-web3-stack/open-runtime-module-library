@@ -16,7 +16,7 @@ jobs:
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
-        toolchain: nightly-2021-01-07
+        toolchain: nightly-2021-11-07
         override: true
         default: true
     - name: Install cargo-unleash

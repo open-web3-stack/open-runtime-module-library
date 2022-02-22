@@ -3,28 +3,26 @@ name = "orml-weight-meter"
 version = "0.4.1-dev"
 license = "Apache-2.0"
 authors = ["Laminar Developers <hello@laminar.one>"]
-edition = "2018"
+edition = "2021"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
-spin = "0.7.1"
 scale-info = { version = "1.0", default-features = false, features = ["derive"] }
-frame-support = { git = "https://github.com/mangata-finance/substrate", branch = "mangata-dev-v4", default-features = false }
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false }
 weight-meter-procedural = { path = "weight-meter-procedural", default-features = false }
-orml-bencher = { path = "../bencher", default-features = false, optional = true }
 
 [dev-dependencies]
 serde = { version = "1.0.124" }
 codec = { package = "parity-scale-codec", version = "2.3.1" }
-sp-runtime = { git = "https://github.com/mangata-finance/substrate", branch = "mangata-dev-v4" }
-sp-io = { git = "https://github.com/mangata-finance/substrate", branch = "mangata-dev-v4" }
-sp-std = { git = "https://github.com/mangata-finance/substrate", branch = "mangata-dev-v4" }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16" }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16" }
+sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16" }
 
-frame-support = { git = "https://github.com/mangata-finance/substrate", branch = "mangata-dev-v4"}
-frame-system = { git = "https://github.com/mangata-finance/substrate", branch = "mangata-dev-v4" }
-pallet-balances = { git = "https://github.com/mangata-finance/substrate", branch = "mangata-dev-v4" }
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16"}
+frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16" }
+pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16" }
 
 [features]
 default = ["std"]
@@ -32,9 +30,7 @@ std = [
 	"scale-info/std",
 	"frame-support/std",
 	"weight-meter-procedural/std",
-	"orml-bencher/std",
 ]
 bench = [
 	"weight-meter-procedural/bench",
-	"orml-bencher",
 ]

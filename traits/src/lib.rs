@@ -19,7 +19,7 @@ pub use currency::{
 pub use data_provider::{DataFeeder, DataProvider, DataProviderExtended};
 pub use get_by_key::GetByKey;
 pub use multi_asset::ConcreteFungibleAsset;
-pub use nft::NFT;
+pub use nft::InspectExtended;
 pub use price::{DefaultPriceProvider, PriceProvider};
 pub use rewards::RewardHandler;
 use scale_info::TypeInfo;

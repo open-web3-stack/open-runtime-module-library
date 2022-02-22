@@ -24,11 +24,11 @@ use frame_support::{
 	pallet_prelude::*,
 	traits::{
 		schedule::{DispatchTime, Named as ScheduleNamed, Priority},
-		EnsureOrigin, Get, IsType, OriginTrait,
+		EnsureOneOf, EnsureOrigin, Get, IsType, OriginTrait,
 	},
 	weights::{DispatchClass, GetDispatchInfo, Pays},
 };
-use frame_system::{pallet_prelude::*, EnsureOneOf, EnsureRoot, EnsureSigned};
+use frame_system::{pallet_prelude::*, EnsureRoot, EnsureSigned};
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{CheckedSub, Dispatchable, Hash, Saturating},
@@ -184,22 +184,39 @@ pub mod module {
 	#[pallet::event]
 	#[pallet::generate_deposit(fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// A call is dispatched. [result]
-		Dispatched(DispatchResult),
-		/// A call is scheduled. [origin, index]
-		Scheduled(T::PalletsOrigin, ScheduleTaskIndex),
-		/// A scheduled call is fast tracked. [origin, index, when]
-		FastTracked(T::PalletsOrigin, ScheduleTaskIndex, T::BlockNumber),
-		/// A scheduled call is delayed. [origin, index, when]
-		Delayed(T::PalletsOrigin, ScheduleTaskIndex, T::BlockNumber),
-		/// A scheduled call is cancelled. [origin, index]
-		Cancelled(T::PalletsOrigin, ScheduleTaskIndex),
-		/// A call is authorized. \[hash, caller\]
-		AuthorizedCall(T::Hash, Option<T::AccountId>),
-		/// An authorized call was removed. \[hash\]
-		RemovedAuthorizedCall(T::Hash),
-		/// An authorized call was triggered. \[hash, caller\]
-		TriggeredCallBy(T::Hash, T::AccountId),
+		/// A call is dispatched.
+		Dispatched { result: DispatchResult },
+		/// A call is scheduled.
+		Scheduled {
+			origin: T::PalletsOrigin,
+			index: ScheduleTaskIndex,
+		},
+		/// A scheduled call is fast tracked.
+		FastTracked {
+			origin: T::PalletsOrigin,
+			index: ScheduleTaskIndex,
+			when: T::BlockNumber,
+		},
+		/// A scheduled call is delayed.
+		Delayed {
+			origin: T::PalletsOrigin,
+			index: ScheduleTaskIndex,
+			when: T::BlockNumber,
+		},
+		/// A scheduled call is cancelled.
+		Cancelled {
+			origin: T::PalletsOrigin,
+			index: ScheduleTaskIndex,
+		},
+		/// A call is authorized.
+		AuthorizedCall {
+			hash: T::Hash,
+			caller: Option<T::AccountId>,
+		},
+		/// An authorized call was removed.
+		RemovedAuthorizedCall { hash: T::Hash },
+		/// An authorized call was triggered.
+		TriggeredCallBy { hash: T::Hash, caller: T::AccountId },
 	}
 
 	#[pallet::storage]
@@ -211,6 +228,8 @@ pub mod module {
 	pub type SavedCalls<T: Config> = StorageMap<_, Identity, T::Hash, (CallOf<T>, Option<T::AccountId>), OptionQuery>;
 
 	#[pallet::pallet]
+	#[pallet::generate_store(pub(super) trait Store)]
+	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
 	#[pallet::hooks]
@@ -228,7 +247,9 @@ pub mod module {
 
 			let e = call.dispatch(as_origin.into_origin().into());
 
-			Self::deposit_event(Event::Dispatched(e.map(|_| ()).map_err(|e| e.error)));
+			Self::deposit_event(Event::Dispatched {
+				result: e.map(|_| ()).map_err(|e| e.error),
+			});
 			Ok(())
 		}
 
@@ -276,7 +297,10 @@ pub mod module {
 			)
 			.map_err(|_| Error::<T>::FailedToSchedule)?;
 
-			Self::deposit_event(Event::Scheduled(pallets_origin, id));
+			Self::deposit_event(Event::Scheduled {
+				origin: pallets_origin,
+				index: id,
+			});
 			Ok(())
 		}
 
@@ -302,7 +326,11 @@ pub mod module {
 			T::Scheduler::reschedule_named((&initial_origin, task_id).encode(), when)
 				.map_err(|_| Error::<T>::FailedToFastTrack)?;
 
-			Self::deposit_event(Event::FastTracked(*initial_origin, task_id, dispatch_at));
+			Self::deposit_event(Event::FastTracked {
+				origin: *initial_origin,
+				index: task_id,
+				when: dispatch_at,
+			});
 			Ok(())
 		}
 
@@ -325,7 +353,11 @@ pub mod module {
 			let now = frame_system::Pallet::<T>::block_number();
 			let dispatch_at = now.saturating_add(additional_delay);
 
-			Self::deposit_event(Event::Delayed(*initial_origin, task_id, dispatch_at));
+			Self::deposit_event(Event::Delayed {
+				origin: *initial_origin,
+				index: task_id,
+				when: dispatch_at,
+			});
 			Ok(())
 		}
 
@@ -339,7 +371,10 @@ pub mod module {
 			T::AuthorityConfig::check_cancel_schedule(origin, &initial_origin)?;
 			T::Scheduler::cancel_named((&initial_origin, task_id).encode()).map_err(|_| Error::<T>::FailedToCancel)?;
 
-			Self::deposit_event(Event::Cancelled(*initial_origin, task_id));
+			Self::deposit_event(Event::Cancelled {
+				origin: *initial_origin,
+				index: task_id,
+			});
 			Ok(())
 		}
 
@@ -352,16 +387,14 @@ pub mod module {
 			ensure_root(origin)?;
 			let hash = T::Hashing::hash_of(&call);
 			SavedCalls::<T>::insert(hash, (call, caller.clone()));
-			Self::deposit_event(Event::AuthorizedCall(hash, caller));
+			Self::deposit_event(Event::AuthorizedCall { hash, caller });
 			Ok(())
 		}
 
 		#[pallet::weight(T::WeightInfo::remove_authorized_call())]
 		pub fn remove_authorized_call(origin: OriginFor<T>, hash: T::Hash) -> DispatchResult {
 			let root_or_sigend =
-				EnsureOneOf::<T::AccountId, EnsureRoot<T::AccountId>, EnsureSigned<T::AccountId>>::ensure_origin(
-					origin,
-				)?;
+				EnsureOneOf::<EnsureRoot<T::AccountId>, EnsureSigned<T::AccountId>>::ensure_origin(origin)?;
 
 			SavedCalls::<T>::try_mutate_exists(hash, |maybe_call| {
 				let (_, maybe_caller) = maybe_call.take().ok_or(Error::<T>::CallNotAuthorized)?;
@@ -373,7 +406,7 @@ pub mod module {
 						ensure!(who == caller, Error::<T>::CallNotAuthorized);
 					}
 				}
-				Self::deposit_event(Event::RemovedAuthorizedCall(hash));
+				Self::deposit_event(Event::RemovedAuthorizedCall { hash });
 				Ok(())
 			})
 		}
@@ -398,8 +431,10 @@ pub mod module {
 					Error::<T>::WrongCallWeightBound
 				);
 				let result = call.dispatch(OriginFor::<T>::root());
-				Self::deposit_event(Event::TriggeredCallBy(hash, who));
-				Self::deposit_event(Event::Dispatched(result.map(|_| ()).map_err(|e| e.error)));
+				Self::deposit_event(Event::TriggeredCallBy { hash, caller: who });
+				Self::deposit_event(Event::Dispatched {
+					result: result.map(|_| ()).map_err(|e| e.error),
+				});
 				Ok(Pays::No.into())
 			})
 		}

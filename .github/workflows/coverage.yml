@@ -14,7 +14,7 @@ on:
       - '**/README.md'
 
 env:
-  TARPAULIN_VERSION: 0.18.2
+  TARPAULIN_VERSION: 0.18.5
 
 jobs:
   test:
@@ -39,7 +39,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: nightly-2021-06-17
+          toolchain: nightly-2021-11-07
           components: rustfmt
           target: wasm32-unknown-unknown
           default: true
@@ -51,7 +51,6 @@ jobs:
           # TODO: remove `--avoid-cfg-tarpaulin` after https://github.com/xd009642/tarpaulin/issues/756
           cargo tarpaulin --avoid-cfg-tarpaulin --verbose --no-fail-fast --workspace --timeout 300 --out Xml
       - name: Upload to codecov.io
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v2
         with:
-          # token: ${{secrets.CODECOV_TOKEN}} # not required for public repos
           fail_ci_if_error: true

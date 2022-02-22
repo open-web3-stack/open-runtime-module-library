@@ -10,9 +10,8 @@
 //! ```
 //! Start with `0` and after the weights is generated then it can be replaced
 //! with generated weight. Macro will inject callable methods that wraps inner
-//! methods. Generated call will start with prefix `method_` followed by method
-//! name. This only works for methods with `orml_weight_meter::weight` attribute
-//! and only when running benchmarks.
+//! methods. This only works for methods with `orml_weight_meter::start` and
+//! `orml_weight_meter::weight` attribute, and only when running benchmarks.
 //!
 //! 2. Create benchmarks using orml_bencher and generate the weights with
 //! orml_weight_gen
@@ -23,17 +22,17 @@
 //! ```
 //! with
 //!```ignore
-//! #[orml_weight_meter::weight(T::WeightInfo::method_inner_do_something())]
+//! #[orml_weight_meter::weight(ModuleWeights::<T>::inner_do_something())]
 //! ```
 //!
 //! 3. Use WeightMeter on your calls by adding macro
-//! `#[orml_weight_meter::start]` and at the end use
-//! `orml_weight_meter::used_weight()` to get used weight.
-//!```ignore
+//! `#[orml_weight_meter::start(weight)]` or `#[orml_weight_meter::start]` if
+//! starts with zero and at the end use `orml_weight_meter::used_weight()` to
+//! get used weight. ```ignore
 //! #[pallet::call]
 //! impl<T: Config> Pallet<T> {
 //!     #[pallet::weight(T::WeightInfo::do_something())]
-//!     #[orml_weight_meter::start]
+//!     #[orml_weight_meter::start(ModuleWeights::<T>::do_something())]
 //!     pub fn do_something(origin: OriginFor<T>, something: u32) ->
 //!     DispatchResultWithPostInfo {
 //!         let who = ensure_signed(origin)?;
