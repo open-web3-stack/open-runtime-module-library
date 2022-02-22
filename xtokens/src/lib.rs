@@ -395,6 +395,7 @@ pub mod module {
 			Self::do_transfer_multiassets(who, assets.clone(), fee.clone(), dest, dest_weight, true)
 		}
 
+		/// Transfer currency and use relay-chain asset as fee
 		#[pallet::weight(Pallet::<T>::weight_of_transfer(currency_id.clone(), *amount, dest))]
 		#[transactional]
 		pub fn transfer_using_relaychain_as_fee(
