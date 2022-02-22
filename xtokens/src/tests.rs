@@ -1015,7 +1015,6 @@ fn sending_assets_with_different_reserve_should_fail() {
 
 #[test]
 fn sending_assets_with_relaychain_as_fee() {
-	env_logger::init();
 	TestNet::reset();
 
 	ParaA::execute_with(|| {
