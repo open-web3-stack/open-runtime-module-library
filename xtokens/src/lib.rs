@@ -402,6 +402,7 @@ pub mod module {
 			currency_id: T::CurrencyId,
 			amount: T::Balance,
 			dest: Box<VersionedMultiLocation>,
+			dest_weight: Weight,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let dest: MultiLocation = (*dest).try_into().map_err(|()| Error::<T>::BadVersion)?;
@@ -410,7 +411,6 @@ pub mod module {
 				.ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
 			let asset: MultiAsset = (location, amount.into()).into();
 
-			let dest_weight = 4 * T::BaseXcmWeight::get();
 			let fee = MultiAsset {
 				id: AssetId::Concrete(MultiLocation::new(1, Junctions::Here)),
 				fun: Fungibility::Fungible(dest_weight.into()),
@@ -432,6 +432,12 @@ pub mod module {
 					log::error!("Failed execute transfer message with {:?}", error);
 					Error::<T>::XcmExecutionFailed
 				})?;
+			Self::deposit_event(Event::<T>::Transferred {
+				sender: who,
+				currency_id,
+				amount,
+				dest,
+			});
 			Ok(())
 		}
 	}

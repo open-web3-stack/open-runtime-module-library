@@ -1043,6 +1043,7 @@ fn sending_assets_with_relaychain_as_fee() {
 				)
 					.into()
 			),
+			40,
 		));
 
 		assert_eq!(500, ParaTokens::free_balance(CurrencyId::B, &ALICE));
