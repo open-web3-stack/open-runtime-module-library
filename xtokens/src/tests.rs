@@ -641,6 +641,55 @@ fn send_self_parachain_asset_to_sibling_with_distinct_fee() {
 }
 
 #[test]
+fn sending_assets_with_different_reserve_works() {
+	TestNet::reset();
+
+	ParaA::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::B, &ALICE, 1_000));
+	});
+
+	ParaB::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::B, &sibling_a_account(), 1_000));
+		assert_ok!(ParaTokens::deposit(CurrencyId::R, &sibling_a_account(), 1_000));
+	});
+
+	Relay::execute_with(|| {
+		let _ = RelayBalances::deposit_creating(&para_a_account(), 1_000);
+	});
+
+	ParaA::execute_with(|| {
+		assert_ok!(ParaXTokens::transfer_multicurrencies(
+			Some(ALICE).into(),
+			vec![(CurrencyId::B, 450), (CurrencyId::R, 50)],
+			1,
+			Box::new(
+				(
+					Parent,
+					Parachain(2),
+					Junction::AccountId32 {
+						network: NetworkId::Any,
+						id: BOB.into(),
+					},
+				)
+					.into()
+			),
+			40,
+		));
+		assert_eq!(550, ParaTokens::free_balance(CurrencyId::B, &ALICE));
+		assert_eq!(950, ParaTokens::free_balance(CurrencyId::R, &ALICE));
+	});
+
+	ParaB::execute_with(|| {
+		assert_eq!(550, ParaTokens::free_balance(CurrencyId::B, &sibling_a_account()));
+		assert_eq!(950, ParaTokens::free_balance(CurrencyId::R, &sibling_a_account()));
+
+		// It should use 40 for weight, so 450 B and 10 R should reach destination
+		assert_eq!(450, ParaTokens::free_balance(CurrencyId::B, &BOB));
+		assert_eq!(10, ParaTokens::free_balance(CurrencyId::R, &BOB));
+	});
+}
+
+#[test]
 fn transfer_no_reserve_assets_fails() {
 	TestNet::reset();
 
@@ -969,53 +1018,6 @@ fn specifying_more_than_two_assets_should_error() {
 			),
 			Error::<para::Runtime>::TooManyAssetsBeingSent
 		);
-	});
-}
-
-#[test]
-fn sending_assets_with_different_reserve_works() {
-	TestNet::reset();
-
-	ParaA::execute_with(|| {
-		assert_ok!(ParaTokens::deposit(CurrencyId::B, &ALICE, 1_000));
-	});
-
-	ParaB::execute_with(|| {
-		assert_ok!(ParaTokens::deposit(CurrencyId::B, &sibling_a_account(), 1_000));
-		assert_ok!(ParaTokens::deposit(CurrencyId::R, &sibling_a_account(), 1_000));
-	});
-
-	Relay::execute_with(|| {
-		let _ = RelayBalances::deposit_creating(&para_a_account(), 1_000);
-	});
-
-	ParaA::execute_with(|| {
-		assert_ok!(ParaXTokens::transfer_multicurrencies(
-			Some(ALICE).into(),
-			vec![(CurrencyId::B, 450), (CurrencyId::R, 40)],
-			1,
-			Box::new(
-				(
-					Parent,
-					Parachain(2),
-					Junction::AccountId32 {
-						network: NetworkId::Any,
-						id: BOB.into(),
-					},
-				)
-					.into()
-			),
-			40,
-		));
-		assert_eq!(550, ParaTokens::free_balance(CurrencyId::B, &ALICE));
-		assert_eq!(960, ParaTokens::free_balance(CurrencyId::R, &ALICE));
-	});
-
-	ParaB::execute_with(|| {
-		assert_eq!(450, ParaTokens::free_balance(CurrencyId::B, &BOB));
-
-		assert_eq!(550, ParaTokens::free_balance(CurrencyId::B, &sibling_a_account()));
-		assert_eq!(960, ParaTokens::free_balance(CurrencyId::R, &sibling_a_account()));
 	});
 }
 
