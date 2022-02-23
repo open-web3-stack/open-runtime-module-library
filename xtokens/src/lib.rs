@@ -581,7 +581,7 @@ pub mod module {
 				if fungible_amount(asset).is_zero() {
 					return Ok(());
 				}
-				// the assets including fee asset, the reserve location is decided by non fee
+				// `assets` includes fee asset, the reserve location is decided by non fee
 				// asset
 				if (fee != *asset && reserve.is_none()) || asset_len == 1 {
 					reserve = asset.reserve();
@@ -741,7 +741,7 @@ pub mod module {
 		/// Get the transfer kind.
 		///
 		/// Returns `Err` if `dest` combination doesn't make sense, or `reserve`
-		/// is none else returns a tuple of:
+		/// is none, else returns a tuple of:
 		/// - `transfer_kind`.
 		/// - asset's `reserve` parachain or relay chain location,
 		/// - `dest` parachain or relay chain location.
