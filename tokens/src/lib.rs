@@ -88,6 +88,8 @@ mod weights;
 mod multi_token_currency;
 mod multi_token_imbalances;
 
+mod benchmarking;
+
 pub use impls::*;
 pub use weights::WeightInfo;
 
