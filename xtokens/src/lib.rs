@@ -777,7 +777,7 @@ pub mod module {
 				if let Ok((transfer_kind, dest, _, reserve)) = Self::transfer_kind(asset.reserve(), &dest) {
 					let mut msg = match transfer_kind {
 						SelfReserveAsset => Xcm(vec![
-							WithdrawAsset(MultiAssets::from(asset.clone())),
+							WithdrawAsset(MultiAssets::from(asset)),
 							DepositReserveAsset {
 								assets: All.into(),
 								max_assets: 1,
@@ -786,7 +786,7 @@ pub mod module {
 							},
 						]),
 						ToReserve | ToNonReserve => Xcm(vec![
-							WithdrawAsset(MultiAssets::from(asset.clone())),
+							WithdrawAsset(MultiAssets::from(asset)),
 							InitiateReserveWithdraw {
 								assets: All.into(),
 								// `dest` is always (equal to) `reserve` in both cases
