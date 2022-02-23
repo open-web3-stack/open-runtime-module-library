@@ -973,48 +973,7 @@ fn specifying_more_than_two_assets_should_error() {
 }
 
 #[test]
-fn sending_assets_with_different_reserve_should_fail() {
-	TestNet::reset();
-
-	ParaA::execute_with(|| {
-		assert_ok!(ParaTokens::deposit(CurrencyId::B, &ALICE, 1_000));
-		assert_ok!(ParaTokens::deposit(CurrencyId::R, &ALICE, 1_000));
-	});
-
-	ParaB::execute_with(|| {
-		assert_ok!(ParaTokens::deposit(CurrencyId::B, &sibling_a_account(), 1_000));
-	});
-
-	Relay::execute_with(|| {
-		let _ = RelayBalances::deposit_creating(&para_a_account(), 1_000);
-	});
-
-	ParaA::execute_with(|| {
-		assert_noop!(
-			ParaXTokens::transfer_multicurrencies(
-				Some(ALICE).into(),
-				vec![(CurrencyId::B, 450), (CurrencyId::R, 5000)],
-				1,
-				Box::new(
-					(
-						Parent,
-						Parachain(2),
-						Junction::AccountId32 {
-							network: NetworkId::Any,
-							id: BOB.into(),
-						},
-					)
-						.into()
-				),
-				40,
-			),
-			Error::<para::Runtime>::DistinctReserveForAssetAndFee
-		);
-	});
-}
-
-#[test]
-fn sending_assets_with_relaychain_as_fee() {
+fn sending_assets_with_different_reserve_works() {
 	TestNet::reset();
 
 	ParaA::execute_with(|| {
@@ -1026,11 +985,15 @@ fn sending_assets_with_relaychain_as_fee() {
 		assert_ok!(ParaTokens::deposit(CurrencyId::R, &sibling_a_account(), 1_000));
 	});
 
+	Relay::execute_with(|| {
+		let _ = RelayBalances::deposit_creating(&para_a_account(), 1_000);
+	});
+
 	ParaA::execute_with(|| {
-		assert_ok!(ParaXTokens::transfer_using_relaychain_as_fee(
+		assert_ok!(ParaXTokens::transfer_multicurrencies(
 			Some(ALICE).into(),
-			CurrencyId::B,
-			500,
+			vec![(CurrencyId::B, 450), (CurrencyId::R, 40)],
+			1,
 			Box::new(
 				(
 					Parent,
@@ -1044,14 +1007,14 @@ fn sending_assets_with_relaychain_as_fee() {
 			),
 			40,
 		));
-
-		assert_eq!(500, ParaTokens::free_balance(CurrencyId::B, &ALICE));
+		assert_eq!(550, ParaTokens::free_balance(CurrencyId::B, &ALICE));
 		assert_eq!(960, ParaTokens::free_balance(CurrencyId::R, &ALICE));
 	});
 
 	ParaB::execute_with(|| {
-		assert_eq!(500, ParaTokens::free_balance(CurrencyId::B, &BOB));
-		assert_eq!(500, ParaTokens::free_balance(CurrencyId::B, &sibling_a_account()));
+		assert_eq!(450, ParaTokens::free_balance(CurrencyId::B, &BOB));
+
+		assert_eq!(550, ParaTokens::free_balance(CurrencyId::B, &sibling_a_account()));
 		assert_eq!(960, ParaTokens::free_balance(CurrencyId::R, &sibling_a_account()));
 	});
 }

@@ -54,7 +54,6 @@ use TransferKind::*;
 
 #[frame_support::pallet]
 pub mod module {
-
 	use super::*;
 
 	#[pallet::config]
@@ -394,53 +393,6 @@ pub mod module {
 
 			Self::do_transfer_multiassets(who, assets.clone(), fee.clone(), dest, dest_weight, true)
 		}
-
-		/// Transfer currency and use relay-chain asset as fee
-		#[pallet::weight(Pallet::<T>::weight_of_transfer(currency_id.clone(), *amount, dest))]
-		#[transactional]
-		pub fn transfer_using_relaychain_as_fee(
-			origin: OriginFor<T>,
-			currency_id: T::CurrencyId,
-			amount: T::Balance,
-			dest: Box<VersionedMultiLocation>,
-			dest_weight: Weight,
-		) -> DispatchResult {
-			let who = ensure_signed(origin)?;
-			let dest: MultiLocation = (*dest).try_into().map_err(|()| Error::<T>::BadVersion)?;
-
-			let location: MultiLocation = T::CurrencyIdConvert::convert(currency_id.clone())
-				.ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
-			let asset: MultiAsset = (location, amount.into()).into();
-
-			let fee = MultiAsset {
-				id: AssetId::Concrete(MultiLocation::new(1, Junctions::Here)),
-				fun: Fungibility::Fungible(dest_weight.into()),
-			};
-
-			let mut assets = MultiAssets::new();
-			assets.push(asset.clone());
-			assets.push(fee.clone());
-
-			let (_, dest, reserve, recipient) = Self::transfer_kind(&asset, &dest)?;
-			ensure!(dest == reserve, "Asset should match to destination!");
-			let mut msg = Self::transfer_to_reserve(assets, fee, dest.clone(), recipient, dest_weight)?;
-
-			let origin_location = T::AccountIdToMultiLocation::convert(who.clone());
-			let weight = T::Weigher::weight(&mut msg).map_err(|()| Error::<T>::UnweighableMessage)?;
-			T::XcmExecutor::execute_xcm_in_credit(origin_location, msg, weight, weight)
-				.ensure_complete()
-				.map_err(|error| {
-					log::error!("Failed execute transfer message with {:?}", error);
-					Error::<T>::XcmExecutionFailed
-				})?;
-			Self::deposit_event(Event::<T>::Transferred {
-				sender: who,
-				currency_id,
-				amount,
-				dest,
-			});
-			Ok(())
-		}
 	}
 
 	impl<T: Config> Pallet<T> {
@@ -619,8 +571,9 @@ pub mod module {
 				Error::<T>::TooManyAssetsBeingSent
 			);
 
-			// We check that all assets are valid and share the same reserve
-			for i in 0..assets.len() {
+			let mut reserve: Option<MultiLocation> = None;
+			let asset_len = assets.len();
+			for i in 0..asset_len {
 				let asset = assets.get(i).ok_or(Error::<T>::AssetIndexNonExistent)?;
 				if !asset.is_fungible(None) {
 					return Err(Error::<T>::NotFungible.into());
@@ -628,13 +581,18 @@ pub mod module {
 				if fungible_amount(asset).is_zero() {
 					return Ok(());
 				}
-				ensure!(
-					fee.reserve() == asset.reserve(),
-					Error::<T>::DistinctReserveForAssetAndFee
-				);
+				// the assets including fee asset, the reserve location is decided by non fee
+				// asset
+				if (fee != *asset && reserve.is_none()) || asset_len == 1 {
+					reserve = asset.reserve();
+				}
+				// make sure all non fee assets share the same reserve
+				if reserve.is_some() {
+					ensure!(reserve == asset.reserve(), Error::<T>::DistinctReserveForAssetAndFee);
+				}
 			}
 
-			let (transfer_kind, dest, reserve, recipient) = Self::transfer_kind(&fee, &dest)?;
+			let (transfer_kind, dest, reserve, recipient) = Self::transfer_kind(reserve, &dest)?;
 			let mut msg = match transfer_kind {
 				SelfReserveAsset => {
 					Self::transfer_self_reserve_asset(assets.clone(), fee, dest.clone(), recipient, dest_weight)?
@@ -782,14 +740,14 @@ pub mod module {
 
 		/// Get the transfer kind.
 		///
-		/// Returns `Err` if `asset` and `dest` combination doesn't make sense,
-		/// else returns a tuple of:
+		/// Returns `Err` if `dest` combination doesn't make sense, or `reserve`
+		/// is none else returns a tuple of:
 		/// - `transfer_kind`.
 		/// - asset's `reserve` parachain or relay chain location,
 		/// - `dest` parachain or relay chain location.
 		/// - `recipient` location.
 		fn transfer_kind(
-			asset: &MultiAsset,
+			reserve: Option<MultiLocation>,
 			dest: &MultiLocation,
 		) -> Result<(TransferKind, MultiLocation, MultiLocation, MultiLocation), DispatchError> {
 			let (dest, recipient) = Self::ensure_valid_dest(dest)?;
@@ -797,7 +755,7 @@ pub mod module {
 			let self_location = T::SelfLocation::get();
 			ensure!(dest != self_location, Error::<T>::NotCrossChainTransfer);
 
-			let reserve = asset.reserve().ok_or(Error::<T>::AssetHasNoReserve)?;
+			let reserve = reserve.ok_or(Error::<T>::AssetHasNoReserve)?;
 			let transfer_kind = if reserve == self_location {
 				SelfReserveAsset
 			} else if reserve == dest {
@@ -813,10 +771,10 @@ pub mod module {
 	impl<T: Config> Pallet<T> {
 		/// Returns weight of `transfer_multiasset` call.
 		fn weight_of_transfer_multiasset(asset: &VersionedMultiAsset, dest: &VersionedMultiLocation) -> Weight {
-			let asset = asset.clone().try_into();
+			let asset: Result<MultiAsset, _> = asset.clone().try_into();
 			let dest = dest.clone().try_into();
 			if let (Ok(asset), Ok(dest)) = (asset, dest) {
-				if let Ok((transfer_kind, dest, _, reserve)) = Self::transfer_kind(&asset, &dest) {
+				if let Ok((transfer_kind, dest, _, reserve)) = Self::transfer_kind(asset.reserve(), &dest) {
 					let mut msg = match transfer_kind {
 						SelfReserveAsset => Xcm(vec![
 							WithdrawAsset(MultiAssets::from(asset.clone())),
@@ -880,11 +838,11 @@ pub mod module {
 			dest: &VersionedMultiLocation,
 		) -> Weight {
 			let assets: Result<MultiAssets, ()> = assets.clone().try_into();
-
 			let dest = dest.clone().try_into();
 			if let (Ok(assets), Ok(dest)) = (assets, dest) {
-				if let Some(fee) = assets.get(*fee_item as usize) {
-					if let Ok((transfer_kind, dest, _, reserve)) = Self::transfer_kind(fee, &dest) {
+				let reserve_location = Self::get_reserve_location(&assets, fee_item);
+				if let Ok(reserve_location) = reserve_location {
+					if let Ok((transfer_kind, dest, _, reserve)) = Self::transfer_kind(reserve_location, &dest) {
 						let mut msg = match transfer_kind {
 							SelfReserveAsset => Xcm(vec![
 								WithdrawAsset(assets.clone()),
@@ -911,6 +869,19 @@ pub mod module {
 				}
 			}
 			0
+		}
+
+		/// Get reserve location of non fee asset.
+		fn get_reserve_location(assets: &MultiAssets, fee_item: &u32) -> Result<Option<MultiLocation>, DispatchError> {
+			let non_fee_index = match assets.len() {
+				1 => 0,
+				_ => match fee_item {
+					0 => 1,
+					_ => 0,
+				},
+			};
+			let asset = assets.get(non_fee_index).ok_or(Error::<T>::AssetIndexNonExistent)?;
+			Ok(asset.reserve())
 		}
 	}
 
