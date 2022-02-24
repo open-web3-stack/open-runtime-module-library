@@ -871,16 +871,16 @@ pub mod module {
 			0
 		}
 
-		/// Get reserve location of non fee asset.
+		/// Get reserve location of non fee asset. make sure assets have ge one asset.
 		fn get_reserve_location(assets: &MultiAssets, fee_item: &u32) -> Result<Option<MultiLocation>, DispatchError> {
-			let non_fee_index = match assets.len() {
-				1 => 0,
-				_ => match fee_item {
-					0 => 1,
-					_ => 0,
-				},
+			let reserve_idx = if assets.len() == 1 {
+				0
+			} else if *fee_item == 0 {
+				1
+			} else {
+				0
 			};
-			let asset = assets.get(non_fee_index).ok_or(Error::<T>::AssetIndexNonExistent)?;
+			let asset = assets.get(reserve_idx).ok_or(Error::<T>::AssetIndexNonExistent)?;
 			Ok(asset.reserve())
 		}
 	}

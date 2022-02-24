@@ -660,7 +660,7 @@ fn sending_assets_with_different_reserve_works() {
 	ParaA::execute_with(|| {
 		assert_ok!(ParaXTokens::transfer_multicurrencies(
 			Some(ALICE).into(),
-			vec![(CurrencyId::B, 450), (CurrencyId::R, 50)],
+			vec![(CurrencyId::B, 450), (CurrencyId::R, 500)],
 			1,
 			Box::new(
 				(
@@ -676,16 +676,16 @@ fn sending_assets_with_different_reserve_works() {
 			40,
 		));
 		assert_eq!(550, ParaTokens::free_balance(CurrencyId::B, &ALICE));
-		assert_eq!(950, ParaTokens::free_balance(CurrencyId::R, &ALICE));
+		assert_eq!(500, ParaTokens::free_balance(CurrencyId::R, &ALICE));
 	});
 
 	ParaB::execute_with(|| {
 		assert_eq!(550, ParaTokens::free_balance(CurrencyId::B, &sibling_a_account()));
-		assert_eq!(950, ParaTokens::free_balance(CurrencyId::R, &sibling_a_account()));
+		assert_eq!(500, ParaTokens::free_balance(CurrencyId::R, &sibling_a_account()));
 
 		// It should use 40 for weight, so 450 B and 10 R should reach destination
 		assert_eq!(450, ParaTokens::free_balance(CurrencyId::B, &BOB));
-		assert_eq!(10, ParaTokens::free_balance(CurrencyId::R, &BOB));
+		assert_eq!(460, ParaTokens::free_balance(CurrencyId::R, &BOB));
 	});
 }
 
