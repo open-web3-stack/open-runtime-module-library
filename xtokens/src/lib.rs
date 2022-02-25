@@ -672,13 +672,9 @@ pub mod module {
 			};
 
 			let mut msg = match transfer_kind {
-				SelfReserveAsset => {
-					Self::transfer_self_reserve_asset(assets, fee, dest, recipient, dest_weight)?
-				}
+				SelfReserveAsset => Self::transfer_self_reserve_asset(assets, fee, dest, recipient, dest_weight)?,
 				ToReserve => Self::transfer_to_reserve(assets, fee, dest, recipient, dest_weight)?,
-				ToNonReserve => {
-					Self::transfer_to_non_reserve(assets, fee, reserve, dest, recipient, dest_weight)?
-				}
+				ToNonReserve => Self::transfer_to_non_reserve(assets, fee, reserve, dest, recipient, dest_weight)?,
 			};
 
 			let weight = T::Weigher::weight(&mut msg).map_err(|()| Error::<T>::UnweighableMessage)?;
