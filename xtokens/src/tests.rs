@@ -641,7 +641,7 @@ fn send_self_parachain_asset_to_sibling_with_distinct_fee() {
 }
 
 #[test]
-fn sending_assets_with_different_reserve() {
+fn sending_assets_with_different_reserve_works() {
 	TestNet::reset();
 
 	ParaA::execute_with(|| {
@@ -701,6 +701,44 @@ fn sending_assets_with_different_reserve() {
 
 		assert_eq!(450, ParaTokens::free_balance(CurrencyId::B, &BOB));
 		assert_eq!(weight - dest_weight, ParaTokens::free_balance(CurrencyId::R, &BOB));
+	});
+}
+
+#[test]
+fn test_fee() {
+	let asset = MultiAsset {
+		fun: Fungible(100),
+		id: Concrete((0, Here).into()),
+	};
+	let ass = fungible_amount(&asset).checked_sub(200);
+	println!("{:?}", ass);
+}
+
+#[test]
+fn sending_assets_with_different_reserve_not_enough_fee() {
+	TestNet::reset();
+
+	ParaA::execute_with(|| {
+		assert_noop!(
+			ParaXTokens::transfer_multicurrencies(
+				Some(ALICE).into(),
+				vec![(CurrencyId::B, 450), (CurrencyId::R, 40)],
+				1,
+				Box::new(
+					(
+						Parent,
+						Parachain(2),
+						Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: BOB.into(),
+						},
+					)
+						.into()
+				),
+				50,
+			),
+			Error::<para::Runtime>::FeeNotEnough
+		);
 	});
 }
 

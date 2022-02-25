@@ -602,7 +602,7 @@ pub mod module {
 				}
 			}
 
-			// in case that fee reserve != asset reserve, there're two xcm sent from sender.
+			// In case that fee reserve != asset reserve, there're two xcm sent from sender.
 			// first xcm send to fee reserve which also route to dest. second xcm directly
 			// send to dest. the fee amount in fee asset is split into two parts.
 			// 1. assets send to fee reserve = fee_amount - dest_weight
@@ -611,29 +611,29 @@ pub mod module {
 			let fee_reserve = fee.reserve();
 			if fee_reserve != reserve.clone() {
 				let mut assets_to_fee_reserve = MultiAssets::new();
-				let asset_to_fee_reserve = substract_fee(&fee, dest_weight as u128).ok_or(Error::<T>::FeeNotEnough)?;
+				let asset_to_fee_reserve = subtract_fee(&fee, dest_weight as u128).ok_or(Error::<T>::FeeNotEnough)?;
 				assets_to_fee_reserve.push(asset_to_fee_reserve.clone());
 
-				// the `SelfLocation` current is (1, Parachain(id)) which refer to sender
-				// parachain. we use self location here to fund fee which origin from sender
-				// account. Notice: if parachain set `SelfLocation` to (0, Here), than it'll be
-				// error!
-				// first xcm send to fee reserve chain
+				// First xcm send to fee reserve chain and routing to dest chain.
+				// The `SelfLocation` current is (1, Parachain(id)) refer to sender parachain.
+				// we use `SelfLocation` to fund fee to sender's parachain account on
+				// destination chain, which asset is origin from sender account on sender chain.
+				// Notice: if parachain set `SelfLocation` to (0, Here), than it'll be error!
 				Self::send_xcm(
+					origin_location.clone(),
 					assets_to_fee_reserve,
 					asset_to_fee_reserve,
-					origin_location.clone(),
 					fee_reserve,
 					&dest,
 					Some(T::SelfLocation::get()),
 					dest_weight,
 				)?;
 
-				// second xcm send to dest chain
+				// Second xcm send to dest chain.
 				Self::send_xcm(
+					origin_location.clone(),
 					assets_to_dest,
 					fee_to_dest,
-					origin_location.clone(),
 					reserve,
 					&dest,
 					None,
@@ -642,7 +642,7 @@ pub mod module {
 				return Ok(());
 			}
 
-			Self::send_xcm(assets.clone(), fee, origin_location, reserve, &dest, None, dest_weight)?;
+			Self::send_xcm(origin_location, assets.clone(), fee, reserve, &dest, None, dest_weight)?;
 
 			if deposit_event {
 				Self::deposit_event(Event::<T>::TransferredMultiAssets {
@@ -655,11 +655,11 @@ pub mod module {
 			Ok(())
 		}
 
-		/// send xcm to destination or reserve location
+		/// Send xcm with given assets and fee to dest or reserve chain.
 		fn send_xcm(
+			origin_location: MultiLocation,
 			assets: MultiAssets,
 			fee: MultiAsset,
-			origin_location: MultiLocation,
 			reserve: Option<MultiLocation>,
 			dest: &MultiLocation,
 			manual_recipient: Option<MultiLocation>,
@@ -999,7 +999,7 @@ fn half(asset: &MultiAsset) -> MultiAsset {
 	}
 }
 
-fn substract_fee(asset: &MultiAsset, amount: u128) -> Option<MultiAsset> {
+fn subtract_fee(asset: &MultiAsset, amount: u128) -> Option<MultiAsset> {
 	let final_amount = fungible_amount(asset).checked_sub(amount);
 	final_amount.map_or(None, |amount| {
 		Some(MultiAsset {
