@@ -70,11 +70,11 @@ impl WeightInfo for () {
 		(69_000_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(5 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(4 as Weight))
-	};
+	}
 	// tmp
 	fn mint() -> Weight {
 		(69_000_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(5 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(4 as Weight))
-	};
+	}
 }
