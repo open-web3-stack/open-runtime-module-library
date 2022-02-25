@@ -185,8 +185,6 @@ pub mod module {
 		TooManyAssetsBeingSent,
 		/// The specified index does not exist in a MultiAssets struct
 		AssetIndexNonExistent,
-		/// Fee is not enough
-		FeeNotEnough,
 	}
 
 	#[pallet::hooks]
@@ -611,7 +609,7 @@ pub mod module {
 			let fee_reserve = fee.reserve();
 			if fee_reserve != reserve {
 				let mut assets_to_fee_reserve = MultiAssets::new();
-				let asset_to_fee_reserve = subtract_fee(&fee, dest_weight as u128).ok_or(Error::<T>::FeeNotEnough)?;
+				let asset_to_fee_reserve = subtract_fee(&fee, dest_weight as u128);
 				assets_to_fee_reserve.push(asset_to_fee_reserve.clone());
 
 				// First xcm send to fee reserve chain and routing to dest chain.
@@ -995,14 +993,12 @@ fn half(asset: &MultiAsset) -> MultiAsset {
 	}
 }
 
-fn subtract_fee(asset: &MultiAsset, amount: u128) -> Option<MultiAsset> {
-	let final_amount = fungible_amount(asset).checked_sub(amount);
-	final_amount.and_then(|amount| {
-		Some(MultiAsset {
-			fun: Fungible(amount),
-			id: asset.id.clone(),
-		})
-	})
+fn subtract_fee(asset: &MultiAsset, amount: u128) -> MultiAsset {
+	let final_amount = fungible_amount(asset).checked_sub(amount).expect("fee too low; qed");
+	MultiAsset {
+		fun: Fungible(final_amount),
+		id: asset.id.clone(),
+	}
 }
 
 fn reset_fee(asset: &MultiAsset, amount: u128) -> MultiAsset {

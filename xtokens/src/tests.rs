@@ -705,44 +705,6 @@ fn sending_assets_with_different_reserve_works() {
 }
 
 #[test]
-fn test_fee() {
-	let asset = MultiAsset {
-		fun: Fungible(100),
-		id: Concrete((0, Here).into()),
-	};
-	let ass = fungible_amount(&asset).checked_sub(200);
-	println!("{:?}", ass);
-}
-
-#[test]
-fn sending_assets_with_different_reserve_not_enough_fee() {
-	TestNet::reset();
-
-	ParaA::execute_with(|| {
-		assert_noop!(
-			ParaXTokens::transfer_multicurrencies(
-				Some(ALICE).into(),
-				vec![(CurrencyId::B, 450), (CurrencyId::R, 40)],
-				1,
-				Box::new(
-					(
-						Parent,
-						Parachain(2),
-						Junction::AccountId32 {
-							network: NetworkId::Any,
-							id: BOB.into(),
-						},
-					)
-						.into()
-				),
-				50,
-			),
-			Error::<para::Runtime>::FeeNotEnough
-		);
-	});
-}
-
-#[test]
 fn transfer_no_reserve_assets_fails() {
 	TestNet::reset();
 
