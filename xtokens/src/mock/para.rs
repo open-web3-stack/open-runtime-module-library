@@ -3,7 +3,7 @@ use crate as orml_xtokens;
 
 use frame_support::{
 	construct_runtime, parameter_types,
-	traits::{EnsureOneOf, Everything, Get, Nothing},
+	traits::{Everything, Get, Nothing},
 	weights::{constants::WEIGHT_PER_SECOND, Weight},
 };
 use frame_system::EnsureRoot;
@@ -15,7 +15,7 @@ use sp_runtime::{
 };
 
 use cumulus_primitives_core::{ChannelStatus, GetChannelInfo, ParaId};
-use pallet_xcm::{EnsureXcm, IsMajorityOfBody, XcmPassthrough};
+use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
 use xcm::latest::prelude::*;
 use xcm_builder::{
@@ -128,7 +128,6 @@ pub type XcmOriginToCallOrigin = (
 parameter_types! {
 	pub const UnitWeightCost: Weight = 10;
 	pub const MaxInstructions: u32 = 100;
-	pub const ExecutiveBody: BodyId = BodyId::Executive;
 }
 
 pub type LocalAssetTransactor = MultiCurrencyAdapter<
@@ -222,8 +221,7 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
 	type ChannelInfo = ChannelInfo;
 	type VersionWrapper = ();
 	type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
-	type ControllerOrigin =
-		EnsureOneOf<EnsureRoot<AccountId>, EnsureXcm<IsMajorityOfBody<RelayLocation, ExecutiveBody>>>;
+	type ControllerOrigin = EnsureRoot<AccountId>;
 	type ControllerOriginConverter = XcmOriginToCallOrigin;
 }
 
