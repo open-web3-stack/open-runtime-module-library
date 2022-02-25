@@ -972,7 +972,7 @@ fn send_with_fee_should_handle_overflow() {
 				Some(ALICE).into(),
 				CurrencyId::A,
 				u128::MAX,
-				1,
+				100,
 				Box::new(
 					MultiLocation::new(
 						1,
@@ -994,18 +994,20 @@ fn send_with_fee_should_handle_overflow() {
 }
 
 #[test]
-fn specifying_more_than_two_assets_should_error() {
+fn specifying_more_than_assets_limit_should_error() {
 	TestNet::reset();
 
 	ParaA::execute_with(|| {
 		assert_ok!(ParaTokens::deposit(CurrencyId::B, &ALICE, 1_000));
 		assert_ok!(ParaTokens::deposit(CurrencyId::B1, &ALICE, 1_000));
+		assert_ok!(ParaTokens::deposit(CurrencyId::B2, &ALICE, 1_000));
 		assert_ok!(ParaTokens::deposit(CurrencyId::R, &ALICE, 1_000));
 	});
 
 	ParaB::execute_with(|| {
 		assert_ok!(ParaTokens::deposit(CurrencyId::B, &sibling_a_account(), 1_000));
 		assert_ok!(ParaTokens::deposit(CurrencyId::B1, &sibling_a_account(), 1_000));
+		assert_ok!(ParaTokens::deposit(CurrencyId::B2, &sibling_a_account(), 1_000));
 	});
 
 	Relay::execute_with(|| {
@@ -1016,7 +1018,12 @@ fn specifying_more_than_two_assets_should_error() {
 		assert_noop!(
 			ParaXTokens::transfer_multicurrencies(
 				Some(ALICE).into(),
-				vec![(CurrencyId::B, 450), (CurrencyId::B1, 50), (CurrencyId::R, 5000)],
+				vec![
+					(CurrencyId::B, 450),
+					(CurrencyId::B1, 200),
+					(CurrencyId::R, 5000),
+					(CurrencyId::B2, 500)
+				],
 				1,
 				Box::new(
 					(
@@ -1032,6 +1039,47 @@ fn specifying_more_than_two_assets_should_error() {
 				40,
 			),
 			Error::<para::Runtime>::TooManyAssetsBeingSent
+		);
+	});
+}
+
+#[test]
+fn sending_non_fee_assets_with_different_reserve_should_fail() {
+	TestNet::reset();
+
+	ParaA::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::B, &ALICE, 1_000));
+		assert_ok!(ParaTokens::deposit(CurrencyId::R, &ALICE, 1_000));
+	});
+
+	ParaB::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::B, &sibling_a_account(), 1_000));
+	});
+
+	Relay::execute_with(|| {
+		let _ = RelayBalances::deposit_creating(&para_a_account(), 1_000);
+	});
+
+	ParaA::execute_with(|| {
+		assert_noop!(
+			ParaXTokens::transfer_multicurrencies(
+				Some(ALICE).into(),
+				vec![(CurrencyId::B, 450), (CurrencyId::R, 5000), (CurrencyId::A, 450)],
+				1,
+				Box::new(
+					(
+						Parent,
+						Parachain(2),
+						Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: BOB.into(),
+						},
+					)
+						.into()
+				),
+				40,
+			),
+			Error::<para::Runtime>::DistinctReserveForAssetAndFee
 		);
 	});
 }

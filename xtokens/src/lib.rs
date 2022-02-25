@@ -185,6 +185,8 @@ pub mod module {
 		TooManyAssetsBeingSent,
 		/// The specified index does not exist in a MultiAssets struct
 		AssetIndexNonExistent,
+		/// Fee is not enough
+		FeeNotEnough,
 	}
 
 	#[pallet::hooks]
@@ -572,16 +574,7 @@ pub mod module {
 			);
 			let origin_location = T::AccountIdToMultiLocation::convert(who.clone());
 
-			// in case that fee reserve != asset reserve, there're two xcm sent from sender.
-			// first xcm send to fee reserve which also route to dest. second xcm directly
-			// send to dest. the fee amount in fee asset is split into two parts.
-			// 1. assets send to fee reserve = fee_amount - dest_weight
-			// 2. assets send to dest reserve = dest_weight
-			// the first part + second part = fee amount in fee asset
-			let mut assets_to_fee_reserve = MultiAssets::new();
-			let asset_to_fee_reserve = substract_fee(&fee, dest_weight as u128);
 			let fee_to_dest = reset_fee(&fee, dest_weight as u128);
-			assets_to_fee_reserve.push(asset_to_fee_reserve.clone());
 
 			let mut reserve: Option<MultiLocation> = None;
 			let asset_len = assets.len();
@@ -609,9 +602,18 @@ pub mod module {
 				}
 			}
 
-			// if fee reserve is not equal to asset reserve
+			// in case that fee reserve != asset reserve, there're two xcm sent from sender.
+			// first xcm send to fee reserve which also route to dest. second xcm directly
+			// send to dest. the fee amount in fee asset is split into two parts.
+			// 1. assets send to fee reserve = fee_amount - dest_weight
+			// 2. assets send to dest reserve = dest_weight
+			// the first part + second part = fee amount in fee asset
 			let fee_reserve = fee.reserve();
 			if fee_reserve != reserve.clone() {
+				let mut assets_to_fee_reserve = MultiAssets::new();
+				let asset_to_fee_reserve = substract_fee(&fee, dest_weight as u128).ok_or(Error::<T>::FeeNotEnough)?;
+				assets_to_fee_reserve.push(asset_to_fee_reserve.clone());
+
 				// the `SelfLocation` current is (1, Parachain(id)) which refer to sender
 				// parachain. we use self location here to fund fee which origin from sender
 				// account. Notice: if parachain set `SelfLocation` to (0, Here), than it'll be
@@ -908,39 +910,40 @@ pub mod module {
 			let dest = dest.clone().try_into();
 			if let (Ok(assets), Ok(dest)) = (assets, dest) {
 				let reserve_location = Self::get_reserve_location(&assets, fee_item);
-				if let Ok(reserve_location) = reserve_location {
-					if let Ok((transfer_kind, dest, _, reserve)) = Self::transfer_kind(reserve_location, &dest) {
-						let mut msg = match transfer_kind {
-							SelfReserveAsset => Xcm(vec![
-								WithdrawAsset(assets.clone()),
-								DepositReserveAsset {
-									assets: All.into(),
-									max_assets: assets.len() as u32,
-									dest,
-									xcm: Xcm(vec![]),
-								},
-							]),
-							ToReserve | ToNonReserve => Xcm(vec![
-								WithdrawAsset(assets),
-								InitiateReserveWithdraw {
-									assets: All.into(),
-									// `dest` is always (equal to) `reserve` in both cases
-									reserve,
-									xcm: Xcm(vec![]),
-								},
-							]),
-						};
-						return T::Weigher::weight(&mut msg)
-							.map_or(Weight::max_value(), |w| T::BaseXcmWeight::get().saturating_add(w));
-					}
+				// if let Ok(reserve_location) = reserve_location {
+				if let Ok((transfer_kind, dest, _, reserve)) = Self::transfer_kind(reserve_location, &dest) {
+					let mut msg = match transfer_kind {
+						SelfReserveAsset => Xcm(vec![
+							WithdrawAsset(assets.clone()),
+							DepositReserveAsset {
+								assets: All.into(),
+								max_assets: assets.len() as u32,
+								dest,
+								xcm: Xcm(vec![]),
+							},
+						]),
+						ToReserve | ToNonReserve => Xcm(vec![
+							WithdrawAsset(assets),
+							InitiateReserveWithdraw {
+								assets: All.into(),
+								// `dest` is always (equal to) `reserve` in both cases
+								reserve,
+								xcm: Xcm(vec![]),
+							},
+						]),
+					};
+					return T::Weigher::weight(&mut msg)
+						.map_or(Weight::max_value(), |w| T::BaseXcmWeight::get().saturating_add(w));
 				}
+				// }
 			}
 			0
 		}
 
-		/// Get reserve location of non fee asset. make sure assets have ge one
-		/// asset.
-		fn get_reserve_location(assets: &MultiAssets, fee_item: &u32) -> Result<Option<MultiLocation>, DispatchError> {
+		/// Get reserve location by `assets` and `fee_item`. the `assets`
+		/// includes fee asset and non fee asset. make sure assets have ge one
+		/// asset. all non fee asset should share same reserve location.
+		fn get_reserve_location(assets: &MultiAssets, fee_item: &u32) -> Option<MultiLocation> {
 			let reserve_idx = if assets.len() == 1 {
 				0
 			} else if *fee_item == 0 {
@@ -948,8 +951,8 @@ pub mod module {
 			} else {
 				0
 			};
-			let asset = assets.get(reserve_idx).ok_or(Error::<T>::AssetIndexNonExistent)?;
-			Ok(asset.reserve())
+			let asset = assets.get(reserve_idx);
+			asset.map_or(None, |a| a.reserve())
 		}
 	}
 
@@ -996,14 +999,14 @@ fn half(asset: &MultiAsset) -> MultiAsset {
 	}
 }
 
-fn substract_fee(asset: &MultiAsset, amount: u128) -> MultiAsset {
-	let final_amount = fungible_amount(asset)
-		.checked_sub(amount)
-		.expect("sub can't overflow; qed");
-	MultiAsset {
-		fun: Fungible(final_amount),
-		id: asset.id.clone(),
-	}
+fn substract_fee(asset: &MultiAsset, amount: u128) -> Option<MultiAsset> {
+	let final_amount = fungible_amount(asset).checked_sub(amount);
+	final_amount.map_or(None, |amount| {
+		Some(MultiAsset {
+			fun: Fungible(amount),
+			id: asset.id.clone(),
+		})
+	})
 }
 
 fn reset_fee(asset: &MultiAsset, amount: u128) -> MultiAsset {
