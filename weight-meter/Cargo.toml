@@ -14,7 +14,7 @@ frame-support = { git = "https://github.com/paritytech/substrate", branch = "pol
 weight-meter-procedural = { path = "weight-meter-procedural", default-features = false }
 
 [dev-dependencies]
-serde = { version = "1.0.124" }
+serde = { version = "1.0.136" }
 codec = { package = "parity-scale-codec", version = "2.3.1" }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.17" }
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.17" }
