@@ -613,9 +613,10 @@ pub mod module {
 			let fee_reserve = fee.reserve();
 			if fee_reserve != reserve.clone() {
 				// the `SelfLocation` current is (1, Parachain(id)) which refer to sender
-				// parachain we use self location here to fund fee which origin from sender
+				// parachain. we use self location here to fund fee which origin from sender
 				// account. Notice: if parachain set `SelfLocation` to (0, Here), than it'll be
 				// error!
+				// first xcm send to fee reserve chain
 				Self::send_xcm(
 					assets_to_fee_reserve,
 					asset_to_fee_reserve,
@@ -626,6 +627,7 @@ pub mod module {
 					dest_weight,
 				)?;
 
+				// second xcm send to dest chain
 				Self::send_xcm(
 					assets_to_dest,
 					fee_to_dest,
@@ -638,25 +640,7 @@ pub mod module {
 				return Ok(());
 			}
 
-			let (transfer_kind, dest, reserve, recipient) = Self::transfer_kind(reserve, &dest)?;
-
-			let mut msg = match transfer_kind {
-				SelfReserveAsset => {
-					Self::transfer_self_reserve_asset(assets.clone(), fee, dest.clone(), recipient, dest_weight)?
-				}
-				ToReserve => Self::transfer_to_reserve(assets.clone(), fee, dest.clone(), recipient, dest_weight)?,
-				ToNonReserve => {
-					Self::transfer_to_non_reserve(assets.clone(), fee, reserve, dest.clone(), recipient, dest_weight)?
-				}
-			};
-
-			let weight = T::Weigher::weight(&mut msg).map_err(|()| Error::<T>::UnweighableMessage)?;
-			T::XcmExecutor::execute_xcm_in_credit(origin_location, msg, weight, weight)
-				.ensure_complete()
-				.map_err(|error| {
-					log::error!("Failed execute transfer message with {:?}", error);
-					Error::<T>::XcmExecutionFailed
-				})?;
+			Self::send_xcm(assets.clone(), fee, origin_location, reserve, &dest, None, dest_weight)?;
 
 			if deposit_event {
 				Self::deposit_event(Event::<T>::TransferredMultiAssets {
