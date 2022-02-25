@@ -641,7 +641,7 @@ fn send_self_parachain_asset_to_sibling_with_distinct_fee() {
 }
 
 #[test]
-fn sending_assets_with_different_reserve_works() {
+fn sending_assets_with_different_reserve() {
 	TestNet::reset();
 
 	ParaA::execute_with(|| {
@@ -650,17 +650,20 @@ fn sending_assets_with_different_reserve_works() {
 
 	ParaB::execute_with(|| {
 		assert_ok!(ParaTokens::deposit(CurrencyId::B, &sibling_a_account(), 1_000));
-		assert_ok!(ParaTokens::deposit(CurrencyId::R, &sibling_a_account(), 1_000));
 	});
 
 	Relay::execute_with(|| {
 		let _ = RelayBalances::deposit_creating(&para_a_account(), 1_000);
 	});
 
+	let fee_amount: u128 = 200;
+	let weight: u128 = 40;
+	let dest_weight: u128 = 40;
+
 	ParaA::execute_with(|| {
 		assert_ok!(ParaXTokens::transfer_multicurrencies(
 			Some(ALICE).into(),
-			vec![(CurrencyId::B, 450), (CurrencyId::R, 500)],
+			vec![(CurrencyId::B, 450), (CurrencyId::R, fee_amount)],
 			1,
 			Box::new(
 				(
@@ -673,19 +676,31 @@ fn sending_assets_with_different_reserve_works() {
 				)
 					.into()
 			),
-			40,
+			weight as u64,
 		));
 		assert_eq!(550, ParaTokens::free_balance(CurrencyId::B, &ALICE));
-		assert_eq!(500, ParaTokens::free_balance(CurrencyId::R, &ALICE));
+		assert_eq!(1000 - fee_amount, ParaTokens::free_balance(CurrencyId::R, &ALICE));
+	});
+
+	Relay::execute_with(|| {
+		assert_eq!(
+			1000 - (fee_amount - weight),
+			RelayBalances::free_balance(&para_a_account())
+		);
+		assert_eq!(
+			fee_amount - dest_weight - weight,
+			RelayBalances::free_balance(&para_b_account())
+		);
 	});
 
 	ParaB::execute_with(|| {
-		assert_eq!(550, ParaTokens::free_balance(CurrencyId::B, &sibling_a_account()));
-		assert_eq!(500, ParaTokens::free_balance(CurrencyId::R, &sibling_a_account()));
+		assert_eq!(
+			fee_amount - dest_weight * 2 - weight * 2,
+			ParaTokens::free_balance(CurrencyId::R, &sibling_a_account())
+		);
 
-		// It should use 40 for weight, so 450 B and 10 R should reach destination
 		assert_eq!(450, ParaTokens::free_balance(CurrencyId::B, &BOB));
-		assert_eq!(460, ParaTokens::free_balance(CurrencyId::R, &BOB));
+		assert_eq!(weight - dest_weight, ParaTokens::free_balance(CurrencyId::R, &BOB));
 	});
 }
 
