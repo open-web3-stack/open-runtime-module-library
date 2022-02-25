@@ -609,7 +609,7 @@ pub mod module {
 			// 2. assets send to dest reserve = dest_weight
 			// the first part + second part = fee amount in fee asset
 			let fee_reserve = fee.reserve();
-			if fee_reserve != reserve.clone() {
+			if fee_reserve != reserve {
 				let mut assets_to_fee_reserve = MultiAssets::new();
 				let asset_to_fee_reserve = subtract_fee(&fee, dest_weight as u128).ok_or(Error::<T>::FeeNotEnough)?;
 				assets_to_fee_reserve.push(asset_to_fee_reserve.clone());
@@ -631,7 +631,7 @@ pub mod module {
 
 				// Second xcm send to dest chain.
 				Self::send_xcm(
-					origin_location.clone(),
+					origin_location,
 					assets_to_dest,
 					fee_to_dest,
 					reserve,
@@ -673,11 +673,11 @@ pub mod module {
 
 			let mut msg = match transfer_kind {
 				SelfReserveAsset => {
-					Self::transfer_self_reserve_asset(assets.clone(), fee, dest.clone(), recipient, dest_weight)?
+					Self::transfer_self_reserve_asset(assets, fee, dest, recipient, dest_weight)?
 				}
-				ToReserve => Self::transfer_to_reserve(assets.clone(), fee, dest.clone(), recipient, dest_weight)?,
+				ToReserve => Self::transfer_to_reserve(assets, fee, dest, recipient, dest_weight)?,
 				ToNonReserve => {
-					Self::transfer_to_non_reserve(assets.clone(), fee, reserve, dest.clone(), recipient, dest_weight)?
+					Self::transfer_to_non_reserve(assets, fee, reserve, dest, recipient, dest_weight)?
 				}
 			};
 
@@ -952,7 +952,7 @@ pub mod module {
 				0
 			};
 			let asset = assets.get(reserve_idx);
-			asset.map_or(None, |a| a.reserve())
+			asset.and_then(|a| a.reserve())
 		}
 	}
 
@@ -1001,7 +1001,7 @@ fn half(asset: &MultiAsset) -> MultiAsset {
 
 fn subtract_fee(asset: &MultiAsset, amount: u128) -> Option<MultiAsset> {
 	let final_amount = fungible_amount(asset).checked_sub(amount);
-	final_amount.map_or(None, |amount| {
+	final_amount.and_then(|amount| {
 		Some(MultiAsset {
 			fun: Fungible(amount),
 			id: asset.id.clone(),
