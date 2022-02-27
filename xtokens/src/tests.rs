@@ -847,7 +847,7 @@ fn send_with_zero_fee_should_yield_an_error() {
 				),
 				40,
 			),
-			Error::<para::Runtime>::FeeCannotBeZero
+			Error::<para::Runtime>::ZeroFee
 		);
 	});
 }
@@ -1047,4 +1047,55 @@ fn specifying_a_non_existent_asset_index_should_fail() {
 			Error::<para::Runtime>::AssetIndexNonExistent
 		);
 	});
+}
+
+#[test]
+fn send_with_zero_amount() {
+	TestNet::reset();
+
+	ParaA::execute_with(|| {
+		assert_noop!(
+			ParaXTokens::transfer(
+				Some(ALICE).into(),
+				CurrencyId::B,
+				0,
+				Box::new(
+					(
+						Parent,
+						Parachain(2),
+						Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: BOB.into(),
+						},
+					)
+						.into()
+				),
+				40,
+			),
+			Error::<para::Runtime>::ZeroAmount
+		);
+
+		assert_noop!(
+			ParaXTokens::transfer_multicurrencies(
+				Some(ALICE).into(),
+				vec![(CurrencyId::B, 0), (CurrencyId::B1, 50)],
+				1,
+				Box::new(
+					(
+						Parent,
+						Parachain(2),
+						Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: BOB.into(),
+						},
+					)
+						.into()
+				),
+				40,
+			),
+			Error::<para::Runtime>::ZeroAmount
+		);
+	});
+
+	// TODO: should have more tests after https://github.com/paritytech/polkadot/issues/4996
 }

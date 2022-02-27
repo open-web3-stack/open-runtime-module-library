@@ -107,44 +107,11 @@ pub mod module {
 	#[pallet::event]
 	#[pallet::generate_deposit(fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// Transferred.
-		Transferred {
-			sender: T::AccountId,
-			currency_id: T::CurrencyId,
-			amount: T::Balance,
-			dest: MultiLocation,
-		},
-		/// Transferred with fee.
-		TransferredWithFee {
-			sender: T::AccountId,
-			currency_id: T::CurrencyId,
-			amount: T::Balance,
-			fee: T::Balance,
-			dest: MultiLocation,
-		},
-		/// Transferred `MultiAsset`.
-		TransferredMultiAsset {
-			sender: T::AccountId,
-			asset: MultiAsset,
-			dest: MultiLocation,
-		},
-		/// Transferred `MultiAsset` with fee.
-		TransferredMultiAssetWithFee {
-			sender: T::AccountId,
-			asset: MultiAsset,
-			fee: MultiAsset,
-			dest: MultiLocation,
-		},
-		/// Transferred `MultiAsset` with fee.
-		TransferredMultiCurrencies {
-			sender: T::AccountId,
-			currencies: Vec<(T::CurrencyId, T::Balance)>,
-			dest: MultiLocation,
-		},
 		/// Transferred `MultiAsset` with fee.
 		TransferredMultiAssets {
 			sender: T::AccountId,
 			assets: MultiAssets,
+			fee: MultiAsset,
 			dest: MultiLocation,
 		},
 	}
@@ -169,8 +136,8 @@ pub mod module {
 		CannotReanchor,
 		/// Could not get ancestry of asset reserve location.
 		InvalidAncestry,
-		/// Not fungible asset.
-		NotFungible,
+		/// The MultiAsset is invalid.
+		InvalidAsset,
 		/// The destination `MultiLocation` provided cannot be inverted.
 		DestinationNotInvertible,
 		/// The version of the `Versioned` value used is not able to be
@@ -179,9 +146,10 @@ pub mod module {
 		/// We tried sending distinct asset and fee but they have different
 		/// reserve chains
 		DistinctReserveForAssetAndFee,
-		/// The fee amount was zero when the fee specification extrinsic is
-		/// being used.
-		FeeCannotBeZero,
+		/// The fee is zero.
+		ZeroFee,
+		/// The transfering asset amount is zero.
+		ZeroAmount,
 		/// The number of assets to be sent is over the maximum
 		TooManyAssetsBeingSent,
 		/// The specified index does not exist in a MultiAssets struct
@@ -281,10 +249,6 @@ pub mod module {
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let dest: MultiLocation = (*dest).try_into().map_err(|()| Error::<T>::BadVersion)?;
-			// Zero fee is an error
-			if fee.is_zero() {
-				return Err(Error::<T>::FeeCannotBeZero.into());
-			}
 
 			Self::do_transfer_with_fee(who, currency_id, amount, fee, dest, dest_weight)
 		}
@@ -323,10 +287,6 @@ pub mod module {
 			let asset: MultiAsset = (*asset).try_into().map_err(|()| Error::<T>::BadVersion)?;
 			let fee: MultiAsset = (*fee).try_into().map_err(|()| Error::<T>::BadVersion)?;
 			let dest: MultiLocation = (*dest).try_into().map_err(|()| Error::<T>::BadVersion)?;
-			// Zero fee is an error
-			if fungible_amount(&fee).is_zero() {
-				return Err(Error::<T>::FeeCannotBeZero.into());
-			}
 
 			Self::do_transfer_multiasset_with_fee(who, asset, fee, dest, dest_weight)
 		}
@@ -392,7 +352,7 @@ pub mod module {
 			// We first grab the fee
 			let fee: &MultiAsset = assets.get(fee_item as usize).ok_or(Error::<T>::AssetIndexNonExistent)?;
 
-			Self::do_transfer_multiassets(who, assets.clone(), fee.clone(), dest, dest_weight, true)
+			Self::do_transfer_multiassets(who, assets.clone(), fee.clone(), dest, dest_weight)
 		}
 	}
 
@@ -404,26 +364,13 @@ pub mod module {
 			dest: MultiLocation,
 			dest_weight: Weight,
 		) -> DispatchResult {
-			let location: MultiLocation = T::CurrencyIdConvert::convert(currency_id.clone())
-				.ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
+			let location: MultiLocation =
+				T::CurrencyIdConvert::convert(currency_id).ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
+
+			ensure!(!amount.is_zero(), Error::<T>::ZeroAmount);
 
 			let asset: MultiAsset = (location, amount.into()).into();
-			Self::do_transfer_multiassets(
-				who.clone(),
-				vec![asset.clone()].into(),
-				asset,
-				dest.clone(),
-				dest_weight,
-				false,
-			)?;
-
-			Self::deposit_event(Event::<T>::Transferred {
-				sender: who,
-				currency_id,
-				amount,
-				dest,
-			});
-			Ok(())
+			Self::do_transfer_multiassets(who, vec![asset.clone()].into(), asset, dest, dest_weight)
 		}
 
 		fn do_transfer_with_fee(
@@ -434,8 +381,11 @@ pub mod module {
 			dest: MultiLocation,
 			dest_weight: Weight,
 		) -> DispatchResult {
-			let location: MultiLocation = T::CurrencyIdConvert::convert(currency_id.clone())
-				.ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
+			let location: MultiLocation =
+				T::CurrencyIdConvert::convert(currency_id).ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
+
+			ensure!(!amount.is_zero(), Error::<T>::ZeroAmount);
+			ensure!(!fee.is_zero(), Error::<T>::ZeroFee);
 
 			let asset = (location.clone(), amount.into()).into();
 			let fee_asset: MultiAsset = (location, fee.into()).into();
@@ -445,16 +395,7 @@ pub mod module {
 			assets.push(asset);
 			assets.push(fee_asset.clone());
 
-			Self::do_transfer_multiassets(who.clone(), assets, fee_asset, dest.clone(), dest_weight, false)?;
-
-			Self::deposit_event(Event::<T>::TransferredWithFee {
-				sender: who,
-				currency_id,
-				fee,
-				amount,
-				dest,
-			});
-			Ok(())
+			Self::do_transfer_multiassets(who, assets, fee_asset, dest, dest_weight)
 		}
 
 		fn do_transfer_multiasset(
@@ -463,30 +404,7 @@ pub mod module {
 			dest: MultiLocation,
 			dest_weight: Weight,
 		) -> DispatchResult {
-			if !asset.is_fungible(None) {
-				return Err(Error::<T>::NotFungible.into());
-			}
-
-			if fungible_amount(&asset).is_zero() {
-				return Ok(());
-			}
-
-			Self::do_transfer_multiassets(
-				who.clone(),
-				vec![asset.clone()].into(),
-				asset.clone(),
-				dest.clone(),
-				dest_weight,
-				false,
-			)?;
-
-			Self::deposit_event(Event::<T>::TransferredMultiAsset {
-				sender: who,
-				asset,
-				dest,
-			});
-
-			Ok(())
+			Self::do_transfer_multiassets(who, vec![asset.clone()].into(), asset, dest, dest_weight)
 		}
 
 		fn do_transfer_multiasset_with_fee(
@@ -496,27 +414,12 @@ pub mod module {
 			dest: MultiLocation,
 			dest_weight: Weight,
 		) -> DispatchResult {
-			if !asset.is_fungible(None) || !fee.is_fungible(None) {
-				return Err(Error::<T>::NotFungible.into());
-			}
-
-			if fungible_amount(&asset).is_zero() {
-				return Ok(());
-			}
-
 			// Push contains saturated addition, so we should be able to use it safely
 			let mut assets = MultiAssets::new();
-			assets.push(asset.clone());
+			assets.push(asset);
 			assets.push(fee.clone());
 
-			Self::do_transfer_multiassets(who.clone(), assets, fee.clone(), dest.clone(), dest_weight, false)?;
-
-			Self::deposit_event(Event::<T>::TransferredMultiAssetWithFee {
-				sender: who,
-				asset,
-				fee,
-				dest,
-			});
+			Self::do_transfer_multiassets(who, assets, fee, dest, dest_weight)?;
 
 			Ok(())
 		}
@@ -538,6 +441,7 @@ pub mod module {
 			for (currency_id, amount) in &currencies {
 				let location: MultiLocation = T::CurrencyIdConvert::convert(currency_id.clone())
 					.ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
+				ensure!(!amount.is_zero(), Error::<T>::ZeroAmount);
 				// Push contains saturated addition, so we should be able to use it safely
 				assets.push((location, (*amount).into()).into())
 			}
@@ -549,14 +453,7 @@ pub mod module {
 
 			let fee: MultiAsset = (fee_location, (*fee_amount).into()).into();
 
-			Self::do_transfer_multiassets(who.clone(), assets, fee, dest.clone(), dest_weight, false)?;
-
-			Self::deposit_event(Event::<T>::TransferredMultiCurrencies {
-				sender: who,
-				currencies,
-				dest,
-			});
-			Ok(())
+			Self::do_transfer_multiassets(who, assets, fee, dest, dest_weight)
 		}
 
 		fn do_transfer_multiassets(
@@ -565,7 +462,6 @@ pub mod module {
 			fee: MultiAsset,
 			dest: MultiLocation,
 			dest_weight: Weight,
-			deposit_event: bool,
 		) -> DispatchResult {
 			ensure!(
 				assets.len() <= T::MaxAssetsForTransfer::get(),
@@ -575,12 +471,10 @@ pub mod module {
 			// We check that all assets are valid and share the same reserve
 			for i in 0..assets.len() {
 				let asset = assets.get(i).ok_or(Error::<T>::AssetIndexNonExistent)?;
-				if !asset.is_fungible(None) {
-					return Err(Error::<T>::NotFungible.into());
-				}
-				if fungible_amount(asset).is_zero() {
-					return Ok(());
-				}
+				ensure!(
+					matches!(asset.fun, Fungibility::Fungible(x) if !x.is_zero()),
+					Error::<T>::InvalidAsset
+				);
 				ensure!(
 					fee.reserve() == asset.reserve(),
 					Error::<T>::DistinctReserveForAssetAndFee
@@ -589,13 +483,24 @@ pub mod module {
 
 			let (transfer_kind, dest, reserve, recipient) = Self::transfer_kind(&fee, &dest)?;
 			let mut msg = match transfer_kind {
-				SelfReserveAsset => {
-					Self::transfer_self_reserve_asset(assets.clone(), fee, dest.clone(), recipient, dest_weight)?
+				SelfReserveAsset => Self::transfer_self_reserve_asset(
+					assets.clone(),
+					fee.clone(),
+					dest.clone(),
+					recipient,
+					dest_weight,
+				)?,
+				ToReserve => {
+					Self::transfer_to_reserve(assets.clone(), fee.clone(), dest.clone(), recipient, dest_weight)?
 				}
-				ToReserve => Self::transfer_to_reserve(assets.clone(), fee, dest.clone(), recipient, dest_weight)?,
-				ToNonReserve => {
-					Self::transfer_to_non_reserve(assets.clone(), fee, reserve, dest.clone(), recipient, dest_weight)?
-				}
+				ToNonReserve => Self::transfer_to_non_reserve(
+					assets.clone(),
+					fee.clone(),
+					reserve,
+					dest.clone(),
+					recipient,
+					dest_weight,
+				)?,
 			};
 
 			let origin_location = T::AccountIdToMultiLocation::convert(who.clone());
@@ -607,13 +512,12 @@ pub mod module {
 					Error::<T>::XcmExecutionFailed
 				})?;
 
-			if deposit_event {
-				Self::deposit_event(Event::<T>::TransferredMultiAssets {
-					sender: who,
-					assets,
-					dest,
-				});
-			}
+			Self::deposit_event(Event::<T>::TransferredMultiAssets {
+				sender: who,
+				assets,
+				fee,
+				dest,
+			});
 
 			Ok(())
 		}
