@@ -25,7 +25,7 @@ use xcm_builder::{
 };
 use xcm_executor::{traits::WeightTrader, Assets, Config, XcmExecutor};
 
-use orml_traits::parameter_type_with_key;
+use orml_traits::{parameter_type_with_key, parameter_type_with_key_option};
 use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
 
 pub type AccountId = AccountId32;
@@ -270,6 +270,16 @@ parameter_types! {
 	pub const MaxAssetsForTransfer: usize = 3;
 }
 
+parameter_type_with_key_option! {
+	pub ParachainMinFee: |location: MultiLocation| -> u128 {
+		#[allow(clippy::match_ref_pats)] // false positive
+		match (location.parents, location.first_interior()) {
+			(1, Some(Parachain(2))) => Some(40),
+			_ => None,
+		}
+	};
+}
+
 impl orml_xtokens::Config for Runtime {
 	type Event = Event;
 	type Balance = Balance;
@@ -277,6 +287,7 @@ impl orml_xtokens::Config for Runtime {
 	type CurrencyIdConvert = CurrencyIdConvert;
 	type AccountIdToMultiLocation = AccountIdToMultiLocation;
 	type SelfLocation = SelfLocation;
+	type MinXcmFee = ParachainMinFee;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
 	type BaseXcmWeight = BaseXcmWeight;

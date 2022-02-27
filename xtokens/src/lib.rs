@@ -35,6 +35,7 @@ use xcm_executor::traits::{InvertLocation, WeightBounds};
 
 pub use module::*;
 use orml_traits::{
+	get_by_key::GetOptionValueByKey,
 	location::{Parse, Reserve},
 	XcmTransfer,
 };
@@ -81,6 +82,9 @@ pub mod module {
 		/// Self chain location.
 		#[pallet::constant]
 		type SelfLocation: Get<MultiLocation>;
+
+		/// Minimum xcm execution fee paid on destination chain.
+		type MinXcmFee: GetOptionValueByKey<MultiLocation, u128>;
 
 		/// XCM executor.
 		type XcmExecutor: ExecuteXcm<Self::Call>;
@@ -572,11 +576,8 @@ pub mod module {
 			);
 			let origin_location = T::AccountIdToMultiLocation::convert(who.clone());
 
-			let fee_to_dest = reset_fee(&fee, dest_weight as u128);
-
 			let mut non_fee_reserve: Option<MultiLocation> = None;
 			let asset_len = assets.len();
-			let mut assets_to_dest = MultiAssets::new();
 			for i in 0..asset_len {
 				let asset = assets.get(i).ok_or(Error::<T>::AssetIndexNonExistent)?;
 				if !asset.is_fungible(None) {
@@ -584,11 +585,6 @@ pub mod module {
 				}
 				if fungible_amount(asset).is_zero() {
 					return Ok(());
-				}
-				if fee != *asset {
-					assets_to_dest.push(asset.clone());
-				} else {
-					assets_to_dest.push(fee_to_dest.clone());
 				}
 				// `assets` includes fee, the reserve location is decided by non fee asset
 				if (fee != *asset && non_fee_reserve.is_none()) || asset_len == 1 {
@@ -611,8 +607,23 @@ pub mod module {
 			// the first part + second part = fee amount in fee asset
 			let fee_reserve = fee.reserve();
 			if fee_reserve != non_fee_reserve {
+				ensure!(non_fee_reserve.is_some(), Error::<T>::InvalidDest);
+				let reserve_location = non_fee_reserve.clone().ok_or(Error::<T>::AssetHasNoReserve)?;
+				let min_xcm_fee = T::MinXcmFee::get(&reserve_location).ok_or(Error::<T>::InvalidDest)?;
+				let fee_to_dest = reset_fee(&fee, min_xcm_fee);
+
+				let mut assets_to_dest = MultiAssets::new();
+				for i in 0..asset_len {
+					let asset = assets.get(i).ok_or(Error::<T>::AssetIndexNonExistent)?;
+					if fee != *asset {
+						assets_to_dest.push(asset.clone());
+					} else {
+						assets_to_dest.push(fee_to_dest.clone());
+					}
+				}
+
 				let mut assets_to_fee_reserve = MultiAssets::new();
-				let asset_to_fee_reserve = subtract_fee(&fee, dest_weight as u128);
+				let asset_to_fee_reserve = subtract_fee(&fee, min_xcm_fee);
 				assets_to_fee_reserve.push(asset_to_fee_reserve.clone());
 
 				// First xcm send to fee reserve chain and routing to dest chain.
