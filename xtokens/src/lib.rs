@@ -136,8 +136,8 @@ pub mod module {
 		CannotReanchor,
 		/// Could not get ancestry of asset reserve location.
 		InvalidAncestry,
-		/// Not fungible asset.
-		NotFungible,
+		/// The MultiAsset is invalid.
+		InvalidAsset,
 		/// The destination `MultiLocation` provided cannot be inverted.
 		DestinationNotInvertible,
 		/// The version of the `Versioned` value used is not able to be
@@ -477,8 +477,10 @@ pub mod module {
 			// We check that all assets are valid and share the same reserve
 			for i in 0..assets.len() {
 				let asset = assets.get(i).ok_or(Error::<T>::AssetIndexNonExistent)?;
-				ensure!(asset.is_fungible(None), Error::<T>::NotFungible);
-				ensure!(!fungible_amount(asset).is_zero(), Error::<T>::ZeroAmount);
+				ensure!(
+					matches!(asset.fun, Fungibility::Fungible(x) if !x.is_zero()),
+					Error::<T>::InvalidAsset
+				);
 				ensure!(
 					fee.reserve() == asset.reserve(),
 					Error::<T>::DistinctReserveForAssetAndFee
