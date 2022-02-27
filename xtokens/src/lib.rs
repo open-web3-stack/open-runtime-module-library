@@ -364,19 +364,13 @@ pub mod module {
 			dest: MultiLocation,
 			dest_weight: Weight,
 		) -> DispatchResult {
-			let location: MultiLocation = T::CurrencyIdConvert::convert(currency_id.clone())
-				.ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
+			let location: MultiLocation =
+				T::CurrencyIdConvert::convert(currency_id).ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
 
 			ensure!(!amount.is_zero(), Error::<T>::ZeroAmount);
 
 			let asset: MultiAsset = (location, amount.into()).into();
-			Self::do_transfer_multiassets(
-				who.clone(),
-				vec![asset.clone()].into(),
-				asset,
-				dest.clone(),
-				dest_weight,
-			)
+			Self::do_transfer_multiassets(who, vec![asset.clone()].into(), asset, dest, dest_weight)
 		}
 
 		fn do_transfer_with_fee(
@@ -387,8 +381,8 @@ pub mod module {
 			dest: MultiLocation,
 			dest_weight: Weight,
 		) -> DispatchResult {
-			let location: MultiLocation = T::CurrencyIdConvert::convert(currency_id.clone())
-				.ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
+			let location: MultiLocation =
+				T::CurrencyIdConvert::convert(currency_id).ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
 
 			ensure!(!amount.is_zero(), Error::<T>::ZeroAmount);
 			ensure!(!fee.is_zero(), Error::<T>::ZeroFee);
@@ -410,7 +404,7 @@ pub mod module {
 			dest: MultiLocation,
 			dest_weight: Weight,
 		) -> DispatchResult {
-			Self::do_transfer_multiassets(who.clone(), vec![asset.clone()].into(), asset, dest, dest_weight)
+			Self::do_transfer_multiassets(who, vec![asset.clone()].into(), asset, dest, dest_weight)
 		}
 
 		fn do_transfer_multiasset_with_fee(
@@ -422,10 +416,10 @@ pub mod module {
 		) -> DispatchResult {
 			// Push contains saturated addition, so we should be able to use it safely
 			let mut assets = MultiAssets::new();
-			assets.push(asset.clone());
+			assets.push(asset);
 			assets.push(fee.clone());
 
-			Self::do_transfer_multiassets(who.clone(), assets, fee, dest, dest_weight)?;
+			Self::do_transfer_multiassets(who, assets, fee, dest, dest_weight)?;
 
 			Ok(())
 		}
