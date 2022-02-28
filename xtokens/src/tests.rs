@@ -688,7 +688,7 @@ fn sending_sibling_asset_to_reserve_sibling_with_relay_fee_works() {
 			RelayBalances::free_balance(&para_a_account())
 		);
 		assert_eq!(
-			fee_amount - dest_weight*2,
+			fee_amount - dest_weight * 2,
 			RelayBalances::free_balance(&para_b_account())
 		);
 	});
@@ -752,7 +752,7 @@ fn sending_sibling_asset_to_reserve_sibling_with_relay_fee_not_enough() {
 			RelayBalances::free_balance(&para_a_account())
 		);
 		assert_eq!(
-			fee_amount - dest_weight*2,
+			fee_amount - dest_weight * 2,
 			RelayBalances::free_balance(&para_b_account())
 		);
 	});
@@ -760,10 +760,7 @@ fn sending_sibling_asset_to_reserve_sibling_with_relay_fee_not_enough() {
 	ParaB::execute_with(|| {
 		// after first xcm succeed, sibling_a amount = 159-120=39
 		// second xcm failed, so sibling_a amount stay same.
-		assert_eq!(
-			39,
-			ParaTokens::free_balance(CurrencyId::R, &sibling_a_account())
-		);
+		assert_eq!(39, ParaTokens::free_balance(CurrencyId::R, &sibling_a_account()));
 
 		// second xcm failed, so recipient account don't receive any token of B and R.
 		assert_eq!(0, ParaTokens::free_balance(CurrencyId::B, &BOB));
