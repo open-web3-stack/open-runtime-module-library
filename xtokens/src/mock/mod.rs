@@ -29,6 +29,8 @@ pub enum CurrencyId {
 	B,
 	/// Parachain B B1 token
 	B1,
+	/// Parachain C native token
+	C,
 }
 
 pub struct CurrencyIdConvert;
@@ -40,6 +42,7 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
 			CurrencyId::A1 => Some((Parent, Parachain(1), GeneralKey("A1".into())).into()),
 			CurrencyId::B => Some((Parent, Parachain(2), GeneralKey("B".into())).into()),
 			CurrencyId::B1 => Some((Parent, Parachain(2), GeneralKey("B1".into())).into()),
+			CurrencyId::C => Some((Parent, Parachain(3)).into()),
 		}
 	}
 }
@@ -58,6 +61,7 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
 				X2(Parachain(1), GeneralKey(k)) if k == a1 => Some(CurrencyId::A1),
 				X2(Parachain(2), GeneralKey(k)) if k == b => Some(CurrencyId::B),
 				X2(Parachain(2), GeneralKey(k)) if k == b1 => Some(CurrencyId::B1),
+				X1(Parachain(3)) => Some(CurrencyId::C),
 				_ => None,
 			},
 			MultiLocation { parents, interior } if parents == 0 => match interior {
@@ -65,6 +69,7 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
 				X1(GeneralKey(k)) if k == b => Some(CurrencyId::B),
 				X1(GeneralKey(k)) if k == a1 => Some(CurrencyId::A1),
 				X1(GeneralKey(k)) if k == b1 => Some(CurrencyId::B1),
+				Here => Some(CurrencyId::C),
 				_ => None,
 			},
 			_ => None,
