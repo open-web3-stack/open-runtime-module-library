@@ -16,7 +16,7 @@ type ComposeHostFunctions = (
 );
 
 /// Run benches
-pub fn run<B: Block>(wasm_code: Vec<u8>) -> std::result::Result<Vec<u8>, sc_executor_common::error::Error> {
+pub fn run<B: Block>(wasm_code: Vec<u8>) -> std::result::Result<Vec<u8>, String> {
 	let mut overlay = OverlayedChanges::default();
 	let mut cache = StorageTransactionCache::default();
 	let state = sc_client_db::BenchmarkingState::<B>::new(Default::default(), Default::default(), false, true).unwrap();
