@@ -338,7 +338,7 @@ fn send_sibling_asset_to_reserve_sibling_with_fee() {
 }
 
 #[test]
-fn send_sibling_asset_to_reserve_sibling_with_distinc_fee() {
+fn send_sibling_asset_to_reserve_sibling_with_distinct_fee() {
 	TestNet::reset();
 
 	ParaA::execute_with(|| {
@@ -384,7 +384,7 @@ fn send_sibling_asset_to_reserve_sibling_with_distinc_fee() {
 }
 
 #[test]
-fn send_sibling_asset_to_reserve_sibling_with_distinc_fee_index_works() {
+fn send_sibling_asset_to_reserve_sibling_with_distinct_fee_index_works() {
 	TestNet::reset();
 
 	ParaA::execute_with(|| {
@@ -641,7 +641,7 @@ fn send_self_parachain_asset_to_sibling_with_distinct_fee() {
 }
 
 #[test]
-fn sending_assets_with_different_reserve_works() {
+fn sending_sibling_asset_to_reserve_sibling_with_relay_fee() {
 	TestNet::reset();
 
 	ParaA::execute_with(|| {
@@ -701,6 +701,83 @@ fn sending_assets_with_different_reserve_works() {
 
 		assert_eq!(450, ParaTokens::free_balance(CurrencyId::B, &BOB));
 		assert_eq!(weight - dest_weight, ParaTokens::free_balance(CurrencyId::R, &BOB));
+	});
+}
+
+#[test]
+fn transfer_asset_with_relay_fee_failed() {
+	TestNet::reset();
+
+	// `SelfReserve` with relay-chain as fee not supported.
+	ParaA::execute_with(|| {
+		assert_noop!(
+			ParaXTokens::transfer_multicurrencies(
+				Some(ALICE).into(),
+				vec![(CurrencyId::A, 450), (CurrencyId::R, 100)],
+				1,
+				Box::new(
+					(
+						Parent,
+						Parachain(2),
+						Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: BOB.into(),
+						},
+					)
+						.into()
+				),
+				40,
+			),
+			Error::<para::Runtime>::InvalidAsset
+		);
+	});
+
+	// `NonReserve` with relay-chain as fee not supported.
+	ParaA::execute_with(|| {
+		assert_noop!(
+			ParaXTokens::transfer_multicurrencies(
+				Some(ALICE).into(),
+				vec![(CurrencyId::B, 450), (CurrencyId::R, 100)],
+				1,
+				Box::new(
+					(
+						Parent,
+						Parachain(3),
+						Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: BOB.into(),
+						},
+					)
+						.into()
+				),
+				40,
+			),
+			Error::<para::Runtime>::InvalidAsset
+		);
+	});
+
+	// User fee is less than `MinXcmFee`
+	ParaA::execute_with(|| {
+		assert_noop!(
+			ParaXTokens::transfer_multicurrencies(
+				Some(ALICE).into(),
+				vec![(CurrencyId::B, 450), (CurrencyId::R, 39)],
+				1,
+				Box::new(
+					(
+						Parent,
+						Parachain(2),
+						Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: BOB.into(),
+						},
+					)
+						.into()
+				),
+				40,
+			),
+			Error::<para::Runtime>::InvalidAsset
+		);
 	});
 }
 

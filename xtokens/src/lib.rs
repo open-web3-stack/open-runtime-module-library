@@ -35,9 +35,8 @@ use xcm_executor::traits::{InvertLocation, WeightBounds};
 
 pub use module::*;
 use orml_traits::{
-	get_by_key::GetOptionValueByKey,
 	location::{Parse, Reserve},
-	XcmTransfer,
+	GetByKey, XcmTransfer,
 };
 
 mod mock;
@@ -84,7 +83,7 @@ pub mod module {
 		type SelfLocation: Get<MultiLocation>;
 
 		/// Minimum xcm execution fee paid on destination chain.
-		type MinXcmFee: GetOptionValueByKey<MultiLocation, u128>;
+		type MinXcmFee: GetByKey<MultiLocation, u128>;
 
 		/// XCM executor.
 		type XcmExecutor: ExecuteXcm<Self::Call>;
@@ -501,10 +500,16 @@ pub mod module {
 			// the first part + second part = fee amount in fee asset
 			let fee_reserve = fee.reserve();
 			if fee_reserve != non_fee_reserve {
-				ensure!(non_fee_reserve.is_some(), Error::<T>::InvalidDest);
+				// Current only support `ToReserve` with relay-chain asset as fee. other case
+				// like `NonReserve` or `SelfReserve` with relay-chain fee is not support.
+				ensure!(non_fee_reserve == dest.chain_part(), Error::<T>::InvalidAsset);
+
 				let reserve_location = non_fee_reserve.clone().ok_or(Error::<T>::AssetHasNoReserve)?;
-				let min_xcm_fee = T::MinXcmFee::get(&reserve_location).ok_or(Error::<T>::InvalidDest)?;
+				let min_xcm_fee = T::MinXcmFee::get(&reserve_location);
+
+				// min xcm fee should less than user fee
 				let fee_to_dest = reset_fee(&fee, min_xcm_fee);
+				ensure!(fee_to_dest < fee, Error::<T>::InvalidAsset);
 
 				let mut assets_to_dest = MultiAssets::new();
 				for i in 0..asset_len {
