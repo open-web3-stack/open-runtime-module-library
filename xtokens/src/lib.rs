@@ -492,11 +492,11 @@ pub mod module {
 				}
 			}
 
-			// In case that fee reserve != asset reserve, there're two xcm sent from sender.
-			// first xcm send to fee reserve which also route to dest. second xcm directly
-			// send to dest. the fee amount in fee asset is split into two parts.
-			// 1. assets send to fee reserve = fee_amount - dest_weight
-			// 2. assets send to dest reserve = dest_weight
+			// In case that fee reserve != asset reserve, there are two xcm sent from sender.
+			// first xcm sent to fee reserve chain which route to dest chain. second xcm directly
+			// sent to dest chain. the fee amount in fee asset is split into two parts.
+			// 1. fee asset sent to fee reserve chain = fee_amount - min_xcm_fee
+			// 2. fee asset sent to dest reserve chain = min_xcm_fee
 			// the first part + second part = fee amount in fee asset
 			let fee_reserve = fee.reserve();
 			if fee_reserve != non_fee_reserve {
@@ -525,11 +525,13 @@ pub mod module {
 				let asset_to_fee_reserve = subtract_fee(&fee, min_xcm_fee);
 				assets_to_fee_reserve.push(asset_to_fee_reserve.clone());
 
-				// First xcm send to fee reserve chain and routing to dest chain.
+				// First xcm sent to fee reserve chain and routed to dest chain.
 				// The `SelfLocation` current is (1, Parachain(id)) refer to sender parachain.
-				// we use `SelfLocation` to fund fee to sender's parachain account on
-				// destination chain, which asset is origin from sender account on sender chain.
-				// Notice: if parachain set `SelfLocation` to (0, Here), then it'll be error!
+				// we use `SelfLocation` to fund fee to sender's parachain sovereign account on
+				// destination chain, which asset is originated from sender account on sender chain.
+				// This means if user setup too much fee, the fee is not returned to user, instead
+				// deposit to sibling parachain sovereign account on dest chain.
+				// Notice: if parachain set `SelfLocation` to (0, Here), it'll be error!
 				Self::send_xcm(
 					origin_location.clone(),
 					assets_to_fee_reserve,
@@ -541,6 +543,12 @@ pub mod module {
 				)?;
 
 				// Second xcm send to dest chain.
+				// Current not ensure xcm order delivery. if second xcm is first executed before first
+				// xcm, then second xcm may failed because of sibling parachain account don't have enough
+				// fee to withdraw, but we can pre-fund some amount to sibling parachain sovereign
+				// account to fix this case. as first xcm executed later on, the sibling
+				// sovereign parachain account get top up. and next transaction will succeed even though
+				// second xcm is executed before first xcm.
 				Self::send_xcm(
 					origin_location,
 					assets_to_dest,

@@ -641,7 +641,7 @@ fn send_self_parachain_asset_to_sibling_with_distinct_fee() {
 }
 
 #[test]
-fn sending_sibling_asset_to_reserve_sibling_with_relay_fee() {
+fn sending_sibling_asset_to_reserve_sibling_with_relay_fee_works() {
 	TestNet::reset();
 
 	ParaA::execute_with(|| {
@@ -657,7 +657,7 @@ fn sending_sibling_asset_to_reserve_sibling_with_relay_fee() {
 	});
 
 	let fee_amount: u128 = 200;
-	let weight: u128 = 40;
+	let weight: u128 = 50;
 	let dest_weight: u128 = 40;
 
 	ParaA::execute_with(|| {
@@ -684,23 +684,90 @@ fn sending_sibling_asset_to_reserve_sibling_with_relay_fee() {
 
 	Relay::execute_with(|| {
 		assert_eq!(
-			1000 - (fee_amount - weight),
+			1000 - (fee_amount - dest_weight),
 			RelayBalances::free_balance(&para_a_account())
 		);
 		assert_eq!(
-			fee_amount - dest_weight - weight,
+			fee_amount - dest_weight*2,
 			RelayBalances::free_balance(&para_b_account())
 		);
 	});
 
 	ParaB::execute_with(|| {
 		assert_eq!(
-			fee_amount - dest_weight * 2 - weight * 2,
+			fee_amount - dest_weight * 4,
 			ParaTokens::free_balance(CurrencyId::R, &sibling_a_account())
 		);
 
 		assert_eq!(450, ParaTokens::free_balance(CurrencyId::B, &BOB));
-		assert_eq!(weight - dest_weight, ParaTokens::free_balance(CurrencyId::R, &BOB));
+		assert_eq!(0, ParaTokens::free_balance(CurrencyId::R, &BOB));
+	});
+}
+
+#[test]
+fn sending_sibling_asset_to_reserve_sibling_with_relay_fee_not_enough() {
+	TestNet::reset();
+
+	ParaA::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::B, &ALICE, 1_000));
+	});
+
+	ParaB::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::B, &sibling_a_account(), 1_000));
+	});
+
+	Relay::execute_with(|| {
+		let _ = RelayBalances::deposit_creating(&para_a_account(), 1_000);
+	});
+
+	let fee_amount: u128 = 159;
+	let weight: u128 = 50;
+	let dest_weight: u128 = 40;
+
+	ParaA::execute_with(|| {
+		assert_ok!(ParaXTokens::transfer_multicurrencies(
+			Some(ALICE).into(),
+			vec![(CurrencyId::B, 450), (CurrencyId::R, fee_amount)],
+			1,
+			Box::new(
+				(
+					Parent,
+					Parachain(2),
+					Junction::AccountId32 {
+						network: NetworkId::Any,
+						id: BOB.into(),
+					},
+				)
+					.into()
+			),
+			weight as u64,
+		));
+		assert_eq!(550, ParaTokens::free_balance(CurrencyId::B, &ALICE));
+		assert_eq!(1000 - fee_amount, ParaTokens::free_balance(CurrencyId::R, &ALICE));
+	});
+
+	Relay::execute_with(|| {
+		assert_eq!(
+			1000 - (fee_amount - dest_weight),
+			RelayBalances::free_balance(&para_a_account())
+		);
+		assert_eq!(
+			fee_amount - dest_weight*2,
+			RelayBalances::free_balance(&para_b_account())
+		);
+	});
+
+	ParaB::execute_with(|| {
+		// after first xcm succeed, sibling_a amount = 159-120=39
+		// second xcm failed, so sibling_a amount stay same.
+		assert_eq!(
+			39,
+			ParaTokens::free_balance(CurrencyId::R, &sibling_a_account())
+		);
+
+		// second xcm failed, so recipient account don't receive any token of B and R.
+		assert_eq!(0, ParaTokens::free_balance(CurrencyId::B, &BOB));
+		assert_eq!(0, ParaTokens::free_balance(CurrencyId::R, &BOB));
 	});
 }
 
@@ -767,6 +834,30 @@ fn transfer_asset_with_relay_fee_failed() {
 					(
 						Parent,
 						Parachain(2),
+						Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: BOB.into(),
+						},
+					)
+						.into()
+				),
+				40,
+			),
+			Error::<para::Runtime>::InvalidAsset
+		);
+	});
+
+	// `MinXcmFee` not defined for destination chain
+	ParaB::execute_with(|| {
+		assert_noop!(
+			ParaXTokens::transfer_multicurrencies(
+				Some(ALICE).into(),
+				vec![(CurrencyId::A, 450), (CurrencyId::R, 100)],
+				1,
+				Box::new(
+					(
+						Parent,
+						Parachain(1),
 						Junction::AccountId32 {
 							network: NetworkId::Any,
 							id: BOB.into(),
@@ -1001,7 +1092,7 @@ fn send_with_insufficient_fee_traps_assets() {
 		assert_ok!(ParaTokens::deposit(CurrencyId::A, &ALICE, 1_000));
 
 		// ParaB charges 40, but we specify 30 as fee. Assets will be trapped
-		// Call succedes in paraA
+		// Call succeed in paraA
 		assert_ok!(ParaXTokens::transfer_with_fee(
 			Some(ALICE).into(),
 			CurrencyId::A,
