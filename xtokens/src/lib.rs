@@ -543,12 +543,13 @@ pub mod module {
 				)?;
 
 				// Second xcm send to dest chain.
-				// Current not ensure xcm order delivery. if second xcm is first executed before
-				// first xcm, then second xcm may failed because of sibling parachain account
-				// don't have enough fee to withdraw, but we can pre-fund some amount to sibling
-				// parachain sovereign account to fix this case. as first xcm executed later on,
-				// the sibling sovereign parachain account get top up. and next transaction will
-				// succeed even though second xcm is executed before first xcm.
+				// Current not ensure xcm order delivery. if second xcm is executed before first
+				// xcm, then second xcm may failed because of sibling parachain account don't
+				// have enough fee to withdraw. we can pre-fund some amount to sibling parachain
+				// sovereign account to fix this issue. when first xcm executed later on, the
+				// sibling sovereign parachain account is deposit. and next transaction will
+				// succeed even though second xcm is executed before first xcm if user fee is
+				// less than parachain sovereign account balance.
 				Self::send_xcm(
 					origin_location,
 					assets_to_dest,
