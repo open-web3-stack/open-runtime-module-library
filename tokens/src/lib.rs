@@ -351,6 +351,7 @@ pub mod module {
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub tokens_endowment: Vec<(T::AccountId, T::CurrencyId, T::Balance)>,
+		pub vesting_tokens: Vec<(T::AccountId, T::CurrencyId, T::Balance)>,
 		pub created_tokens_for_staking: Vec<(T::AccountId, T::CurrencyId, T::Balance)>,
 	}
 
@@ -359,6 +360,7 @@ pub mod module {
 		fn default() -> Self {
 			GenesisConfig {
 				tokens_endowment: vec![],
+				vesting_tokens: vec![],
 				created_tokens_for_staking: vec![],
 			}
 		}
@@ -368,6 +370,14 @@ pub mod module {
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
 			self.tokens_endowment.iter().for_each(|(account_id, token_id, initial_balance)| {
+				if MultiTokenCurrencyAdapter::<T>::exists(*token_id){
+					assert!(MultiTokenCurrencyAdapter::<T>::mint(*token_id, account_id, *initial_balance).is_ok(), "Tokens mint failed");
+				}else{
+					let created_token_id = MultiTokenCurrencyAdapter::<T>::create(account_id, *initial_balance).expect("Token creation failed");
+					assert!(created_token_id == *token_id, "Assets not initialized in the expected sequence");
+				}
+			});
+			self.vesting_tokens.iter().for_each(|(account_id, token_id, initial_balance)| {
 				if MultiTokenCurrencyAdapter::<T>::exists(*token_id){
 					assert!(MultiTokenCurrencyAdapter::<T>::mint(*token_id, account_id, *initial_balance).is_ok(), "Tokens mint failed");
 				}else{
