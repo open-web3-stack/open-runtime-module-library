@@ -42,13 +42,14 @@ impl Parse for MultiLocation {
 
 pub trait Reserve {
 	/// Returns assets reserve location.
-	fn reserve(asset: MultiAsset) -> Option<MultiLocation>;
+	fn reserve(asset: &MultiAsset) -> Option<MultiLocation>;
 }
 
+// Provide reserve in absolute path view
 pub struct AbsoluteReserveProvider;
 
 impl Reserve for AbsoluteReserveProvider {
-	fn reserve(asset: MultiAsset) -> Option<MultiLocation> {
+	fn reserve(asset: &MultiAsset) -> Option<MultiLocation> {
 		if let Concrete(location) = &asset.id {
 			location.chain_part()
 		} else {
@@ -81,7 +82,7 @@ mod tests {
 	#[test]
 	fn parent_as_reserve_chain() {
 		assert_eq!(
-			AbsoluteReserveProvider::reserve(concrete_fungible(MultiLocation::new(1, X1(GENERAL_INDEX)))),
+			AbsoluteReserveProvider::reserve(&concrete_fungible(MultiLocation::new(1, X1(GENERAL_INDEX)))),
 			Some(MultiLocation::parent())
 		);
 	}
@@ -89,7 +90,7 @@ mod tests {
 	#[test]
 	fn sibling_parachain_as_reserve_chain() {
 		assert_eq!(
-			AbsoluteReserveProvider::reserve(concrete_fungible(MultiLocation::new(1, X2(PARACHAIN, GENERAL_INDEX)))),
+			AbsoluteReserveProvider::reserve(&concrete_fungible(MultiLocation::new(1, X2(PARACHAIN, GENERAL_INDEX)))),
 			Some(MultiLocation::new(1, X1(PARACHAIN)))
 		);
 	}
@@ -97,7 +98,7 @@ mod tests {
 	#[test]
 	fn child_parachain_as_reserve_chain() {
 		assert_eq!(
-			AbsoluteReserveProvider::reserve(concrete_fungible(MultiLocation::new(0, X2(PARACHAIN, GENERAL_INDEX)))),
+			AbsoluteReserveProvider::reserve(&concrete_fungible(MultiLocation::new(0, X2(PARACHAIN, GENERAL_INDEX)))),
 			Some(PARACHAIN.into())
 		);
 	}
@@ -105,7 +106,7 @@ mod tests {
 	#[test]
 	fn no_reserve_chain() {
 		assert_eq!(
-			AbsoluteReserveProvider::reserve(concrete_fungible(MultiLocation::new(0, X1(GeneralKey("DOT".into()))))),
+			AbsoluteReserveProvider::reserve(&concrete_fungible(MultiLocation::new(0, X1(GeneralKey("DOT".into()))))),
 			None
 		);
 	}
