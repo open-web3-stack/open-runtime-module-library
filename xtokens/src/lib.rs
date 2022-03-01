@@ -102,6 +102,8 @@ pub mod module {
 		/// The maximum number of distinct assets allowed to be transferred in a
 		/// single helper extrinsic.
 		type MaxAssetsForTransfer: Get<usize>;
+
+		type ReserveProvider: Reserve;
 	}
 
 	#[pallet::event]
@@ -476,7 +478,7 @@ pub mod module {
 					Error::<T>::InvalidAsset
 				);
 				ensure!(
-					fee.reserve() == asset.reserve(),
+					T::ReserveProvider::reserve(fee.clone()) == T::ReserveProvider::reserve(asset.clone()),
 					Error::<T>::DistinctReserveForAssetAndFee
 				);
 			}
@@ -654,7 +656,7 @@ pub mod module {
 			let self_location = T::SelfLocation::get();
 			ensure!(dest != self_location, Error::<T>::NotCrossChainTransfer);
 
-			let reserve = asset.reserve().ok_or(Error::<T>::AssetHasNoReserve)?;
+			let reserve = T::ReserveProvider::reserve(asset.clone()).ok_or(Error::<T>::AssetHasNoReserve)?;
 			let transfer_kind = if reserve == self_location {
 				SelfReserveAsset
 			} else if reserve == dest {

@@ -193,7 +193,7 @@ impl Config for XcmConfig {
 	type XcmSender = XcmRouter;
 	type AssetTransactor = LocalAssetTransactor;
 	type OriginConverter = XcmOriginToCallOrigin;
-	type IsReserve = MultiNativeAsset;
+	type IsReserve = MultiNativeAsset<orml_traits::location::AbsoluteReserveProvider>;
 	type IsTeleporter = ();
 	type LocationInverter = LocationInverter<Ancestry>;
 	type Barrier = Barrier;
@@ -284,6 +284,7 @@ impl orml_xtokens::Config for Runtime {
 	type BaseXcmWeight = BaseXcmWeight;
 	type LocationInverter = LocationInverter<Ancestry>;
 	type MaxAssetsForTransfer = MaxAssetsForTransfer;
+	type ReserveProvider = orml_traits::location::AbsoluteReserveProvider;
 }
 
 impl orml_xcm::Config for Runtime {
