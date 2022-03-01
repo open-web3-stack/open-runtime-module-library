@@ -103,6 +103,8 @@ pub mod module {
 		/// single helper extrinsic.
 		type MaxAssetsForTransfer: Get<usize>;
 
+		/// The way to retreave the reserve of a MultiAsset. This can be configured
+		/// to accept absolute or relative paths for self tokens
 		type ReserveProvider: Reserve;
 	}
 

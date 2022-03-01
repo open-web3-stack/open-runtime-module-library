@@ -25,7 +25,7 @@ use xcm_builder::{
 };
 use xcm_executor::{traits::WeightTrader, Assets, Config, XcmExecutor};
 
-use orml_traits::parameter_type_with_key;
+use orml_traits::{parameter_type_with_key, location::AbsoluteReserveProvider};
 use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
 
 pub type AccountId = AccountId32;
@@ -193,7 +193,7 @@ impl Config for XcmConfig {
 	type XcmSender = XcmRouter;
 	type AssetTransactor = LocalAssetTransactor;
 	type OriginConverter = XcmOriginToCallOrigin;
-	type IsReserve = MultiNativeAsset<orml_traits::location::AbsoluteReserveProvider>;
+	type IsReserve = MultiNativeAsset<AbsoluteReserveProvider>;
 	type IsTeleporter = ();
 	type LocationInverter = LocationInverter<Ancestry>;
 	type Barrier = Barrier;
@@ -284,7 +284,7 @@ impl orml_xtokens::Config for Runtime {
 	type BaseXcmWeight = BaseXcmWeight;
 	type LocationInverter = LocationInverter<Ancestry>;
 	type MaxAssetsForTransfer = MaxAssetsForTransfer;
-	type ReserveProvider = orml_traits::location::AbsoluteReserveProvider;
+	type ReserveProvider = AbsoluteReserveProvider;
 }
 
 impl orml_xcm::Config for Runtime {
