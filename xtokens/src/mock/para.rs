@@ -25,7 +25,7 @@ use xcm_builder::{
 };
 use xcm_executor::{traits::WeightTrader, Assets, Config, XcmExecutor};
 
-use orml_traits::{parameter_type_with_key, location::AbsoluteReserveProvider};
+use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
 use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
 
 pub type AccountId = AccountId32;
