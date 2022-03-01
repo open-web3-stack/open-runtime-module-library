@@ -480,7 +480,7 @@ pub mod module {
 					Error::<T>::InvalidAsset
 				);
 				ensure!(
-					T::ReserveProvider::reserve(&fee) == T::ReserveProvider::reserve(&asset),
+					T::ReserveProvider::reserve(fee) == T::ReserveProvider::reserve(asset),
 					Error::<T>::DistinctReserveForAssetAndFee
 				);
 			}
@@ -658,7 +658,7 @@ pub mod module {
 			let self_location = T::SelfLocation::get();
 			ensure!(dest != self_location, Error::<T>::NotCrossChainTransfer);
 
-			let reserve = T::ReserveProvider::reserve(&asset).ok_or(Error::<T>::AssetHasNoReserve)?;
+			let reserve = T::ReserveProvider::reserve(asset).ok_or(Error::<T>::AssetHasNoReserve)?;
 			let transfer_kind = if reserve == self_location {
 				SelfReserveAsset
 			} else if reserve == dest {
