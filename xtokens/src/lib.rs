@@ -480,7 +480,7 @@ pub mod module {
 					Error::<T>::InvalidAsset
 				);
 				ensure!(
-					T::ReserveProvider::reserve(fee) == T::ReserveProvider::reserve(asset),
+					T::ReserveProvider::reserve(&fee) == T::ReserveProvider::reserve(asset),
 					Error::<T>::DistinctReserveForAssetAndFee
 				);
 			}
