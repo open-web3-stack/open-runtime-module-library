@@ -65,16 +65,10 @@ pub struct RelativeReserveProvider;
 impl Reserve for RelativeReserveProvider {
 	fn reserve(asset: &MultiAsset) -> Option<MultiLocation> {
 		if let Concrete(location) = &asset.id {
-			match (location.parents, location.first_interior()) {
-				// sibling parachain
-				(1, Some(Parachain(id))) => Some(MultiLocation::new(1, X1(Parachain(*id)))),
-				// parent
-				(1, _) => Some(MultiLocation::parent()),
-				// children parachain
-				(0, Some(Parachain(id))) => Some(MultiLocation::new(0, X1(Parachain(*id)))),
-				// All asset that is not a children parachain is a self reserved asset
-				(0, _) => Some(MultiLocation::here()),
-				_ => None,
+			if location.parents == 0 && !is_chain_junction(location.first_interior()) {
+				Some(MultiLocation::here())
+			} else {
+				location.chain_part()
 			}
 		} else {
 			None
