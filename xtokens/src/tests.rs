@@ -840,7 +840,7 @@ fn transfer_asset_with_relay_fee_failed() {
 				),
 				40,
 			),
-			Error::<para::Runtime>::InvalidAsset
+			Error::<para::Runtime>::FeeNotEnough
 		);
 	});
 
@@ -864,7 +864,7 @@ fn transfer_asset_with_relay_fee_failed() {
 				),
 				40,
 			),
-			Error::<para::Runtime>::InvalidAsset
+			Error::<para::Runtime>::FeeNotEnough
 		);
 	});
 }
