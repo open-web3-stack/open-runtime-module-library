@@ -11,6 +11,7 @@ use sp_runtime::AccountId32;
 use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain};
 
 pub mod para;
+pub mod para_relative_view;
 pub mod relay;
 
 pub const ALICE: AccountId32 = AccountId32::new([0u8; 32]);
@@ -29,6 +30,8 @@ pub enum CurrencyId {
 	B,
 	/// Parachain B B1 token
 	B1,
+	/// Parachain D token
+	D,
 }
 
 pub struct CurrencyIdConvert;
@@ -40,6 +43,7 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
 			CurrencyId::A1 => Some((Parent, Parachain(1), GeneralKey("A1".into())).into()),
 			CurrencyId::B => Some((Parent, Parachain(2), GeneralKey("B".into())).into()),
 			CurrencyId::B1 => Some((Parent, Parachain(2), GeneralKey("B1".into())).into()),
+			CurrencyId::D => Some((Parent, Parachain(4), GeneralKey("D".into())).into()),
 		}
 	}
 }
@@ -49,6 +53,8 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
 		let a1: Vec<u8> = "A1".into();
 		let b: Vec<u8> = "B".into();
 		let b1: Vec<u8> = "B1".into();
+		let d: Vec<u8> = "D".into();
+
 		if l == MultiLocation::parent() {
 			return Some(CurrencyId::R);
 		}
@@ -58,6 +64,7 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
 				X2(Parachain(1), GeneralKey(k)) if k == a1 => Some(CurrencyId::A1),
 				X2(Parachain(2), GeneralKey(k)) if k == b => Some(CurrencyId::B),
 				X2(Parachain(2), GeneralKey(k)) if k == b1 => Some(CurrencyId::B1),
+				X2(Parachain(4), GeneralKey(k)) if k == d => Some(CurrencyId::D),
 				_ => None,
 			},
 			MultiLocation { parents, interior } if parents == 0 => match interior {
@@ -65,6 +72,7 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
 				X1(GeneralKey(k)) if k == b => Some(CurrencyId::B),
 				X1(GeneralKey(k)) if k == a1 => Some(CurrencyId::A1),
 				X1(GeneralKey(k)) if k == b1 => Some(CurrencyId::B1),
+				X1(GeneralKey(k)) if k == d => Some(CurrencyId::D),
 				_ => None,
 			},
 			_ => None,
@@ -115,6 +123,17 @@ decl_test_parachain! {
 	}
 }
 
+// This parachain is identical to the others but using relative view for self
+// tokens
+decl_test_parachain! {
+	pub struct ParaD {
+		Runtime = para_relative_view::Runtime,
+		XcmpMessageHandler = para::XcmpQueue,
+		DmpMessageHandler = para::DmpQueue,
+		new_ext = para_ext(4),
+	}
+}
+
 decl_test_relay_chain! {
 	pub struct Relay {
 		Runtime = relay::Runtime,
@@ -130,6 +149,7 @@ decl_test_network! {
 			(1, ParaA),
 			(2, ParaB),
 			(3, ParaC),
+			(4, ParaD),
 		],
 	}
 }
@@ -137,6 +157,9 @@ decl_test_network! {
 pub type RelayBalances = pallet_balances::Pallet<relay::Runtime>;
 pub type ParaTokens = orml_tokens::Pallet<para::Runtime>;
 pub type ParaXTokens = orml_xtokens::Pallet<para::Runtime>;
+
+pub type ParaRelativeTokens = orml_tokens::Pallet<para_relative_view::Runtime>;
+pub type ParaRelativeXTokens = orml_xtokens::Pallet<para_relative_view::Runtime>;
 
 pub fn para_ext(para_id: u32) -> TestExternalities {
 	use para::{Runtime, System};

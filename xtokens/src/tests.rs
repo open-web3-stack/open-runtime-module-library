@@ -33,6 +33,11 @@ fn sibling_c_account() -> AccountId32 {
 	Sibling::from(3).into_account()
 }
 
+fn sibling_d_account() -> AccountId32 {
+	use sp_runtime::traits::AccountIdConversion;
+	Sibling::from(4).into_account()
+}
+
 // Not used in any unit tests, but it's super helpful for debugging. Let's
 // keep it here.
 #[allow(dead_code)]
@@ -1098,4 +1103,112 @@ fn send_with_zero_amount() {
 	});
 
 	// TODO: should have more tests after https://github.com/paritytech/polkadot/issues/4996
+}
+
+#[test]
+fn send_self_parachain_asset_to_sibling_relative_parachain() {
+	TestNet::reset();
+
+	ParaD::execute_with(|| {
+		assert_ok!(ParaRelativeTokens::deposit(CurrencyId::D, &ALICE, 1_000));
+
+		assert_ok!(ParaRelativeXTokens::transfer(
+			Some(ALICE).into(),
+			CurrencyId::D,
+			500,
+			Box::new(
+				MultiLocation::new(
+					1,
+					X2(
+						Parachain(2),
+						Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: BOB.into(),
+						}
+					)
+				)
+				.into()
+			),
+			40,
+		));
+
+		assert_eq!(ParaRelativeTokens::free_balance(CurrencyId::D, &ALICE), 500);
+		assert_eq!(
+			ParaRelativeTokens::free_balance(CurrencyId::D, &sibling_b_account()),
+			500
+		);
+	});
+
+	ParaB::execute_with(|| {
+		assert_eq!(ParaTokens::free_balance(CurrencyId::D, &BOB), 460);
+	});
+}
+
+#[test]
+fn send_sibling_asset_to_reserve_sibling_with_relative_view() {
+	TestNet::reset();
+
+	ParaA::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::D, &ALICE, 1_000));
+		assert_ok!(ParaTokens::deposit(CurrencyId::A, &sibling_d_account(), 1_000));
+	});
+
+	ParaD::execute_with(|| {
+		assert_ok!(ParaRelativeTokens::deposit(CurrencyId::D, &sibling_a_account(), 1_000));
+		assert_ok!(ParaRelativeTokens::deposit(CurrencyId::A, &BOB, 1_000));
+	});
+
+	ParaA::execute_with(|| {
+		assert_ok!(ParaXTokens::transfer(
+			Some(ALICE).into(),
+			CurrencyId::D,
+			500,
+			Box::new(
+				(
+					Parent,
+					Parachain(4),
+					Junction::AccountId32 {
+						network: NetworkId::Any,
+						id: BOB.into(),
+					},
+				)
+					.into()
+			),
+			40,
+		));
+
+		assert_eq!(ParaTokens::free_balance(CurrencyId::D, &ALICE), 500);
+	});
+
+	ParaD::execute_with(|| {
+		assert_eq!(
+			ParaRelativeTokens::free_balance(CurrencyId::D, &sibling_a_account()),
+			500
+		);
+		assert_eq!(ParaRelativeTokens::free_balance(CurrencyId::D, &BOB), 460);
+
+		assert_ok!(ParaRelativeXTokens::transfer(
+			Some(BOB).into(),
+			CurrencyId::A,
+			500,
+			Box::new(
+				(
+					Parent,
+					Parachain(1),
+					Junction::AccountId32 {
+						network: NetworkId::Any,
+						id: ALICE.into(),
+					},
+				)
+					.into()
+			),
+			40,
+		));
+		assert_eq!(ParaRelativeTokens::free_balance(CurrencyId::A, &BOB), 500);
+	});
+
+	ParaA::execute_with(|| {
+		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &sibling_d_account()), 500);
+		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &ALICE), 460);
+	});
 }

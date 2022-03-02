@@ -58,6 +58,30 @@ impl Reserve for AbsoluteReserveProvider {
 	}
 }
 
+// Provide reserve in relative path view
+// Self tokens are represeneted as Here
+pub struct RelativeReserveProvider;
+
+impl Reserve for RelativeReserveProvider {
+	fn reserve(asset: &MultiAsset) -> Option<MultiLocation> {
+		if let Concrete(location) = &asset.id {
+			match (location.parents, location.first_interior()) {
+				// sibling parachain
+				(1, Some(Parachain(id))) => Some(MultiLocation::new(1, X1(Parachain(*id)))),
+				// parent
+				(1, _) => Some(MultiLocation::parent()),
+				// children parachain
+				(0, Some(Parachain(id))) => Some(MultiLocation::new(0, X1(Parachain(*id)))),
+				// All asset that is not a children parachain is a self reserved asset
+				(0, _) => Some(MultiLocation::here()),
+				_ => None,
+			}
+		} else {
+			None
+		}
+	}
+}
+
 pub trait RelativeLocations {
 	fn sibling_parachain_general_key(para_id: u32, general_key: Vec<u8>) -> MultiLocation;
 }
@@ -85,12 +109,20 @@ mod tests {
 			AbsoluteReserveProvider::reserve(&concrete_fungible(MultiLocation::new(1, X1(GENERAL_INDEX)))),
 			Some(MultiLocation::parent())
 		);
+		assert_eq!(
+			RelativeReserveProvider::reserve(&concrete_fungible(MultiLocation::new(1, X1(GENERAL_INDEX)))),
+			Some(MultiLocation::parent())
+		);
 	}
 
 	#[test]
 	fn sibling_parachain_as_reserve_chain() {
 		assert_eq!(
 			AbsoluteReserveProvider::reserve(&concrete_fungible(MultiLocation::new(1, X2(PARACHAIN, GENERAL_INDEX)))),
+			Some(MultiLocation::new(1, X1(PARACHAIN)))
+		);
+		assert_eq!(
+			RelativeReserveProvider::reserve(&concrete_fungible(MultiLocation::new(1, X2(PARACHAIN, GENERAL_INDEX)))),
 			Some(MultiLocation::new(1, X1(PARACHAIN)))
 		);
 	}
@@ -101,13 +133,21 @@ mod tests {
 			AbsoluteReserveProvider::reserve(&concrete_fungible(MultiLocation::new(0, X2(PARACHAIN, GENERAL_INDEX)))),
 			Some(PARACHAIN.into())
 		);
+		assert_eq!(
+			RelativeReserveProvider::reserve(&concrete_fungible(MultiLocation::new(0, X2(PARACHAIN, GENERAL_INDEX)))),
+			Some(PARACHAIN.into())
+		);
 	}
 
 	#[test]
-	fn no_reserve_chain() {
+	fn no_reserve_chain_for_absolute_self_for_relative() {
 		assert_eq!(
 			AbsoluteReserveProvider::reserve(&concrete_fungible(MultiLocation::new(0, X1(GeneralKey("DOT".into()))))),
 			None
+		);
+		assert_eq!(
+			RelativeReserveProvider::reserve(&concrete_fungible(MultiLocation::new(0, X1(GeneralKey("DOT".into()))))),
+			Some(MultiLocation::here())
 		);
 	}
 
