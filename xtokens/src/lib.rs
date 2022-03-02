@@ -508,7 +508,7 @@ pub mod module {
 				let min_xcm_fee = T::MinXcmFee::get(&reserve_location);
 
 				// min xcm fee should less than user fee
-				let fee_to_dest = reset_fee(&fee, min_xcm_fee);
+				let fee_to_dest: MultiAsset = (fee.id.clone(), min_xcm_fee).into();
 				ensure!(fee_to_dest < fee, Error::<T>::InvalidAsset);
 
 				let mut assets_to_dest = MultiAssets::new();
@@ -532,7 +532,7 @@ pub mod module {
 				// chain. This means if user setup too much fee, the fee is not returned to
 				// user, instead deposit to sibling parachain sovereign account on dest chain.
 				// Notice: if parachain set `SelfLocation` to (0, Here), it'll be error!
-				Self::send_xcm(
+				Self::execute_and_send_reserve_kind_xcm(
 					origin_location.clone(),
 					assets_to_fee_reserve,
 					asset_to_fee_reserve,
@@ -550,7 +550,7 @@ pub mod module {
 				// sibling sovereign parachain account is deposit. and next transaction will
 				// succeed even though second xcm is executed before first xcm if user fee is
 				// less than parachain sovereign account balance.
-				Self::send_xcm(
+				Self::execute_and_send_reserve_kind_xcm(
 					origin_location,
 					assets_to_dest,
 					fee_to_dest,
@@ -560,7 +560,7 @@ pub mod module {
 					dest_weight,
 				)?;
 			} else {
-				Self::send_xcm(
+				Self::execute_and_send_reserve_kind_xcm(
 					origin_location,
 					assets.clone(),
 					fee.clone(),
@@ -581,18 +581,19 @@ pub mod module {
 			Ok(())
 		}
 
-		/// Send xcm with given assets and fee to dest or reserve chain.
-		fn send_xcm(
+		/// Execute and send xcm with given assets and fee to dest chain or
+		/// reserve chain.
+		fn execute_and_send_reserve_kind_xcm(
 			origin_location: MultiLocation,
 			assets: MultiAssets,
 			fee: MultiAsset,
 			reserve: Option<MultiLocation>,
 			dest: &MultiLocation,
-			manual_recipient: Option<MultiLocation>,
+			maybe_recipient_override: Option<MultiLocation>,
 			dest_weight: Weight,
 		) -> DispatchResult {
 			let (transfer_kind, dest, reserve, recipient) = Self::transfer_kind(reserve, dest)?;
-			let recipient = match manual_recipient {
+			let recipient = match maybe_recipient_override {
 				Some(recipient) => recipient,
 				None => recipient,
 			};
@@ -925,13 +926,6 @@ fn subtract_fee(asset: &MultiAsset, amount: u128) -> MultiAsset {
 	let final_amount = fungible_amount(asset).checked_sub(amount).expect("fee too low; qed");
 	MultiAsset {
 		fun: Fungible(final_amount),
-		id: asset.id.clone(),
-	}
-}
-
-fn reset_fee(asset: &MultiAsset, amount: u128) -> MultiAsset {
-	MultiAsset {
-		fun: Fungible(amount),
 		id: asset.id.clone(),
 	}
 }
