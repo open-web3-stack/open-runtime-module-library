@@ -278,6 +278,7 @@ impl Convert<CurrencyId, Option<MultiLocation>> for RelativeCurrencyIdConvert {
 			CurrencyId::A1 => Some((Parent, Parachain(1), GeneralKey("A1".into())).into()),
 			CurrencyId::B => Some((Parent, Parachain(2), GeneralKey("B".into())).into()),
 			CurrencyId::B1 => Some((Parent, Parachain(2), GeneralKey("B1".into())).into()),
+			CurrencyId::B2 => Some((Parent, Parachain(2), GeneralKey("B2".into())).into()),
 			CurrencyId::D => Some(GeneralKey("D".into()).into()),
 		}
 	}
@@ -288,6 +289,7 @@ impl Convert<MultiLocation, Option<CurrencyId>> for RelativeCurrencyIdConvert {
 		let a1: Vec<u8> = "A1".into();
 		let b: Vec<u8> = "B".into();
 		let b1: Vec<u8> = "B1".into();
+		let b2: Vec<u8> = "B2".into();
 		let d: Vec<u8> = "D".into();
 
 		let self_para_id: u32 = ParachainInfo::parachain_id().into();
@@ -300,6 +302,7 @@ impl Convert<MultiLocation, Option<CurrencyId>> for RelativeCurrencyIdConvert {
 				X2(Parachain(1), GeneralKey(k)) if k == a1 => Some(CurrencyId::A1),
 				X2(Parachain(2), GeneralKey(k)) if k == b => Some(CurrencyId::B),
 				X2(Parachain(2), GeneralKey(k)) if k == b1 => Some(CurrencyId::B1),
+				X2(Parachain(2), GeneralKey(k)) if k == b2 => Some(CurrencyId::B2),
 				X2(Parachain(para_id), GeneralKey(k)) if k == d && para_id == self_para_id => Some(CurrencyId::D),
 				_ => None,
 			},
@@ -308,6 +311,7 @@ impl Convert<MultiLocation, Option<CurrencyId>> for RelativeCurrencyIdConvert {
 				X1(GeneralKey(k)) if k == b => Some(CurrencyId::B),
 				X1(GeneralKey(k)) if k == a1 => Some(CurrencyId::A1),
 				X1(GeneralKey(k)) if k == b1 => Some(CurrencyId::B1),
+				X1(GeneralKey(k)) if k == b2 => Some(CurrencyId::B2),
 				X1(GeneralKey(k)) if k == d => Some(CurrencyId::D),
 				_ => None,
 			},
@@ -335,6 +339,16 @@ parameter_types! {
 	pub const MaxAssetsForTransfer: usize = 2;
 }
 
+parameter_type_with_key! {
+	pub ParachainMinFee: |location: MultiLocation| -> u128 {
+		#[allow(clippy::match_ref_pats)] // false positive
+		match (location.parents, location.first_interior()) {
+			(1, Some(Parachain(2))) => 40,
+			_ => u128::MAX,
+		}
+	};
+}
+
 impl orml_xtokens::Config for Runtime {
 	type Event = Event;
 	type Balance = Balance;
@@ -342,6 +356,7 @@ impl orml_xtokens::Config for Runtime {
 	type CurrencyIdConvert = RelativeCurrencyIdConvert;
 	type AccountIdToMultiLocation = AccountIdToMultiLocation;
 	type SelfLocation = SelfLocation;
+	type MinXcmFee = ParachainMinFee;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
 	type BaseXcmWeight = BaseXcmWeight;
