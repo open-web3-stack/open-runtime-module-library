@@ -279,6 +279,7 @@ impl orml_xtokens::Config for Runtime {
 	type CurrencyIdConvert = CurrencyIdConvert;
 	type AccountIdToMultiLocation = AccountIdToMultiLocation;
 	type SelfLocation = SelfLocation;
+	type WhiteListingMultiLocations = ();
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
 	type BaseXcmWeight = BaseXcmWeight;

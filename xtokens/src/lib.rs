@@ -52,6 +52,29 @@ enum TransferKind {
 }
 use TransferKind::*;
 
+pub trait WhiteListingMultiLocations<CurrencyId, Balance> {
+	fn get_supported_locations(&self, currency_id: CurrencyId) -> Option<MultiLocation>;
+	fn get_all_supported_locations(&self) -> Option<Vec<MultiLocation>>;
+	fn get_xcm_fee(&self, currency_id: CurrencyId) -> Balance;
+}
+
+impl<CurrencyId, Balance> WhiteListingMultiLocations<CurrencyId, Balance> for ()
+where
+	Balance: Zero,
+{
+	fn get_supported_locations(&self, _: CurrencyId) -> Option<MultiLocation> {
+		None
+	}
+
+	fn get_all_supported_locations(&self) -> Option<Vec<MultiLocation>> {
+		None
+	}
+
+	fn get_xcm_fee(&self, _: CurrencyId) -> Balance {
+		Zero::zero()
+	}
+}
+
 #[frame_support::pallet]
 pub mod module {
 
@@ -85,6 +108,9 @@ pub mod module {
 
 		/// XCM executor.
 		type XcmExecutor: ExecuteXcm<Self::Call>;
+
+		///
+		type WhiteListingMultiLocations: WhiteListingMultiLocations<Self::CurrencyId, Self::Balance>;
 
 		/// Means of measuring the weight consumed by an XCM message locally.
 		type Weigher: WeightBounds<Self::Call>;
