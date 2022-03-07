@@ -863,7 +863,7 @@ pub mod module {
 				0
 			};
 			let asset = assets.get(reserve_idx);
-			asset.and_then(|a| T::ReserveProvider::reserve(a))
+			asset.and_then(T::ReserveProvider::reserve)
 		}
 	}
 
