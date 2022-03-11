@@ -316,7 +316,6 @@ parameter_types! {
 pub struct WhiteListingMultiLocations;
 impl Contains<MultiLocation> for WhiteListingMultiLocations {
 	fn contains(location: &MultiLocation) -> bool {
-		dbg!(&location);
 		SupportedMultiLocations::get().contains(location)
 	}
 }
