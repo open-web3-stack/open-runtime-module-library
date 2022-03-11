@@ -22,7 +22,13 @@
 #![allow(clippy::unused_unit)]
 #![allow(clippy::large_enum_variant)]
 
-use frame_support::{log, pallet_prelude::*, require_transactional, traits::Get, transactional, Parameter};
+use frame_support::{
+	log,
+	pallet_prelude::*,
+	require_transactional,
+	traits::{Contains, Get},
+	transactional, Parameter,
+};
 use frame_system::{ensure_signed, pallet_prelude::*};
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, Convert, MaybeSerializeDeserialize, Member, Zero},
@@ -51,29 +57,6 @@ enum TransferKind {
 	ToNonReserve,
 }
 use TransferKind::*;
-
-pub trait WhiteListingMultiLocations<CurrencyId, Balance> {
-	fn get_supported_locations(&self, currency_id: CurrencyId) -> Option<MultiLocation>;
-	fn get_all_supported_locations(&self) -> Option<Vec<MultiLocation>>;
-	fn get_xcm_fee(&self, currency_id: CurrencyId) -> Balance;
-}
-
-impl<CurrencyId, Balance> WhiteListingMultiLocations<CurrencyId, Balance> for ()
-where
-	Balance: Zero,
-{
-	fn get_supported_locations(&self, _: CurrencyId) -> Option<MultiLocation> {
-		None
-	}
-
-	fn get_all_supported_locations(&self) -> Option<Vec<MultiLocation>> {
-		None
-	}
-
-	fn get_xcm_fee(&self, _: CurrencyId) -> Balance {
-		Zero::zero()
-	}
-}
 
 #[frame_support::pallet]
 pub mod module {
@@ -110,7 +93,7 @@ pub mod module {
 		type XcmExecutor: ExecuteXcm<Self::Call>;
 
 		///
-		type WhiteListingMultiLocations: WhiteListingMultiLocations<Self::CurrencyId, Self::Balance>;
+		type WhiteListingMultiLocations: Contains<MultiLocation>;
 
 		/// Means of measuring the weight consumed by an XCM message locally.
 		type Weigher: WeightBounds<Self::Call>;
@@ -180,6 +163,8 @@ pub mod module {
 		TooManyAssetsBeingSent,
 		/// The specified index does not exist in a MultiAssets struct
 		AssetIndexNonExistent,
+		/// Not supported location
+		NotInWhiteListLocation,
 	}
 
 	#[pallet::hooks]
@@ -394,6 +379,10 @@ pub mod module {
 				T::CurrencyIdConvert::convert(currency_id).ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
 
 			ensure!(!amount.is_zero(), Error::<T>::ZeroAmount);
+			ensure!(
+				T::WhiteListingMultiLocations::contains(&location),
+				Error::<T>::NotInWhiteListLocation
+			);
 
 			let asset: MultiAsset = (location, amount.into()).into();
 			Self::do_transfer_multiassets(who, vec![asset.clone()].into(), asset, dest, dest_weight)
@@ -412,6 +401,10 @@ pub mod module {
 
 			ensure!(!amount.is_zero(), Error::<T>::ZeroAmount);
 			ensure!(!fee.is_zero(), Error::<T>::ZeroFee);
+			ensure!(
+				T::WhiteListingMultiLocations::contains(&location),
+				Error::<T>::NotInWhiteListLocation
+			);
 
 			let asset = (location.clone(), amount.into()).into();
 			let fee_asset: MultiAsset = (location, fee.into()).into();
@@ -468,6 +461,11 @@ pub mod module {
 				let location: MultiLocation = T::CurrencyIdConvert::convert(currency_id.clone())
 					.ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
 				ensure!(!amount.is_zero(), Error::<T>::ZeroAmount);
+				ensure!(
+					T::WhiteListingMultiLocations::contains(&location),
+					Error::<T>::NotInWhiteListLocation
+				);
+
 				// Push contains saturated addition, so we should be able to use it safely
 				assets.push((location, (*amount).into()).into())
 			}

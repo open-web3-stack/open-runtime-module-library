@@ -3,7 +3,7 @@ use crate as orml_xtokens;
 
 use frame_support::{
 	construct_runtime, parameter_types,
-	traits::{Everything, Get, Nothing},
+	traits::{Contains, Everything, Get, Nothing},
 	weights::{constants::WEIGHT_PER_SECOND, Weight},
 };
 use frame_system::EnsureRoot;
@@ -270,6 +270,48 @@ parameter_types! {
 	pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::get().into())));
 	pub const BaseXcmWeight: Weight = 100_000_000;
 	pub const MaxAssetsForTransfer: usize = 2;
+	pub SupportedMultiLocations: Vec<MultiLocation> = vec![
+		MultiLocation::new(
+			1,
+			X2(
+				Parachain(1),
+				GeneralKey("A".into())
+			)
+		),
+		MultiLocation::new(
+			1,
+			X2(
+				Parachain(1),
+				GeneralKey("A1".into())
+			)
+		),
+		MultiLocation::new(
+			1,
+			X2(
+				Parachain(2),
+				GeneralKey("B".into())
+			)
+		),
+		MultiLocation::new(
+			1,
+			X2(
+				Parachain(2),
+				GeneralKey("B1".into())
+			)
+		),
+		MultiLocation::new(
+			1,
+			Junctions::Here
+		)
+	];
+}
+
+pub struct WhiteListingMultiLocations;
+impl Contains<MultiLocation> for WhiteListingMultiLocations {
+	fn contains(location: &MultiLocation) -> bool {
+		dbg!(&location);
+		SupportedMultiLocations::get().contains(location)
+	}
 }
 
 impl orml_xtokens::Config for Runtime {
@@ -279,7 +321,7 @@ impl orml_xtokens::Config for Runtime {
 	type CurrencyIdConvert = CurrencyIdConvert;
 	type AccountIdToMultiLocation = AccountIdToMultiLocation;
 	type SelfLocation = SelfLocation;
-	type WhiteListingMultiLocations = ();
+	type WhiteListingMultiLocations = WhiteListingMultiLocations;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
 	type BaseXcmWeight = BaseXcmWeight;
