@@ -435,6 +435,11 @@ pub mod module {
 			dest: MultiLocation,
 			dest_weight: Weight,
 		) -> DispatchResult {
+			ensure!(
+				currencies.len() <= T::MaxAssetsForTransfer::get(),
+				Error::<T>::TooManyAssetsBeingSent
+			);
+
 			let mut assets = MultiAssets::new();
 
 			// Lets grab the fee amount and location first
@@ -467,10 +472,6 @@ pub mod module {
 			dest: MultiLocation,
 			dest_weight: Weight,
 		) -> DispatchResult {
-			ensure!(
-				assets.len() <= T::MaxAssetsForTransfer::get(),
-				Error::<T>::TooManyAssetsBeingSent
-			);
 			let origin_location = T::AccountIdToMultiLocation::convert(who.clone());
 
 			let mut non_fee_reserve: Option<MultiLocation> = None;
