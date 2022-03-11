@@ -269,7 +269,7 @@ impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 parameter_types! {
 	pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::get().into())));
 	pub const BaseXcmWeight: Weight = 100_000_000;
-	pub const MaxAssetsForTransfer: usize = 2;
+	pub const MaxAssetsForTransfer: usize = 3;
 	pub SupportedMultiLocations: Vec<MultiLocation> = vec![
 		MultiLocation::new(
 			1,
@@ -301,6 +301,13 @@ parameter_types! {
 		),
 		MultiLocation::new(
 			1,
+			X2(
+				Parachain(2),
+				GeneralKey("B2".into())
+			)
+		),
+		MultiLocation::new(
+			1,
 			Junctions::Here
 		)
 	];
@@ -314,6 +321,16 @@ impl Contains<MultiLocation> for WhiteListingMultiLocations {
 	}
 }
 
+parameter_type_with_key! {
+	pub ParachainMinFee: |location: MultiLocation| -> u128 {
+		#[allow(clippy::match_ref_pats)] // false positive
+		match (location.parents, location.first_interior()) {
+			(1, Some(Parachain(2))) => 40,
+			_ => u128::MAX,
+		}
+	};
+}
+
 impl orml_xtokens::Config for Runtime {
 	type Event = Event;
 	type Balance = Balance;
@@ -322,6 +339,7 @@ impl orml_xtokens::Config for Runtime {
 	type AccountIdToMultiLocation = AccountIdToMultiLocation;
 	type SelfLocation = SelfLocation;
 	type WhiteListingMultiLocations = WhiteListingMultiLocations;
+	type MinXcmFee = ParachainMinFee;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
 	type BaseXcmWeight = BaseXcmWeight;
