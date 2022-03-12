@@ -6,7 +6,7 @@ version = "0.4.1-dev"
 license = "Apache-2.0"
 homepage = "https://github.com/virto-network/virto-node"
 repository = "https://github.com/virto-network/virto-node"
-description = "Allows users to post payment on-chain"
+description = "Allows users to post escrow payment on-chain"
 readme = "README.md"
 
 [package.metadata.docs.rs]
@@ -39,6 +39,7 @@ std = [
 	'scale-info/std',
 	'orml-traits/std',
 	'frame-benchmarking/std',
+	'orml-tokens/std'
 ]
 runtime-benchmarks = [
 	"frame-benchmarking",
