@@ -22,6 +22,7 @@ members = [
 	"build-script-utils",
 	"weight-gen",
 	"weight-meter",
+	"payments"
 ]
 
 resolver = "2"
