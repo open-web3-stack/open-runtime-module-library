@@ -5,9 +5,10 @@ use scale_info::TypeInfo;
 use sp_runtime::{DispatchResult, Percent};
 
 /// The PaymentDetail struct stores information about the payment/escrow
-/// A "payment" in virto network is similar to an escrow, it is used to guarantee proof of funds
-/// and can be released once an agreed upon condition has reached between the payment creator
-/// and recipient. The payment lifecycle is tracked using the state field.
+/// A "payment" in virto network is similar to an escrow, it is used to
+/// guarantee proof of funds and can be released once an agreed upon condition
+/// has reached between the payment creator and recipient. The payment lifecycle
+/// is tracked using the state field.
 #[derive(Encode, Decode, Debug, Clone, PartialEq, Eq, MaxEncodedLen, TypeInfo)]
 #[scale_info(skip_type_params(T))]
 #[codec(mel_bound(T: pallet::Config))]
@@ -20,7 +21,8 @@ pub struct PaymentDetail<T: pallet::Config> {
 	/// incentive amount that is credited to creator for resolving
 	#[codec(compact)]
 	pub incentive_amount: BalanceOf<T>,
-	/// enum to track payment lifecycle [Created, NeedsReview, RefundRequested, Requested]
+	/// enum to track payment lifecycle [Created, NeedsReview, RefundRequested,
+	/// Requested]
 	pub state: PaymentState<T::BlockNumber>,
 	/// account that can settle any disputes created in the payment
 	pub resolver_account: T::AccountId,
@@ -29,7 +31,8 @@ pub struct PaymentDetail<T: pallet::Config> {
 }
 
 /// The `PaymentState` enum tracks the possible states that a payment can be in.
-/// When a payment is 'completed' or 'cancelled' it is removed from storage and hence not tracked by a state.
+/// When a payment is 'completed' or 'cancelled' it is removed from storage and
+/// hence not tracked by a state.
 #[derive(Encode, Decode, Debug, Clone, PartialEq, Eq, MaxEncodedLen, TypeInfo)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum PaymentState<BlockNumber> {
@@ -62,23 +65,15 @@ pub trait PaymentHandler<T: pallet::Config> {
 	/// Attempt to reserve an amount of the given asset from the caller
 	/// If not possible then return Error. Possible reasons for failure include:
 	/// - User does not have enough balance.
-	fn reserve_payment_amount(
-		from: &T::AccountId,
-		to: &T::AccountId,
-		payment: PaymentDetail<T>,
-	) -> DispatchResult;
+	fn reserve_payment_amount(from: &T::AccountId, to: &T::AccountId, payment: PaymentDetail<T>) -> DispatchResult;
 
-	// Settle a payment of `from` to `to`. To release a payment, the recipient_share=100,
-	// to cancel a payment recipient_share=0
+	// Settle a payment of `from` to `to`. To release a payment, the
+	// recipient_share=100, to cancel a payment recipient_share=0
 	// Possible reasonse for failure include
 	/// - The payment does not exist
 	/// - The unreserve operation fails
 	/// - The transfer operation fails
-	fn settle_payment(
-		from: T::AccountId,
-		to: T::AccountId,
-		recipient_share: Percent,
-	) -> DispatchResult;
+	fn settle_payment(from: T::AccountId, to: T::AccountId, recipient_share: Percent) -> DispatchResult;
 
 	/// Attempt to fetch the details of a payment from the given payment_id
 	/// Possible reasons for failure include:
@@ -86,13 +81,15 @@ pub trait PaymentHandler<T: pallet::Config> {
 	fn get_payment_details(from: &T::AccountId, to: &T::AccountId) -> Option<PaymentDetail<T>>;
 }
 
-/// DisputeResolver trait defines how to create/assign judges for solving payment disputes
+/// DisputeResolver trait defines how to create/assign judges for solving
+/// payment disputes
 pub trait DisputeResolver<Account> {
 	/// Returns an `Account`
 	fn get_resolver_account() -> Account;
 }
 
-/// Fee Handler trait that defines how to handle marketplace fees to every payment/swap
+/// Fee Handler trait that defines how to handle marketplace fees to every
+/// payment/swap
 pub trait FeeHandler<T: pallet::Config> {
 	/// Get the distribution of fees to marketplace participants
 	fn apply_fees(

@@ -13,7 +13,6 @@ use sp_runtime::{
 	traits::{BlakeTwo256, IdentityLookup},
 	Percent,
 };
-use virto_primitives::{Asset, NetworkAsset};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -24,7 +23,7 @@ pub const PAYMENT_CREATOR: AccountId = 10;
 pub const PAYMENT_RECIPENT: AccountId = 11;
 pub const PAYMENT_CREATOR_TWO: AccountId = 30;
 pub const PAYMENT_RECIPENT_TWO: AccountId = 31;
-pub const CURRENCY_ID: Asset = Asset::Network(NetworkAsset::KSM);
+pub const CURRENCY_ID: u32 = 1;
 pub const RESOLVER_ACCOUNT: AccountId = 12;
 pub const FEE_RECIPIENT_ACCOUNT: AccountId = 20;
 pub const PAYMENT_RECIPENT_FEE_CHARGED: AccountId = 21;
@@ -77,7 +76,7 @@ impl system::Config for Test {
 }
 
 parameter_type_with_key! {
-	pub ExistentialDeposits: |_currency_id: Asset| -> Balance {
+	pub ExistentialDeposits: |_currency_id: u32| -> Balance {
 		0u128
 	};
 }
@@ -95,7 +94,7 @@ impl Contains<AccountId> for MockDustRemovalWhitelist {
 impl orml_tokens::Config for Test {
 	type Amount = i64;
 	type Balance = Balance;
-	type CurrencyId = Asset;
+	type CurrencyId = u32;
 	type Event = Event;
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = ();
@@ -120,8 +119,7 @@ impl crate::types::FeeHandler<Test> for MockFeeHandler {
 		_remark: Option<&[u8]>,
 	) -> (AccountId, Percent) {
 		match to {
-			&PAYMENT_RECIPENT_FEE_CHARGED =>
-				(FEE_RECIPIENT_ACCOUNT, Percent::from_percent(MARKETPLACE_FEE_PERCENTAGE)),
+			&PAYMENT_RECIPENT_FEE_CHARGED => (FEE_RECIPIENT_ACCOUNT, Percent::from_percent(MARKETPLACE_FEE_PERCENTAGE)),
 			_ => (FEE_RECIPIENT_ACCOUNT, Percent::from_percent(0)),
 		}
 	}
@@ -173,7 +171,11 @@ pub fn run_n_blocks(n: u64) -> u64 {
 		System::set_block_number(block_number);
 
 		// Odd blocks gets busy
-		let idle_weight = if block_number % 2 == 0 { IDLE_WEIGHT } else { BUSY_WEIGHT };
+		let idle_weight = if block_number % 2 == 0 {
+			IDLE_WEIGHT
+		} else {
+			BUSY_WEIGHT
+		};
 		// ensure the on_idle is executed
 		<frame_system::Pallet<Test>>::register_extra_weight_unchecked(
 			Payment::on_idle(block_number, idle_weight),
