@@ -454,6 +454,11 @@ pub mod module {
 			dest: MultiLocation,
 			dest_weight: Weight,
 		) -> DispatchResult {
+			ensure!(
+				currencies.len() <= T::MaxAssetsForTransfer::get(),
+				Error::<T>::TooManyAssetsBeingSent
+			);
+
 			let mut assets = MultiAssets::new();
 
 			// Lets grab the fee amount and location first
