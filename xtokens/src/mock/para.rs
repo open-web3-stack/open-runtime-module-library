@@ -273,50 +273,48 @@ parameter_types! {
 	pub SupportedMultiLocations: Vec<MultiLocation> = vec![
 		MultiLocation::new(
 			1,
-			X2(
-				Parachain(1),
-				GeneralKey("A".into())
-			)
+			X1(Parachain(1))
 		),
 		MultiLocation::new(
 			1,
-			X2(
-				Parachain(1),
-				GeneralKey("A1".into())
-			)
+			X1(Parachain(2))
 		),
 		MultiLocation::new(
 			1,
-			X2(
-				Parachain(2),
-				GeneralKey("B".into())
-			)
+			X1(Parachain(3))
 		),
+		// There's a test that uses para id = 100
 		MultiLocation::new(
 			1,
-			X2(
-				Parachain(2),
-				GeneralKey("B1".into())
-			)
-		),
-		MultiLocation::new(
-			1,
-			X2(
-				Parachain(2),
-				GeneralKey("B2".into())
-			)
-		),
-		MultiLocation::new(
-			1,
-			Junctions::Here
+			X1(Parachain(100))
 		)
 	];
 }
 
 pub struct WhiteListingMultiLocations;
 impl Contains<MultiLocation> for WhiteListingMultiLocations {
-	fn contains(location: &MultiLocation) -> bool {
-		SupportedMultiLocations::get().contains(location)
+	fn contains(dest: &MultiLocation) -> bool {
+		if dest.parent_count() != 1 {
+			return false;
+		}
+
+		if let Junctions::X1(Junction::AccountId32 { .. }) = dest.interior() {
+			// parent = 1, and the junctions is the variant X1
+			// means the asset will be sent to relaychain.
+			true
+		} else {
+			// if the asset is sent to parachain,
+			// the junctions must have the variant Parachain
+			dest.interior().iter().any(|i| match i {
+				Junction::Parachain(parachain_id) => SupportedMultiLocations::get().iter().any(|location| {
+					location
+						.interior
+						.iter()
+						.any(|junc| *junc == Junction::Parachain(*parachain_id))
+				}),
+				_ => false, // No parachain id found.
+			})
+		}
 	}
 }
 
@@ -337,7 +335,7 @@ impl orml_xtokens::Config for Runtime {
 	type CurrencyIdConvert = CurrencyIdConvert;
 	type AccountIdToMultiLocation = AccountIdToMultiLocation;
 	type SelfLocation = SelfLocation;
-	type WhiteListingMultiLocations = WhiteListingMultiLocations;
+	type MultiLocationsFilter = WhiteListingMultiLocations;
 	type MinXcmFee = ParachainMinFee;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;

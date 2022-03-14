@@ -94,8 +94,8 @@ pub mod module {
 		/// XCM executor.
 		type XcmExecutor: ExecuteXcm<Self::Call>;
 
-		///
-		type WhiteListingMultiLocations: Contains<MultiLocation>;
+		/// MultiLocation filter
+		type MultiLocationsFilter: Contains<MultiLocation>;
 
 		/// Means of measuring the weight consumed by an XCM message locally.
 		type Weigher: WeightBounds<Self::Call>;
@@ -167,8 +167,8 @@ pub mod module {
 		AssetIndexNonExistent,
 		/// Fee is not enough.
 		FeeNotEnough,
-		/// Not supported location
-		NotInWhiteListLocation,
+		/// Not supported MultiLocation
+		NotSupportedMultiLocation,
 	}
 
 	#[pallet::hooks]
@@ -384,8 +384,8 @@ pub mod module {
 
 			ensure!(!amount.is_zero(), Error::<T>::ZeroAmount);
 			ensure!(
-				T::WhiteListingMultiLocations::contains(&location),
-				Error::<T>::NotInWhiteListLocation
+				T::MultiLocationsFilter::contains(&dest),
+				Error::<T>::NotSupportedMultiLocation
 			);
 
 			let asset: MultiAsset = (location, amount.into()).into();
@@ -406,8 +406,8 @@ pub mod module {
 			ensure!(!amount.is_zero(), Error::<T>::ZeroAmount);
 			ensure!(!fee.is_zero(), Error::<T>::ZeroFee);
 			ensure!(
-				T::WhiteListingMultiLocations::contains(&location),
-				Error::<T>::NotInWhiteListLocation
+				T::MultiLocationsFilter::contains(&dest),
+				Error::<T>::NotSupportedMultiLocation
 			);
 
 			let asset = (location.clone(), amount.into()).into();
@@ -466,8 +466,8 @@ pub mod module {
 					.ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
 				ensure!(!amount.is_zero(), Error::<T>::ZeroAmount);
 				ensure!(
-					T::WhiteListingMultiLocations::contains(&location),
-					Error::<T>::NotInWhiteListLocation
+					T::MultiLocationsFilter::contains(&dest),
+					Error::<T>::NotSupportedMultiLocation
 				);
 
 				// Push contains saturated addition, so we should be able to use it safely
