@@ -458,6 +458,10 @@ pub mod module {
 				currencies.len() <= T::MaxAssetsForTransfer::get(),
 				Error::<T>::TooManyAssetsBeingSent
 			);
+			ensure!(
+				T::MultiLocationsFilter::contains(&dest),
+				Error::<T>::NotSupportedMultiLocation
+			);
 
 			let mut assets = MultiAssets::new();
 
@@ -470,10 +474,6 @@ pub mod module {
 				let location: MultiLocation = T::CurrencyIdConvert::convert(currency_id.clone())
 					.ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
 				ensure!(!amount.is_zero(), Error::<T>::ZeroAmount);
-				ensure!(
-					T::MultiLocationsFilter::contains(&dest),
-					Error::<T>::NotSupportedMultiLocation
-				);
 
 				// Push contains saturated addition, so we should be able to use it safely
 				assets.push((location, (*amount).into()).into())
@@ -499,6 +499,10 @@ pub mod module {
 			ensure!(
 				assets.len() <= T::MaxAssetsForTransfer::get(),
 				Error::<T>::TooManyAssetsBeingSent
+			);
+			ensure!(
+				T::MultiLocationsFilter::contains(&dest),
+				Error::<T>::NotSupportedMultiLocation
 			);
 			let origin_location = T::AccountIdToMultiLocation::convert(who.clone());
 

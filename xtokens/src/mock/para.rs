@@ -294,12 +294,13 @@ parameter_types! {
 pub struct WhiteListingMultiLocations;
 impl Contains<MultiLocation> for WhiteListingMultiLocations {
 	fn contains(dest: &MultiLocation) -> bool {
-		if dest.parent_count() != 1 {
+		// Consider children parachain, means parent = 0
+		if dest.parent_count() != 0 && dest.parent_count() != 1 {
 			return false;
 		}
 
 		if let Junctions::X1(Junction::AccountId32 { .. }) = dest.interior() {
-			// parent = 1, and the junctions is the variant X1
+			// parent = 1 or 0, and the junctions is the variant X1
 			// means the asset will be sent to relaychain.
 			true
 		} else {
