@@ -2,8 +2,8 @@ use super::{Amount, Balance, CurrencyId, CurrencyIdConvert, ParachainXcmRouter};
 use crate as orml_xtokens;
 
 use frame_support::{
-	construct_runtime, parameter_types,
-	traits::{Contains, Everything, Get, Nothing},
+	construct_runtime, match_type, parameter_types,
+	traits::{Everything, Get, Nothing},
 	weights::{constants::WEIGHT_PER_SECOND, Weight},
 };
 use frame_system::EnsureRoot;
@@ -270,53 +270,17 @@ parameter_types! {
 	pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::get().into())));
 	pub const BaseXcmWeight: Weight = 100_000_000;
 	pub const MaxAssetsForTransfer: usize = 3;
-	pub SupportedMultiLocations: Vec<MultiLocation> = vec![
-		MultiLocation::new(
-			1,
-			X1(Parachain(1))
-		),
-		MultiLocation::new(
-			1,
-			X1(Parachain(2))
-		),
-		MultiLocation::new(
-			1,
-			X1(Parachain(3))
-		),
-		// There's a test that uses para id = 100
-		MultiLocation::new(
-			1,
-			X1(Parachain(100))
-		)
-	];
 }
 
-pub struct WhiteListingMultiLocations;
-impl Contains<MultiLocation> for WhiteListingMultiLocations {
-	fn contains(dest: &MultiLocation) -> bool {
-		// Consider children parachain, means parent = 0
-		if dest.parent_count() != 0 && dest.parent_count() != 1 {
-			return false;
-		}
-
-		if let Junctions::X1(Junction::AccountId32 { .. }) = dest.interior() {
-			// parent = 1 or 0, and the junctions is the variant X1
-			// means the asset will be sent to relaychain.
-			true
-		} else {
-			// if the asset is sent to parachain,
-			// the junctions must have the variant Parachain
-			dest.interior().iter().any(|i| match i {
-				Junction::Parachain(parachain_id) => SupportedMultiLocations::get().iter().any(|location| {
-					location
-						.interior
-						.iter()
-						.any(|junc| *junc == Junction::Parachain(*parachain_id))
-				}),
-				_ => false, // No parachain id found.
-			})
-		}
-	}
+match_type! {
+	pub type ParentOrParachains: impl Contains<MultiLocation> = {
+		MultiLocation { parents: 0, interior: X1(Junction::AccountId32 { .. }) } |
+		MultiLocation { parents: 1, interior: X1(Junction::AccountId32 { .. }) } |
+		MultiLocation { parents: 1, interior: X2(Parachain(1), Junction::AccountId32 { .. }) } |
+		MultiLocation { parents: 1, interior: X2(Parachain(2), Junction::AccountId32 { .. }) } |
+		MultiLocation { parents: 1, interior: X2(Parachain(3), Junction::AccountId32 { .. }) } |
+		MultiLocation { parents: 1, interior: X2(Parachain(100), Junction::AccountId32 { .. }) }
+	};
 }
 
 parameter_type_with_key! {
@@ -336,7 +300,7 @@ impl orml_xtokens::Config for Runtime {
 	type CurrencyIdConvert = CurrencyIdConvert;
 	type AccountIdToMultiLocation = AccountIdToMultiLocation;
 	type SelfLocation = SelfLocation;
-	type MultiLocationsFilter = WhiteListingMultiLocations;
+	type MultiLocationsFilter = ParentOrParachains;
 	type MinXcmFee = ParachainMinFee;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
