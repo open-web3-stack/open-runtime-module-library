@@ -9,9 +9,6 @@ repository = "https://github.com/virto-network/virto-node"
 description = "Allows users to post escrow payment on-chain"
 readme = "README.md"
 
-[package.metadata.docs.rs]
-targets = ["x86_64-unknown-linux-gnu"]
-
 [dependencies]
 parity-scale-codec = { default-features = false, features = ['derive'], version = "2.0.0" }
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.17", default-features = false }
@@ -40,7 +37,4 @@ std = [
 	'orml-traits/std',
 	'frame-benchmarking/std',
 	'orml-tokens/std'
-]
-runtime-benchmarks = [
-	"frame-benchmarking",
 ]
