@@ -19,7 +19,7 @@ pub mod pallet {
 	};
 	use frame_support::{
 		dispatch::DispatchResultWithPostInfo, fail, pallet_prelude::*, require_transactional,
-		traits::tokens::BalanceStatus, transactional,
+		storage::bounded_btree_map::BoundedBTreeMap, traits::tokens::BalanceStatus, transactional,
 	};
 	use frame_system::pallet_prelude::*;
 	use orml_traits::{MultiCurrency, MultiReservableCurrency};
@@ -32,7 +32,17 @@ pub mod pallet {
 	pub type BalanceOf<T> = <<T as Config>::Asset as MultiCurrency<<T as frame_system::Config>::AccountId>>::Balance;
 	pub type AssetIdOf<T> = <<T as Config>::Asset as MultiCurrency<<T as frame_system::Config>::AccountId>>::CurrencyId;
 	pub type BoundedDataOf<T> = BoundedVec<u8, <T as Config>::MaxRemarkLength>;
+	/// type of ScheduledTask used by the pallet
 	pub type ScheduledTaskOf<T> = ScheduledTask<<T as frame_system::Config>::BlockNumber>;
+	/// list of ScheduledTasks, stored as a BoundedBTreeMap
+	pub type ScheduledTaskList<T> = BoundedBTreeMap<
+		(
+			<T as frame_system::Config>::AccountId,
+			<T as frame_system::Config>::AccountId,
+		),
+		ScheduledTaskOf<T>,
+		<T as Config>::MaxRemarkLength,
+	>;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -55,6 +65,10 @@ pub mod pallet {
 		/// canceled payment
 		#[pallet::constant]
 		type CancelBufferBlockLength: Get<Self::BlockNumber>;
+		/// Buffer period - number of blocks to wait before user can claim
+		/// canceled payment
+		#[pallet::constant]
+		type MaxScheduledTaskListLength: Get<u32>;
 		//// Type representing the weight of this pallet
 		type WeightInfo: WeightInfo;
 	}
@@ -83,14 +97,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn tasks)]
 	/// Store the list of tasks to be executed in the on_idle function
-	pub(super) type ScheduledTasks<T: Config> = StorageDoubleMap<
-		_,
-		Blake2_128Concat,
-		T::AccountId, // payment creator
-		Blake2_128Concat,
-		T::AccountId, // payment recipient
-		ScheduledTaskOf<T>,
-	>;
+	pub(super) type ScheduledTasks<T: Config> = StorageValue<_, ScheduledTaskList<T>, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -154,43 +161,51 @@ pub mod pallet {
 		/// This function will look for any pending scheduled tasks that can
 		/// be executed and will process them.
 		fn on_idle(now: T::BlockNumber, mut remaining_weight: Weight) -> Weight {
-			let mut task_list: Vec<(T::AccountId, T::AccountId, ScheduledTaskOf<T>)> = ScheduledTasks::<T>::iter()
-				// leave out tasks in the future
-				.filter(|(_, _, ScheduledTask { when, .. })| when <= &now)
-				.collect();
+			// reduce the weight used to read the task list
+			remaining_weight = remaining_weight.saturating_sub(T::WeightInfo::remove_task());
 
-			if task_list.is_empty() {
-				return remaining_weight;
-			} else {
-				task_list.sort_by(|(_, _, t), (_, _, x)| x.when.partial_cmp(&t.when).unwrap());
-			}
+			ScheduledTasks::<T>::mutate(|tasks| {
+				let mut task_list: Vec<_> = tasks
+					.clone()
+					.into_iter()
+					// leave out tasks in the future
+					.filter(|(_, ScheduledTask { when, .. })| when <= &now)
+					.collect();
 
-			let cancel_weight = T::WeightInfo::cancel().saturating_add(T::WeightInfo::remove_task());
+				// order by oldest task to process
+				task_list.sort_by(|(_, t), (_, x)| x.when.partial_cmp(&t.when).unwrap());
 
-			while remaining_weight >= cancel_weight {
-				match task_list.pop() {
-					Some((from, to, ScheduledTask { task: Task::Cancel, .. })) => {
+				let cancel_weight = T::WeightInfo::cancel();
+
+				while !task_list.is_empty() && remaining_weight >= cancel_weight {
+					if let Some(((from, to), ScheduledTask { task: Task::Cancel, .. })) = task_list.pop() {
 						remaining_weight = remaining_weight.saturating_sub(cancel_weight);
+						// remove the task form the tasks
+						tasks.remove(&(from.clone(), to.clone()));
 
 						// process the cancel payment
-						if let Err(_) = <Self as PaymentHandler<T>>::settle_payment(
+						if <Self as PaymentHandler<T>>::settle_payment(
 							from.clone(),
 							to.clone(),
 							Percent::from_percent(0),
-						) {
-							// panic!("{:?}", e);
+						)
+						.is_err()
+						{
+							// log the payment refund failure
+							log::warn!(
+								target: "runtime::payments",
+								"Warning: Unable to process payment refund!"
+							);
+						} else {
+							// emit the cancel event if the refund was successful
+							Self::deposit_event(Event::PaymentCancelled {
+								from: from.clone(),
+								to: to.clone(),
+							});
 						}
-						ScheduledTasks::<T>::remove(from.clone(), to.clone());
-						// emit the cancel event
-						Self::deposit_event(Event::PaymentCancelled {
-							from: from.clone(),
-							to: to.clone(),
-						});
 					}
-					_ => return remaining_weight,
 				}
-			}
-
+			});
 			remaining_weight
 		}
 	}
@@ -334,14 +349,18 @@ pub mod pallet {
 					.checked_add(&T::CancelBufferBlockLength::get())
 					.ok_or(Error::<T>::MathError)?;
 
-				ScheduledTasks::<T>::insert(
-					who.clone(),
-					recipient.clone(),
-					ScheduledTask {
-						task: Task::Cancel,
-						when: cancel_block,
-					},
-				);
+				ScheduledTasks::<T>::try_mutate(|task_list| -> DispatchResult {
+					task_list
+						.try_insert(
+							(who.clone(), recipient.clone()),
+							ScheduledTask {
+								task: Task::Cancel,
+								when: cancel_block,
+							},
+						)
+						.map_err(|_| Error::<T>::RefundQueueFull)?;
+					Ok(())
+				})?;
 
 				payment.state = PaymentState::RefundRequested { cancel_block };
 
@@ -384,7 +403,12 @@ pub mod pallet {
 							payment.state = PaymentState::NeedsReview;
 
 							// remove the payment from scheduled tasks
-							ScheduledTasks::<T>::remove(creator.clone(), who.clone());
+							ScheduledTasks::<T>::try_mutate(|task_list| -> DispatchResult {
+								task_list
+									.remove(&(creator.clone(), who.clone()))
+									.ok_or(Error::<T>::InvalidAction)?;
+								Ok(())
+							})?;
 
 							Self::deposit_event(Event::PaymentRefundDisputed { from: creator, to: who });
 						}
@@ -518,7 +542,7 @@ pub mod pallet {
 		/// the recipient but will stay in Reserve state.
 		#[require_transactional]
 		fn reserve_payment_amount(from: &T::AccountId, to: &T::AccountId, payment: PaymentDetail<T>) -> DispatchResult {
-			let fee_amount = payment.fee_detail.map(|(_, f)| f).unwrap_or(0u32.into());
+			let fee_amount = payment.fee_detail.map(|(_, f)| f).unwrap_or_else(|| 0u32.into());
 
 			let total_fee_amount = payment.incentive_amount.saturating_add(fee_amount);
 			let total_amount = total_fee_amount.saturating_add(payment.amount);
