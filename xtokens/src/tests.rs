@@ -1335,3 +1335,54 @@ fn send_with_zero_amount() {
 
 	// TODO: should have more tests after https://github.com/paritytech/polkadot/issues/4996
 }
+
+#[test]
+fn unsupported_multilocation_should_be_filtered() {
+	TestNet::reset();
+
+	ParaB::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::B, &ALICE, 1_000));
+		assert_ok!(ParaTokens::deposit(CurrencyId::B1, &ALICE, 1_000));
+		assert_noop!(
+			ParaXTokens::transfer(
+				Some(ALICE).into(),
+				CurrencyId::B,
+				500,
+				Box::new(
+					(
+						Parent,
+						Parachain(4), // parachain 4 is not supported list.
+						Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: BOB.into(),
+						},
+					)
+						.into()
+				),
+				40,
+			),
+			Error::<para::Runtime>::NotSupportedMultiLocation
+		);
+
+		assert_noop!(
+			ParaXTokens::transfer_multicurrencies(
+				Some(ALICE).into(),
+				vec![(CurrencyId::B1, 50), (CurrencyId::B, 450)],
+				0,
+				Box::new(
+					(
+						Parent,
+						Parachain(4),
+						Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: BOB.into(),
+						},
+					)
+						.into()
+				),
+				40,
+			),
+			Error::<para::Runtime>::NotSupportedMultiLocation
+		);
+	});
+}

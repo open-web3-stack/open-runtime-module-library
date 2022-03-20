@@ -2,7 +2,7 @@ use super::{Amount, Balance, CurrencyId, CurrencyIdConvert, ParachainXcmRouter};
 use crate as orml_xtokens;
 
 use frame_support::{
-	construct_runtime, parameter_types,
+	construct_runtime, match_type, parameter_types,
 	traits::{Everything, Get, Nothing},
 	weights::{constants::WEIGHT_PER_SECOND, Weight},
 };
@@ -272,6 +272,17 @@ parameter_types! {
 	pub const MaxAssetsForTransfer: usize = 3;
 }
 
+match_type! {
+	pub type ParentOrParachains: impl Contains<MultiLocation> = {
+		MultiLocation { parents: 0, interior: X1(Junction::AccountId32 { .. }) } |
+		MultiLocation { parents: 1, interior: X1(Junction::AccountId32 { .. }) } |
+		MultiLocation { parents: 1, interior: X2(Parachain(1), Junction::AccountId32 { .. }) } |
+		MultiLocation { parents: 1, interior: X2(Parachain(2), Junction::AccountId32 { .. }) } |
+		MultiLocation { parents: 1, interior: X2(Parachain(3), Junction::AccountId32 { .. }) } |
+		MultiLocation { parents: 1, interior: X2(Parachain(100), Junction::AccountId32 { .. }) }
+	};
+}
+
 parameter_type_with_key! {
 	pub ParachainMinFee: |location: MultiLocation| -> u128 {
 		#[allow(clippy::match_ref_pats)] // false positive
@@ -289,6 +300,7 @@ impl orml_xtokens::Config for Runtime {
 	type CurrencyIdConvert = CurrencyIdConvert;
 	type AccountIdToMultiLocation = AccountIdToMultiLocation;
 	type SelfLocation = SelfLocation;
+	type MultiLocationsFilter = ParentOrParachains;
 	type MinXcmFee = ParachainMinFee;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
