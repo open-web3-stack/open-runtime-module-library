@@ -70,6 +70,7 @@ pub trait PaymentHandler<T: pallet::Config> {
 	// Settle a payment of `from` to `to`. To release a payment, the
 	// recipient_share=100, to cancel a payment recipient_share=0
 	// Possible reasonse for failure include
+	///
 	/// - The payment does not exist
 	/// - The unreserve operation fails
 	/// - The transfer operation fails
