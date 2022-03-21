@@ -70,9 +70,9 @@ pub mod module {
 		/// The token ID type
 		type TokenId: Parameter + Member + AtLeast32BitUnsigned + Default + Copy + MaxEncodedLen;
 		/// The class properties type
-		type ClassData: Parameter + Member + MaybeSerializeDeserialize + MaxEncodedLen;
+		type ClassData: Parameter + Member + MaybeSerializeDeserialize;
 		/// The token properties type
-		type TokenData: Parameter + Member + MaybeSerializeDeserialize + MaxEncodedLen;
+		type TokenData: Parameter + Member + MaybeSerializeDeserialize;
 		/// The maximum size of a class's metadata
 		type MaxClassMetadata: Get<u32>;
 		/// The maximum size of a token's metadata
@@ -189,6 +189,7 @@ pub mod module {
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
+	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
 	#[pallet::hooks]
