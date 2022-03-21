@@ -225,7 +225,7 @@ fn test_release_works() {
 }
 
 #[test]
-fn test_set_state_payment_works() {
+fn test_resolve_payment_works() {
 	new_test_ext().execute_with(|| {
 		let creator_initial_balance = 100;
 		let payment_amount = 40;
@@ -537,7 +537,7 @@ fn test_do_not_overwrite_logic_works() {
 				payment_amount,
 				None
 			),
-			crate::Error::<Test>::PaymentNeedsReview
+			crate::Error::<Test>::PaymentAlreadyInProcess
 		);
 	});
 }
@@ -561,6 +561,18 @@ fn test_request_refund() {
 			Origin::signed(PAYMENT_CREATOR),
 			PAYMENT_RECIPENT
 		));
+
+		// do not overwrite payment
+		assert_noop!(
+			Payment::pay(
+				Origin::signed(PAYMENT_CREATOR),
+				PAYMENT_RECIPENT,
+				CURRENCY_ID,
+				payment_amount,
+				None
+			),
+			crate::Error::<Test>::PaymentAlreadyInProcess
+		);
 
 		assert_eq!(
 			PaymentStore::<Test>::get(PAYMENT_CREATOR, PAYMENT_RECIPENT),
@@ -668,6 +680,11 @@ fn test_request_payment() {
 			CURRENCY_ID,
 			payment_amount,
 		));
+
+		assert_noop!(
+			Payment::request_refund(Origin::signed(PAYMENT_CREATOR), PAYMENT_RECIPENT),
+			crate::Error::<Test>::InvalidAction
+		);
 
 		assert_eq!(
 			PaymentStore::<Test>::get(PAYMENT_CREATOR, PAYMENT_RECIPENT),
@@ -869,8 +886,8 @@ fn test_accept_and_pay_should_charge_fee_correctly() {
 fn test_create_payment_does_not_work_without_transaction() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(<Payment as PaymentHandler<Test>>::create_payment(
-			PAYMENT_CREATOR,
-			PAYMENT_RECIPENT,
+			&PAYMENT_CREATOR,
+			&PAYMENT_RECIPENT,
 			CURRENCY_ID,
 			20,
 			PaymentState::Created,
@@ -899,8 +916,8 @@ fn test_create_payment_works() {
 		// transaction
 		assert_ok!(with_transaction(|| TransactionOutcome::Commit({
 			<Payment as PaymentHandler<Test>>::create_payment(
-				PAYMENT_CREATOR,
-				PAYMENT_RECIPENT,
+				&PAYMENT_CREATOR,
+				&PAYMENT_RECIPENT,
 				CURRENCY_ID,
 				payment_amount,
 				PaymentState::Created,
@@ -925,8 +942,8 @@ fn test_create_payment_works() {
 		assert_noop!(
 			with_transaction(|| TransactionOutcome::Commit({
 				<Payment as PaymentHandler<Test>>::create_payment(
-					PAYMENT_CREATOR,
-					PAYMENT_RECIPENT,
+					&PAYMENT_CREATOR,
+					&PAYMENT_RECIPENT,
 					CURRENCY_ID,
 					payment_amount,
 					PaymentState::Created,
@@ -967,8 +984,8 @@ fn test_reserve_payment_amount_works() {
 		// transaction
 		assert_ok!(with_transaction(|| TransactionOutcome::Commit({
 			<Payment as PaymentHandler<Test>>::create_payment(
-				PAYMENT_CREATOR,
-				PAYMENT_RECIPENT,
+				&PAYMENT_CREATOR,
+				&PAYMENT_RECIPENT,
 				CURRENCY_ID,
 				payment_amount,
 				PaymentState::Created,
@@ -1015,8 +1032,8 @@ fn test_reserve_payment_amount_works() {
 		assert_noop!(
 			with_transaction(|| TransactionOutcome::Commit({
 				<Payment as PaymentHandler<Test>>::create_payment(
-					PAYMENT_CREATOR,
-					PAYMENT_RECIPENT,
+					&PAYMENT_CREATOR,
+					&PAYMENT_RECIPENT,
 					CURRENCY_ID,
 					payment_amount,
 					PaymentState::Created,
@@ -1066,8 +1083,8 @@ fn test_settle_payment_works_for_cancel() {
 
 		assert_ok!(with_transaction(|| TransactionOutcome::Commit({
 			<Payment as PaymentHandler<Test>>::settle_payment(
-				PAYMENT_CREATOR,
-				PAYMENT_RECIPENT,
+				&PAYMENT_CREATOR,
+				&PAYMENT_RECIPENT,
 				Percent::from_percent(0),
 			)
 		})));
@@ -1109,8 +1126,8 @@ fn test_settle_payment_works_for_release() {
 
 		assert_ok!(with_transaction(|| TransactionOutcome::Commit({
 			<Payment as PaymentHandler<Test>>::settle_payment(
-				PAYMENT_CREATOR,
-				PAYMENT_RECIPENT,
+				&PAYMENT_CREATOR,
+				&PAYMENT_RECIPENT,
 				Percent::from_percent(100),
 			)
 		})));
@@ -1153,8 +1170,8 @@ fn test_settle_payment_works_for_70_30() {
 
 		assert_ok!(with_transaction(|| TransactionOutcome::Commit({
 			<Payment as PaymentHandler<Test>>::settle_payment(
-				PAYMENT_CREATOR,
-				PAYMENT_RECIPENT_FEE_CHARGED,
+				&PAYMENT_CREATOR,
+				&PAYMENT_RECIPENT_FEE_CHARGED,
 				Percent::from_percent(70),
 			)
 		})));
@@ -1208,8 +1225,8 @@ fn test_settle_payment_works_for_50_50() {
 
 		assert_ok!(with_transaction(|| TransactionOutcome::Commit({
 			<Payment as PaymentHandler<Test>>::settle_payment(
-				PAYMENT_CREATOR,
-				PAYMENT_RECIPENT_FEE_CHARGED,
+				&PAYMENT_CREATOR,
+				&PAYMENT_RECIPENT_FEE_CHARGED,
 				Percent::from_percent(50),
 			)
 		})));

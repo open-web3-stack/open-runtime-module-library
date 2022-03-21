@@ -169,7 +169,7 @@ pub mod pallet {
 					.clone()
 					.into_iter()
 					// leave out tasks in the future
-					.filter(|(_, ScheduledTask { when, .. })| when <= &now)
+					.filter(|(_, ScheduledTask { when, task })| when <= &now && matches!(task, Task::Cancel))
 					.collect();
 
 				// order by oldest task to process
@@ -178,15 +178,15 @@ pub mod pallet {
 				let cancel_weight = T::WeightInfo::cancel();
 
 				while !task_list.is_empty() && remaining_weight >= cancel_weight {
-					if let Some(((from, to), ScheduledTask { task: Task::Cancel, .. })) = task_list.pop() {
+					if let Some((account_pair, _)) = task_list.pop() {
 						remaining_weight = remaining_weight.saturating_sub(cancel_weight);
 						// remove the task form the tasks
-						tasks.remove(&(from.clone(), to.clone()));
+						tasks.remove(&account_pair);
 
 						// process the cancel payment
 						if <Self as PaymentHandler<T>>::settle_payment(
-							from.clone(),
-							to.clone(),
+							&account_pair.0,
+							&account_pair.1,
 							Percent::from_percent(0),
 						)
 						.is_err()
@@ -199,8 +199,8 @@ pub mod pallet {
 						} else {
 							// emit the cancel event if the refund was successful
 							Self::deposit_event(Event::PaymentCancelled {
-								from: from.clone(),
-								to: to.clone(),
+								from: account_pair.0,
+								to: account_pair.1,
 							});
 						}
 					}
@@ -231,8 +231,8 @@ pub mod pallet {
 
 			// create PaymentDetail and add to storage
 			let payment_detail = <Self as PaymentHandler<T>>::create_payment(
-				who.clone(),
-				recipient.clone(),
+				&who,
+				&recipient,
 				asset,
 				amount,
 				PaymentState::Created,
@@ -266,7 +266,7 @@ pub mod pallet {
 			}
 
 			// release is a settle_payment with 100% recipient_share
-			<Self as PaymentHandler<T>>::settle_payment(from.clone(), to.clone(), Percent::from_percent(100))?;
+			<Self as PaymentHandler<T>>::settle_payment(&from, &to, Percent::from_percent(100))?;
 
 			Self::deposit_event(Event::PaymentReleased { from, to });
 			Ok(().into())
@@ -283,11 +283,7 @@ pub mod pallet {
 				match payment.state {
 					// call settle payment with recipient_share=0, this refunds the sender
 					PaymentState::Created => {
-						<Self as PaymentHandler<T>>::settle_payment(
-							creator.clone(),
-							who.clone(),
-							Percent::from_percent(0),
-						)?;
+						<Self as PaymentHandler<T>>::settle_payment(&creator, &who, Percent::from_percent(0))?;
 						Self::deposit_event(Event::PaymentCancelled { from: creator, to: who });
 					}
 					// if the payment is in state PaymentRequested, remove from storage
@@ -298,10 +294,10 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Allow judge to set state of a payment
 		/// This extrinsic is used to resolve disputes between the creator and
-		/// recipient of the payment. This extrinsic allows the assigned judge
-		/// to cancel/release/partial_release the payment.
+		/// recipient of the payment.
+		/// This extrinsic allows the assigned judge to
+		/// cancel/release/partial_release the payment.
 		#[transactional]
 		#[pallet::weight(T::WeightInfo::resolve_payment())]
 		pub fn resolve_payment(
@@ -311,24 +307,33 @@ pub mod pallet {
 			recipient_share: Percent,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
+			let account_pair = (from, recipient);
 			// ensure the caller is the assigned resolver
-			if let Some(payment) = Payment::<T>::get(&from, &recipient) {
-				ensure!(who == payment.resolver_account, Error::<T>::InvalidAction)
+			if let Some(payment) = Payment::<T>::get(&account_pair.0, &account_pair.1) {
+				ensure!(who == payment.resolver_account, Error::<T>::InvalidAction);
+				ensure!(
+					payment.state != PaymentState::PaymentRequested,
+					Error::<T>::InvalidAction
+				);
+				if matches!(payment.state, PaymentState::RefundRequested { .. }) {
+					ScheduledTasks::<T>::mutate(|tasks| {
+						tasks.remove(&account_pair);
+					})
+				}
 			}
 			// try to update the payment to new state
-			<Self as PaymentHandler<T>>::settle_payment(from.clone(), recipient.clone(), recipient_share)?;
+			<Self as PaymentHandler<T>>::settle_payment(&account_pair.0, &account_pair.1, recipient_share)?;
 			Self::deposit_event(Event::PaymentResolved {
-				from,
-				to: recipient,
+				from: account_pair.0,
+				to: account_pair.1,
 				recipient_share,
 			});
 			Ok(().into())
 		}
 
-		/// Allow payment creator to set payment to NeedsReview
-		/// This extrinsic is used to mark the payment as disputed so the
-		/// assigned judge can tigger a resolution and that the funds are no
-		/// longer locked.
+		/// Allow the creator of a payment to initiate a refund that will return
+		/// the funds after a configured amount of time that the reveiver has to
+		/// react and opose the request
 		#[transactional]
 		#[pallet::weight(T::WeightInfo::request_refund())]
 		pub fn request_refund(origin: OriginFor<T>, recipient: T::AccountId) -> DispatchResultWithPostInfo {
@@ -337,11 +342,8 @@ pub mod pallet {
 			Payment::<T>::try_mutate(who.clone(), recipient.clone(), |maybe_payment| -> DispatchResult {
 				// ensure the payment exists
 				let payment = maybe_payment.as_mut().ok_or(Error::<T>::InvalidPayment)?;
-				// ensure the payment is not in needsreview state
-				ensure!(
-					payment.state != PaymentState::NeedsReview,
-					Error::<T>::PaymentNeedsReview
-				);
+				// refunds only possible for payments in created state
+				ensure!(payment.state == PaymentState::Created, Error::<T>::InvalidAction);
 
 				// set the payment to requested refund
 				let current_block = frame_system::Pallet::<T>::block_number();
@@ -424,8 +426,9 @@ pub mod pallet {
 
 		// Creates a new payment with the given details. This can be called by the
 		// recipient of the payment to create a payment and then completed by the sender
-		// using the `accept_and_pay` extrinsic. The payment will be in PaymentRequested
-		// State and can only be modified by the `accept_and_pay` extrinsic.
+		// using the `accept_and_pay` extrinsic.  The payment will be in
+		// PaymentRequested State and can only be modified by the `accept_and_pay`
+		// extrinsic.
 		#[transactional]
 		#[pallet::weight(T::WeightInfo::request_payment())]
 		pub fn request_payment(
@@ -438,8 +441,8 @@ pub mod pallet {
 
 			// create PaymentDetail and add to storage
 			<Self as PaymentHandler<T>>::create_payment(
-				from.clone(),
-				to.clone(),
+				&from,
+				&to,
 				asset,
 				amount,
 				PaymentState::PaymentRequested,
@@ -471,7 +474,7 @@ pub mod pallet {
 			<Self as PaymentHandler<T>>::reserve_payment_amount(&from, &to, payment)?;
 
 			// release the payment and delete the payment from storage
-			<Self as PaymentHandler<T>>::settle_payment(from.clone(), to.clone(), Percent::from_percent(100))?;
+			<Self as PaymentHandler<T>>::settle_payment(&from, &to, Percent::from_percent(100))?;
 
 			Self::deposit_event(Event::PaymentRequestCompleted { from, to });
 
@@ -485,28 +488,23 @@ pub mod pallet {
 		/// storage.
 		#[require_transactional]
 		fn create_payment(
-			from: T::AccountId,
-			recipient: T::AccountId,
+			from: &T::AccountId,
+			recipient: &T::AccountId,
 			asset: AssetIdOf<T>,
 			amount: BalanceOf<T>,
-			payment_state: PaymentState<T::BlockNumber>,
+			payment_state: PaymentState<T>,
 			incentive_percentage: Percent,
 			remark: Option<&[u8]>,
 		) -> Result<PaymentDetail<T>, sp_runtime::DispatchError> {
 			Payment::<T>::try_mutate(
-				from.clone(),
-				recipient.clone(),
+				from,
+				recipient,
 				|maybe_payment| -> Result<PaymentDetail<T>, sp_runtime::DispatchError> {
-					if maybe_payment.is_some() {
-						// ensure the payment is not in created/needsreview state
-						let current_state = maybe_payment.clone().unwrap().state;
+					// only payment requests can be overwritten
+					if let Some(payment) = maybe_payment {
 						ensure!(
-							current_state != PaymentState::Created,
+							payment.state == PaymentState::PaymentRequested,
 							Error::<T>::PaymentAlreadyInProcess
-						);
-						ensure!(
-							current_state != PaymentState::NeedsReview,
-							Error::<T>::PaymentNeedsReview
 						);
 					}
 
@@ -525,8 +523,7 @@ pub mod pallet {
 
 					// Calculate fee amount - this will be implemented based on the custom
 					// implementation of the fee provider
-					let (fee_recipient, fee_percent) =
-						T::FeeHandler::apply_fees(&from, &recipient, &new_payment, remark);
+					let (fee_recipient, fee_percent) = T::FeeHandler::apply_fees(from, recipient, &new_payment, remark);
 					let fee_amount = fee_percent.mul_floor(amount);
 					new_payment.fee_detail = Some((fee_recipient, fee_amount));
 
@@ -561,36 +558,36 @@ pub mod pallet {
 		/// fee_recipient For cancelling a payment, recipient_share = 0
 		/// For releasing a payment, recipient_share = 100
 		/// In other cases, the custom recipient_share can be specified
-		fn settle_payment(from: T::AccountId, to: T::AccountId, recipient_share: Percent) -> DispatchResult {
-			Payment::<T>::try_mutate(from.clone(), to.clone(), |maybe_payment| -> DispatchResult {
+		fn settle_payment(from: &T::AccountId, to: &T::AccountId, recipient_share: Percent) -> DispatchResult {
+			Payment::<T>::try_mutate(from, to, |maybe_payment| -> DispatchResult {
 				let payment = maybe_payment.take().ok_or(Error::<T>::InvalidPayment)?;
 
 				// unreserve the incentive amount and fees from the owner account
 				match payment.fee_detail {
 					Some((fee_recipient, fee_amount)) => {
-						T::Asset::unreserve(payment.asset, &from, payment.incentive_amount + fee_amount);
+						T::Asset::unreserve(payment.asset, from, payment.incentive_amount + fee_amount);
 						// transfer fee to marketplace if operation is not cancel
 						if recipient_share != Percent::zero() {
 							T::Asset::transfer(
 								payment.asset,
-								&from,          // fee is paid by payment creator
+								from,           // fee is paid by payment creator
 								&fee_recipient, // account of fee recipient
 								fee_amount,     // amount of fee
 							)?;
 						}
 					}
 					None => {
-						T::Asset::unreserve(payment.asset, &from, payment.incentive_amount);
+						T::Asset::unreserve(payment.asset, from, payment.incentive_amount);
 					}
 				};
 
 				// Unreserve the transfer amount
-				T::Asset::unreserve(payment.asset, &to, payment.amount);
+				T::Asset::unreserve(payment.asset, to, payment.amount);
 
 				let amount_to_recipient = recipient_share.mul_floor(payment.amount);
 				let amount_to_sender = payment.amount.saturating_sub(amount_to_recipient);
 				// send share to recipient
-				T::Asset::transfer(payment.asset, &to, &from, amount_to_sender)?;
+				T::Asset::transfer(payment.asset, to, from, amount_to_sender)?;
 
 				Ok(())
 			})?;
