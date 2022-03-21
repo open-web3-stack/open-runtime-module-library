@@ -22,7 +22,13 @@
 #![allow(clippy::unused_unit)]
 #![allow(clippy::large_enum_variant)]
 
-use frame_support::{log, pallet_prelude::*, require_transactional, traits::Get, transactional, Parameter};
+use frame_support::{
+	log,
+	pallet_prelude::*,
+	require_transactional,
+	traits::{Contains, Get},
+	transactional, Parameter,
+};
 use frame_system::{ensure_signed, pallet_prelude::*};
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, Convert, MaybeSerializeDeserialize, Member, Zero},
@@ -87,6 +93,9 @@ pub mod module {
 
 		/// XCM executor.
 		type XcmExecutor: ExecuteXcm<Self::Call>;
+
+		/// MultiLocation filter
+		type MultiLocationsFilter: Contains<MultiLocation>;
 
 		/// Means of measuring the weight consumed by an XCM message locally.
 		type Weigher: WeightBounds<Self::Call>;
@@ -162,6 +171,8 @@ pub mod module {
 		AssetIndexNonExistent,
 		/// Fee is not enough.
 		FeeNotEnough,
+		/// Not supported MultiLocation
+		NotSupportedMultiLocation,
 	}
 
 	#[pallet::hooks]
@@ -376,6 +387,10 @@ pub mod module {
 				T::CurrencyIdConvert::convert(currency_id).ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
 
 			ensure!(!amount.is_zero(), Error::<T>::ZeroAmount);
+			ensure!(
+				T::MultiLocationsFilter::contains(&dest),
+				Error::<T>::NotSupportedMultiLocation
+			);
 
 			let asset: MultiAsset = (location, amount.into()).into();
 			Self::do_transfer_multiassets(who, vec![asset.clone()].into(), asset, dest, dest_weight)
@@ -394,6 +409,10 @@ pub mod module {
 
 			ensure!(!amount.is_zero(), Error::<T>::ZeroAmount);
 			ensure!(!fee.is_zero(), Error::<T>::ZeroFee);
+			ensure!(
+				T::MultiLocationsFilter::contains(&dest),
+				Error::<T>::NotSupportedMultiLocation
+			);
 
 			let asset = (location.clone(), amount.into()).into();
 			let fee_asset: MultiAsset = (location, fee.into()).into();
@@ -443,6 +462,10 @@ pub mod module {
 				currencies.len() <= T::MaxAssetsForTransfer::get(),
 				Error::<T>::TooManyAssetsBeingSent
 			);
+			ensure!(
+				T::MultiLocationsFilter::contains(&dest),
+				Error::<T>::NotSupportedMultiLocation
+			);
 
 			let mut assets = MultiAssets::new();
 
@@ -455,6 +478,7 @@ pub mod module {
 				let location: MultiLocation = T::CurrencyIdConvert::convert(currency_id.clone())
 					.ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
 				ensure!(!amount.is_zero(), Error::<T>::ZeroAmount);
+
 				// Push contains saturated addition, so we should be able to use it safely
 				assets.push((location, (*amount).into()).into())
 			}
@@ -479,6 +503,10 @@ pub mod module {
 			ensure!(
 				assets.len() <= T::MaxAssetsForTransfer::get(),
 				Error::<T>::TooManyAssetsBeingSent
+			);
+			ensure!(
+				T::MultiLocationsFilter::contains(&dest),
+				Error::<T>::NotSupportedMultiLocation
 			);
 			let origin_location = T::AccountIdToMultiLocation::convert(who.clone());
 
