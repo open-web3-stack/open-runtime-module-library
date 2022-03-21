@@ -92,7 +92,7 @@ pub mod module {
 		type WeightInfo: WeightInfo;
 
 		/// Maximum size of HasDispatched
-		type MaxHasDispatchedSize: Get<u32> + MaxEncodedLen;
+		type MaxHasDispatchedSize: Get<u32>;
 	}
 
 	#[pallet::error]
