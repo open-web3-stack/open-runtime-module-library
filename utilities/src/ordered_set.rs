@@ -1,11 +1,11 @@
-use codec::{Decode, Encode};
+use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{traits::Get, BoundedVec, DefaultNoBound};
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use sp_std::{fmt, prelude::*};
 
 /// An ordered set backed by `BoundedVec`
-#[derive(PartialEq, Eq, Encode, Decode, DefaultNoBound, Clone, TypeInfo)]
+#[derive(PartialEq, Eq, Encode, Decode, DefaultNoBound, Clone, TypeInfo, MaxEncodedLen)]
 #[scale_info(skip_type_params(S))]
 pub struct OrderedSet<T, S: Get<u32>>(pub BoundedVec<T, S>);
 
