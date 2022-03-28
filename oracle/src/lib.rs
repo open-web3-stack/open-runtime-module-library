@@ -119,12 +119,6 @@ pub mod module {
 	pub type RawValues<T: Config<I>, I: 'static = ()> =
 		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, T::OracleKey, TimestampedValueOf<T, I>>;
 
-	/// True if Self::values(key) is up to date, otherwise the value is stale
-	#[pallet::storage]
-	#[pallet::getter(fn is_updated)]
-	pub type IsUpdated<T: Config<I>, I: 'static = ()> =
-		StorageMap<_, Twox64Concat, <T as Config<I>>::OracleKey, bool, ValueQuery>;
-
 	/// Combined value, may not be up to date
 	#[pallet::storage]
 	#[pallet::getter(fn values)]
@@ -187,14 +181,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 	///
 	/// Note this will update values storage if has update.
 	pub fn get(key: &T::OracleKey) -> Option<TimestampedValueOf<T, I>> {
-		if Self::is_updated(key) {
-			<Values<T, I>>::get(key)
-		} else {
-			let timestamped = Self::combined(key)?;
-			<Values<T, I>>::insert(key, timestamped.clone());
-			IsUpdated::<T, I>::insert(key, true);
-			Some(timestamped)
-		}
+		<Values<T, I>>::get(key)
 	}
 
 	/// Returns fresh combined value if has update, or latest combined
@@ -202,11 +189,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 	///
 	/// This is a no-op function which would not change storage.
 	pub fn get_no_op(key: &T::OracleKey) -> Option<TimestampedValueOf<T, I>> {
-		if Self::is_updated(key) {
-			Self::values(key)
-		} else {
-			Self::combined(key)
-		}
+		Self::values(key)
 	}
 
 	#[allow(clippy::complexity)]
@@ -247,7 +230,12 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 				timestamp: now,
 			};
 			RawValues::<T, I>::insert(&who, &key, timestamped);
-			IsUpdated::<T, I>::remove(&key);
+
+			let combined = Self::combined(key);
+			if combined.is_some() {
+				// Update Values storage if `combined` yielded result.
+				<Values<T, I>>::insert(key, combined.clone().unwrap());
+			}
 
 			T::OnNewData::on_new_data(&who, key, value);
 		}
@@ -262,9 +250,6 @@ impl<T: Config<I>, I: 'static> ChangeMembers<T::AccountId> for Pallet<T, I> {
 		for removed in outgoing {
 			RawValues::<T, I>::remove_prefix(removed, None);
 		}
-
-		// not bothering to track which key needs recompute, just update all
-		IsUpdated::<T, I>::remove_all(None);
 	}
 
 	fn set_prime(_prime: Option<T::AccountId>) {
