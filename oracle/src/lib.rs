@@ -231,10 +231,9 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 			};
 			RawValues::<T, I>::insert(&who, &key, timestamped);
 
-			let combined = Self::combined(key);
-			if combined.is_some() {
+			if let Some(combined) = Self::combined(key) {
 				// Update Values storage if `combined` yielded result.
-				<Values<T, I>>::insert(key, combined.clone().unwrap());
+				<Values<T, I>>::insert(key, combined);
 			}
 
 			T::OnNewData::on_new_data(&who, key, value);
