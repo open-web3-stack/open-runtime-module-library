@@ -184,11 +184,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 	#[allow(clippy::complexity)]
 	pub fn get_all_values() -> Vec<(T::OracleKey, Option<TimestampedValueOf<T, I>>)> {
 		<Values<T, I>>::iter()
-			.map(|(key, _)| key)
-			.map(|key| {
-				let v = Self::get_no_op(&key);
-				(key, v)
-			})
+			.map(|(k, v)| (k, Some(v)))
 			.collect()
 	}
 
