@@ -119,13 +119,13 @@ pub mod module {
 	pub type RawValues<T: Config<I>, I: 'static = ()> =
 		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, T::OracleKey, TimestampedValueOf<T, I>>;
 
-	/// Combined value, may not be up to date
+	/// Up to date combined value from Raw Values
 	#[pallet::storage]
 	#[pallet::getter(fn values)]
 	pub type Values<T: Config<I>, I: 'static = ()> =
 		StorageMap<_, Twox64Concat, <T as Config<I>>::OracleKey, TimestampedValueOf<T, I>>;
 
-	/// If an oracle operator has feed a value in this block
+	/// If an oracle operator has fed a value in this block
 	#[pallet::storage]
 	pub(crate) type HasDispatched<T: Config<I>, I: 'static = ()> =
 		StorageValue<_, OrderedSet<T::AccountId, T::MaxHasDispatchedSize>, ValueQuery>;
@@ -176,19 +176,8 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 			.collect()
 	}
 
-	/// Returns fresh combined value if has update, or latest combined
-	/// value.
-	///
-	/// Note this will update values storage if has update.
+	/// Fetch current combined value.
 	pub fn get(key: &T::OracleKey) -> Option<TimestampedValueOf<T, I>> {
-		<Values<T, I>>::get(key)
-	}
-
-	/// Returns fresh combined value if has update, or latest combined
-	/// value.
-	///
-	/// This is a no-op function which would not change storage.
-	pub fn get_no_op(key: &T::OracleKey) -> Option<TimestampedValueOf<T, I>> {
 		Self::values(key)
 	}
 
@@ -231,8 +220,8 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 			};
 			RawValues::<T, I>::insert(&who, &key, timestamped);
 
+			// Update `Values` storage if `combined` yielded result.
 			if let Some(combined) = Self::combined(key) {
-				// Update Values storage if `combined` yielded result.
 				<Values<T, I>>::insert(key, combined);
 			}
 
@@ -263,7 +252,7 @@ impl<T: Config<I>, I: 'static> DataProvider<T::OracleKey, T::OracleValue> for Pa
 }
 impl<T: Config<I>, I: 'static> DataProviderExtended<T::OracleKey, TimestampedValueOf<T, I>> for Pallet<T, I> {
 	fn get_no_op(key: &T::OracleKey) -> Option<TimestampedValueOf<T, I>> {
-		Self::get_no_op(key)
+		Self::get(key)
 	}
 
 	#[allow(clippy::complexity)]
