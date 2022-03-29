@@ -119,19 +119,13 @@ pub mod module {
 	pub type RawValues<T: Config<I>, I: 'static = ()> =
 		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, T::OracleKey, TimestampedValueOf<T, I>>;
 
-	/// True if Self::values(key) is up to date, otherwise the value is stale
-	#[pallet::storage]
-	#[pallet::getter(fn is_updated)]
-	pub type IsUpdated<T: Config<I>, I: 'static = ()> =
-		StorageMap<_, Twox64Concat, <T as Config<I>>::OracleKey, bool, ValueQuery>;
-
-	/// Combined value, may not be up to date
+	/// Up to date combined value from Raw Values
 	#[pallet::storage]
 	#[pallet::getter(fn values)]
 	pub type Values<T: Config<I>, I: 'static = ()> =
 		StorageMap<_, Twox64Concat, <T as Config<I>>::OracleKey, TimestampedValueOf<T, I>>;
 
-	/// If an oracle operator has feed a value in this block
+	/// If an oracle operator has fed a value in this block
 	#[pallet::storage]
 	pub(crate) type HasDispatched<T: Config<I>, I: 'static = ()> =
 		StorageValue<_, OrderedSet<T::AccountId, T::MaxHasDispatchedSize>, ValueQuery>;
@@ -182,42 +176,14 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 			.collect()
 	}
 
-	/// Returns fresh combined value if has update, or latest combined
-	/// value.
-	///
-	/// Note this will update values storage if has update.
+	/// Fetch current combined value.
 	pub fn get(key: &T::OracleKey) -> Option<TimestampedValueOf<T, I>> {
-		if Self::is_updated(key) {
-			<Values<T, I>>::get(key)
-		} else {
-			let timestamped = Self::combined(key)?;
-			<Values<T, I>>::insert(key, timestamped.clone());
-			IsUpdated::<T, I>::insert(key, true);
-			Some(timestamped)
-		}
-	}
-
-	/// Returns fresh combined value if has update, or latest combined
-	/// value.
-	///
-	/// This is a no-op function which would not change storage.
-	pub fn get_no_op(key: &T::OracleKey) -> Option<TimestampedValueOf<T, I>> {
-		if Self::is_updated(key) {
-			Self::values(key)
-		} else {
-			Self::combined(key)
-		}
+		Self::values(key)
 	}
 
 	#[allow(clippy::complexity)]
 	pub fn get_all_values() -> Vec<(T::OracleKey, Option<TimestampedValueOf<T, I>>)> {
-		<Values<T, I>>::iter()
-			.map(|(key, _)| key)
-			.map(|key| {
-				let v = Self::get_no_op(&key);
-				(key, v)
-			})
-			.collect()
+		<Values<T, I>>::iter().map(|(k, v)| (k, Some(v))).collect()
 	}
 
 	fn combined(key: &T::OracleKey) -> Option<TimestampedValueOf<T, I>> {
@@ -247,7 +213,11 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 				timestamp: now,
 			};
 			RawValues::<T, I>::insert(&who, &key, timestamped);
-			IsUpdated::<T, I>::remove(&key);
+
+			// Update `Values` storage if `combined` yielded result.
+			if let Some(combined) = Self::combined(key) {
+				<Values<T, I>>::insert(key, combined);
+			}
 
 			T::OnNewData::on_new_data(&who, key, value);
 		}
@@ -262,9 +232,6 @@ impl<T: Config<I>, I: 'static> ChangeMembers<T::AccountId> for Pallet<T, I> {
 		for removed in outgoing {
 			RawValues::<T, I>::remove_prefix(removed, None);
 		}
-
-		// not bothering to track which key needs recompute, just update all
-		IsUpdated::<T, I>::remove_all(None);
 	}
 
 	fn set_prime(_prime: Option<T::AccountId>) {
@@ -279,7 +246,7 @@ impl<T: Config<I>, I: 'static> DataProvider<T::OracleKey, T::OracleValue> for Pa
 }
 impl<T: Config<I>, I: 'static> DataProviderExtended<T::OracleKey, TimestampedValueOf<T, I>> for Pallet<T, I> {
 	fn get_no_op(key: &T::OracleKey) -> Option<TimestampedValueOf<T, I>> {
-		Self::get_no_op(key)
+		Self::get(key)
 	}
 
 	#[allow(clippy::complexity)]

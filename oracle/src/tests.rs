@@ -101,29 +101,6 @@ fn should_not_feed_values_from_root_directly() {
 }
 
 #[test]
-fn should_update_is_updated() {
-	new_test_ext().execute_with(|| {
-		let key: u32 = 50;
-		assert!(!ModuleOracle::is_updated(key));
-		assert_ok!(ModuleOracle::feed_values(Origin::signed(1), vec![(key, 1000)]));
-		assert_ok!(ModuleOracle::feed_values(Origin::signed(2), vec![(key, 1000)]));
-		assert_ok!(ModuleOracle::feed_values(Origin::signed(3), vec![(key, 1000)]));
-		assert!(!ModuleOracle::is_updated(key));
-		assert_eq!(
-			ModuleOracle::get(&key).unwrap(),
-			TimestampedValue {
-				value: 1000,
-				timestamp: 12345
-			}
-		);
-		assert!(ModuleOracle::is_updated(key));
-		ModuleOracle::on_finalize(1);
-		assert_ok!(ModuleOracle::feed_values(Origin::signed(1), vec![(key, 1000)]));
-		assert!(!ModuleOracle::is_updated(key));
-	});
-}
-
-#[test]
 fn should_read_raw_values() {
 	new_test_ext().execute_with(|| {
 		let key: u32 = 50;
@@ -261,28 +238,6 @@ fn change_member_should_work() {
 }
 
 #[test]
-fn should_clear_is_updated_on_change_member() {
-	new_test_ext().execute_with(|| {
-		assert_ok!(ModuleOracle::feed_values(Origin::signed(1), vec![(50, 1000)]));
-		assert_ok!(ModuleOracle::feed_values(Origin::signed(2), vec![(50, 1000)]));
-		assert_ok!(ModuleOracle::feed_values(Origin::signed(3), vec![(50, 1000)]));
-
-		assert_eq!(
-			ModuleOracle::get(&50).unwrap(),
-			TimestampedValue {
-				value: 1000,
-				timestamp: 12345
-			}
-		);
-		assert!(ModuleOracle::is_updated(50));
-
-		ModuleOracle::change_members_sorted(&[4], &[1], &[2, 3, 4]);
-
-		assert!(!ModuleOracle::is_updated(50));
-	});
-}
-
-#[test]
 fn should_clear_data_for_removed_members() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(ModuleOracle::feed_values(Origin::signed(1), vec![(50, 1000)]));
@@ -291,5 +246,26 @@ fn should_clear_data_for_removed_members() {
 		ModuleOracle::change_members_sorted(&[4], &[1], &[2, 3, 4]);
 
 		assert_eq!(ModuleOracle::raw_values(&1, 50), None);
+	});
+}
+
+#[test]
+fn values_are_updated_on_feed() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(ModuleOracle::feed_values(Origin::signed(1), vec![(50, 900)]));
+		assert_ok!(ModuleOracle::feed_values(Origin::signed(2), vec![(50, 1000)]));
+
+		assert_eq!(ModuleOracle::values(50), None);
+
+		// Upon the third price feed, the value is updated immediately after `combine`
+		// can produce valid result.
+		assert_ok!(ModuleOracle::feed_values(Origin::signed(3), vec![(50, 1100)]));
+		assert_eq!(
+			ModuleOracle::values(50),
+			Some(TimestampedValue {
+				value: 1000,
+				timestamp: 12345,
+			})
+		);
 	});
 }
