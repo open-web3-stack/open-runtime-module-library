@@ -3,7 +3,7 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{construct_runtime, parameter_types, traits::Everything, weights::constants::RocksDbWeight};
+use frame_support::{construct_runtime, parameter_types, traits::{Everything, ConstU32, ConstU64, ConstU128}, weights::constants::RocksDbWeight};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 use sp_std::cell::RefCell;
@@ -25,10 +25,6 @@ pub const DOT_POOL: PoolId = 1;
 pub const NATIVE_COIN: CurrencyId = 0;
 pub const STABLE_COIN: CurrencyId = 1;
 
-parameter_types! {
-	pub const BlockHashCount: u64 = 250;
-}
-
 impl frame_system::Config for Runtime {
 	type Origin = Origin;
 	type Index = u64;
@@ -40,7 +36,7 @@ impl frame_system::Config for Runtime {
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
 	type Event = Event;
-	type BlockHashCount = BlockHashCount;
+	type BlockHashCount = ConstU64<250>;
 	type BlockWeights = ();
 	type BlockLength = ();
 	type Version = ();

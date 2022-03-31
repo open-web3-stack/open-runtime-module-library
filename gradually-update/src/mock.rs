@@ -3,15 +3,11 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{construct_runtime, parameter_types, traits::Everything};
+use frame_support::{construct_runtime, traits::{Everything, ConstU32, ConstU64}};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 
 use crate as gradually_update;
-
-parameter_types! {
-	pub const BlockHashCount: u64 = 250;
-}
 
 pub type AccountId = u128;
 pub type BlockNumber = u64;
@@ -27,7 +23,7 @@ impl frame_system::Config for Runtime {
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
 	type Event = Event;
-	type BlockHashCount = BlockHashCount;
+	type BlockHashCount = ConstU64<250>;
 	type BlockWeights = ();
 	type BlockLength = ();
 	type Version = ();
@@ -43,21 +39,14 @@ impl frame_system::Config for Runtime {
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
-parameter_types! {
-	pub const UpdateFrequency: BlockNumber = 10;
-	pub MaxGraduallyUpdate: u32 = 3;
-	pub MaxStorageKeyBytes: u32 = 100_000;
-	pub MaxStorageValueBytes: u32 = 100_000;
-}
-
 impl Config for Runtime {
 	type Event = Event;
-	type UpdateFrequency = UpdateFrequency;
+	type UpdateFrequency = ConstU64<10>;
 	type DispatchOrigin = frame_system::EnsureRoot<AccountId>;
 	type WeightInfo = ();
-	type MaxGraduallyUpdate = MaxGraduallyUpdate;
-	type MaxStorageKeyBytes = MaxStorageKeyBytes;
-	type MaxStorageValueBytes = MaxStorageValueBytes;
+	type MaxGraduallyUpdate = ConstU32<3>;
+	type MaxStorageKeyBytes = ConstU32<100_000>;
+	type MaxStorageValueBytes = ConstU32<100_000>;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
