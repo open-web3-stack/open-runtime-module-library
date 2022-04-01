@@ -130,7 +130,7 @@ pub mod test_module {
 }
 
 use frame_support::sp_runtime::traits::IdentityLookup;
-use frame_support::traits::{ConstU128, ConstU64, Everything};
+use frame_support::traits::{ConstU128, ConstU32, ConstU64, Everything};
 use sp_runtime::testing::{Header, H256};
 
 pub type BlockNumber = u64;
@@ -163,7 +163,7 @@ impl frame_system::Config for Runtime {
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
 	type OnSetCode = ();
-	type MaxConsumers = frame_support::traits::ConstU32<16>;
+	type MaxConsumers = ConstU32<16>;
 }
 
 impl pallet_balances::Config for Runtime {
