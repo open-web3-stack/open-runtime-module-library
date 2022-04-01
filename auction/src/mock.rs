@@ -3,7 +3,10 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{construct_runtime, traits::{Everything, ConstU64}};
+use frame_support::{
+	construct_runtime,
+	traits::{ConstU64, Everything},
+};
 use orml_traits::OnNewBidResult;
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup};

@@ -2,7 +2,10 @@
 
 #![cfg(test)]
 
-use frame_support::{construct_runtime, traits::{Everything, ConstU32, ConstU64}};
+use frame_support::{
+	construct_runtime,
+	traits::{ConstU32, ConstU64, Everything},
+};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 

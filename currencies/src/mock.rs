@@ -4,8 +4,8 @@
 
 use super::*;
 use frame_support::{
-	construct_runtime, parameter_types, 
-	traits::{Everything, Nothing, ConstU32, ConstU64,},
+	construct_runtime, parameter_types,
+	traits::{ConstU32, ConstU64, Everything, Nothing},
 	PalletId,
 };
 use orml_traits::parameter_type_with_key;

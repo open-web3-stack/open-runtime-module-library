@@ -5,17 +5,13 @@
 use super::*;
 use frame_support::{
 	construct_runtime, parameter_types,
-	traits::{EnsureOrigin, Everything},
+	traits::{ConstU32, ConstU64, EnsureOrigin, Everything},
 };
 use frame_system::RawOrigin;
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 
 use crate as vesting;
-
-parameter_types! {
-	pub const BlockHashCount: u64 = 250;
-}
 
 pub type AccountId = u128;
 impl frame_system::Config for Runtime {
@@ -29,7 +25,7 @@ impl frame_system::Config for Runtime {
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
 	type Event = Event;
-	type BlockHashCount = BlockHashCount;
+	type BlockHashCount = ConstU64<250>;
 	type BlockWeights = ();
 	type BlockLength = ();
 	type Version = ();
@@ -47,15 +43,11 @@ impl frame_system::Config for Runtime {
 
 type Balance = u64;
 
-parameter_types! {
-	pub const ExistentialDeposit: u64 = 1;
-}
-
 impl pallet_balances::Config for Runtime {
 	type Balance = Balance;
 	type DustRemoval = ();
 	type Event = Event;
-	type ExistentialDeposit = ExistentialDeposit;
+	type ExistentialDeposit = ConstU64<1>;
 	type AccountStore = frame_system::Pallet<Runtime>;
 	type MaxLocks = ();
 	type MaxReserves = ();
@@ -84,8 +76,6 @@ impl EnsureOrigin<Origin> for EnsureAliceOrBob {
 }
 
 parameter_types! {
-	pub const MaxVestingSchedule: u32 = 2;
-	pub const MinVestedTransfer: u64 = 5;
 	pub static MockBlockNumberProvider: u64 = 0;
 }
 
@@ -100,10 +90,10 @@ impl BlockNumberProvider for MockBlockNumberProvider {
 impl Config for Runtime {
 	type Event = Event;
 	type Currency = PalletBalances;
-	type MinVestedTransfer = MinVestedTransfer;
+	type MinVestedTransfer = ConstU64<5>;
 	type VestedTransferOrigin = EnsureAliceOrBob;
 	type WeightInfo = ();
-	type MaxVestingSchedules = MaxVestingSchedule;
+	type MaxVestingSchedules = ConstU32<2>;
 	type BlockNumberProvider = MockBlockNumberProvider;
 }
 

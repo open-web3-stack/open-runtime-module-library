@@ -4,7 +4,7 @@ use super::*;
 
 use frame_support::{
 	construct_runtime, parameter_types,
-	traits::{Everything, SortedMembers, ConstU32, ConstU64},
+	traits::{ConstU32, ConstU64, Everything, SortedMembers},
 };
 use sp_core::H256;
 use sp_runtime::{

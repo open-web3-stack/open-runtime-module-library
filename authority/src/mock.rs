@@ -6,7 +6,7 @@ use super::*;
 use codec::{Decode, Encode};
 use frame_support::{
 	parameter_types,
-	traits::{EqualPrivilegeOnly, Everything, ConstU64},
+	traits::{ConstU64, EqualPrivilegeOnly, Everything},
 	weights::Weight,
 };
 use frame_system::{ensure_root, ensure_signed, EnsureRoot};
