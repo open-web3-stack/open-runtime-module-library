@@ -162,7 +162,7 @@ pub mod pallet {
 		/// be executed and will process them.
 		fn on_idle(now: T::BlockNumber, mut remaining_weight: Weight) -> Weight {
 			// reduce the weight used to read the task list
-			remaining_weight = remaining_weight.saturating_sub(T::WeightInfo::remove_task());
+			remaining_weight = remaining_weight.saturating_sub(T::DbWeight::get().reads_writes(1, 1));
 
 			ScheduledTasks::<T>::mutate(|tasks| {
 				let mut task_list: Vec<_> = tasks
