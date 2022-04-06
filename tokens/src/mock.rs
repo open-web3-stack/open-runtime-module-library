@@ -5,7 +5,10 @@
 use super::*;
 use frame_support::{
 	construct_runtime, parameter_types,
-	traits::{ChangeMembers, ContainsLengthBound, Everything, GenesisBuild, SaturatingCurrencyToVote, SortedMembers},
+	traits::{
+		ChangeMembers, ConstU32, ConstU64, ContainsLengthBound, Everything, GenesisBuild, SaturatingCurrencyToVote,
+		SortedMembers,
+	},
 	PalletId,
 };
 use orml_traits::parameter_type_with_key;
@@ -35,10 +38,6 @@ pub const ID_3: LockIdentifier = *b"3       ";
 
 use crate as tokens;
 
-parameter_types! {
-	pub const BlockHashCount: u64 = 250;
-}
-
 impl frame_system::Config for Runtime {
 	type Origin = Origin;
 	type Call = Call;
@@ -50,7 +49,7 @@ impl frame_system::Config for Runtime {
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
 	type Event = Event;
-	type BlockHashCount = BlockHashCount;
+	type BlockHashCount = ConstU64<250>;
 	type BlockWeights = ();
 	type BlockLength = ();
 	type Version = ();
@@ -63,7 +62,7 @@ impl frame_system::Config for Runtime {
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
 	type OnSetCode = ();
-	type MaxConsumers = frame_support::traits::ConstU32<16>;
+	type MaxConsumers = ConstU32<16>;
 }
 
 thread_local! {
@@ -179,13 +178,6 @@ impl ChangeMembers<AccountId> for TestChangeMembers {
 
 parameter_types! {
 	pub const ElectionsPhragmenPalletId: LockIdentifier = *b"phrelect";
-	pub const CandidacyBond: u64 = 3;
-	pub const VotingBond: u64 = 2;
-	pub const DesiredMembers: u32 = 2;
-	pub const DesiredRunnersUp: u32 = 2;
-	pub const TermDuration: u64 = 5;
-	pub const VotingBondBase: u64 = 2;
-	pub const VotingBondFactor: u64 = 0;
 }
 
 impl pallet_elections_phragmen::Config for Runtime {
@@ -195,12 +187,12 @@ impl pallet_elections_phragmen::Config for Runtime {
 	type CurrencyToVote = SaturatingCurrencyToVote;
 	type ChangeMembers = TestChangeMembers;
 	type InitializeMembers = ();
-	type CandidacyBond = CandidacyBond;
-	type VotingBondBase = VotingBondBase;
-	type VotingBondFactor = VotingBondFactor;
-	type TermDuration = TermDuration;
-	type DesiredMembers = DesiredMembers;
-	type DesiredRunnersUp = DesiredRunnersUp;
+	type CandidacyBond = ConstU64<3>;
+	type VotingBondBase = ConstU64<2>;
+	type VotingBondFactor = ConstU64<0>;
+	type TermDuration = ConstU64<5>;
+	type DesiredMembers = ConstU32<2>;
+	type DesiredRunnersUp = ConstU32<2>;
 	type LoserCandidate = ();
 	type KickedMember = ();
 	type WeightInfo = ();
@@ -226,7 +218,6 @@ parameter_type_with_key! {
 
 parameter_types! {
 	pub DustReceiver: AccountId = PalletId(*b"orml/dst").into_account();
-	pub MaxLocks: u32 = 2;
 }
 
 impl Config for Runtime {
@@ -237,7 +228,7 @@ impl Config for Runtime {
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = TransferDust<Runtime, DustReceiver>;
-	type MaxLocks = MaxLocks;
+	type MaxLocks = ConstU32<2>;
 	type DustRemovalWhitelist = MockDustRemovalWhitelist;
 }
 pub type TreasuryCurrencyAdapter = <Runtime as pallet_treasury::Config>::Currency;

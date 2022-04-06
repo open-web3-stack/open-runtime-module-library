@@ -22,7 +22,13 @@
 #![allow(clippy::unused_unit)]
 #![allow(clippy::large_enum_variant)]
 
-use frame_support::{log, pallet_prelude::*, require_transactional, traits::Get, transactional, Parameter};
+use frame_support::{
+	log,
+	pallet_prelude::*,
+	require_transactional,
+	traits::{Contains, Get},
+	transactional, Parameter,
+};
 use frame_system::{ensure_signed, pallet_prelude::*};
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, Convert, MaybeSerializeDeserialize, Member, Zero},
@@ -88,6 +94,9 @@ pub mod module {
 		/// XCM executor.
 		type XcmExecutor: ExecuteXcm<Self::Call>;
 
+		/// MultiLocation filter
+		type MultiLocationsFilter: Contains<MultiLocation>;
+
 		/// Means of measuring the weight consumed by an XCM message locally.
 		type Weigher: WeightBounds<Self::Call>;
 
@@ -104,6 +113,10 @@ pub mod module {
 		/// The maximum number of distinct assets allowed to be transferred in a
 		/// single helper extrinsic.
 		type MaxAssetsForTransfer: Get<usize>;
+
+		/// The way to retreave the reserve of a MultiAsset. This can be
+		/// configured to accept absolute or relative paths for self tokens
+		type ReserveProvider: Reserve;
 	}
 
 	#[pallet::event]
@@ -158,6 +171,8 @@ pub mod module {
 		AssetIndexNonExistent,
 		/// Fee is not enough.
 		FeeNotEnough,
+		/// Not supported MultiLocation
+		NotSupportedMultiLocation,
 	}
 
 	#[pallet::hooks]
@@ -372,6 +387,10 @@ pub mod module {
 				T::CurrencyIdConvert::convert(currency_id).ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
 
 			ensure!(!amount.is_zero(), Error::<T>::ZeroAmount);
+			ensure!(
+				T::MultiLocationsFilter::contains(&dest),
+				Error::<T>::NotSupportedMultiLocation
+			);
 
 			let asset: MultiAsset = (location, amount.into()).into();
 			Self::do_transfer_multiassets(who, vec![asset.clone()].into(), asset, dest, dest_weight)
@@ -390,6 +409,10 @@ pub mod module {
 
 			ensure!(!amount.is_zero(), Error::<T>::ZeroAmount);
 			ensure!(!fee.is_zero(), Error::<T>::ZeroFee);
+			ensure!(
+				T::MultiLocationsFilter::contains(&dest),
+				Error::<T>::NotSupportedMultiLocation
+			);
 
 			let asset = (location.clone(), amount.into()).into();
 			let fee_asset: MultiAsset = (location, fee.into()).into();
@@ -439,6 +462,10 @@ pub mod module {
 				currencies.len() <= T::MaxAssetsForTransfer::get(),
 				Error::<T>::TooManyAssetsBeingSent
 			);
+			ensure!(
+				T::MultiLocationsFilter::contains(&dest),
+				Error::<T>::NotSupportedMultiLocation
+			);
 
 			let mut assets = MultiAssets::new();
 
@@ -451,6 +478,7 @@ pub mod module {
 				let location: MultiLocation = T::CurrencyIdConvert::convert(currency_id.clone())
 					.ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
 				ensure!(!amount.is_zero(), Error::<T>::ZeroAmount);
+
 				// Push contains saturated addition, so we should be able to use it safely
 				assets.push((location, (*amount).into()).into())
 			}
@@ -476,6 +504,10 @@ pub mod module {
 				assets.len() <= T::MaxAssetsForTransfer::get(),
 				Error::<T>::TooManyAssetsBeingSent
 			);
+			ensure!(
+				T::MultiLocationsFilter::contains(&dest),
+				Error::<T>::NotSupportedMultiLocation
+			);
 			let origin_location = T::AccountIdToMultiLocation::convert(who.clone());
 
 			let mut non_fee_reserve: Option<MultiLocation> = None;
@@ -488,18 +520,18 @@ pub mod module {
 				);
 				// `assets` includes fee, the reserve location is decided by non fee asset
 				if (fee != *asset && non_fee_reserve.is_none()) || asset_len == 1 {
-					non_fee_reserve = asset.reserve();
+					non_fee_reserve = T::ReserveProvider::reserve(asset);
 				}
 				// make sure all non fee assets share the same reserve
 				if non_fee_reserve.is_some() {
 					ensure!(
-						non_fee_reserve == asset.reserve(),
+						non_fee_reserve == T::ReserveProvider::reserve(asset),
 						Error::<T>::DistinctReserveForAssetAndFee
 					);
 				}
 			}
 
-			let fee_reserve = fee.reserve();
+			let fee_reserve = T::ReserveProvider::reserve(&fee);
 			if fee_reserve != non_fee_reserve {
 				// Current only support `ToReserve` with relay-chain asset as fee. other case
 				// like `NonReserve` or `SelfReserve` with relay-chain fee is not support.
@@ -734,7 +766,6 @@ pub mod module {
 
 			let self_location = T::SelfLocation::get();
 			ensure!(dest != self_location, Error::<T>::NotCrossChainTransfer);
-
 			let reserve = reserve.ok_or(Error::<T>::AssetHasNoReserve)?;
 			let transfer_kind = if reserve == self_location {
 				SelfReserveAsset
@@ -754,7 +785,9 @@ pub mod module {
 			let asset: Result<MultiAsset, _> = asset.clone().try_into();
 			let dest = dest.clone().try_into();
 			if let (Ok(asset), Ok(dest)) = (asset, dest) {
-				if let Ok((transfer_kind, dest, _, reserve)) = Self::transfer_kind(asset.reserve(), &dest) {
+				if let Ok((transfer_kind, dest, _, reserve)) =
+					Self::transfer_kind(T::ReserveProvider::reserve(&asset), &dest)
+				{
 					let mut msg = match transfer_kind {
 						SelfReserveAsset => Xcm(vec![
 							WithdrawAsset(MultiAssets::from(asset)),
@@ -863,7 +896,7 @@ pub mod module {
 				0
 			};
 			let asset = assets.get(reserve_idx);
-			asset.and_then(|a| a.reserve())
+			asset.and_then(T::ReserveProvider::reserve)
 		}
 	}
 

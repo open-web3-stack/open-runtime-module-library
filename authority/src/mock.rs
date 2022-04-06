@@ -6,7 +6,7 @@ use super::*;
 use codec::{Decode, Encode};
 use frame_support::{
 	parameter_types,
-	traits::{EqualPrivilegeOnly, Everything},
+	traits::{ConstU64, EqualPrivilegeOnly, Everything},
 	weights::Weight,
 };
 use frame_system::{ensure_root, ensure_signed, EnsureRoot};
@@ -23,7 +23,6 @@ pub type AccountId = u128;
 pub type BlockNumber = u64;
 
 parameter_types! {
-	pub const BlockHashCount: u64 = 250;
 	pub BlockWeights: frame_system::limits::BlockWeights =
 			frame_system::limits::BlockWeights::simple_max(2_000_000_000_000);
 }
@@ -39,7 +38,7 @@ impl frame_system::Config for Runtime {
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
 	type Event = Event;
-	type BlockHashCount = BlockHashCount;
+	type BlockHashCount = ConstU64<250>;
 	type BlockWeights = ();
 	type BlockLength = ();
 	type Version = ();
@@ -52,7 +51,7 @@ impl frame_system::Config for Runtime {
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
 	type OnSetCode = ();
-	type MaxConsumers = frame_support::traits::ConstU32<16>;
+	type MaxConsumers = ConstU32<16>;
 }
 
 parameter_types! {

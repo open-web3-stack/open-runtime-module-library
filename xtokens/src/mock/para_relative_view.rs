@@ -3,7 +3,7 @@ use crate as orml_xtokens;
 
 use frame_support::{
 	construct_runtime, match_type, parameter_types,
-	traits::{ConstU128, ConstU32, ConstU64, Everything, Get, Nothing},
+	traits::{ConstU128, ConstU32, ConstU64, Everything, Nothing},
 	weights::{constants::WEIGHT_PER_SECOND, Weight},
 };
 use frame_system::EnsureRoot;
@@ -25,7 +25,10 @@ use xcm_builder::{
 };
 use xcm_executor::{traits::WeightTrader, Assets, Config, XcmExecutor};
 
-use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
+use orml_traits::{
+	location::{AbsoluteReserveProvider, RelativeReserveProvider},
+	parameter_type_with_key,
+};
 use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
 
 pub type AccountId = AccountId32;
@@ -252,9 +255,73 @@ impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 	}
 }
 
+pub struct RelativeCurrencyIdConvert;
+impl Convert<CurrencyId, Option<MultiLocation>> for RelativeCurrencyIdConvert {
+	fn convert(id: CurrencyId) -> Option<MultiLocation> {
+		match id {
+			CurrencyId::R => Some(Parent.into()),
+			CurrencyId::A => Some((Parent, Parachain(1), GeneralKey("A".into())).into()),
+			CurrencyId::A1 => Some((Parent, Parachain(1), GeneralKey("A1".into())).into()),
+			CurrencyId::B => Some((Parent, Parachain(2), GeneralKey("B".into())).into()),
+			CurrencyId::B1 => Some((Parent, Parachain(2), GeneralKey("B1".into())).into()),
+			CurrencyId::B2 => Some((Parent, Parachain(2), GeneralKey("B2".into())).into()),
+			CurrencyId::D => Some(GeneralKey("D".into()).into()),
+		}
+	}
+}
+impl Convert<MultiLocation, Option<CurrencyId>> for RelativeCurrencyIdConvert {
+	fn convert(l: MultiLocation) -> Option<CurrencyId> {
+		let a: Vec<u8> = "A".into();
+		let a1: Vec<u8> = "A1".into();
+		let b: Vec<u8> = "B".into();
+		let b1: Vec<u8> = "B1".into();
+		let b2: Vec<u8> = "B2".into();
+		let d: Vec<u8> = "D".into();
+
+		let self_para_id: u32 = ParachainInfo::parachain_id().into();
+		if l == MultiLocation::parent() {
+			return Some(CurrencyId::R);
+		}
+		match l {
+			MultiLocation { parents, interior } if parents == 1 => match interior {
+				X2(Parachain(1), GeneralKey(k)) if k == a => Some(CurrencyId::A),
+				X2(Parachain(1), GeneralKey(k)) if k == a1 => Some(CurrencyId::A1),
+				X2(Parachain(2), GeneralKey(k)) if k == b => Some(CurrencyId::B),
+				X2(Parachain(2), GeneralKey(k)) if k == b1 => Some(CurrencyId::B1),
+				X2(Parachain(2), GeneralKey(k)) if k == b2 => Some(CurrencyId::B2),
+				X2(Parachain(para_id), GeneralKey(k)) if k == d && para_id == self_para_id => Some(CurrencyId::D),
+				_ => None,
+			},
+			MultiLocation { parents, interior } if parents == 0 => match interior {
+				X1(GeneralKey(k)) if k == a => Some(CurrencyId::A),
+				X1(GeneralKey(k)) if k == b => Some(CurrencyId::B),
+				X1(GeneralKey(k)) if k == a1 => Some(CurrencyId::A1),
+				X1(GeneralKey(k)) if k == b1 => Some(CurrencyId::B1),
+				X1(GeneralKey(k)) if k == b2 => Some(CurrencyId::B2),
+				X1(GeneralKey(k)) if k == d => Some(CurrencyId::D),
+				_ => None,
+			},
+			_ => None,
+		}
+	}
+}
+impl Convert<MultiAsset, Option<CurrencyId>> for RelativeCurrencyIdConvert {
+	fn convert(a: MultiAsset) -> Option<CurrencyId> {
+		if let MultiAsset {
+			fun: Fungible(_),
+			id: Concrete(id),
+		} = a
+		{
+			Self::convert(id)
+		} else {
+			Option::None
+		}
+	}
+}
+
 parameter_types! {
-	pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::get().into())));
-	pub const MaxAssetsForTransfer: usize = 3;
+	pub SelfLocation: MultiLocation = MultiLocation::here();
+	pub const MaxAssetsForTransfer: usize = 2;
 }
 
 match_type! {
@@ -283,7 +350,7 @@ impl orml_xtokens::Config for Runtime {
 	type Event = Event;
 	type Balance = Balance;
 	type CurrencyId = CurrencyId;
-	type CurrencyIdConvert = CurrencyIdConvert;
+	type CurrencyIdConvert = RelativeCurrencyIdConvert;
 	type AccountIdToMultiLocation = AccountIdToMultiLocation;
 	type SelfLocation = SelfLocation;
 	type MultiLocationsFilter = ParentOrParachains;
@@ -293,7 +360,7 @@ impl orml_xtokens::Config for Runtime {
 	type BaseXcmWeight = ConstU64<100_000_000>;
 	type LocationInverter = LocationInverter<Ancestry>;
 	type MaxAssetsForTransfer = MaxAssetsForTransfer;
-	type ReserveProvider = AbsoluteReserveProvider;
+	type ReserveProvider = RelativeReserveProvider;
 }
 
 impl orml_xcm::Config for Runtime {
