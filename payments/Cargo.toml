@@ -10,20 +10,19 @@ description = "Allows users to post escrow payment on-chain"
 readme = "README.md"
 
 [dependencies]
-parity-scale-codec = { default-features = false, features = ['derive'], version = "2.0.0" }
+parity-scale-codec = { version = "3.0.0", default-features = false, features = ["max-encoded-len"] }
 log = { version = "0.4.14", default-features = false }
-frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.17", default-features = false }
-frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.17", default-features = false }
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.17", default-features = false }
-sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.17", default-features = false }
-frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.17", default-features = false, optional = true }
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.18", default-features = false }
+frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.18", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.18", default-features = false }
+sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.18", default-features = false }
 orml-traits = {path = "../traits", version = "0.4.1-dev", default-features = false }
-scale-info = { version = "1.0.0", default-features = false, features = ["derive"] }
+scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
 
 [dev-dependencies]
-serde = { version = "1.0.101" }
-sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.17", default-features = false }
-sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.17", default-features = false }
+serde = { version = "1.0.136" }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.18", default-features = false }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.18", default-features = false }
 orml-tokens = { path = "../tokens", version = "0.4.1-dev", default-features = false }
 
 [features]
@@ -37,6 +36,5 @@ std = [
 	'sp-std/std',
 	'scale-info/std',
 	'orml-traits/std',
-	'frame-benchmarking/std',
 	'orml-tokens/std'
 ]
