@@ -88,6 +88,8 @@ mod weights;
 mod multi_token_currency;
 mod multi_token_imbalances;
 
+mod benchmarking;
+
 pub use impls::*;
 pub use weights::WeightInfo;
 
@@ -600,7 +602,7 @@ pub mod module {
 			})
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::create())]
 		pub fn create(
 			origin: OriginFor<T>,
 			who: <T::Lookup as StaticLookup>::Source,
@@ -613,7 +615,7 @@ pub mod module {
 			Ok(().into())
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::mint())]
 		pub fn mint(
 			origin: OriginFor<T>,
 			currency_id: T::CurrencyId,
