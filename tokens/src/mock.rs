@@ -261,7 +261,6 @@ construct_runtime!(
 
 pub struct ExtBuilder {
 	tokens_endowment: Vec<(AccountId, CurrencyId, Balance)>,
-	vesting_tokens: Vec<(AccountId, CurrencyId, Balance)>,
 	created_tokens_for_staking: Vec<(AccountId, CurrencyId, Balance)>,
 	treasury_genesis: bool,
 }
@@ -270,7 +269,6 @@ impl Default for ExtBuilder {
 	fn default() -> Self {
 		Self {
 			tokens_endowment: vec![],
-			vesting_tokens: vec![],
 			created_tokens_for_staking: vec![],
 			treasury_genesis: false,
 		}
@@ -291,7 +289,6 @@ impl ExtBuilder {
 
 		tokens::GenesisConfig::<Runtime> {
 			tokens_endowment: self.tokens_endowment,
-			vesting_tokens: self.vesting_tokens,
 			created_tokens_for_staking: self.created_tokens_for_staking,
 		}
 		.assimilate_storage(&mut t)
