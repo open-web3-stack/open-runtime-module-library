@@ -1,5 +1,6 @@
 [workspace]
 members = [
+	"asset-registry",
 	"auction",
 	"authority",
 	"bencher",
