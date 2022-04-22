@@ -431,13 +431,6 @@ pub mod module {
 			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
 			Self::do_transfer(currency_id, &from, &to, amount, ExistenceRequirement::AllowDeath)?;
-
-			Self::deposit_event(Event::Transfer {
-				currency_id,
-				from,
-				to,
-				amount,
-			});
 			Ok(())
 		}
 
@@ -503,13 +496,6 @@ pub mod module {
 			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
 			Self::do_transfer(currency_id, &from, &to, amount, ExistenceRequirement::KeepAlive)?;
-
-			Self::deposit_event(Event::Transfer {
-				currency_id,
-				from,
-				to,
-				amount,
-			});
 			Ok(().into())
 		}
 
@@ -534,13 +520,6 @@ pub mod module {
 			let from = T::Lookup::lookup(source)?;
 			let to = T::Lookup::lookup(dest)?;
 			Self::do_transfer(currency_id, &from, &to, amount, ExistenceRequirement::AllowDeath)?;
-
-			Self::deposit_event(Event::Transfer {
-				currency_id,
-				from,
-				to,
-				amount,
-			});
 			Ok(())
 		}
 
@@ -910,17 +889,17 @@ impl<T: Config> Pallet<T> {
 				};
 
 				ensure!(allow_death || !would_be_dead, Error::<T>::KeepAlive);
-
-				Self::deposit_event(Event::Transfer {
-					currency_id,
-					from: from.clone(),
-					to: to.clone(),
-					amount,
-				});
 				Ok(())
 			})?;
 			Ok(())
-		})
+		})?;
+		Self::deposit_event(Event::Transfer {
+			currency_id,
+			from: from.clone(),
+			to: to.clone(),
+			amount,
+		});
+		Ok(())
 	}
 
 	/// Withdraw some free balance from an account, respecting existence
