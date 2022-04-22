@@ -81,8 +81,6 @@ pub mod module {
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-
 		type MultiCurrency: TransferAll<Self::AccountId>
 			+ MultiCurrencyExtended<Self::AccountId>
 			+ MultiLockableCurrency<Self::AccountId>
@@ -107,36 +105,6 @@ pub mod module {
 		BalanceTooLow,
 		/// Deposit result is not expected
 		DepositFailed,
-	}
-
-	#[pallet::event]
-	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
-	pub enum Event<T: Config> {
-		/// Currency transfer success.
-		Transferred {
-			currency_id: CurrencyIdOf<T>,
-			from: T::AccountId,
-			to: T::AccountId,
-			amount: BalanceOf<T>,
-		},
-		/// Update balance success.
-		BalanceUpdated {
-			currency_id: CurrencyIdOf<T>,
-			who: T::AccountId,
-			amount: AmountOf<T>,
-		},
-		/// Deposit success.
-		Deposited {
-			currency_id: CurrencyIdOf<T>,
-			who: T::AccountId,
-			amount: BalanceOf<T>,
-		},
-		/// Withdraw success.
-		Withdrawn {
-			currency_id: CurrencyIdOf<T>,
-			who: T::AccountId,
-			amount: BalanceOf<T>,
-		},
 	}
 
 	#[pallet::pallet]
@@ -178,12 +146,6 @@ pub mod module {
 			let to = T::Lookup::lookup(dest)?;
 			T::NativeCurrency::transfer(&from, &to, amount)?;
 
-			Self::deposit_event(Event::Transferred {
-				currency_id: T::GetNativeCurrencyId::get(),
-				from,
-				to,
-				amount,
-			});
 			Ok(())
 		}
 
@@ -263,12 +225,6 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
 		} else {
 			T::MultiCurrency::transfer(currency_id, from, to, amount)?;
 		}
-		Self::deposit_event(Event::Transferred {
-			currency_id,
-			from: from.clone(),
-			to: to.clone(),
-			amount,
-		});
 		Ok(())
 	}
 
@@ -281,11 +237,6 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
 		} else {
 			T::MultiCurrency::deposit(currency_id, who, amount)?;
 		}
-		Self::deposit_event(Event::Deposited {
-			currency_id,
-			who: who.clone(),
-			amount,
-		});
 		Ok(())
 	}
 
@@ -298,11 +249,6 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
 		} else {
 			T::MultiCurrency::withdraw(currency_id, who, amount)?;
 		}
-		Self::deposit_event(Event::Withdrawn {
-			currency_id,
-			who: who.clone(),
-			amount,
-		});
 		Ok(())
 	}
 
@@ -332,11 +278,6 @@ impl<T: Config> MultiCurrencyExtended<T::AccountId> for Pallet<T> {
 		} else {
 			T::MultiCurrency::update_balance(currency_id, who, by_amount)?;
 		}
-		Self::deposit_event(Event::BalanceUpdated {
-			currency_id,
-			who: who.clone(),
-			amount: by_amount,
-		});
 		Ok(())
 	}
 }
