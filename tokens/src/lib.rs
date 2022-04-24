@@ -1351,13 +1351,7 @@ impl<T: Config> NamedMultiReservableCurrency<T::AccountId> for Pallet<T> {
 				}
 				Err(index) => {
 					reserves
-						.try_insert(
-							index,
-							ReserveData {
-								id: id.clone(),
-								amount: value,
-							},
-						)
+						.try_insert(index, ReserveData { id: *id, amount: value })
 						.map_err(|_| Error::<T>::TooManyReserves)?;
 				}
 			};
@@ -1531,7 +1525,7 @@ impl<T: Config> NamedMultiReservableCurrency<T::AccountId> for Pallet<T> {
 												.try_insert(
 													index,
 													ReserveData {
-														id: id.clone(),
+														id: *id,
 														amount: actual,
 													},
 												)
