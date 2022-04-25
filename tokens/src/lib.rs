@@ -430,8 +430,7 @@ pub mod module {
 		) -> DispatchResult {
 			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
-			Self::do_transfer(currency_id, &from, &to, amount, ExistenceRequirement::AllowDeath)?;
-			Ok(())
+			Self::do_transfer(currency_id, &from, &to, amount, ExistenceRequirement::AllowDeath)
 		}
 
 		/// Transfer all remaining balance to the given account.
@@ -464,15 +463,8 @@ pub mod module {
 			let to = T::Lookup::lookup(dest)?;
 			let reducible_balance =
 				<Self as fungibles::Inspect<T::AccountId>>::reducible_balance(currency_id, &from, keep_alive);
-			<Self as fungibles::Transfer<_>>::transfer(currency_id, &from, &to, reducible_balance, keep_alive)?;
-
-			Self::deposit_event(Event::Transfer {
-				currency_id,
-				from,
-				to,
-				amount: reducible_balance,
-			});
-			Ok(())
+			<Self as fungibles::Transfer<_>>::transfer(currency_id, &from, &to, reducible_balance, keep_alive)
+				.map(|_| ())
 		}
 
 		/// Same as the [`transfer`] call, but with a check that the transfer
@@ -519,8 +511,7 @@ pub mod module {
 			ensure_root(origin)?;
 			let from = T::Lookup::lookup(source)?;
 			let to = T::Lookup::lookup(dest)?;
-			Self::do_transfer(currency_id, &from, &to, amount, ExistenceRequirement::AllowDeath)?;
-			Ok(())
+			Self::do_transfer(currency_id, &from, &to, amount, ExistenceRequirement::AllowDeath)
 		}
 
 		/// Set the balances of a given account.
@@ -1244,7 +1235,7 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 		let reserved_balance = Self::reserved_balance(currency_id, who);
 		let actual = reserved_balance.min(value);
 		Self::mutate_account(who, currency_id, |account, _| {
-			// Guaranteed to not underflow
+			// ensured reserved_balance >= actual
 			account.reserved = reserved_balance - actual;
 		});
 		TotalIssuance::<T>::mutate(currency_id, |v| *v = v.saturating_sub(actual));
