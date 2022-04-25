@@ -1457,7 +1457,7 @@ impl<T: Config> NamedMultiReservableCurrency<T::AccountId> for Pallet<T> {
 	///   `Reserved`.
 	fn repatriate_reserved_named(
 		id: &Self::ReserveIdentifier,
-		currency_id: T::CurrencyId,
+		currency_id: Self::CurrencyId,
 		slashed: &T::AccountId,
 		beneficiary: &T::AccountId,
 		value: Self::Balance,
