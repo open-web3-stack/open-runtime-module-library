@@ -727,6 +727,7 @@ impl<T: Config> Pallet<T> {
 				// `OnDust` maybe get/set storage `Accounts` of `who`, trigger handler here
 				// to avoid some unexpected errors.
 				T::OnDust::on_dust(who, currency_id, dust_amount);
+
 				Self::deposit_event(Event::DustLost {
 					currency_id,
 					who: who.clone(),
@@ -758,6 +759,7 @@ impl<T: Config> Pallet<T> {
 	pub(crate) fn set_free_balance(currency_id: T::CurrencyId, who: &T::AccountId, amount: T::Balance) {
 		Self::mutate_account(who, currency_id, |account, _| {
 			account.free = amount;
+
 			Self::deposit_event(Event::BalanceSet {
 				currency_id,
 				who: who.clone(),
@@ -776,6 +778,7 @@ impl<T: Config> Pallet<T> {
 	pub(crate) fn set_reserved_balance(currency_id: T::CurrencyId, who: &T::AccountId, amount: T::Balance) {
 		Self::mutate_account(who, currency_id, |account, _| {
 			account.reserved = amount;
+
 			Self::deposit_event(Event::BalanceSet {
 				currency_id,
 				who: who.clone(),
@@ -884,6 +887,7 @@ impl<T: Config> Pallet<T> {
 			})?;
 			Ok(())
 		})?;
+
 		Self::deposit_event(Event::Transfer {
 			currency_id,
 			from: from.clone(),
@@ -938,6 +942,7 @@ impl<T: Config> Pallet<T> {
 			if change_total_issuance {
 				TotalIssuance::<T>::mutate(currency_id, |v| *v -= amount);
 			}
+
 			Self::deposit_event(Event::Withdrawn {
 				currency_id,
 				who: who.clone(),
@@ -1156,6 +1161,7 @@ impl<T: Config> MultiLockableCurrency<T::AccountId> for Pallet<T> {
 			locks.push(lock)
 		}
 		Self::update_locks(currency_id, who, &locks[..])?;
+
 		Self::deposit_event(Event::LockSet {
 			lock_id,
 			currency_id,
@@ -1239,6 +1245,7 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 			account.reserved = reserved_balance - actual;
 		});
 		TotalIssuance::<T>::mutate(currency_id, |v| *v = v.saturating_sub(actual));
+
 		Self::deposit_event(Event::Slashed {
 			currency_id,
 			who: who.clone(),
@@ -1266,6 +1273,7 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 		Self::mutate_account(who, currency_id, |account, _| {
 			account.free -= value;
 			account.reserved += value;
+
 			Self::deposit_event(Event::Reserved {
 				currency_id,
 				who: who.clone(),
@@ -1288,6 +1296,7 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 			let actual = account.reserved.min(value);
 			account.reserved -= actual;
 			account.free += actual;
+
 			Self::deposit_event(Event::Unreserved {
 				currency_id,
 				who: who.clone(),
@@ -1334,6 +1343,7 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 			}
 		}
 		Self::set_reserved_balance(currency_id, slashed, from_account.reserved - actual);
+
 		Self::deposit_event(Event::<T>::ReserveRepatriated {
 			currency_id,
 			from: slashed.clone(),
@@ -1429,6 +1439,7 @@ impl<T: Config> fungibles::Unbalanced<T::AccountId> for Pallet<T> {
 		// Balance is the same type and will not overflow
 		Self::mutate_account(who, asset_id, |account, _| {
 			account.free = amount;
+
 			Self::deposit_event(Event::BalanceSet {
 				currency_id: asset_id,
 				who: who.clone(),
@@ -1442,6 +1453,7 @@ impl<T: Config> fungibles::Unbalanced<T::AccountId> for Pallet<T> {
 	fn set_total_issuance(asset_id: Self::AssetId, amount: Self::Balance) {
 		// Balance is the same type and will not overflow
 		TotalIssuance::<T>::mutate(asset_id, |t| *t = amount);
+
 		Self::deposit_event(Event::TotalIssuanceSet {
 			currency_id: asset_id,
 			amount,
@@ -1494,6 +1506,7 @@ impl<T: Config> fungibles::MutateHold<T::AccountId> for Pallet<T> {
 			ensure!(best_effort || actual == amount, Error::<T>::BalanceTooLow);
 			a.free = new_free;
 			a.reserved = a.reserved.saturating_sub(actual);
+
 			Self::deposit_event(Event::Unreserved {
 				currency_id: asset_id,
 				who: who.clone(),
@@ -1560,6 +1573,7 @@ where
 				Zero::zero()
 			})
 		});
+
 		Pallet::<T>::deposit_event(Event::TotalIssuanceSet {
 			currency_id,
 			amount: Self::total_issuance(),
@@ -1577,6 +1591,7 @@ where
 				Self::Balance::max_value()
 			})
 		});
+
 		Pallet::<T>::deposit_event(Event::TotalIssuanceSet {
 			currency_id: GetCurrencyId::get(),
 			amount: Self::total_issuance(),
@@ -1626,6 +1641,7 @@ where
 			let reserved_slashed_amount = account.reserved.min(remaining_slash);
 			remaining_slash -= reserved_slashed_amount;
 			Pallet::<T>::set_reserved_balance(currency_id, who, account.reserved - reserved_slashed_amount);
+
 			Pallet::<T>::deposit_event(Event::Slashed {
 				currency_id,
 				who: who.clone(),
@@ -1701,6 +1717,7 @@ where
 					SignedImbalance::Negative(NegativeImbalance::new(account.free - value))
 				};
 				account.free = value;
+				
 				Pallet::<T>::deposit_event(Event::BalanceSet {
 					currency_id,
 					who: who.clone(),
