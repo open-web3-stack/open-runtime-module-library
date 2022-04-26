@@ -110,9 +110,10 @@ parameter_types! {
 	pub const MaxApprovals: u32 = 100;
 }
 
+pub type MockCurrencyAdapter = CurrencyAdapter<Runtime, GetTokenId>;
 impl pallet_treasury::Config for Runtime {
 	type PalletId = TreasuryPalletId;
-	type Currency = CurrencyAdapter<Runtime, GetTokenId>;
+	type Currency = MockCurrencyAdapter;
 	type ApproveOrigin = frame_system::EnsureRoot<AccountId>;
 	type RejectOrigin = frame_system::EnsureRoot<AccountId>;
 	type Event = Event;
@@ -183,7 +184,7 @@ parameter_types! {
 impl pallet_elections_phragmen::Config for Runtime {
 	type PalletId = ElectionsPhragmenPalletId;
 	type Event = Event;
-	type Currency = CurrencyAdapter<Runtime, GetTokenId>;
+	type Currency = MockCurrencyAdapter;
 	type CurrencyToVote = SaturatingCurrencyToVote;
 	type ChangeMembers = TestChangeMembers;
 	type InitializeMembers = ();
