@@ -948,7 +948,6 @@ impl<T: Config> Pallet<T> {
 				who: who.clone(),
 				amount,
 			});
-
 			Ok(())
 		})
 	}
@@ -1101,7 +1100,6 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
 			free_amount: free_slashed_amount,
 			reserved_amount: reserved_slashed_amount,
 		});
-
 		remaining_slash
 	}
 }
@@ -1213,7 +1211,6 @@ impl<T: Config> MultiLockableCurrency<T::AccountId> for Pallet<T> {
 			currency_id,
 			who: who.clone(),
 		});
-
 		Ok(())
 	}
 }
@@ -1252,7 +1249,6 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 			free_amount: Zero::zero(),
 			reserved_amount: actual,
 		});
-
 		value - actual
 	}
 
@@ -1717,7 +1713,7 @@ where
 					SignedImbalance::Negative(NegativeImbalance::new(account.free - value))
 				};
 				account.free = value;
-				
+
 				Pallet::<T>::deposit_event(Event::BalanceSet {
 					currency_id,
 					who: who.clone(),
