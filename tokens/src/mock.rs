@@ -23,6 +23,7 @@ use sp_std::cell::RefCell;
 pub type AccountId = AccountId32;
 pub type CurrencyId = u32;
 pub type Balance = u64;
+pub type ReserveIdentifier = [u8; 8];
 
 pub const DOT: CurrencyId = 1;
 pub const BTC: CurrencyId = 2;
@@ -35,6 +36,8 @@ pub const TREASURY_ACCOUNT: AccountId = AccountId32::new([4u8; 32]);
 pub const ID_1: LockIdentifier = *b"1       ";
 pub const ID_2: LockIdentifier = *b"2       ";
 pub const ID_3: LockIdentifier = *b"3       ";
+pub const RID_1: ReserveIdentifier = [1u8; 8];
+pub const RID_2: ReserveIdentifier = [2u8; 8];
 
 use crate as tokens;
 
@@ -230,6 +233,8 @@ impl Config for Runtime {
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = TransferDust<Runtime, DustReceiver>;
 	type MaxLocks = ConstU32<2>;
+	type MaxReserves = ConstU32<2>;
+	type ReserveIdentifier = ReserveIdentifier;
 	type DustRemovalWhitelist = MockDustRemovalWhitelist;
 }
 pub type TreasuryCurrencyAdapter = <Runtime as pallet_treasury::Config>::Currency;
