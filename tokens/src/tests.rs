@@ -1713,7 +1713,7 @@ fn named_multi_reservable_currency_repatriate_reserved_work() {
 				Tokens::repatriate_reserved_named(&RID_1, DOT, &BOB, &ALICE, 30, BalanceStatus::Reserved),
 				Ok(0)
 			);
-			System::assert_last_event(Event::Tokens(crate::Event::RepatriatedReserve {
+			System::assert_last_event(Event::Tokens(crate::Event::ReserveRepatriated {
 				currency_id: DOT,
 				from: BOB,
 				to: ALICE,
@@ -1734,7 +1734,7 @@ fn named_multi_reservable_currency_repatriate_reserved_work() {
 			);
 
 			// Actual amount repatriated is 20.
-			System::assert_last_event(Event::Tokens(crate::Event::RepatriatedReserve {
+			System::assert_last_event(Event::Tokens(crate::Event::ReserveRepatriated {
 				currency_id: DOT,
 				from: BOB,
 				to: ALICE,

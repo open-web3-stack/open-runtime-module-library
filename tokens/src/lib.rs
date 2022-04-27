@@ -242,7 +242,7 @@ pub mod module {
 		ExistentialDeposit,
 		/// Beneficiary account must pre-exist
 		DeadAccount,
-		/// Number of named reserves exceed MaxReserves
+		// Number of named reserves exceed `T::MaxReserves`
 		TooManyReserves,
 	}
 
@@ -1424,8 +1424,7 @@ impl<T: Config> NamedMultiReservableCurrency<T::AccountId> for Pallet<T> {
 						.map_err(|_| Error::<T>::TooManyReserves)?;
 				}
 			};
-			<Self as MultiReservableCurrency<_>>::reserve(currency_id, who, value)?;
-			Ok(())
+			<Self as MultiReservableCurrency<_>>::reserve(currency_id, who, value)
 		})
 	}
 
@@ -1507,7 +1506,8 @@ impl<T: Config> NamedMultiReservableCurrency<T::AccountId> for Pallet<T> {
 					Self::deposit_event(Event::Slashed {
 						who: who.clone(),
 						currency_id,
-						amount: actual,
+						free_amount: Zero::zero(),
+						reserved_amount: actual,
 					});
 					value - actual
 				}
