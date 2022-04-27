@@ -271,7 +271,7 @@ fn call_event_should_work() {
 			assert_ok!(Currencies::transfer(Some(ALICE).into(), BOB, X_TOKEN_ID, 50));
 			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &ALICE), 50);
 			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &BOB), 150);
-			System::assert_last_event(Event::Currencies(crate::Event::Transferred {
+			System::assert_last_event(Event::Tokens(orml_tokens::Event::Transfer {
 				currency_id: X_TOKEN_ID,
 				from: ALICE,
 				to: BOB,
@@ -283,7 +283,7 @@ fn call_event_should_work() {
 			));
 			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &ALICE), 40);
 			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &BOB), 160);
-			System::assert_last_event(Event::Currencies(crate::Event::Transferred {
+			System::assert_last_event(Event::Tokens(orml_tokens::Event::Transfer {
 				currency_id: X_TOKEN_ID,
 				from: ALICE,
 				to: BOB,
@@ -294,7 +294,7 @@ fn call_event_should_work() {
 				X_TOKEN_ID, &ALICE, 100
 			));
 			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &ALICE), 140);
-			System::assert_last_event(Event::Currencies(crate::Event::Deposited {
+			System::assert_last_event(Event::Tokens(orml_tokens::Event::Deposited {
 				currency_id: X_TOKEN_ID,
 				who: ALICE,
 				amount: 100,
@@ -304,7 +304,7 @@ fn call_event_should_work() {
 				X_TOKEN_ID, &ALICE, 20
 			));
 			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &ALICE), 120);
-			System::assert_last_event(Event::Currencies(crate::Event::Withdrawn {
+			System::assert_last_event(Event::Tokens(orml_tokens::Event::Withdrawn {
 				currency_id: X_TOKEN_ID,
 				who: ALICE,
 				amount: 20,
