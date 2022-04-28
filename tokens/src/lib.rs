@@ -186,6 +186,7 @@ pub mod module {
 			+ Copy
 			+ MaybeSerializeDeserialize
 			+ MaxEncodedLen
+			+ TypeInfo
 			+ From<Balance>
 			+ Into<Balance>;
 
@@ -200,6 +201,7 @@ pub mod module {
 			+ Copy
 			+ MaybeSerializeDeserialize
 			+ MaxEncodedLen
+			+ TypeInfo
 			+ From<Amount>
 			+ Into<Amount>;
 

@@ -1,5 +1,5 @@
 use crate::MultiTokenImbalanceWithZeroTrait;
-use codec::FullCodec;
+use codec::{FullCodec, MaxEncodedLen};
 use frame_support::traits::{BalanceStatus, ExistenceRequirement, Get, Imbalance, SignedImbalance, WithdrawReasons};
 use frame_support::Parameter;
 use mangata_primitives::{Balance as BalancePrimitive, TokenId};
@@ -7,6 +7,7 @@ use sp_runtime::traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize, Member
 use sp_runtime::{DispatchError, DispatchResult};
 use sp_std::fmt::Debug;
 use sp_std::result;
+use scale_info::TypeInfo;
 
 /// Abstraction over a fungible assets system.
 pub trait MultiTokenCurrency<AccountId> {
@@ -17,6 +18,8 @@ pub trait MultiTokenCurrency<AccountId> {
 		+ MaybeSerializeDeserialize
 		+ Debug
 		+ Default
+		+ MaxEncodedLen
+		+ TypeInfo
 		+ From<BalancePrimitive>
 		+ Into<BalancePrimitive>;
 
@@ -28,6 +31,8 @@ pub trait MultiTokenCurrency<AccountId> {
 		+ Default
 		+ AtLeast32BitUnsigned
 		+ FullCodec
+		+ MaxEncodedLen
+		+ TypeInfo
 		+ From<TokenId>
 		+ Into<TokenId>;
 
