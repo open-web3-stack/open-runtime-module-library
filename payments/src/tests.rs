@@ -882,7 +882,7 @@ fn test_accept_and_pay_should_charge_fee_correctly() {
 }
 
 #[test]
-#[should_panic(expected = "Require transaction not called within with_transaction")]
+#[should_panic]
 fn test_create_payment_does_not_work_without_transaction() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(<Payment as PaymentHandler<Test>>::create_payment(

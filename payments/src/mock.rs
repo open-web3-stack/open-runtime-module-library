@@ -2,7 +2,7 @@ use crate as payment;
 use crate::PaymentDetail;
 use frame_support::{
 	parameter_types,
-	traits::{Contains, Everything, GenesisBuild, Hooks, OnFinalize},
+	traits::{ConstU32, Contains, Everything, GenesisBuild, Hooks, OnFinalize},
 	weights::DispatchClass,
 };
 use frame_system as system;
@@ -83,6 +83,7 @@ parameter_type_with_key! {
 parameter_types! {
 	pub const MaxLocks: u32 = 50;
 }
+pub type ReserveIdentifier = [u8; 8];
 
 pub struct MockDustRemovalWhitelist;
 impl Contains<AccountId> for MockDustRemovalWhitelist {
@@ -101,6 +102,8 @@ impl orml_tokens::Config for Test {
 	type WeightInfo = ();
 	type MaxLocks = MaxLocks;
 	type DustRemovalWhitelist = MockDustRemovalWhitelist;
+	type MaxReserves = ConstU32<2>;
+	type ReserveIdentifier = ReserveIdentifier;
 }
 
 pub struct MockDisputeResolver;
