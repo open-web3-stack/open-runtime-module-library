@@ -82,6 +82,7 @@ parameter_type_with_key! {
 }
 parameter_types! {
 	pub const MaxLocks: u32 = 50;
+	pub const MaxReserves: u32 = 50;
 }
 
 pub struct MockDustRemovalWhitelist;
@@ -100,6 +101,8 @@ impl orml_tokens::Config for Test {
 	type OnDust = ();
 	type WeightInfo = ();
 	type MaxLocks = MaxLocks;
+	type MaxReserves = MaxReserves;
+	type ReserveIdentifier = [u8; 8];
 	type DustRemovalWhitelist = MockDustRemovalWhitelist;
 }
 
