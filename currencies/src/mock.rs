@@ -80,6 +80,8 @@ impl orml_tokens::Config for Runtime {
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = orml_tokens::TransferDust<Runtime, DustAccount>;
 	type MaxLocks = ConstU32<100_000>;
+	type MaxReserves = ConstU32<100_000>;
+	type ReserveIdentifier = [u8; 8];
 	type DustRemovalWhitelist = Nothing;
 }
 
@@ -91,7 +93,6 @@ parameter_types! {
 }
 
 impl Config for Runtime {
-	type Event = Event;
 	type MultiCurrency = Tokens;
 	type NativeCurrency = AdaptedBasicCurrency;
 	type GetNativeCurrencyId = GetNativeCurrencyId;
@@ -110,7 +111,7 @@ construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
-		Currencies: currencies::{Pallet, Call, Event<T>},
+		Currencies: currencies::{Pallet, Call},
 		Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
 		PalletBalances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 	}

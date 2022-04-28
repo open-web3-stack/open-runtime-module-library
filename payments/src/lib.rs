@@ -215,8 +215,9 @@ pub mod pallet {
 		/// This function will look for any pending scheduled tasks that can
 		/// be executed and will process them.
 		fn on_idle(now: T::BlockNumber, mut remaining_weight: Weight) -> Weight {
+			const MAX_TASKS_TO_PROCESS: usize = 10;
 			// reduce the weight used to read the task list
-			remaining_weight = remaining_weight.saturating_sub(T::WeightInfo::remove_task());
+			remaining_weight = remaining_weight.saturating_sub(T::DbWeight::get().reads_writes(1, 1));
 
 			ScheduledTasks::<T>::mutate(|tasks| {
 				let mut task_list: Vec<_> = tasks
@@ -226,8 +227,11 @@ pub mod pallet {
 					.filter(|(_, ScheduledTask { when, task })| when <= &now && matches!(task, Task::Cancel))
 					.collect();
 
+				// limit the max tasks to reduce computation
+				task_list.truncate(MAX_TASKS_TO_PROCESS);
+
 				// order by oldest task to process
-				task_list.sort_by(|(_, t), (_, x)| x.when.partial_cmp(&t.when).unwrap());
+				task_list.sort_by(|(_, t), (_, x)| x.when.cmp(&t.when));
 
 				let cancel_weight = T::WeightInfo::cancel();
 
@@ -313,11 +317,8 @@ pub mod pallet {
 			let from = ensure_signed(origin)?;
 
 			// ensure the payment is in Created state
-			if let Some(payment) = Payment::<T>::get(&from, &to) {
-				ensure!(payment.state == PaymentState::Created, Error::<T>::InvalidAction)
-			} else {
-				fail!(Error::<T>::InvalidPayment);
-			}
+			let payment = Payment::<T>::get(&from, &to).ok_or(Error::<T>::InvalidPayment)?;
+			ensure!(payment.state == PaymentState::Created, Error::<T>::InvalidAction);
 
 			// release is a settle_payment with 100% recipient_share
 			<Self as PaymentHandler<T>>::settle_payment(&from, &to, Percent::from_percent(100))?;
