@@ -1444,7 +1444,7 @@ fn multi_reservable_currency_repatriate_reserved_work() {
 				Tokens::repatriate_reserved(DOT, &BOB, &ALICE, 30, BalanceStatus::Reserved),
 				Ok(0)
 			);
-			System::assert_last_event(Event::Tokens(crate::Event::RepatriatedReserve {
+			System::assert_last_event(Event::Tokens(crate::Event::ReserveRepatriated {
 				currency_id: DOT,
 				from: BOB,
 				to: ALICE,
@@ -1463,7 +1463,7 @@ fn multi_reservable_currency_repatriate_reserved_work() {
 			);
 
 			// Actual amount repatriated is 20.
-			System::assert_last_event(Event::Tokens(crate::Event::RepatriatedReserve {
+			System::assert_last_event(Event::Tokens(crate::Event::ReserveRepatriated {
 				currency_id: DOT,
 				from: BOB,
 				to: ALICE,
@@ -1537,6 +1537,239 @@ fn transfer_all_trait_should_work() {
 			assert_eq!(Tokens::free_balance(BTC, &ALICE), 200);
 			assert_eq!(Tokens::free_balance(DOT, &BOB), 0);
 			assert_eq!(Tokens::free_balance(BTC, &BOB), 0);
+		});
+}
+
+#[test]
+fn named_multi_reservable_currency_slash_reserved_work() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			assert_ok!(Tokens::reserve_named(&RID_1, DOT, &ALICE, 50));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 50);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 50);
+			assert_eq!(Tokens::reserved_balance_named(&RID_1, DOT, &ALICE), 50);
+			assert_eq!(Tokens::total_issuance(DOT), 100);
+			assert_eq!(Tokens::slash_reserved_named(&RID_1, DOT, &ALICE, 0), 0);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 50);
+			assert_eq!(Tokens::reserved_balance_named(&RID_1, DOT, &ALICE), 50);
+			assert_eq!(Tokens::total_issuance(DOT), 100);
+			assert_eq!(Tokens::slash_reserved_named(&RID_1, DOT, &ALICE, 100), 50);
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 50);
+			assert_eq!(Tokens::reserved_balance_named(&RID_1, DOT, &ALICE), 0);
+			assert_eq!(Tokens::total_issuance(DOT), 50);
+		});
+}
+
+#[test]
+fn named_multi_reservable_currency_reserve_work() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			assert_noop!(
+				Tokens::reserve_named(&RID_1, DOT, &ALICE, 101),
+				Error::<Runtime>::BalanceTooLow
+			);
+			assert_ok!(Tokens::reserve_named(&RID_1, DOT, &ALICE, 0));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+			assert_eq!(Tokens::reserved_balance_named(&RID_1, DOT, &ALICE), 0);
+			assert_eq!(Tokens::total_balance(DOT, &ALICE), 100);
+			assert_ok!(Tokens::reserve_named(&RID_1, DOT, &ALICE, 50));
+			System::assert_last_event(Event::Tokens(crate::Event::Reserved {
+				currency_id: DOT,
+				who: ALICE,
+				amount: 50,
+			}));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 50);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 50);
+			assert_eq!(Tokens::reserved_balance_named(&RID_1, DOT, &ALICE), 50);
+			assert_eq!(Tokens::total_balance(DOT, &ALICE), 100);
+
+			assert_ok!(Tokens::reserve_named(&RID_2, DOT, &ALICE, 50));
+			System::assert_last_event(Event::Tokens(crate::Event::Reserved {
+				currency_id: DOT,
+				who: ALICE,
+				amount: 50,
+			}));
+
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 100);
+			assert_eq!(Tokens::reserved_balance_named(&RID_1, DOT, &ALICE), 50);
+			assert_eq!(Tokens::reserved_balance_named(&RID_2, DOT, &ALICE), 50);
+			assert_eq!(Tokens::total_balance(DOT, &ALICE), 100);
+
+			// ensure will not trigger Endowed event
+			assert!(System::events().iter().all(|record| !matches!(
+				record.event,
+				Event::Tokens(crate::Event::Endowed {
+					currency_id: DOT,
+					who: ALICE,
+					amount: _
+				})
+			)));
+		});
+}
+
+#[test]
+fn named_multi_reservable_currency_unreserve_work() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+			assert_eq!(Tokens::reserved_balance_named(&RID_1, DOT, &ALICE), 0);
+			assert_eq!(Tokens::unreserve_named(&RID_1, DOT, &ALICE, 0), 0);
+
+			assert_ok!(Tokens::reserve_named(&RID_1, DOT, &ALICE, 30));
+			System::assert_last_event(Event::Tokens(crate::Event::Reserved {
+				currency_id: DOT,
+				who: ALICE,
+				amount: 30,
+			}));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 70);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 30);
+			assert_eq!(Tokens::reserved_balance_named(&RID_1, DOT, &ALICE), 30);
+
+			assert_ok!(Tokens::reserve_named(&RID_2, DOT, &ALICE, 30));
+			System::assert_last_event(Event::Tokens(crate::Event::Reserved {
+				currency_id: DOT,
+				who: ALICE,
+				amount: 30,
+			}));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 40);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 60);
+			assert_eq!(Tokens::reserved_balance_named(&RID_1, DOT, &ALICE), 30);
+			assert_eq!(Tokens::reserved_balance_named(&RID_2, DOT, &ALICE), 30);
+
+			assert_eq!(Tokens::unreserve_named(&RID_1, DOT, &ALICE, 30), 0);
+			System::assert_last_event(Event::Tokens(crate::Event::Unreserved {
+				currency_id: DOT,
+				who: ALICE,
+				amount: 30,
+			}));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 70);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 30);
+			assert_eq!(Tokens::reserved_balance_named(&RID_1, DOT, &ALICE), 0);
+			assert_eq!(Tokens::reserved_balance_named(&RID_2, DOT, &ALICE), 30);
+
+			assert_eq!(Tokens::unreserve_named(&RID_2, DOT, &ALICE, 30), 0);
+			System::assert_last_event(Event::Tokens(crate::Event::Unreserved {
+				currency_id: DOT,
+				who: ALICE,
+				amount: 30,
+			}));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 0);
+			assert_eq!(Tokens::reserved_balance_named(&RID_1, DOT, &ALICE), 0);
+			assert_eq!(Tokens::reserved_balance_named(&RID_2, DOT, &ALICE), 0);
+			// ensure will not trigger Endowed event
+			assert!(System::events().iter().all(|record| !matches!(
+				record.event,
+				Event::Tokens(crate::Event::Endowed {
+					currency_id: DOT,
+					who: ALICE,
+					amount: _
+				})
+			)));
+		});
+}
+
+#[test]
+fn named_multi_reservable_currency_repatriate_reserved_work() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100), (BOB, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 0);
+			assert_eq!(
+				Tokens::repatriate_reserved_named(&RID_1, DOT, &ALICE, &ALICE, 0, BalanceStatus::Free),
+				Ok(0)
+			);
+			assert_eq!(
+				Tokens::repatriate_reserved_named(&RID_1, DOT, &ALICE, &ALICE, 50, BalanceStatus::Free),
+				Ok(50)
+			);
+
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+			assert_eq!(Tokens::reserved_balance_named(&RID_1, DOT, &ALICE), 0);
+
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 100);
+			assert_eq!(Tokens::reserved_balance_named(&RID_1, DOT, &BOB), 0);
+			assert_ok!(Tokens::reserve_named(&RID_1, DOT, &BOB, 50));
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 50);
+			assert_eq!(Tokens::reserved_balance_named(&RID_1, DOT, &BOB), 50);
+			assert_eq!(
+				Tokens::repatriate_reserved_named(&RID_1, DOT, &BOB, &BOB, 60, BalanceStatus::Reserved),
+				Ok(10)
+			);
+
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 50);
+			assert_eq!(Tokens::reserved_balance_named(&RID_1, DOT, &BOB), 50);
+
+			assert_eq!(
+				Tokens::repatriate_reserved_named(&RID_1, DOT, &BOB, &ALICE, 30, BalanceStatus::Reserved),
+				Ok(0)
+			);
+			System::assert_last_event(Event::Tokens(crate::Event::ReserveRepatriated {
+				currency_id: DOT,
+				from: BOB,
+				to: ALICE,
+				amount: 30,
+				status: BalanceStatus::Reserved,
+			}));
+
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 30);
+			assert_eq!(Tokens::reserved_balance_named(&RID_1, DOT, &ALICE), 30);
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 50);
+			assert_eq!(Tokens::reserved_balance(DOT, &BOB), 20);
+			assert_eq!(Tokens::reserved_balance_named(&RID_1, DOT, &BOB), 20);
+
+			assert_eq!(
+				Tokens::repatriate_reserved_named(&RID_1, DOT, &BOB, &ALICE, 30, BalanceStatus::Free),
+				Ok(10)
+			);
+
+			// Actual amount repatriated is 20.
+			System::assert_last_event(Event::Tokens(crate::Event::ReserveRepatriated {
+				currency_id: DOT,
+				from: BOB,
+				to: ALICE,
+				amount: 20,
+				status: BalanceStatus::Free,
+			}));
+
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 120);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 30);
+			assert_eq!(Tokens::reserved_balance_named(&RID_1, DOT, &ALICE), 30);
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 50);
+			assert_eq!(Tokens::reserved_balance(DOT, &BOB), 0);
+			assert_eq!(Tokens::reserved_balance_named(&RID_1, DOT, &BOB), 0);
+		});
+}
+
+#[test]
+fn slashed_reserved_named_works() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			assert_ok!(Tokens::reserve_named(&RID_1, DOT, &ALICE, 50));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 50);
+			assert_eq!(Tokens::reserved_balance_named(&RID_1, DOT, &ALICE), 50);
+			assert_eq!(Tokens::total_issuance(DOT), 100);
+
+			assert_eq!(Tokens::slash_reserved_named(&RID_1, DOT, &ALICE, 20), 0);
+			assert_eq!(Tokens::reserved_balance_named(&RID_1, DOT, &ALICE), 30);
+			assert_eq!(Tokens::total_issuance(DOT), 80);
+
+			assert_eq!(Tokens::slash_reserved_named(&RID_1, DOT, &ALICE, 40), 10);
+			assert_eq!(Tokens::reserved_balance_named(&RID_1, DOT, &ALICE), 0);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 0);
+			assert_eq!(Tokens::total_issuance(DOT), 50);
 		});
 }
 
@@ -2119,6 +2352,80 @@ fn exceeding_max_locks_should_fail() {
 		});
 }
 
+#[test]
+fn currency_adapter_slashing_named_reserved_balance_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let _ = TreasuryCurrencyAdapter::deposit_creating(&TREASURY_ACCOUNT, 111);
+		assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 111);
+		assert_ok!(TreasuryCurrencyAdapter::reserve_named(&RID_1, &TREASURY_ACCOUNT, 111));
+		assert_eq!(
+			TreasuryCurrencyAdapter::slash_reserved_named(&RID_1, &TREASURY_ACCOUNT, 42).1,
+			0
+		);
+		assert_eq!(
+			TreasuryCurrencyAdapter::reserved_balance_named(&RID_1, &TREASURY_ACCOUNT),
+			69
+		);
+		assert_eq!(TreasuryCurrencyAdapter::free_balance(&TREASURY_ACCOUNT), 0);
+		assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 69);
+	});
+}
+
+#[test]
+fn currency_adapter_named_slashing_incomplete_reserved_balance_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let _ = TreasuryCurrencyAdapter::deposit_creating(&TREASURY_ACCOUNT, 111);
+		assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 111);
+		assert_ok!(TreasuryCurrencyAdapter::reserve_named(&RID_1, &TREASURY_ACCOUNT, 42));
+		assert_eq!(
+			TreasuryCurrencyAdapter::slash_reserved_named(&RID_1, &TREASURY_ACCOUNT, 69).1,
+			27
+		);
+		assert_eq!(TreasuryCurrencyAdapter::free_balance(&TREASURY_ACCOUNT), 69);
+		assert_eq!(
+			TreasuryCurrencyAdapter::reserved_balance_named(&RID_1, &TREASURY_ACCOUNT),
+			0
+		);
+		assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 69);
+	});
+}
+
+#[test]
+fn currency_adapter_repatriating_named_reserved_balance_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let _ = TreasuryCurrencyAdapter::deposit_creating(&TREASURY_ACCOUNT, 110);
+		let _ = TreasuryCurrencyAdapter::deposit_creating(&ALICE, 2);
+		assert_ok!(TreasuryCurrencyAdapter::reserve_named(&RID_1, &TREASURY_ACCOUNT, 110));
+		assert_ok!(
+			TreasuryCurrencyAdapter::repatriate_reserved_named(&RID_1, &TREASURY_ACCOUNT, &ALICE, 41, Status::Free),
+			0
+		);
+		assert_eq!(
+			TreasuryCurrencyAdapter::reserved_balance_named(&RID_1, &TREASURY_ACCOUNT),
+			69
+		);
+		assert_eq!(TreasuryCurrencyAdapter::free_balance(&TREASURY_ACCOUNT), 0);
+		assert_eq!(TreasuryCurrencyAdapter::reserved_balance_named(&RID_1, &ALICE), 0);
+		assert_eq!(TreasuryCurrencyAdapter::free_balance(&ALICE), 43);
+	});
+}
+
+#[test]
+fn exceeding_max_reserves_should_fail() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			let id_3 = [3u8; 8];
+			assert_ok!(Tokens::reserve_named(&RID_1, DOT, &ALICE, 10));
+			assert_ok!(Tokens::reserve_named(&RID_2, DOT, &ALICE, 10));
+			assert_noop!(
+				Tokens::reserve_named(&id_3, DOT, &ALICE, 10),
+				Error::<Runtime>::TooManyReserves
+			);
+		});
+}
+
 // *************************************************
 // tests for fungibles traits
 // *************************************************
@@ -2417,5 +2724,303 @@ fn fungibles_mutate_convert_should_work() {
 				<RebaseTokens as fungibles::Inspect<AccountId>>::balance(DOT, &BOB),
 				10000
 			);
+		});
+}
+
+// *************************************************
+// tests for Event Deposit
+// *************************************************
+#[test]
+fn pallet_multicurrency_deposit_events() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100), (BOB, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			assert_ok!(<Tokens as MultiCurrency<AccountId>>::transfer(DOT, &ALICE, &BOB, 10));
+			System::assert_last_event(Event::Tokens(crate::Event::Transfer {
+				currency_id: DOT,
+				from: ALICE,
+				to: BOB,
+				amount: 10,
+			}));
+
+			assert_ok!(<Tokens as MultiCurrency<AccountId>>::deposit(DOT, &ALICE, 10));
+			System::assert_last_event(Event::Tokens(crate::Event::Deposited {
+				currency_id: DOT,
+				who: ALICE,
+				amount: 10,
+			}));
+
+			assert_ok!(<Tokens as MultiCurrency<AccountId>>::withdraw(DOT, &ALICE, 10));
+			System::assert_last_event(Event::Tokens(crate::Event::Withdrawn {
+				currency_id: DOT,
+				who: ALICE,
+				amount: 10,
+			}));
+
+			assert_ok!(<Tokens as MultiReservableCurrency<AccountId>>::reserve(DOT, &ALICE, 50));
+			assert_eq!(<Tokens as MultiCurrency<AccountId>>::slash(DOT, &ALICE, 60), 0);
+			System::assert_last_event(Event::Tokens(crate::Event::Slashed {
+				currency_id: DOT,
+				who: ALICE,
+				free_amount: 40,
+				reserved_amount: 20,
+			}));
+		});
+}
+
+#[test]
+fn pallet_multicurrency_extended_deposit_events() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100), (BOB, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			assert_ok!(<Tokens as MultiCurrencyExtended<AccountId>>::update_balance(
+				DOT, &ALICE, 500
+			));
+			System::assert_last_event(Event::Tokens(crate::Event::Deposited {
+				currency_id: DOT,
+				who: ALICE,
+				amount: 500,
+			}));
+			assert_ok!(<Tokens as MultiCurrencyExtended<AccountId>>::update_balance(
+				DOT, &ALICE, -500
+			));
+			System::assert_last_event(Event::Tokens(crate::Event::Withdrawn {
+				currency_id: DOT,
+				who: ALICE,
+				amount: 500,
+			}));
+		});
+}
+
+#[test]
+fn pallet_multi_lockable_currency_deposit_events() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			assert_ok!(<Tokens as MultiLockableCurrency<AccountId>>::set_lock(
+				[0u8; 8], DOT, &ALICE, 10
+			));
+			System::assert_last_event(Event::Tokens(crate::Event::LockSet {
+				lock_id: [0u8; 8],
+				currency_id: DOT,
+				who: ALICE,
+				amount: 10,
+			}));
+
+			assert_ok!(<Tokens as MultiLockableCurrency<AccountId>>::remove_lock(
+				[0u8; 8], DOT, &ALICE
+			));
+			System::assert_last_event(Event::Tokens(crate::Event::LockRemoved {
+				lock_id: [0u8; 8],
+				currency_id: DOT,
+				who: ALICE,
+			}));
+		});
+}
+
+#[test]
+fn pallet_multi_reservable_currency_deposit_events() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 1000), (BOB, DOT, 1000)])
+		.build()
+		.execute_with(|| {
+			assert_ok!(<Tokens as MultiReservableCurrency<AccountId>>::reserve(
+				DOT, &ALICE, 500
+			));
+			System::assert_last_event(Event::Tokens(crate::Event::Reserved {
+				currency_id: DOT,
+				who: ALICE,
+				amount: 500,
+			}));
+
+			assert_eq!(
+				<Tokens as MultiReservableCurrency<AccountId>>::slash_reserved(DOT, &ALICE, 300),
+				0
+			);
+			System::assert_last_event(Event::Tokens(crate::Event::Slashed {
+				currency_id: DOT,
+				who: ALICE,
+				free_amount: 0,
+				reserved_amount: 300,
+			}));
+
+			assert_eq!(
+				<Tokens as MultiReservableCurrency<AccountId>>::unreserve(DOT, &ALICE, 100),
+				0
+			);
+			System::assert_last_event(Event::Tokens(crate::Event::Unreserved {
+				currency_id: DOT,
+				who: ALICE,
+				amount: 100,
+			}));
+
+			assert_ok!(<Tokens as MultiReservableCurrency<AccountId>>::repatriate_reserved(
+				DOT,
+				&ALICE,
+				&BOB,
+				100,
+				BalanceStatus::Free
+			));
+			System::assert_last_event(Event::Tokens(crate::Event::ReserveRepatriated {
+				currency_id: DOT,
+				from: ALICE,
+				to: BOB,
+				amount: 100,
+				status: BalanceStatus::Free,
+			}));
+		});
+}
+
+#[test]
+fn pallet_fungibles_mutate_deposit_events() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			assert_ok!(<Tokens as fungibles::Mutate<AccountId>>::mint_into(DOT, &ALICE, 500));
+			System::assert_last_event(Event::Tokens(crate::Event::Deposited {
+				currency_id: DOT,
+				who: ALICE,
+				amount: 500,
+			}));
+			assert_ok!(<Tokens as fungibles::Mutate<AccountId>>::burn_from(DOT, &ALICE, 500));
+			System::assert_last_event(Event::Tokens(crate::Event::Withdrawn {
+				currency_id: DOT,
+				who: ALICE,
+				amount: 500,
+			}));
+		});
+}
+
+#[test]
+fn pallet_fungibles_transfer_deposit_events() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100), (BOB, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			assert_ok!(<Tokens as fungibles::Transfer<AccountId>>::transfer(
+				DOT, &ALICE, &BOB, 50, true
+			));
+			System::assert_last_event(Event::Tokens(crate::Event::Transfer {
+				currency_id: DOT,
+				from: ALICE,
+				to: BOB,
+				amount: 50,
+			}));
+		});
+}
+
+#[test]
+fn pallet_fungibles_unbalanced_deposit_events() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			assert_ok!(<Tokens as MultiReservableCurrency<AccountId>>::reserve(DOT, &ALICE, 50));
+			assert_ok!(<Tokens as fungibles::Unbalanced<AccountId>>::set_balance(
+				DOT, &ALICE, 500
+			));
+			System::assert_last_event(Event::Tokens(crate::Event::BalanceSet {
+				currency_id: DOT,
+				who: ALICE,
+				free: 500,
+				reserved: 50,
+			}));
+
+			<Tokens as fungibles::Unbalanced<AccountId>>::set_total_issuance(DOT, 1000);
+			System::assert_last_event(Event::Tokens(crate::Event::TotalIssuanceSet {
+				currency_id: DOT,
+				amount: 1000,
+			}));
+		});
+}
+
+#[test]
+fn pallet_fungibles_mutate_hold_deposit_events() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100), (BOB, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			assert_ok!(<Tokens as fungibles::MutateHold<AccountId>>::hold(DOT, &ALICE, 50));
+			System::assert_last_event(Event::Tokens(crate::Event::Reserved {
+				currency_id: DOT,
+				who: ALICE,
+				amount: 50,
+			}));
+
+			assert_ok!(<Tokens as fungibles::MutateHold<AccountId>>::transfer_held(
+				DOT, &ALICE, &BOB, 50, true, true
+			));
+			System::assert_last_event(Event::Tokens(crate::Event::ReserveRepatriated {
+				currency_id: DOT,
+				from: ALICE,
+				to: BOB,
+				amount: 50,
+				status: BalanceStatus::Reserved,
+			}));
+			System::reset_events();
+			assert_eq!(
+				<Tokens as fungibles::MutateHold<AccountId>>::release(DOT, &BOB, 50, true),
+				Ok(50)
+			);
+			System::assert_last_event(Event::Tokens(crate::Event::Unreserved {
+				currency_id: DOT,
+				who: BOB,
+				amount: 50,
+			}));
+		});
+}
+
+#[test]
+fn currency_adapter_pallet_currency_deposit_events() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100), (BOB, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			// Use std::mem::forget to get rid the returned imbalance.
+			std::mem::forget(<MockCurrencyAdapter as PalletCurrency<AccountId>>::burn(500));
+			System::assert_last_event(Event::Tokens(crate::Event::TotalIssuanceSet {
+				currency_id: DOT,
+				amount: 0,
+			}));
+
+			std::mem::forget(<MockCurrencyAdapter as PalletCurrency<AccountId>>::issue(200));
+			System::assert_last_event(Event::Tokens(crate::Event::TotalIssuanceSet {
+				currency_id: DOT,
+				amount: 200,
+			}));
+
+			assert_ok!(<MockCurrencyAdapter as PalletCurrency<AccountId>>::transfer(
+				&ALICE,
+				&BOB,
+				50,
+				ExistenceRequirement::AllowDeath
+			));
+			System::assert_last_event(Event::Tokens(crate::Event::Transfer {
+				currency_id: DOT,
+				from: ALICE,
+				to: BOB,
+				amount: 50,
+			}));
+
+			assert_ok!(<Tokens as MultiReservableCurrency<AccountId>>::reserve(DOT, &BOB, 50));
+			std::mem::forget(<MockCurrencyAdapter as PalletCurrency<AccountId>>::slash(&BOB, 110));
+			System::assert_last_event(Event::Tokens(crate::Event::Slashed {
+				currency_id: DOT,
+				who: BOB,
+				free_amount: 100,
+				reserved_amount: 10,
+			}));
+
+			std::mem::forget(<MockCurrencyAdapter as PalletCurrency<AccountId>>::make_free_balance_be(&BOB, 200));
+			System::assert_last_event(Event::Tokens(crate::Event::BalanceSet {
+				currency_id: DOT,
+				who: BOB,
+				free: 200,
+				reserved: 40,
+			}));
 		});
 }
