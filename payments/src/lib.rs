@@ -215,30 +215,33 @@ pub mod pallet {
 		/// This function will look for any pending scheduled tasks that can
 		/// be executed and will process them.
 		fn on_idle(now: T::BlockNumber, mut remaining_weight: Weight) -> Weight {
-			const MAX_TASKS_TO_PROCESS: usize = 10;
+			const MAX_TASKS_TO_PROCESS: usize = 5;
 			// reduce the weight used to read the task list
 			remaining_weight = remaining_weight.saturating_sub(T::WeightInfo::remove_task());
+			let cancel_weight = T::WeightInfo::cancel();
+
+			// calculate count of tasks that can be processed with remaining weight
+			let possible_task_count: usize = remaining_weight
+				.saturating_div(cancel_weight)
+				.try_into()
+				.unwrap_or(MAX_TASKS_TO_PROCESS);
 
 			ScheduledTasks::<T>::mutate(|tasks| {
 				let mut task_list: Vec<_> = tasks
 					.clone()
 					.into_iter()
+					.take(possible_task_count)
 					// leave out tasks in the future
 					.filter(|(_, ScheduledTask { when, task })| when <= &now && matches!(task, Task::Cancel))
 					.collect();
 
-				// limit the max tasks to reduce computation
-				task_list.truncate(MAX_TASKS_TO_PROCESS);
-
 				// order by oldest task to process
 				task_list.sort_by(|(_, t), (_, x)| x.when.cmp(&t.when));
-
-				let cancel_weight = T::WeightInfo::cancel();
 
 				while !task_list.is_empty() && remaining_weight >= cancel_weight {
 					if let Some((account_pair, _)) = task_list.pop() {
 						remaining_weight = remaining_weight.saturating_sub(cancel_weight);
-						// remove the task form the tasks
+						// remove the task form the tasks storage
 						tasks.remove(&account_pair);
 
 						// process the cancel payment
