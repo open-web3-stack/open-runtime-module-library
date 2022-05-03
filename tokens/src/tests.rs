@@ -1773,6 +1773,94 @@ fn slashed_reserved_named_works() {
 		});
 }
 
+#[test]
+fn named_multi_reservable_ensure_named_reserved_works() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			assert_ok!(Tokens::reserve_named(&RID_1, DOT, &ALICE, 50));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 50);
+			assert_eq!(Tokens::reserved_balance_named(&RID_1, DOT, &ALICE), 50);
+			assert_eq!(Tokens::total_issuance(DOT), 100);
+
+			assert_ok!(Tokens::ensure_reserved_named(&RID_1, DOT, &ALICE, 20));
+			assert_ok!(Tokens::ensure_reserved_named(&RID_1, DOT, &ALICE, 70));
+
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 30);
+			assert_eq!(Tokens::reserved_balance_named(&RID_1, DOT, &ALICE), 70);
+		});
+}
+
+#[test]
+fn named_multi_reservable_unreserve_all_named() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			assert_ok!(Tokens::reserve_named(&RID_1, DOT, &ALICE, 50));
+			assert_ok!(Tokens::reserve_named(&RID_1, DOT, &ALICE, 20));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 30);
+			assert_eq!(Tokens::reserved_balance_named(&RID_1, DOT, &ALICE), 70);
+
+			let value = Tokens::unreserve_all_named(&RID_1, DOT, &ALICE);
+			assert!(value == 70);
+
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+			assert_eq!(Tokens::reserved_balance_named(&RID_1, DOT, &ALICE), 0);
+		});
+}
+
+#[test]
+fn named_multi_reservable_slash_all_reserved_named() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			assert_ok!(Tokens::reserve_named(&RID_1, DOT, &ALICE, 50));
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 50);
+			assert_eq!(Tokens::reserved_balance_named(&RID_1, DOT, &ALICE), 50);
+
+			let value = Tokens::slash_all_reserved_named(&RID_1, DOT, &ALICE);
+			assert!(value == 0);
+
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 50);
+			assert_eq!(Tokens::reserved_balance_named(&RID_1, DOT, &ALICE), 0);
+		});
+}
+
+#[test]
+fn named_multi_reservable_repatriate_all_reserved_named_works() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100), (BOB, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
+			assert_eq!(Tokens::reserved_balance_named(&RID_1, DOT, &ALICE), 0);
+			assert_eq!(Tokens::reserved_balance_named(&RID_1, DOT, &BOB), 0);
+			assert_ok!(Tokens::reserve_named(&RID_1, DOT, &ALICE, 50));
+
+			assert_ok!(Tokens::repatriate_all_reserved_named(
+				&RID_1,
+				DOT,
+				&ALICE,
+				&BOB,
+				BalanceStatus::Reserved
+			));
+
+			assert_eq!(Tokens::free_balance(DOT, &BOB), 100);
+			assert_eq!(Tokens::reserved_balance_named(&RID_1, DOT, &BOB), 50);
+
+			System::assert_last_event(Event::Tokens(crate::Event::ReserveRepatriated {
+				currency_id: DOT,
+				from: ALICE,
+				to: BOB,
+				amount: 50,
+				status: BalanceStatus::Reserved,
+			}));
+		});
+}
+
 // *************************************************
 // tests for CurrencyAdapter
 // *************************************************
