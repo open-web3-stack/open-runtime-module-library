@@ -9,7 +9,7 @@ use sp_runtime::{
 	DispatchError, DispatchResult,
 };
 use sp_std::{
-	cmp::{Eq, PartialEq},
+	cmp::{Eq, Ordering, PartialEq},
 	fmt::Debug,
 	result,
 };
@@ -301,16 +301,17 @@ pub trait NamedMultiReservableCurrency<AccountId>: MultiReservableCurrency<Accou
 		value: Self::Balance,
 	) -> DispatchResult {
 		let current = Self::reserved_balance_named(id, currency_id, who);
-		if current > value {
-			// we always have enough balance to unreserve here
-			Self::unreserve_named(id, currency_id, who, current - value);
-			Ok(())
-		} else if value > current {
-			// we checked value > current
-			Self::reserve_named(id, currency_id, who, value - current)
-		} else {
-			// current == value
-			Ok(())
+		match current.cmp(&value) {
+			Ordering::Less => {
+				// we checked value > current
+				Self::reserve_named(id, currency_id, who, value - current)
+			}
+			Ordering::Equal => Ok(()),
+			Ordering::Greater => {
+				// we always have enough balance to unreserve here
+				Self::unreserve_named(id, currency_id, who, current - value);
+				Ok(())
+			}
 		}
 	}
 
