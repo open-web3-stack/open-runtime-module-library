@@ -328,8 +328,8 @@ pub trait NamedMultiReservableCurrency<AccountId>: MultiReservableCurrency<Accou
 		value
 	}
 
-	/// Slash all the reserved balance, returning the negative imbalance
-	/// created.
+	/// Slash all the reserved balance, returning the amount that was unable to
+	/// be slashed.
 	///
 	/// Is a no-op if the value to be slashed is zero.
 	fn slash_all_reserved_named(
