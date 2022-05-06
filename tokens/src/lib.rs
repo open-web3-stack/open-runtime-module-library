@@ -2134,7 +2134,7 @@ where
 		Pallet::<T>::do_withdraw(currency_id, who, amount, ExistenceRequirement::AllowDeath, true)
 	}
 
-	fn locked_balance(currency_id: T::CurrencyId, who: &T::AccountId) -> sp_std::result::Result<T::Balance, DispatchError>{
-		Ok(Pallet::<T>::accounts(who, currency_id).frozen())
+	fn locked_balance(currency_id: T::CurrencyId, who: &T::AccountId) -> T::Balance{
+		Pallet::<T>::accounts(who, currency_id).frozen()
 	}
 }
