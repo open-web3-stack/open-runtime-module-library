@@ -9,7 +9,7 @@ use sp_runtime::{
 	DispatchError, DispatchResult,
 };
 use sp_std::{
-	cmp::{Eq, PartialEq},
+	cmp::{Eq, Ordering, PartialEq},
 	fmt::Debug,
 	result,
 };
@@ -288,6 +288,77 @@ pub trait NamedMultiReservableCurrency<AccountId>: MultiReservableCurrency<Accou
 		value: Self::Balance,
 		status: BalanceStatus,
 	) -> result::Result<Self::Balance, DispatchError>;
+
+	/// Ensure the reserved balance is equal to `value`.
+	///
+	/// This will reserve extra amount of current reserved balance is less than
+	/// `value`. And unreserve if current reserved balance is greater than
+	/// `value`.
+	fn ensure_reserved_named(
+		id: &Self::ReserveIdentifier,
+		currency_id: Self::CurrencyId,
+		who: &AccountId,
+		value: Self::Balance,
+	) -> DispatchResult {
+		let current = Self::reserved_balance_named(id, currency_id, who);
+		match current.cmp(&value) {
+			Ordering::Less => {
+				// we checked value > current
+				Self::reserve_named(id, currency_id, who, value - current)
+			}
+			Ordering::Equal => Ok(()),
+			Ordering::Greater => {
+				// we always have enough balance to unreserve here
+				Self::unreserve_named(id, currency_id, who, current - value);
+				Ok(())
+			}
+		}
+	}
+
+	/// Unreserve all the named reserved balances, returning unreserved amount.
+	///
+	/// Is a no-op if the value to be unreserved is zero.
+	fn unreserve_all_named(
+		id: &Self::ReserveIdentifier,
+		currency_id: Self::CurrencyId,
+		who: &AccountId,
+	) -> Self::Balance {
+		let value = Self::reserved_balance_named(id, currency_id, who);
+		Self::unreserve_named(id, currency_id, who, value);
+		value
+	}
+
+	/// Slash all the reserved balance, returning the amount that was unable to
+	/// be slashed.
+	///
+	/// Is a no-op if the value to be slashed is zero.
+	fn slash_all_reserved_named(
+		id: &Self::ReserveIdentifier,
+		currency_id: Self::CurrencyId,
+		who: &AccountId,
+	) -> Self::Balance {
+		let value = Self::reserved_balance_named(id, currency_id, who);
+		Self::slash_reserved_named(id, currency_id, who, value)
+	}
+
+	/// Move all the named reserved balance of one account into the balance of
+	/// another, according to `status`. If `status` is `Reserved`, the balance
+	/// will be reserved with given `id`.
+	///
+	/// Is a no-op if:
+	/// - the value to be moved is zero; or
+	/// - the `slashed` id equal to `beneficiary` and the `status` is
+	///   `Reserved`.
+	fn repatriate_all_reserved_named(
+		id: &Self::ReserveIdentifier,
+		currency_id: Self::CurrencyId,
+		slashed: &AccountId,
+		beneficiary: &AccountId,
+		status: BalanceStatus,
+	) -> DispatchResult {
+		let value = Self::reserved_balance_named(id, currency_id, slashed);
+		Self::repatriate_reserved_named(id, currency_id, slashed, beneficiary, value, status).map(|_| ())
+	}
 }
 
 /// Abstraction over a fungible (single) currency system.

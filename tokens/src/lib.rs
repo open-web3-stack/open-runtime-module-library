@@ -1476,8 +1476,8 @@ impl<T: Config> NamedMultiReservableCurrency<T::AccountId> for Pallet<T> {
 		})
 	}
 
-	/// Slash from reserved balance, returning the negative imbalance created,
-	/// and any amount that was unable to be slashed.
+	/// Slash from reserved balance, returning the amount that was unable to be
+	/// slashed.
 	///
 	/// Is a no-op if the value to be slashed is zero.
 	fn slash_reserved_named(
