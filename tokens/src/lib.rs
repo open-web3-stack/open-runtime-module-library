@@ -2133,4 +2133,8 @@ where
 	fn burn_and_settle(currency_id: T::CurrencyId, who: &T::AccountId, amount: T::Balance) -> DispatchResult {
 		Pallet::<T>::do_withdraw(currency_id, who, amount, ExistenceRequirement::AllowDeath, true)
 	}
+
+	fn locked_balance(currency_id: T::CurrencyId, who: &T::AccountId) -> T::Balance{
+		Pallet::<T>::accounts(who, currency_id).frozen()
+	}
 }
