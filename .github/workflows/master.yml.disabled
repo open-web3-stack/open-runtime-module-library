@@ -11,12 +11,12 @@ jobs:
     env:
       SCCACHE_CACHE_SIZE: "50G"
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Install toolchain
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
-        toolchain: nightly-2021-11-07
+        toolchain: nightly-2022-02-19
         override: true
         default: true
     - name: Install cargo-unleash
