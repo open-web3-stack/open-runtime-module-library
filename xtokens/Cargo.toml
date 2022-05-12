@@ -20,8 +20,8 @@ frame-system = { git = "https://github.com/paritytech/substrate", branch = "polk
 
 cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.17", default-features = false }
 
-xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.16", default-features = false }
-xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.16", default-features = false }
+xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.17", default-features = false }
+xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.17", default-features = false }
 
 orml-xcm-support = { path = "../xcm-support", default-features = false }
 orml-traits = { path = "../traits", default-features = false}
@@ -38,13 +38,13 @@ cumulus-pallet-xcm = { git = "https://github.com/paritytech/cumulus", branch = "
 parachain-info = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.17" }
 
 # polkadot
-polkadot-parachain = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.16" }
-xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.16" }
-xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.16" }
-xcm-builder = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.16" }
-pallet-xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.16" }
-polkadot-runtime-parachains = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.16" }
-xcm-simulator = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.16"}
+polkadot-parachain = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.17" }
+xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.17" }
+xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.17" }
+xcm-builder = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.17" }
+pallet-xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.17" }
+polkadot-runtime-parachains = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.17" }
+xcm-simulator = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.17"}
 
 orml-tokens = { path = "../tokens" }
 orml-xcm = { path = "../xcm" }
