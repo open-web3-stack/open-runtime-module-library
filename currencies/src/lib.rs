@@ -795,35 +795,20 @@ where
 	Currency: PalletNamedReservableCurrency<AccountId>,
 	T: Config,
 {
-	fn slash_reserved_named(
-		id: &Self::ReserveIdentifier,
-		who: &AccountId,
-		value: Self::Balance,
-	) -> Self::Balance {
+	fn slash_reserved_named(id: &Self::ReserveIdentifier, who: &AccountId, value: Self::Balance) -> Self::Balance {
 		let (_, gap) = Currency::slash_reserved_named(id, who, value);
 		gap
 	}
 
-	fn reserved_balance_named(
-		id: &Self::ReserveIdentifier,
-		who: &AccountId,
-	) -> Self::Balance {
+	fn reserved_balance_named(id: &Self::ReserveIdentifier, who: &AccountId) -> Self::Balance {
 		Currency::reserved_balance_named(id, who)
 	}
 
-	fn reserve_named(
-		id: &Self::ReserveIdentifier,
-		who: &AccountId,
-		value: Self::Balance,
-	) -> DispatchResult {
+	fn reserve_named(id: &Self::ReserveIdentifier, who: &AccountId, value: Self::Balance) -> DispatchResult {
 		Currency::reserve_named(id, who, value)
 	}
 
-	fn unreserve_named(
-		id: &Self::ReserveIdentifier,
-		who: &AccountId,
-		value: Self::Balance,
-	) -> Self::Balance {
+	fn unreserve_named(id: &Self::ReserveIdentifier, who: &AccountId, value: Self::Balance) -> Self::Balance {
 		Currency::unreserve_named(id, who, value)
 	}
 
