@@ -468,7 +468,7 @@ pub trait NamedBasicReservableCurrency<AccountId>: BasicReservableCurrency<Accou
 
 	fn unreserve_all_named(id: &Self::ReserveIdentifier, who: &AccountId) -> Self::Balance;
 
-	fn slash_all_reserved_named(id: &Self::ReserveIdentifier, who: &AccountId) -> Self::NegativeImbalance;
+	fn slash_all_reserved_named(id: &Self::ReserveIdentifier, who: &AccountId) -> Self::Balance;
 
 	fn repatriate_all_reserved_named(
 		id: &Self::ReserveIdentifier,
