@@ -464,18 +464,42 @@ pub trait NamedBasicReservableCurrency<AccountId>: BasicReservableCurrency<Accou
 		status: BalanceStatus,
 	) -> Result<Self::Balance, DispatchError>;
 
-	fn ensure_reserved_named(id: &Self::ReserveIdentifier, who: &AccountId, value: Self::Balance) -> DispatchResult;
+	fn ensure_reserved_named(id: &Self::ReserveIdentifier, who: &AccountId, value: Self::Balance) -> DispatchResult {
+		let current = Self::reserved_balance_named(id, who);
+		match current.cmp(&value) {
+			Ordering::Less => {
+				// we checked value > current
+				Self::reserve_named(id, who, value - current)
+			}
+			Ordering::Equal => Ok(()),
+			Ordering::Greater => {
+				// we always have enough balance to unreserve here
+				Self::unreserve_named(id, who, current - value);
+				Ok(())
+			}
+		}
+	}
 
-	fn unreserve_all_named(id: &Self::ReserveIdentifier, who: &AccountId) -> Self::Balance;
+	fn unreserve_all_named(id: &Self::ReserveIdentifier, who: &AccountId) -> Self::Balance {
+		let value = Self::reserved_balance_named(id, who);
+		Self::unreserve_named(id, who, value);
+		value
+	}
 
-	fn slash_all_reserved_named(id: &Self::ReserveIdentifier, who: &AccountId) -> Self::Balance;
+	fn slash_all_reserved_named(id: &Self::ReserveIdentifier, who: &AccountId) -> Self::Balance {
+		let value = Self::reserved_balance_named(id, who);
+		Self::slash_reserved_named(id, who, value)
+	}
 
 	fn repatriate_all_reserved_named(
 		id: &Self::ReserveIdentifier,
 		slashed: &AccountId,
 		beneficiary: &AccountId,
 		status: BalanceStatus,
-	) -> DispatchResult;
+	) -> DispatchResult {
+		let value = Self::reserved_balance_named(id, slashed);
+		Self::repatriate_reserved_named(id, slashed, beneficiary, value, status).map(|_| ())
+	}
 }
 
 /// Handler for account which has dust, need to burn or recycle it

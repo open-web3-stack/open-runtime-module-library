@@ -372,6 +372,8 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 }
 
 impl<T: Config> NamedMultiReservableCurrency<T::AccountId> for Pallet<T> {
+	type ReserveIdentifier = [u8; 8];
+
 	fn slash_reserved_named(
 		id: &Self::ReserveIdentifier,
 		currency_id: Self::CurrencyId,
@@ -567,12 +569,9 @@ where
 	T: Config,
 	GetCurrencyId: Get<CurrencyIdOf<T>>,
 {
-	fn slash_reserved_named(
-		id: &Self::ReserveIdentifier,
-		currency_id: Self::CurrencyId,
-		who: &AccountId,
-		value: Self::Balance,
-	) -> Self::Balance {
+	type ReserveIdentifier = [u8; 8];
+
+	fn slash_reserved_named(id: &Self::ReserveIdentifier, who: &T::AccountId, value: Self::Balance) -> Self::Balance {
 		<Pallet<T> as NamedMultiReservableCurrency<T::AccountId>>::slash_reserved_named(
 			id,
 			GetCurrencyId::get(),
@@ -581,37 +580,22 @@ where
 		)
 	}
 
-	fn reserved_balance_named(
-		id: &Self::ReserveIdentifier,
-		currency_id: Self::CurrencyId,
-		who: &AccountId,
-	) -> Self::Balance {
+	fn reserved_balance_named(id: &Self::ReserveIdentifier, who: &T::AccountId) -> Self::Balance {
 		<Pallet<T> as NamedMultiReservableCurrency<T::AccountId>>::reserved_balance_named(id, GetCurrencyId::get(), who)
 	}
 
-	fn reserve_named(
-		id: &Self::ReserveIdentifier,
-		currency_id: Self::CurrencyId,
-		who: &AccountId,
-		value: Self::Balance,
-	) -> DispatchResult {
+	fn reserve_named(id: &Self::ReserveIdentifier, who: &T::AccountId, value: Self::Balance) -> DispatchResult {
 		<Pallet<T> as NamedMultiReservableCurrency<T::AccountId>>::reserve_named(id, GetCurrencyId::get(), who, value)
 	}
 
-	fn unreserve_named(
-		id: &Self::ReserveIdentifier,
-		currency_id: Self::CurrencyId,
-		who: &AccountId,
-		value: Self::Balance,
-	) -> Self::Balance {
+	fn unreserve_named(id: &Self::ReserveIdentifier, who: &T::AccountId, value: Self::Balance) -> Self::Balance {
 		<Pallet<T> as NamedMultiReservableCurrency<T::AccountId>>::unreserve_named(id, GetCurrencyId::get(), who, value)
 	}
 
 	fn repatriate_reserved_named(
 		id: &Self::ReserveIdentifier,
-		currency_id: Self::CurrencyId,
-		slashed: &AccountId,
-		beneficiary: &AccountId,
+		slashed: &T::AccountId,
+		beneficiary: &T::AccountId,
 		value: Self::Balance,
 		status: BalanceStatus,
 	) -> result::Result<Self::Balance, DispatchError> {
@@ -754,7 +738,7 @@ where
 impl<T, AccountId, Currency, Amount, Moment> BasicReservableCurrency<AccountId>
 	for BasicCurrencyAdapter<T, Currency, Amount, Moment>
 where
-	Currency: PalletReservableCurrency<AccountId>,
+	Currency: PalletNamedReservableCurrency<AccountId>,
 	T: Config,
 {
 	fn can_reserve(who: &AccountId, value: Self::Balance) -> bool {
@@ -789,12 +773,14 @@ where
 }
 
 // Adapt `frame_support::traits::NamedReservableCurrency`
-impl<T, AccountId, Currency, Amount, Moment> NamedReservableCurrency<AccountId>
+impl<T, AccountId, Currency, Amount, Moment> NamedBasicReservableCurrency<AccountId>
 	for BasicCurrencyAdapter<T, Currency, Amount, Moment>
 where
 	Currency: PalletNamedReservableCurrency<AccountId>,
 	T: Config,
 {
+	type ReserveIdentifier = <Currency as PalletNamedReservableCurrency<AccountId>>::ReserveIdentifier;
+
 	fn slash_reserved_named(id: &Self::ReserveIdentifier, who: &AccountId, value: Self::Balance) -> Self::Balance {
 		let (_, gap) = Currency::slash_reserved_named(id, who, value);
 		gap
