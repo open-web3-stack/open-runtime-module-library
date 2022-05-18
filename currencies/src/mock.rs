@@ -39,7 +39,7 @@ impl frame_system::Config for Runtime {
 	type BlockLength = ();
 	type Version = ();
 	type PalletInfo = PalletInfo;
-	type AccountData = pallet_balances::AccountData<u64>;
+	type AccountData = pallet_balances::AccountData<u128>;
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type DbWeight = ();
@@ -51,7 +51,7 @@ impl frame_system::Config for Runtime {
 }
 
 type CurrencyId = u32;
-type Balance = u64;
+type Balance = u128;
 
 parameter_types! {
 	pub const ExistentialDeposit: u64 = 2;
@@ -83,7 +83,7 @@ parameter_types! {
 impl orml_tokens::Config for Runtime {
 	type Event = Event;
 	type Balance = Balance;
-	type Amount = i64;
+	type Amount = i128;
 	type CurrencyId = CurrencyId;
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
@@ -107,7 +107,7 @@ impl Config for Runtime {
 	type WeightInfo = ();
 }
 pub type NativeCurrency = NativeCurrencyOf<Runtime>;
-pub type AdaptedBasicCurrency = BasicCurrencyAdapter<Runtime, PalletBalances, i64, u64>;
+pub type AdaptedBasicCurrency = BasicCurrencyAdapter<Runtime, PalletBalances, i128, u64>;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 type Block = frame_system::mocking::MockBlock<Runtime>;
@@ -132,11 +132,19 @@ pub const ID_1: LockIdentifier = *b"1       ";
 
 pub struct ExtBuilder {
 	balances: Vec<(AccountId, CurrencyId, Balance)>,
+	tokens_endowment: Vec<(AccountId, CurrencyId, Balance)>,
+	created_tokens_for_staking: Vec<(AccountId, CurrencyId, Balance)>,
+	treasury_genesis: bool,
 }
 
 impl Default for ExtBuilder {
 	fn default() -> Self {
-		Self { balances: vec![] }
+		Self {
+			balances: vec![],
+			tokens_endowment: vec![],
+			created_tokens_for_staking: vec![],
+			treasury_genesis: false,
+		}
 	}
 }
 
@@ -173,11 +181,8 @@ impl ExtBuilder {
 		.unwrap();
 
 		orml_tokens::GenesisConfig::<Runtime> {
-			balances: self
-				.balances
-				.into_iter()
-				.filter(|(_, currency_id, _)| *currency_id != NATIVE_CURRENCY_ID)
-				.collect::<Vec<_>>(),
+			tokens_endowment: self.tokens_endowment,
+			created_tokens_for_staking: self.created_tokens_for_staking,
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();
