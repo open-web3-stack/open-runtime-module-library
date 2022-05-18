@@ -86,7 +86,7 @@ pub mod module {
 			+ MultiCurrencyExtended<Self::AccountId>
 			+ MultiLockableCurrency<Self::AccountId>
 			+ MultiReservableCurrency<Self::AccountId>
-			+ NamedMultiReservableCurrency<Self::AccountId, ReserveIdentifier = [u8, 8]>;
+			+ NamedMultiReservableCurrency<Self::AccountId, ReserveIdentifier = [u8; 8]>;
 
 		type NativeCurrency: BasicCurrencyExtended<Self::AccountId, Balance = BalanceOf<Self>, Amount = AmountOf<Self>>
 			+ BasicLockableCurrency<Self::AccountId, Balance = BalanceOf<Self>>
@@ -800,7 +800,7 @@ where
 		who: &AccountId,
 		value: Self::Balance,
 	) -> Self::Balance {
-		let (_, gap) = Currency::slash_reserved_named(id, who, value)
+		let (_, gap) = Currency::slash_reserved_named(id, who, value);
 		gap
 	}
 
@@ -816,7 +816,7 @@ where
 		who: &AccountId,
 		value: Self::Balance,
 	) -> DispatchResult {
-		Currency::reserve_named(id, who value)
+		Currency::reserve_named(id, who, value)
 	}
 
 	fn unreserve_named(
