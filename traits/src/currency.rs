@@ -247,7 +247,7 @@ pub trait NamedMultiReservableCurrency<AccountId>: MultiReservableCurrency<Accou
 		value: Self::Balance,
 	) -> DispatchResult;
 
-    /// Moves up to `value` from reserved balance to free balance. This function cannot fail.
+	/// Moves up to `value` from reserved balance to free balance. This function cannot fail.
 	///
 	/// As much funds up to `value` will be moved as possible. If the reserve balance of `who`
 	/// is less than `value`, then the remaining amount will be returned.
@@ -255,7 +255,7 @@ pub trait NamedMultiReservableCurrency<AccountId>: MultiReservableCurrency<Accou
 	/// # NOTES
 	///
 	/// - This is different from `reserve`.
-    /// - If the remaining reserved balance is less than `ExistentialDeposit`, it will
+	/// - If the remaining reserved balance is less than `ExistentialDeposit`, it will
 	/// invoke `on_reserved_too_low` and could reap the account.
 	fn unreserve_named(
 		id: &Self::ReserveIdentifier,
