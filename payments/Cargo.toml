@@ -11,7 +11,7 @@ readme = "README.md"
 
 [dependencies]
 parity-scale-codec = { version = "3.1.2", default-features = false, features = ["max-encoded-len"] }
-log = { version = "0.4.14", default-features = false }
+log = { version = "0.4.17", default-features = false }
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22", default-features = false }
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22", default-features = false }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22", default-features = false }
