@@ -161,7 +161,7 @@ where
 			GetCurrencyId::get(),
 			who,
 			C::convert_balance_back(amount, GetCurrencyId::get()),
-			mint
+			mint,
 		)
 	}
 

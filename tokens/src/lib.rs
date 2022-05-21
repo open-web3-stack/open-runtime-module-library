@@ -1665,7 +1665,12 @@ impl<T: Config> fungibles::Inspect<T::AccountId> for Pallet<T> {
 		}
 	}
 
-	fn can_deposit(asset_id: Self::AssetId, who: &T::AccountId, amount: Self::Balance, _mint: bool) -> DepositConsequence {
+	fn can_deposit(
+		asset_id: Self::AssetId,
+		who: &T::AccountId,
+		amount: Self::Balance,
+		_mint: bool,
+	) -> DepositConsequence {
 		Self::deposit_consequence(who, asset_id, amount, &Self::accounts(who, asset_id))
 	}
 
