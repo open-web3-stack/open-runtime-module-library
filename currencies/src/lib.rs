@@ -44,7 +44,8 @@ use frame_support::{
 	pallet_prelude::*,
 	traits::{
 		Currency as PalletCurrency, ExistenceRequirement, Get, Imbalance, LockableCurrency as PalletLockableCurrency,
-		NamedReservableCurrency as PalletNamedReservableCurrency, WithdrawReasons,
+		NamedReservableCurrency as PalletNamedReservableCurrency, ReservableCurrency as PalletReservableCurrency,
+		WithdrawReasons,
 	},
 };
 use frame_system::{ensure_root, ensure_signed, pallet_prelude::*};
@@ -738,7 +739,7 @@ where
 impl<T, AccountId, Currency, Amount, Moment> BasicReservableCurrency<AccountId>
 	for BasicCurrencyAdapter<T, Currency, Amount, Moment>
 where
-	Currency: PalletNamedReservableCurrency<AccountId>,
+	Currency: PalletReservableCurrency<AccountId>,
 	T: Config,
 {
 	fn can_reserve(who: &AccountId, value: Self::Balance) -> bool {

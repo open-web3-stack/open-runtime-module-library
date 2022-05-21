@@ -328,8 +328,8 @@ pub trait NamedMultiReservableCurrency<AccountId>: MultiReservableCurrency<Accou
 		value
 	}
 
-	/// Slash all the reserved balance, returning the negative imbalance
-	/// created.
+	/// Slash all the reserved balance, returning the amount that was unable to
+	/// be slashed.
 	///
 	/// Is a no-op if the value to be slashed is zero.
 	fn slash_all_reserved_named(
@@ -513,7 +513,7 @@ pub trait BasicReservableCurrency<AccountId>: BasicCurrency<AccountId> {
 }
 
 /// A fungible single currency system where funds can be reserved from the user
-/// with a named reserve identifier.
+/// with an identifier.
 pub trait NamedBasicReservableCurrency<AccountId, ReserveIdentifier>: BasicReservableCurrency<AccountId> {
 	/// Deducts up to `value` from reserved balance of `who`. This function
 	/// cannot fail.
