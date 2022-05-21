@@ -50,7 +50,8 @@ impl From<Error> for i32 {
 }
 
 #[async_trait]
-impl<C, Block, ProviderId, Key, Value> OracleApiServer<<Block as BlockT>::Hash, ProviderId, Key, Value> for OracleRpc<C, Block>
+impl<C, Block, ProviderId, Key, Value> OracleApiServer<<Block as BlockT>::Hash, ProviderId, Key, Value>
+	for OracleRpc<C, Block>
 where
 	Block: BlockT,
 	C: ProvideRuntimeApi<Block> + HeaderBackend<Block> + Send + Sync + 'static,
@@ -73,7 +74,8 @@ where
 				Error::RuntimeError.into(),
 				"Unable to get value.",
 				Some(e.to_string()),
-			)).into()
+			))
+			.into()
 		})
 	}
 
@@ -90,7 +92,8 @@ where
 				Error::RuntimeError.into(),
 				"Unable to get all values.",
 				Some(e.to_string()),
-			)).into()
+			))
+			.into()
 		})
 	}
 }
