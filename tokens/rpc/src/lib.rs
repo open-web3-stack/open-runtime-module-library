@@ -55,7 +55,7 @@ impl From<Error> for i32 {
 }
 
 #[async_trait]
-impl<C, Block, CurrencyId, Balance> TokensApiServer<<Block as BlockT>::Hash, CurrencyId, Balance> 
+impl<C, Block, CurrencyId, Balance> TokensApiServer<<Block as BlockT>::Hash, CurrencyId, Balance>
 	for TokensRpc<C, Block>
 where
 	Block: BlockT,
@@ -90,6 +90,6 @@ where
 			})
 		};
 
-		try_into_rpc_balance(balance)?
+		try_into_rpc_balance(balance?)
 	}
 }
