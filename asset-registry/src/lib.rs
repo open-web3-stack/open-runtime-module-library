@@ -274,12 +274,16 @@ impl<T: Config> Pallet<T> {
 						(*metadata).additional = additional;
 					}
 
+					Self::deposit_event(Event::<T>::UpdatedAsset {
+						asset_id: asset_id.clone(),
+						metadata: metadata.clone(),
+					});
+
 					Ok(())
 				}
 			}
 		})?;
 
-		// Self::deposit_event(Event::<T>::UpdatedAsset { asset_id, metadata });
 		Ok(())
 	}
 
