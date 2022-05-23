@@ -24,14 +24,14 @@ pub trait TokensApi<BlockHash, CurrencyId, Balance> {
 }
 
 /// Provides RPC methods to query existential deposit of currency.
-pub struct TokensRpc<C, P> {
+pub struct Tokens<C, P> {
 	/// Shared reference to the client.
 	client: Arc<C>,
 	_marker: std::marker::PhantomData<P>,
 }
 
-impl<C, P> TokensRpc<C, P> {
-	/// Creates a new instance of the `TokensRpc` helper.
+impl<C, P> Tokens<C, P> {
+	/// Creates a new instance of the `Tokens` helper.
 	pub fn new(client: Arc<C>) -> Self {
 		Self {
 			client,
@@ -56,7 +56,7 @@ impl From<Error> for i32 {
 
 #[async_trait]
 impl<C, Block, CurrencyId, Balance> TokensApiServer<<Block as BlockT>::Hash, CurrencyId, Balance>
-	for TokensRpc<C, Block>
+	for Tokens<C, Block>
 where
 	Block: BlockT,
 	C: ProvideRuntimeApi<Block> + HeaderBackend<Block> + Send + Sync + 'static,

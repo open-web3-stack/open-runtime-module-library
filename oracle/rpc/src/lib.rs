@@ -21,14 +21,14 @@ pub trait OracleApi<BlockHash, ProviderId, Key, Value> {
 }
 
 /// Provides RPC methods to query oracle value.
-pub struct OracleRpc<C, B> {
+pub struct Oracle<C, B> {
 	/// Shared reference to the client.
 	client: Arc<C>,
 	_marker: std::marker::PhantomData<B>,
 }
 
-impl<C, B> OracleRpc<C, B> {
-	/// Creates a new instance of the `OracleRpc` helper.
+impl<C, B> Oracle<C, B> {
+	/// Creates a new instance of the `Oracle` helper.
 	pub fn new(client: Arc<C>) -> Self {
 		Self {
 			client,
@@ -51,7 +51,7 @@ impl From<Error> for i32 {
 
 #[async_trait]
 impl<C, Block, ProviderId, Key, Value> OracleApiServer<<Block as BlockT>::Hash, ProviderId, Key, Value>
-	for OracleRpc<C, Block>
+	for Oracle<C, Block>
 where
 	Block: BlockT,
 	C: ProvideRuntimeApi<Block> + HeaderBackend<Block> + Send + Sync + 'static,
