@@ -4,9 +4,10 @@ use orml_traits::{
 	asset_registry::{AssetProcessor, FixedConversionRateProvider, WeightToFeeConverter},
 	GetByKey,
 };
+use sp_runtime::FixedPointNumber;
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, Bounded, CheckedAdd, One},
-	ArithmeticError,
+	ArithmeticError, FixedU128,
 };
 use sp_std::prelude::*;
 use xcm::v2::prelude::*;
@@ -51,7 +52,8 @@ pub struct FixedRateAssetRegistryTrader<P: FixedConversionRateProvider>(PhantomD
 impl<P: FixedConversionRateProvider> WeightToFeeConverter for FixedRateAssetRegistryTrader<P> {
 	fn convert_weight_to_fee(location: &MultiLocation, weight: Weight) -> Option<u128> {
 		let fee_per_second = P::get_fee_per_second(location)?;
-		let amount = fee_per_second.saturating_mul(weight as u128) / (WEIGHT_PER_SECOND as u128);
+		let weight_ratio = FixedU128::saturating_from_rational(weight as u128, WEIGHT_PER_SECOND as u128);
+		let amount = weight_ratio.saturating_mul_int(fee_per_second);
 		Some(amount)
 	}
 }

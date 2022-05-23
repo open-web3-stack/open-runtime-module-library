@@ -58,7 +58,7 @@ pub mod module {
 		/// The balance type.
 		type Balance: Parameter + Member + AtLeast32BitUnsigned + Default + Copy;
 
-		// /// Weight information for extrinsics in this module.
+		/// Weight information for extrinsics in this module.
 		type WeightInfo: WeightInfo;
 	}
 
@@ -197,10 +197,10 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	// This is useful in tests but it might also come in useful to users of this
-	// pallet.
 	/// Like do_register_asset, but without calling pre_register and
 	/// post_register hooks.
+	/// This function is useful in tests but it might also come in useful to
+	/// users.
 	pub fn do_register_asset_without_asset_processor(
 		metadata: AssetMetadata<T::Balance, T::CustomMetadata>,
 		asset_id: T::AssetId,
