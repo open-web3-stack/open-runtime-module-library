@@ -377,6 +377,7 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 
 impl<T: Config> NamedMultiReservableCurrency<T::AccountId> for Pallet<T> {
 	type ReserveIdentifier = ReserveIdentifierOf<T>;
+
 	fn slash_reserved_named(
 		id: &Self::ReserveIdentifier,
 		currency_id: Self::CurrencyId,
