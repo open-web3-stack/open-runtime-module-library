@@ -18,6 +18,8 @@ use sp_runtime::{
 
 use crate as currencies;
 
+pub type ReserveIdentifier = [u8; 8];
+
 pub type AccountId = AccountId32;
 impl frame_system::Config for Runtime {
 	type Origin = Origin;
@@ -56,8 +58,8 @@ impl pallet_balances::Config for Runtime {
 	type ExistentialDeposit = ConstU64<2>;
 	type AccountStore = frame_system::Pallet<Runtime>;
 	type MaxLocks = ();
-	type MaxReserves = ();
-	type ReserveIdentifier = [u8; 8];
+	type MaxReserves = ConstU32<2>;
+	type ReserveIdentifier = ReserveIdentifier;
 	type WeightInfo = ();
 }
 
@@ -81,7 +83,7 @@ impl orml_tokens::Config for Runtime {
 	type OnDust = orml_tokens::TransferDust<Runtime, DustAccount>;
 	type MaxLocks = ConstU32<100_000>;
 	type MaxReserves = ConstU32<100_000>;
-	type ReserveIdentifier = [u8; 8];
+	type ReserveIdentifier = ReserveIdentifier;
 	type DustRemovalWhitelist = Nothing;
 }
 
@@ -121,6 +123,8 @@ pub const ALICE: AccountId = AccountId32::new([1u8; 32]);
 pub const BOB: AccountId = AccountId32::new([2u8; 32]);
 pub const EVA: AccountId = AccountId32::new([5u8; 32]);
 pub const ID_1: LockIdentifier = *b"1       ";
+pub const RID_1: ReserveIdentifier = [1u8; 8];
+pub const RID_2: ReserveIdentifier = [2u8; 8];
 
 pub struct ExtBuilder {
 	balances: Vec<(AccountId, CurrencyId, Balance)>,
