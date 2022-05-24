@@ -233,55 +233,38 @@ impl<T: Config> Pallet<T> {
 		additional: Option<T::CustomMetadata>,
 	) -> DispatchResult {
 		Metadata::<T>::try_mutate(&asset_id, |maybe_metadata| -> DispatchResult {
-			match maybe_metadata {
-				None => Err(Error::<T>::AssetNotFound.into()),
-				Some(ref mut metadata) => {
-					if let Some(decimals) = decimals {
-						(*metadata).decimals = decimals;
-					}
-
-					if let Some(name) = name {
-						(*metadata).name = name;
-					}
-
-					if let Some(symbol) = symbol {
-						(*metadata).symbol = symbol;
-					}
-
-					if let Some(existential_deposit) = existential_deposit {
-						(*metadata).existential_deposit = existential_deposit;
-					}
-
-					if let Some(location) = location {
-						// Update LocationToAssetId only if location changed
-						if location != metadata.location {
-							// remove the old location lookup if it exists
-							if let Some(ref location) = metadata.location {
-								let location: MultiLocation =
-									location.clone().try_into().map_err(|()| Error::<T>::BadVersion)?;
-								LocationToAssetId::<T>::remove(location);
-							}
-
-							// insert new location
-							if let Some(ref new_location) = location {
-								Self::do_insert_location(asset_id.clone(), new_location.clone())?;
-							}
-						}
-						(*metadata).location = location;
-					}
-
-					if let Some(additional) = additional {
-						(*metadata).additional = additional;
-					}
-
-					Self::deposit_event(Event::<T>::UpdatedAsset {
-						asset_id: asset_id.clone(),
-						metadata: metadata.clone(),
-					});
-
-					Ok(())
-				}
+			let metadata = maybe_metadata.as_mut().ok_or(Error::<T>::AssetNotFound)?;
+			if let Some(decimals) = decimals {
+				metadata.decimals = decimals;
 			}
+
+			if let Some(name) = name {
+				metadata.name = name;
+			}
+
+			if let Some(symbol) = symbol {
+				metadata.symbol = symbol;
+			}
+
+			if let Some(existential_deposit) = existential_deposit {
+				metadata.existential_deposit = existential_deposit;
+			}
+
+			if let Some(location) = location {
+				Self::do_update_location(asset_id.clone(), metadata.location.clone(), location.clone())?;
+				metadata.location = location;
+			}
+
+			if let Some(additional) = additional {
+				metadata.additional = additional;
+			}
+
+			Self::deposit_event(Event::<T>::UpdatedAsset {
+				asset_id: asset_id.clone(),
+				metadata: metadata.clone(),
+			});
+
+			Ok(())
 		})?;
 
 		Ok(())
@@ -304,7 +287,31 @@ impl<T: Config> Pallet<T> {
 			.transpose()
 	}
 
-	pub fn do_insert_location(asset_id: T::AssetId, location: VersionedMultiLocation) -> DispatchResult {
+	/// update LocationToAssetId mapping if the location changed
+	fn do_update_location(
+		asset_id: T::AssetId,
+		old_location: Option<VersionedMultiLocation>,
+		new_location: Option<VersionedMultiLocation>,
+	) -> DispatchResult {
+		// Update `LocationToAssetId` only if location changed
+		if new_location != old_location {
+			// remove the old location lookup if it exists
+			if let Some(ref old_location) = old_location {
+				let location: MultiLocation = old_location.clone().try_into().map_err(|()| Error::<T>::BadVersion)?;
+				LocationToAssetId::<T>::remove(location);
+			}
+
+			// insert new location
+			if let Some(ref new_location) = new_location {
+				Self::do_insert_location(asset_id, new_location.clone())?;
+			}
+		}
+
+		Ok(())
+	}
+
+	/// insert location into the LocationToAssetId map
+	fn do_insert_location(asset_id: T::AssetId, location: VersionedMultiLocation) -> DispatchResult {
 		// if the metadata contains a location, set the LocationToAssetId
 		let location: MultiLocation = location.try_into().map_err(|()| Error::<T>::BadVersion)?;
 		LocationToAssetId::<T>::try_mutate(&location, |maybe_asset_id| {
