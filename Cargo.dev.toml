@@ -20,7 +20,6 @@ members = [
 	"xtokens",
 	"xcm-support",
 	"unknown-tokens",
-	"build-script-utils",
 	"weight-gen",
 	"weight-meter",
 	"payments"
