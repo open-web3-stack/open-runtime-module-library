@@ -55,8 +55,7 @@ impl From<Error> for i32 {
 }
 
 #[async_trait]
-impl<C, Block, CurrencyId, Balance> TokensApiServer<<Block as BlockT>::Hash, CurrencyId, Balance>
-	for Tokens<C, Block>
+impl<C, Block, CurrencyId, Balance> TokensApiServer<<Block as BlockT>::Hash, CurrencyId, Balance> for Tokens<C, Block>
 where
 	Block: BlockT,
 	C: ProvideRuntimeApi<Block> + HeaderBackend<Block> + Send + Sync + 'static,
