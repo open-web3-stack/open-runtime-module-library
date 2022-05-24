@@ -79,7 +79,6 @@ fn named_multi_reservable_currency_should_work() {
 			let x_free_before = 20;
 			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &ALICE), x_free_before);
 
-			// 80 were unable to be slashed for reserve identifier 1
 			assert_eq!(Currencies::unreserve_named(&RID_1, NATIVE_CURRENCY_ID, &ALICE, 100), 80);
 			assert_eq!(NativeCurrency::free_balance(&ALICE), n_free_before + 20);
 			assert_eq!(
@@ -100,7 +99,6 @@ fn named_multi_reservable_currency_should_work() {
 				r2x_before
 			);
 
-			// 60 were unable to be slashed for reserve identifier 1
 			assert_eq!(Currencies::unreserve_named(&RID_1, X_TOKEN_ID, &ALICE, 100), 70);
 			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &ALICE), x_free_before + 30);
 			assert_eq!(Currencies::reserved_balance_named(&RID_1, X_TOKEN_ID, &ALICE), 0);
@@ -176,11 +174,10 @@ fn named_basic_currency_adapting_pallet_balances_reservable() {
 			assert_eq!(AdaptedBasicCurrency::reserved_balance_named(&RID_2, &ALICE), 30);
 			assert_eq!(AdaptedBasicCurrency::free_balance(&ALICE), 20);
 
-			// 30 were unable to be slashed for reserve identifier 1
 			assert_eq!(AdaptedBasicCurrency::unreserve_named(&RID_1, &ALICE, 80), 30);
 			assert_eq!(AdaptedBasicCurrency::free_balance(&ALICE), 70);
 			assert_eq!(AdaptedBasicCurrency::reserved_balance_named(&RID_1, &ALICE), 0);
-			// reserve of identifier 2 untouched
+
 			assert_eq!(AdaptedBasicCurrency::reserved_balance_named(&RID_2, &ALICE), 30);
 		});
 }
