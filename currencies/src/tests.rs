@@ -54,13 +54,25 @@ fn named_multi_reservable_currency_should_work() {
 			assert_ok!(Currencies::reserve_named(&RID_1, NATIVE_CURRENCY_ID, &ALICE, 20));
 			assert_ok!(Currencies::reserve_named(&RID_2, NATIVE_CURRENCY_ID, &ALICE, 60));
 			let r1x_before = 30;
-			assert_eq!(Currencies::reserved_balance_named(&RID_1, X_TOKEN_ID, &ALICE), r1x_before);
+			assert_eq!(
+				Currencies::reserved_balance_named(&RID_1, X_TOKEN_ID, &ALICE),
+				r1x_before
+			);
 			let r2x_before = 50;
-			assert_eq!(Currencies::reserved_balance_named(&RID_2, X_TOKEN_ID, &ALICE), r2x_before);
+			assert_eq!(
+				Currencies::reserved_balance_named(&RID_2, X_TOKEN_ID, &ALICE),
+				r2x_before
+			);
 			let r1n_before = 20;
-			assert_eq!(Currencies::reserved_balance_named(&RID_1, NATIVE_CURRENCY_ID, &ALICE), r1n_before);
+			assert_eq!(
+				Currencies::reserved_balance_named(&RID_1, NATIVE_CURRENCY_ID, &ALICE),
+				r1n_before
+			);
 			let r2n_before = 60;
-			assert_eq!(Currencies::reserved_balance_named(&RID_2, NATIVE_CURRENCY_ID, &ALICE), r2n_before);
+			assert_eq!(
+				Currencies::reserved_balance_named(&RID_2, NATIVE_CURRENCY_ID, &ALICE),
+				r2n_before
+			);
 
 			let n_free_before = 20;
 			assert_eq!(NativeCurrency::free_balance(&ALICE), n_free_before);
@@ -70,19 +82,37 @@ fn named_multi_reservable_currency_should_work() {
 			// 80 were unable to be slashed for reserve identifier 1
 			assert_eq!(Currencies::unreserve_named(&RID_1, NATIVE_CURRENCY_ID, &ALICE, 100), 80);
 			assert_eq!(NativeCurrency::free_balance(&ALICE), n_free_before + 20);
-			assert_eq!(Currencies::reserved_balance_named(&RID_1, NATIVE_CURRENCY_ID, &ALICE), 0);
-	
-			assert_eq!(Currencies::reserved_balance_named(&RID_2, NATIVE_CURRENCY_ID, &ALICE), r2n_before);
-			assert_eq!(Currencies::reserved_balance_named(&RID_1, X_TOKEN_ID, &ALICE), r1x_before);
-			assert_eq!(Currencies::reserved_balance_named(&RID_2, X_TOKEN_ID, &ALICE), r2x_before);
+			assert_eq!(
+				Currencies::reserved_balance_named(&RID_1, NATIVE_CURRENCY_ID, &ALICE),
+				0
+			);
+
+			assert_eq!(
+				Currencies::reserved_balance_named(&RID_2, NATIVE_CURRENCY_ID, &ALICE),
+				r2n_before
+			);
+			assert_eq!(
+				Currencies::reserved_balance_named(&RID_1, X_TOKEN_ID, &ALICE),
+				r1x_before
+			);
+			assert_eq!(
+				Currencies::reserved_balance_named(&RID_2, X_TOKEN_ID, &ALICE),
+				r2x_before
+			);
 
 			// 60 were unable to be slashed for reserve identifier 1
 			assert_eq!(Currencies::unreserve_named(&RID_1, X_TOKEN_ID, &ALICE, 100), 70);
 			assert_eq!(Currencies::free_balance(X_TOKEN_ID, &ALICE), x_free_before + 30);
 			assert_eq!(Currencies::reserved_balance_named(&RID_1, X_TOKEN_ID, &ALICE), 0);
 
-			assert_eq!(Currencies::reserved_balance_named(&RID_2, X_TOKEN_ID, &ALICE), r2x_before);
-			assert_eq!(Currencies::reserved_balance_named(&RID_2, NATIVE_CURRENCY_ID, &ALICE), r2n_before);
+			assert_eq!(
+				Currencies::reserved_balance_named(&RID_2, X_TOKEN_ID, &ALICE),
+				r2x_before
+			);
+			assert_eq!(
+				Currencies::reserved_balance_named(&RID_2, NATIVE_CURRENCY_ID, &ALICE),
+				r2n_before
+			);
 		});
 }
 
