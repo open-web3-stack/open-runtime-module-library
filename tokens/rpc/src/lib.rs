@@ -2,8 +2,11 @@
 use std::sync::Arc;
 
 use codec::Codec;
-use jsonrpc_core::{Error as RpcError, ErrorCode, Result};
-use jsonrpc_derive::rpc;
+use jsonrpsee::{
+	core::{async_trait, Error as JsonRpseeError, RpcResult},
+	proc_macros::rpc,
+	types::error::{CallError, ErrorCode, ErrorObject},
+};
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
 use sp_rpc::number::NumberOrHex;
@@ -12,23 +15,23 @@ use sp_runtime::{
 	traits::{Block as BlockT, MaybeDisplay},
 };
 
-pub use self::gen_client::Client as TokensClient;
 pub use orml_tokens_rpc_runtime_api::TokensApi as TokensRuntimeApi;
 
-#[rpc]
+#[rpc(client, server)]
 pub trait TokensApi<BlockHash, CurrencyId, Balance> {
-	#[rpc(name = "tokens_queryExistentialDeposit")]
-	fn query_existential_deposit(&self, currency_id: CurrencyId, at: Option<BlockHash>) -> Result<NumberOrHex>;
+	#[method(name = "tokens_queryExistentialDeposit")]
+	fn query_existential_deposit(&self, currency_id: CurrencyId, at: Option<BlockHash>) -> RpcResult<NumberOrHex>;
 }
 
-/// A struct that implements the [`TokensApi`].
+/// Provides RPC methods to query existential deposit of currency.
 pub struct Tokens<C, P> {
+	/// Shared reference to the client.
 	client: Arc<C>,
 	_marker: std::marker::PhantomData<P>,
 }
 
 impl<C, P> Tokens<C, P> {
-	/// Create new `Tokens` with the given reference to the client.
+	/// Creates a new instance of the `Tokens` helper.
 	pub fn new(client: Arc<C>) -> Self {
 		Self {
 			client,
@@ -43,43 +46,46 @@ pub enum Error {
 	RuntimeError,
 }
 
-impl From<Error> for i64 {
-	fn from(e: Error) -> i64 {
+impl From<Error> for i32 {
+	fn from(e: Error) -> i32 {
 		match e {
 			Error::RuntimeError => 1,
 		}
 	}
 }
 
-impl<C, Block, CurrencyId, Balance> TokensApi<<Block as BlockT>::Hash, CurrencyId, Balance> for Tokens<C, Block>
+#[async_trait]
+impl<C, Block, CurrencyId, Balance> TokensApiServer<<Block as BlockT>::Hash, CurrencyId, Balance> for Tokens<C, Block>
 where
 	Block: BlockT,
-	C: Send + Sync + 'static + ProvideRuntimeApi<Block> + HeaderBackend<Block>,
+	C: ProvideRuntimeApi<Block> + HeaderBackend<Block> + Send + Sync + 'static,
 	C::Api: TokensRuntimeApi<Block, CurrencyId, Balance>,
-	Balance: Codec + MaybeDisplay + Copy + TryInto<NumberOrHex> + std::fmt::Debug,
+	Balance: Codec + MaybeDisplay + Copy + TryInto<NumberOrHex> + Send + Sync + 'static,
 	CurrencyId: Codec,
 {
 	fn query_existential_deposit(
 		&self,
 		currency_id: CurrencyId,
 		at: Option<<Block as BlockT>::Hash>,
-	) -> Result<NumberOrHex> {
+	) -> RpcResult<NumberOrHex> {
 		let api = self.client.runtime_api();
-		let at = BlockId::hash(at.unwrap_or_else(||
-			// If the block hash is not supplied assume the best block.
-			self.client.info().best_hash));
+		let at = BlockId::hash(at.unwrap_or_else(|| self.client.info().best_hash));
 
-		let balance = api.query_existential_deposit(&at, currency_id).map_err(|e| RpcError {
-			code: ErrorCode::ServerError(Error::RuntimeError.into()),
-			message: "Unable to query existential_deposit.".into(),
-			data: Some(format!("{:?}", e).into()),
+		let balance = api.query_existential_deposit(&at, currency_id).map_err(|e| {
+			CallError::Custom(ErrorObject::owned(
+				Error::RuntimeError.into(),
+				"Unable to query existential deposit.",
+				Some(e.to_string()),
+			))
 		});
 
 		let try_into_rpc_balance = |value: Balance| {
-			value.try_into().map_err(|_| RpcError {
-				code: ErrorCode::InvalidParams,
-				message: format!("{} doesn't fit in NumberOrHex representation", value),
-				data: None,
+			value.try_into().map_err(|_| {
+				JsonRpseeError::Call(CallError::Custom(ErrorObject::owned(
+					ErrorCode::InvalidParams.code(),
+					format!("{} doesn't fit in NumberOrHex representation", value),
+					None::<()>,
+				)))
 			})
 		};
 

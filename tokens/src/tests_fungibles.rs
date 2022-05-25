@@ -19,7 +19,7 @@ fn fungibles_inspect_trait_should_work() {
 				<Tokens as fungibles::Inspect<_>>::reducible_balance(DOT, &ALICE, true),
 				98
 			);
-			assert_ok!(<Tokens as fungibles::Inspect<_>>::can_deposit(DOT, &ALICE, 1).into_result());
+			assert_ok!(<Tokens as fungibles::Inspect<_>>::can_deposit(DOT, &ALICE, 1, false).into_result());
 			assert_ok!(<Tokens as fungibles::Inspect<_>>::can_withdraw(DOT, &ALICE, 1).into_result());
 		});
 }

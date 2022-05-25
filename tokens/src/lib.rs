@@ -1665,7 +1665,12 @@ impl<T: Config> fungibles::Inspect<T::AccountId> for Pallet<T> {
 		}
 	}
 
-	fn can_deposit(asset_id: Self::AssetId, who: &T::AccountId, amount: Self::Balance) -> DepositConsequence {
+	fn can_deposit(
+		asset_id: Self::AssetId,
+		who: &T::AccountId,
+		amount: Self::Balance,
+		_mint: bool,
+	) -> DepositConsequence {
 		Self::deposit_consequence(who, asset_id, amount, &Self::accounts(who, asset_id))
 	}
 
@@ -2156,8 +2161,8 @@ where
 	fn reducible_balance(who: &T::AccountId, keep_alive: bool) -> Self::Balance {
 		<Pallet<T> as fungibles::Inspect<_>>::reducible_balance(GetCurrencyId::get(), who, keep_alive)
 	}
-	fn can_deposit(who: &T::AccountId, amount: Self::Balance) -> DepositConsequence {
-		<Pallet<T> as fungibles::Inspect<_>>::can_deposit(GetCurrencyId::get(), who, amount)
+	fn can_deposit(who: &T::AccountId, amount: Self::Balance, mint: bool) -> DepositConsequence {
+		<Pallet<T> as fungibles::Inspect<_>>::can_deposit(GetCurrencyId::get(), who, amount, mint)
 	}
 	fn can_withdraw(who: &T::AccountId, amount: Self::Balance) -> WithdrawConsequence<Self::Balance> {
 		<Pallet<T> as fungibles::Inspect<_>>::can_withdraw(GetCurrencyId::get(), who, amount)

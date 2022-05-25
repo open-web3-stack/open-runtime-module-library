@@ -48,11 +48,11 @@ where
 		}
 	}
 
-	fn can_deposit(asset: Self::AssetId, who: &AccountId, amount: Self::Balance) -> DepositConsequence {
+	fn can_deposit(asset: Self::AssetId, who: &AccountId, amount: Self::Balance, mint: bool) -> DepositConsequence {
 		if TestKey::contains(&asset) {
-			A::can_deposit(who, amount)
+			A::can_deposit(who, amount, mint)
 		} else {
-			B::can_deposit(asset, who, amount)
+			B::can_deposit(asset, who, amount, mint)
 		}
 	}
 
@@ -156,11 +156,12 @@ where
 		)
 	}
 
-	fn can_deposit(who: &AccountId, amount: Self::Balance) -> DepositConsequence {
+	fn can_deposit(who: &AccountId, amount: Self::Balance, mint: bool) -> DepositConsequence {
 		T::can_deposit(
 			GetCurrencyId::get(),
 			who,
 			C::convert_balance_back(amount, GetCurrencyId::get()),
+			mint,
 		)
 	}
 
