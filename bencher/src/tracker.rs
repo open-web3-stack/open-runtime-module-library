@@ -217,7 +217,8 @@ impl BenchTracker {
 		let mut summary = HashMap::<StorageKey, AccessReport>::new();
 
 		self.main_keys.read().iter().for_each(|(key, info)| {
-			let prefix = key[0..32].to_vec();
+			let prefix_end = core::cmp::min(32, key.len());
+			let prefix = key[0..prefix_end].to_vec();
 			if let Some(report) = summary.get_mut(&prefix) {
 				if info.read.is_important() {
 					report.read += 1;
@@ -241,7 +242,8 @@ impl BenchTracker {
 
 		self.child_keys.read().iter().for_each(|(prefix, keys)| {
 			keys.iter().for_each(|(key, info)| {
-				let prefix = [prefix.clone(), key.clone()].concat()[0..32].to_vec();
+				let prefix_end = core::cmp::min(32, prefix.len() + key.len());
+				let prefix = [prefix.clone(), key.clone()].concat()[0..prefix_end].to_vec();
 				if let Some(report) = summary.get_mut(&prefix) {
 					if info.read.is_important() {
 						report.read += 1;

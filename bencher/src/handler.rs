@@ -54,6 +54,9 @@ pub fn handle(output: Vec<u8>, storage_infos: Vec<StorageInfo>) {
 					let name = String::from_utf8(info.storage_name.clone()).unwrap();
 					let comment = format!("{}::{} (r: {}, w: {})", pallet, name, reads, writes);
 					comments.push(comment);
+				} else {
+					let comment = format!("Unknown (r: {}, w: {})", reads, writes);
+					comments.push(comment);
 				}
 			});
 
