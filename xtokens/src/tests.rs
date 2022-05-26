@@ -873,7 +873,7 @@ fn transfer_asset_with_relay_fee_failed() {
 				),
 				40,
 			),
-			Error::<para::Runtime>::FeeNotEnough
+			Error::<para::Runtime>::MinXcmFeeNotDefined
 		);
 	});
 }
