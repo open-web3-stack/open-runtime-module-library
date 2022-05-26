@@ -124,7 +124,6 @@ macro_rules! run_benches {
         $block:tt
     ) => {
 		#[cfg(all(feature = "std", feature = "bench"))]
-		#[main]
 		pub fn main() -> std::io::Result<()> {
 			use $crate::frame_benchmarking::frame_support::traits::StorageInfoTrait;
 			let wasm = $crate::build_wasm::build()?;
