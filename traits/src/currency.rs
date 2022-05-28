@@ -648,7 +648,7 @@ pub trait OnNewAccount<AccountId, CurrencyId> {
 	fn on_new_account(who: &AccountId, currency_id: CurrencyId);
 }
 
-impl<AccountId, CurrencyId, Balance> OnDust<AccountId, CurrencyId> for () {
+impl<AccountId, CurrencyId> OnNewAccount<AccountId, CurrencyId> for () {
 	fn on_new_account(_: &AccountId, _: CurrencyId) {}
 }
 
@@ -657,7 +657,7 @@ pub trait OnKilledAccount<AccountId, CurrencyId> {
 	fn on_killed_account(who: &AccountId, currency_id: CurrencyId);
 }
 
-impl<AccountId, CurrencyId, Balance> OnDust<AccountId, CurrencyId> for () {
+impl<AccountId, CurrencyId> OnKilledAccount<AccountId, CurrencyId> for () {
 	fn on_killed_account(_: &AccountId, _: CurrencyId) {}
 }
 
