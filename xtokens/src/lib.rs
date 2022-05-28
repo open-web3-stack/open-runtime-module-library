@@ -855,7 +855,7 @@ pub mod module {
 					Self::transfer_kind(T::ReserveProvider::reserve(&asset), &dest, None)
 				{
 					let mut msg = match transfer_kind {
-						SelfReserveAsset | TransferReserve => Xcm(vec![
+						SelfReserveAsset => Xcm(vec![
 							WithdrawAsset(MultiAssets::from(asset)),
 							DepositReserveAsset {
 								assets: All.into(),
@@ -864,6 +864,11 @@ pub mod module {
 								xcm: Xcm(vec![]),
 							},
 						]),
+						TransferReserve => Xcm(vec![TransferReserveAsset {
+							assets: vec![].into(),
+							dest,
+							xcm: Xcm(vec![]),
+						}]),
 						ToReserve | ToNonReserve => Xcm(vec![
 							WithdrawAsset(MultiAssets::from(asset)),
 							InitiateReserveWithdraw {
@@ -920,10 +925,9 @@ pub mod module {
 			let dest = dest.clone().try_into();
 			if let (Ok(assets), Ok(dest)) = (assets, dest) {
 				let reserve_location = Self::get_reserve_location(&assets, fee_item);
-				// if let Ok(reserve_location) = reserve_location {
 				if let Ok((transfer_kind, dest, _, reserve)) = Self::transfer_kind(reserve_location, &dest, None) {
 					let mut msg = match transfer_kind {
-						SelfReserveAsset | TransferReserve => Xcm(vec![
+						SelfReserveAsset => Xcm(vec![
 							WithdrawAsset(assets.clone()),
 							DepositReserveAsset {
 								assets: All.into(),
@@ -932,6 +936,11 @@ pub mod module {
 								xcm: Xcm(vec![]),
 							},
 						]),
+						TransferReserve => Xcm(vec![TransferReserveAsset {
+							assets: vec![].into(),
+							dest,
+							xcm: Xcm(vec![]),
+						}]),
 						ToReserve | ToNonReserve => Xcm(vec![
 							WithdrawAsset(assets),
 							InitiateReserveWithdraw {
@@ -945,7 +954,6 @@ pub mod module {
 					return T::Weigher::weight(&mut msg)
 						.map_or(Weight::max_value(), |w| T::BaseXcmWeight::get().saturating_add(w));
 				}
-				// }
 			}
 			0
 		}
