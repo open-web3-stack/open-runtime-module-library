@@ -832,14 +832,12 @@ pub mod module {
 
 			let transfer_kind = if let Some(transfer_kind) = transfer_kind {
 				transfer_kind
+			} else if reserve == self_location {
+				SelfReserveAsset
+			} else if reserve == dest {
+				ToReserve
 			} else {
-				if reserve == self_location {
-					SelfReserveAsset
-				} else if reserve == dest {
-					ToReserve
-				} else {
-					ToNonReserve
-				}
+				ToNonReserve
 			};
 			Ok((transfer_kind, dest, reserve, recipient))
 		}
