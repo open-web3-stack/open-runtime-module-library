@@ -139,6 +139,7 @@ fn transfer_all_allow_death_should_work() {
 			}));
 			assert!(!Accounts::<Runtime>::contains_key(ALICE, DOT));
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
+			assert_eq!(TrackKilledAccounts::accounts(), vec![(ALICE, DOT)]);
 
 			assert_ok!(Tokens::set_lock(ID_1, DOT, &BOB, 50));
 			assert_eq!(Tokens::accounts(&BOB, DOT).frozen, 50);
@@ -513,6 +514,7 @@ fn set_free_balance_should_work() {
 
 		Tokens::set_free_balance(DOT, &ALICE, 2);
 		assert!(Accounts::<Runtime>::contains_key(ALICE, DOT));
+		assert_eq!(TrackCreatedAccounts::accounts(), vec![(ALICE, DOT)]);
 		assert_eq!(Tokens::free_balance(DOT, &ALICE), 2);
 		assert_eq!(Tokens::free_balance(DOT, &DustReceiver::get()), 1);
 

@@ -220,6 +220,43 @@ parameter_type_with_key! {
 	};
 }
 
+thread_local! {
+	pub static CREATED: RefCell<Vec<(AccountId, CurrencyId)>> = RefCell::new(vec![]);
+	pub static KILLED: RefCell<Vec<(AccountId, CurrencyId)>> = RefCell::new(vec![]);
+}
+
+pub struct TrackCreatedAccounts;
+impl TrackCreatedAccounts {
+	pub fn accounts() -> Vec<(AccountId, CurrencyId)> {
+		CREATED.clone()
+	}
+
+	pub fn reset() {
+		*CREATED = RefCell::new(vec![]);
+	}
+}
+impl OnNewAccount<AccountId, CurrencyId> for TrackCreatedAccounts {
+	fn on_new_account(who: &AccountId, currency: CurrencyId) {
+		CREATED.push((who, CurrencyId));
+	}
+}
+
+pub struct TrackKilledAccounts;
+impl TrackKilledAccounts {
+	pub fn accounts() -> Vec<(AccountId, CurrencyId)> {
+		KILLED.clone()
+	}
+
+	pub fn reset() {
+		*KILLED = RefCell::new(vec![]);
+	}
+}
+impl OnNewAccount<AccountId, CurrencyId> for TrackKilledAccounts {
+	fn on_new_account(who: &AccountId, currency: CurrencyId) {
+		KILLED.push((who, CurrencyId));
+	}
+}
+
 parameter_types! {
 	pub DustReceiver: AccountId = PalletId(*b"orml/dst").into_account();
 }
@@ -232,6 +269,8 @@ impl Config for Runtime {
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = TransferDust<Runtime, DustReceiver>;
+	type OnNewAccount = TrackCreatedAccounts;
+	type OnKilledAccount = TrackKilledAccounts;
 	type MaxLocks = ConstU32<2>;
 	type MaxReserves = ConstU32<2>;
 	type ReserveIdentifier = ReserveIdentifier;
@@ -295,6 +334,9 @@ impl ExtBuilder {
 			.assimilate_storage(&mut t)
 			.unwrap();
 		}
+
+		TrackCreatedAccounts::reset();
+		TrackKilledAccounts::reset();
 
 		let mut ext = sp_io::TestExternalities::new(t);
 		ext.execute_with(|| System::set_block_number(1));
