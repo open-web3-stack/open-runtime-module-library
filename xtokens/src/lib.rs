@@ -376,8 +376,9 @@ pub mod module {
 			Self::do_transfer_multiassets(who, assets.clone(), fee.clone(), dest, dest_weight, None)
 		}
 
-		/// Transfer asset using `TransferReserveAsset` instruction instead of `withdraw` and `deposit` operation.
-		/// For case like evm don't support `withdraw` and `deposit`, but support `transfer` operation.
+		/// Transfer asset using `TransferReserveAsset` instruction instead of
+		/// `withdraw` and `deposit` operation. For case like evm don't support
+		/// `withdraw` and `deposit`, but support `transfer` operation.
 		///
 		/// `dest_weight` is the weight for XCM execution on the dest chain, and
 		/// it would be charged from the transferred assets. If set below
@@ -400,7 +401,14 @@ pub mod module {
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let dest: MultiLocation = (*dest).try_into().map_err(|()| Error::<T>::BadVersion)?;
-			Self::do_transfer(who, currency_id, amount, dest, dest_weight, Some(TransferKind::TransferReserve))
+			Self::do_transfer(
+				who,
+				currency_id,
+				amount,
+				dest,
+				dest_weight,
+				Some(TransferKind::TransferReserve),
+			)
 		}
 	}
 
@@ -411,7 +419,7 @@ pub mod module {
 			amount: T::Balance,
 			dest: MultiLocation,
 			dest_weight: Weight,
-			transfer_kind: Option<TransferKind>
+			transfer_kind: Option<TransferKind>,
 		) -> DispatchResult {
 			let location: MultiLocation =
 				T::CurrencyIdConvert::convert(currency_id).ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
@@ -529,7 +537,7 @@ pub mod module {
 			fee: MultiAsset,
 			dest: MultiLocation,
 			dest_weight: Weight,
-			transfer_kind: Option<TransferKind>
+			transfer_kind: Option<TransferKind>,
 		) -> DispatchResult {
 			ensure!(
 				assets.len() <= T::MaxAssetsForTransfer::get(),
@@ -621,7 +629,7 @@ pub mod module {
 					&dest,
 					None,
 					dest_weight,
-					transfer_kind
+					transfer_kind,
 				)?;
 			}
 
@@ -645,7 +653,7 @@ pub mod module {
 			dest: &MultiLocation,
 			maybe_recipient_override: Option<MultiLocation>,
 			dest_weight: Weight,
-			transfer_kind: Option<TransferKind>
+			transfer_kind: Option<TransferKind>,
 		) -> DispatchResult {
 			let (transfer_kind, dest, reserve, recipient) = Self::transfer_kind(reserve, dest, transfer_kind)?;
 			let recipient = match maybe_recipient_override {
@@ -699,16 +707,14 @@ pub mod module {
 			recipient: MultiLocation,
 			dest_weight: Weight,
 		) -> Result<Xcm<T::Call>, DispatchError> {
-			Ok(Xcm(vec![
-				TransferReserveAsset {
-					assets: assets.clone(),
-					dest: dest.clone(),
-					xcm: Xcm(vec![
-						Self::buy_execution(fee, &dest, dest_weight)?,
-						Self::deposit_asset(recipient, assets.len() as u32),
-					]),
-				},
-			]))
+			Ok(Xcm(vec![TransferReserveAsset {
+				assets: assets.clone(),
+				dest: dest.clone(),
+				xcm: Xcm(vec![
+					Self::buy_execution(fee, &dest, dest_weight)?,
+					Self::deposit_asset(recipient, assets.len() as u32),
+				]),
+			}]))
 		}
 
 		fn transfer_to_reserve(
@@ -816,7 +822,7 @@ pub mod module {
 		fn transfer_kind(
 			reserve: Option<MultiLocation>,
 			dest: &MultiLocation,
-			transfer_kind: Option<TransferKind>
+			transfer_kind: Option<TransferKind>,
 		) -> Result<(TransferKind, MultiLocation, MultiLocation, MultiLocation), DispatchError> {
 			let (dest, recipient) = Self::ensure_valid_dest(dest)?;
 

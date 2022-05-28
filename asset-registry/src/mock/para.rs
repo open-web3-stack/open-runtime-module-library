@@ -4,7 +4,12 @@ use crate as orml_asset_registry;
 
 use codec::{Decode, Encode};
 use cumulus_primitives_core::{ChannelStatus, GetChannelInfo, ParaId};
-use frame_support::{construct_runtime, match_types, parameter_types, traits::{ConstU128, ConstU32, ConstU64, Everything, Nothing}, weights::{constants::WEIGHT_PER_SECOND, Weight}, PalletId};
+use frame_support::{
+	construct_runtime, match_types, parameter_types,
+	traits::{ConstU128, ConstU32, ConstU64, Everything, Nothing},
+	weights::{constants::WEIGHT_PER_SECOND, Weight},
+	PalletId,
+};
 use frame_system::EnsureRoot;
 use orml_asset_registry::{AssetRegistryTrader, FixedRateAssetRegistryTrader};
 use orml_traits::{
