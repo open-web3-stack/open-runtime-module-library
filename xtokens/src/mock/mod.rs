@@ -152,7 +152,8 @@ pub fn para_ext(para_id: u32) -> TestExternalities {
 		.unwrap();
 
 	orml_tokens::GenesisConfig::<Runtime> {
-		balances: vec![(ALICE, CurrencyId::R, 1_000)],
+		tokens_endowment: vec![(ALICE, CurrencyId::R, 1_000)],
+		created_tokens_for_staking: vec![(ALICE, CurrencyId::R, 1_000)],
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();
