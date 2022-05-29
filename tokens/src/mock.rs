@@ -228,32 +228,32 @@ thread_local! {
 pub struct TrackCreatedAccounts;
 impl TrackCreatedAccounts {
 	pub fn accounts() -> Vec<(AccountId, CurrencyId)> {
-		CREATED.clone()
+		CREATED.with(|accounts| accounts.borrow().clone())
 	}
 
 	pub fn reset() {
-		*CREATED = RefCell::new(vec![]);
+		CREATED.with(|accounts| { accounts.replace(vec![]); });
 	}
 }
-impl OnNewAccount<AccountId, CurrencyId> for TrackCreatedAccounts {
-	fn on_new_account(who: &AccountId, currency: CurrencyId) {
-		CREATED.push((who, CurrencyId));
+impl OnNewTokenAccount<AccountId, CurrencyId> for TrackCreatedAccounts {
+	fn on_new_account_for(who: &AccountId, currency: CurrencyId) {
+		CREATED.with(|accounts| { accounts.borrow_mut().push((who.clone(), currency)); });
 	}
 }
 
 pub struct TrackKilledAccounts;
 impl TrackKilledAccounts {
 	pub fn accounts() -> Vec<(AccountId, CurrencyId)> {
-		KILLED.clone()
+		KILLED.with(|accounts| accounts.borrow().clone())
 	}
 
 	pub fn reset() {
-		*KILLED = RefCell::new(vec![]);
+		KILLED.with(|accounts| { accounts.replace(vec![]); });
 	}
 }
-impl OnNewAccount<AccountId, CurrencyId> for TrackKilledAccounts {
-	fn on_new_account(who: &AccountId, currency: CurrencyId) {
-		KILLED.push((who, CurrencyId));
+impl OnKilledTokenAccount<AccountId, CurrencyId> for TrackKilledAccounts {
+	fn on_killed_account_for(who: &AccountId, currency: CurrencyId) {
+		KILLED.with(|accounts| { accounts.borrow_mut().push((who.clone(), currency)); });
 	}
 }
 
@@ -269,8 +269,8 @@ impl Config for Runtime {
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = TransferDust<Runtime, DustReceiver>;
-	type OnNewAccount = TrackCreatedAccounts;
-	type OnKilledAccount = TrackKilledAccounts;
+	type OnNewTokenAccount = TrackCreatedAccounts;
+	type OnKilledTokenAccount = TrackKilledAccounts;
 	type MaxLocks = ConstU32<2>;
 	type MaxReserves = ConstU32<2>;
 	type ReserveIdentifier = ReserveIdentifier;

@@ -644,21 +644,21 @@ impl<AccountId, CurrencyId, Balance> OnDust<AccountId, CurrencyId, Balance> for 
 }
 
 /// Handler for a newly created account
-pub trait OnNewAccount<AccountId, CurrencyId> {
-	fn on_new_account(who: &AccountId, currency_id: CurrencyId);
+pub trait OnNewTokenAccount<AccountId, CurrencyId> {
+	fn on_new_account_for(who: &AccountId, currency_id: CurrencyId);
 }
 
-impl<AccountId, CurrencyId> OnNewAccount<AccountId, CurrencyId> for () {
-	fn on_new_account(_: &AccountId, _: CurrencyId) {}
+impl<AccountId, CurrencyId> OnNewTokenAccount<AccountId, CurrencyId> for () {
+	fn on_new_account_for(_: &AccountId, _: CurrencyId) {}
 }
 
 /// Handler for an account that was removed
-pub trait OnKilledAccount<AccountId, CurrencyId> {
-	fn on_killed_account(who: &AccountId, currency_id: CurrencyId);
+pub trait OnKilledTokenAccount<AccountId, CurrencyId> {
+	fn on_killed_account_for(who: &AccountId, currency_id: CurrencyId);
 }
 
-impl<AccountId, CurrencyId> OnKilledAccount<AccountId, CurrencyId> for () {
-	fn on_killed_account(_: &AccountId, _: CurrencyId) {}
+impl<AccountId, CurrencyId> OnKilledTokenAccount<AccountId, CurrencyId> for () {
+	fn on_killed_account_for(_: &AccountId, _: CurrencyId) {}
 }
 
 pub trait TransferAll<AccountId> {

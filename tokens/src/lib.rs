@@ -68,7 +68,7 @@ use orml_traits::{
 	arithmetic::{self, Signed},
 	currency::TransferAll,
 	BalanceStatus, GetByKey, LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency,
-	MultiReservableCurrency, NamedMultiReservableCurrency, OnDust, OnNewAccount, OnKilledAccount,
+	MultiReservableCurrency, NamedMultiReservableCurrency, OnDust, OnNewTokenAccount, OnKilledTokenAccount,
 };
 
 mod imbalances;
@@ -217,10 +217,10 @@ pub mod module {
 		type OnDust: OnDust<Self::AccountId, Self::CurrencyId, Self::Balance>;
 
 		/// Handler for when an account was created
-		type OnNewAccount: OnNewAccount<Self::AccountId, Self::CurrencyId>;
+		type OnNewTokenAccount: OnNewTokenAccount<Self::AccountId, Self::CurrencyId>;
 
 		/// Handler for when an account was created
-		type OnKilledAccount: OnKilledAccount<Self::AccountId, Self::CurrencyId>;
+		type OnKilledTokenAccount: OnKilledTokenAccount<Self::AccountId, Self::CurrencyId>;
 
 		#[pallet::constant]
 		type MaxLocks: Get<u32>;
@@ -753,11 +753,11 @@ impl<T: Config> Pallet<T> {
 				// Ignore the result, because if it failed then there are remaining consumers,
 				// and the account storage in frame_system shouldn't be reaped.
 				let _ = frame_system::Pallet::<T>::dec_providers(who);
-				T::OnKilledAccount::on_killed_account(&who, currency_id);
+				T::OnKilledTokenAccount::on_killed_account_for(&who, currency_id);
 			} else if !existed && exists {
 				// if new, increase account provider
 				frame_system::Pallet::<T>::inc_providers(who);
-				T::OnNewAccount::on_new_account(&who, currency_id);
+				T::OnNewTokenAccount::on_new_account_for(&who, currency_id);
 			}
 
 			if let Some(endowed) = maybe_endowed {
