@@ -643,24 +643,6 @@ impl<AccountId, CurrencyId, Balance> OnDust<AccountId, CurrencyId, Balance> for 
 	fn on_dust(_: &AccountId, _: CurrencyId, _: Balance) {}
 }
 
-/// Handler for a newly created account
-pub trait OnNewTokenAccount<AccountId, CurrencyId> {
-	fn on_new_account_for(who: &AccountId, currency_id: CurrencyId);
-}
-
-impl<AccountId, CurrencyId> OnNewTokenAccount<AccountId, CurrencyId> for () {
-	fn on_new_account_for(_: &AccountId, _: CurrencyId) {}
-}
-
-/// Handler for an account that was removed
-pub trait OnKilledTokenAccount<AccountId, CurrencyId> {
-	fn on_killed_account_for(who: &AccountId, currency_id: CurrencyId);
-}
-
-impl<AccountId, CurrencyId> OnKilledTokenAccount<AccountId, CurrencyId> for () {
-	fn on_killed_account_for(_: &AccountId, _: CurrencyId) {}
-}
-
 pub trait TransferAll<AccountId> {
 	fn transfer_all(source: &AccountId, dest: &AccountId) -> DispatchResult;
 }

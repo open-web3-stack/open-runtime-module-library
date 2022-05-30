@@ -235,9 +235,9 @@ impl TrackCreatedAccounts {
 		CREATED.with(|accounts| { accounts.replace(vec![]); });
 	}
 }
-impl OnNewTokenAccount<AccountId, CurrencyId> for TrackCreatedAccounts {
-	fn on_new_account_for(who: &AccountId, currency: CurrencyId) {
-		CREATED.with(|accounts| { accounts.borrow_mut().push((who.clone(), currency)); });
+impl Happened<(AccountId, CurrencyId)> for TrackCreatedAccounts {
+	fn happened((who, currency): &(AccountId, CurrencyId)) {
+		CREATED.with(|accounts| { accounts.borrow_mut().push((who.clone(), *currency)); });
 	}
 }
 
@@ -251,9 +251,9 @@ impl TrackKilledAccounts {
 		KILLED.with(|accounts| { accounts.replace(vec![]); });
 	}
 }
-impl OnKilledTokenAccount<AccountId, CurrencyId> for TrackKilledAccounts {
-	fn on_killed_account_for(who: &AccountId, currency: CurrencyId) {
-		KILLED.with(|accounts| { accounts.borrow_mut().push((who.clone(), currency)); });
+impl Happened<(AccountId, CurrencyId)> for TrackKilledAccounts {
+	fn happened((who, currency): &(AccountId, CurrencyId)) {
+		KILLED.with(|accounts| { accounts.borrow_mut().push((who.clone(), *currency)); });
 	}
 }
 
