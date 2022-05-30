@@ -1,3 +1,5 @@
+use xcm::v1::MultiLocation;
+
 /// A trait for querying a value by a key.
 pub trait GetByKey<Key, Value> {
 	/// Return the value.
@@ -54,4 +56,12 @@ mod tests {
 		assert_eq!(Test::get(&2), 2);
 		assert_eq!(Test::get(&3), 2);
 	}
+}
+
+// Default implementation for xTokens::MinXcmFee
+pub struct DisabledParachainFee;
+impl GetByKey<MultiLocation, Option<u128>> for DisabledParachainFee {
+    fn get(_key: &MultiLocation) -> Option<u128> {
+        None
+    }
 }
