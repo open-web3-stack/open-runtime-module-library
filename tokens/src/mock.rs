@@ -232,12 +232,16 @@ impl TrackCreatedAccounts {
 	}
 
 	pub fn reset() {
-		CREATED.with(|accounts| { accounts.replace(vec![]); });
+		CREATED.with(|accounts| {
+			accounts.replace(vec![]);
+		});
 	}
 }
 impl Happened<(AccountId, CurrencyId)> for TrackCreatedAccounts {
 	fn happened((who, currency): &(AccountId, CurrencyId)) {
-		CREATED.with(|accounts| { accounts.borrow_mut().push((who.clone(), *currency)); });
+		CREATED.with(|accounts| {
+			accounts.borrow_mut().push((who.clone(), *currency));
+		});
 	}
 }
 
@@ -248,12 +252,16 @@ impl TrackKilledAccounts {
 	}
 
 	pub fn reset() {
-		KILLED.with(|accounts| { accounts.replace(vec![]); });
+		KILLED.with(|accounts| {
+			accounts.replace(vec![]);
+		});
 	}
 }
 impl Happened<(AccountId, CurrencyId)> for TrackKilledAccounts {
 	fn happened((who, currency): &(AccountId, CurrencyId)) {
-		KILLED.with(|accounts| { accounts.borrow_mut().push((who.clone(), *currency)); });
+		KILLED.with(|accounts| {
+			accounts.borrow_mut().push((who.clone(), *currency));
+		});
 	}
 }
 

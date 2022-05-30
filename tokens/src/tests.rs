@@ -1152,19 +1152,18 @@ fn exceeding_max_reserves_should_fail() {
 
 #[test]
 fn lifecycle_callbacks_are_activated() {
-	ExtBuilder::default()
-		.build()
-		.execute_with(|| {
-			assert_ok!(Tokens::set_balance(RawOrigin::Root.into(), ALICE, DOT, 200, 0));
-			assert_eq!(TrackCreatedAccounts::accounts(), vec![(ALICE, DOT)]);
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(Tokens::set_balance(RawOrigin::Root.into(), ALICE, DOT, 200, 0));
+		assert_eq!(TrackCreatedAccounts::accounts(), vec![(ALICE, DOT)]);
 
-			assert_ok!(Tokens::set_balance(RawOrigin::Root.into(), ALICE, BTC, 200, 0));
-			assert_eq!(TrackCreatedAccounts::accounts(), vec![(ALICE, DOT), (ALICE, BTC)]);
+		assert_ok!(Tokens::set_balance(RawOrigin::Root.into(), ALICE, BTC, 200, 0));
+		assert_eq!(TrackCreatedAccounts::accounts(), vec![(ALICE, DOT), (ALICE, BTC)]);
 
-			assert_ok!(Tokens::transfer_all(Some(ALICE).into(), CHARLIE, BTC, false));
-			assert_eq!(TrackCreatedAccounts::accounts(), vec![
-				(ALICE, DOT), (ALICE, BTC), (CHARLIE, BTC)
-			]);
-			assert_eq!(TrackKilledAccounts::accounts(), vec![(ALICE, BTC)]);
-		})
+		assert_ok!(Tokens::transfer_all(Some(ALICE).into(), CHARLIE, BTC, false));
+		assert_eq!(
+			TrackCreatedAccounts::accounts(),
+			vec![(ALICE, DOT), (ALICE, BTC), (CHARLIE, BTC)]
+		);
+		assert_eq!(TrackKilledAccounts::accounts(), vec![(ALICE, BTC)]);
+	})
 }
