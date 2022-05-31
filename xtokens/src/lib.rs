@@ -642,16 +642,14 @@ pub mod module {
 			recipient: MultiLocation,
 			dest_weight: Weight,
 		) -> Result<Xcm<T::Call>, DispatchError> {
-			Ok(Xcm(vec![
-				TransferReserveAsset {
-					assets: assets.clone(),
-					dest: dest.clone(),
-					xcm: Xcm(vec![
-						Self::buy_execution(fee, &dest, dest_weight)?,
-						Self::deposit_asset(recipient, assets.len() as u32),
-					]),
-				},
-			]))
+			Ok(Xcm(vec![TransferReserveAsset {
+				assets: assets.clone(),
+				dest: dest.clone(),
+				xcm: Xcm(vec![
+					Self::buy_execution(fee, &dest, dest_weight)?,
+					Self::deposit_asset(recipient, assets.len() as u32),
+				]),
+			}]))
 		}
 
 		fn transfer_to_reserve(
@@ -787,13 +785,11 @@ pub mod module {
 					Self::transfer_kind(T::ReserveProvider::reserve(&asset), &dest)
 				{
 					let mut msg = match transfer_kind {
-						SelfReserveAsset => Xcm(vec![
-							TransferReserveAsset {
-								assets: vec![].into(),
-								dest,
-								xcm: Xcm(vec![]),
-							},
-						]),
+						SelfReserveAsset => Xcm(vec![TransferReserveAsset {
+							assets: vec![].into(),
+							dest,
+							xcm: Xcm(vec![]),
+						}]),
 						ToReserve | ToNonReserve => Xcm(vec![
 							WithdrawAsset(MultiAssets::from(asset)),
 							InitiateReserveWithdraw {
@@ -852,13 +848,11 @@ pub mod module {
 				let reserve_location = Self::get_reserve_location(&assets, fee_item);
 				if let Ok((transfer_kind, dest, _, reserve)) = Self::transfer_kind(reserve_location, &dest) {
 					let mut msg = match transfer_kind {
-						SelfReserveAsset => Xcm(vec![
-							TransferReserveAsset {
-								assets,
-								dest,
-								xcm: Xcm(vec![]),
-							},
-						]),
+						SelfReserveAsset => Xcm(vec![TransferReserveAsset {
+							assets,
+							dest,
+							xcm: Xcm(vec![]),
+						}]),
 						ToReserve | ToNonReserve => Xcm(vec![
 							WithdrawAsset(assets),
 							InitiateReserveWithdraw {

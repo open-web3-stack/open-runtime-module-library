@@ -191,7 +191,7 @@ impl<
 			.saturated_into();
 		MultiCurrency::transfer(currency_id, &from_account, &to_account, amount)
 			.map_err(|e| XcmError::FailedToTransactAsset(e.into()))?;
-	
+
 		Ok(asset.clone().into())
 	}
 }
