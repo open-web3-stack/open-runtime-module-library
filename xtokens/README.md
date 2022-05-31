@@ -61,7 +61,7 @@ parameter_type_with_key! {
 }
 ```
 
-If Parachain don't want have this case, can simply return None:
+If Parachain don't want have this case, can simply return None. A default implementation is provided by `DisabledParachainFee` in `xcm-support`.
 
 ```rust
 parameter_type_with_key! {
