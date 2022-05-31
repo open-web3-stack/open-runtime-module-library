@@ -643,10 +643,8 @@ pub mod module {
 			dest_weight: Weight,
 		) -> Result<Xcm<T::Call>, DispatchError> {
 			Ok(Xcm(vec![
-				WithdrawAsset(assets.clone()),
-				DepositReserveAsset {
-					assets: All.into(),
-					max_assets: assets.len() as u32,
+				TransferReserveAsset {
+					assets: assets.clone(),
 					dest: dest.clone(),
 					xcm: Xcm(vec![
 						Self::buy_execution(fee, &dest, dest_weight)?,
@@ -790,10 +788,8 @@ pub mod module {
 				{
 					let mut msg = match transfer_kind {
 						SelfReserveAsset => Xcm(vec![
-							WithdrawAsset(MultiAssets::from(asset)),
-							DepositReserveAsset {
-								assets: All.into(),
-								max_assets: 1,
+							TransferReserveAsset {
+								assets: vec![].into(),
 								dest,
 								xcm: Xcm(vec![]),
 							},
@@ -854,14 +850,11 @@ pub mod module {
 			let dest = dest.clone().try_into();
 			if let (Ok(assets), Ok(dest)) = (assets, dest) {
 				let reserve_location = Self::get_reserve_location(&assets, fee_item);
-				// if let Ok(reserve_location) = reserve_location {
 				if let Ok((transfer_kind, dest, _, reserve)) = Self::transfer_kind(reserve_location, &dest) {
 					let mut msg = match transfer_kind {
 						SelfReserveAsset => Xcm(vec![
-							WithdrawAsset(assets.clone()),
-							DepositReserveAsset {
-								assets: All.into(),
-								max_assets: assets.len() as u32,
+							TransferReserveAsset {
+								assets,
 								dest,
 								xcm: Xcm(vec![]),
 							},
@@ -879,7 +872,6 @@ pub mod module {
 					return T::Weigher::weight(&mut msg)
 						.map_or(Weight::max_value(), |w| T::BaseXcmWeight::get().saturating_add(w));
 				}
-				// }
 			}
 			0
 		}
