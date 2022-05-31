@@ -650,42 +650,6 @@ fn send_self_parachain_asset_to_sibling_with_distinct_fee() {
 }
 
 #[test]
-fn send_self_parachain_asset_to_sibling_use_transfer() {
-	TestNet::reset();
-
-	ParaA::execute_with(|| {
-		assert_ok!(ParaTokens::deposit(CurrencyId::A, &ALICE, 1_000));
-
-		assert_ok!(ParaXTokens::transfer_reserve(
-			Some(ALICE).into(),
-			CurrencyId::A,
-			500,
-			Box::new(
-				MultiLocation::new(
-					1,
-					X2(
-						Parachain(2),
-						Junction::AccountId32 {
-							network: NetworkId::Any,
-							id: BOB.into(),
-						}
-					)
-				)
-				.into()
-			),
-			40,
-		));
-
-		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &ALICE), 500);
-		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &sibling_b_account()), 500);
-	});
-
-	ParaB::execute_with(|| {
-		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &BOB), 460);
-	});
-}
-
-#[test]
 fn sending_sibling_asset_to_reserve_sibling_with_relay_fee_works() {
 	TestNet::reset();
 
