@@ -6,7 +6,7 @@ This module exposes capabilities for staking rewards.
 
 ### Single asset algorithm
 
-If to consider single pool with single rewards assets, generally it will behave as next:
+If to consider single pool with single reward asset, generally it will behave as next:
 
 ```python
 from collections import defaultdict
