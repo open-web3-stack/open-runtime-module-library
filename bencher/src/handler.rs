@@ -6,9 +6,9 @@ use codec::Decode;
 use frame_benchmarking::frame_support::traits::StorageInfo;
 use linregress::{FormulaRegressionBuilder, RegressionDataBuilder};
 use serde::{Deserialize, Serialize};
+use sp_core::hexdisplay::HexDisplay;
 use std::io::Write;
 use std::time::Duration;
-use sp_core::hexdisplay::HexDisplay;
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
 struct BenchData {
@@ -55,7 +55,12 @@ pub fn handle(output: Vec<u8>, storage_infos: Vec<StorageInfo>) {
 					let name = String::from_utf8(info.storage_name.clone()).unwrap();
 					comments.push(format!("{}::{} (r: {}, w: {})", pallet, name, reads, writes));
 				} else {
-					comments.push(format!("Unknown 0x{} (r: {}, w: {})", HexDisplay::from(&prefix), reads, writes));
+					comments.push(format!(
+						"Unknown 0x{} (r: {}, w: {})",
+						HexDisplay::from(&prefix),
+						reads,
+						writes
+					));
 				}
 			});
 

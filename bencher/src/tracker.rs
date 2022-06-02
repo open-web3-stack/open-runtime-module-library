@@ -176,7 +176,9 @@ impl BenchTracker {
 	}
 
 	pub fn on_clear_prefix(&self, prefix: &[u8], limit: Option<u32>) {
-		if self.is_redundant() { return; }
+		if self.is_redundant() {
+			return;
+		}
 		if let Some(limit) = limit {
 			let key = prefix.to_vec();
 			let clear_prefixes = &mut *self.clear_prefixes.write();
