@@ -35,12 +35,12 @@
 /// use crate::mock::*;
 ///
 /// fn foo(b: &mut Bencher) {
-///     // Run any before code here
+///     // Run anything before code here
 ///     let ret = b.bench(|| {
 ///         // foo must have macro `[orml_weight_meter::weight(..)]` to measure correct redundant info
 ///         YourModule::foo()
 ///     });
-///     // Run any after code here
+///     // Run anything after code here
 /// }
 ///
 /// fn bar(b: &mut Bencher) {
@@ -71,13 +71,13 @@ macro_rules! benches {
                 $crate::bench::print_info("\nRunning benches ...\n".as_bytes().to_vec());
                 let mut bencher = $crate::Bencher::default();
                 $(
-                    $crate::bench::reset();
+                    $crate::bench::init_bench();
 
                     let name = stringify!($method);
                     bencher.current = $crate::BenchResult::with_name(name);
 
                     for _ in 0..1_000 {
-                        bencher.prepare();
+                        bencher.before_run();
                         $method(&mut bencher);
                     }
 

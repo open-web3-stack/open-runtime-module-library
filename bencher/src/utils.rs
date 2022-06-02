@@ -20,14 +20,15 @@ pub trait Bench {
 		let tracker = &***self
 			.extension::<BenchTrackerExt>()
 			.expect("No `bench_tracker` associated for the current context!");
-		if tracker.has_warn_child_prefix_removal() {
-			let method_name = <String as Decode>::decode(&mut &method[..]).unwrap();
+		let method_name = <String as Decode>::decode(&mut &method[..]).unwrap();
+		tracker.warnings().iter().for_each(|warning| {
 			println!(
-				"{} {} kills prefix and/or child storage which are ignored.",
+				"{} {} {}",
 				yellow_bold("WARNING:"),
-				cyan(&method_name)
+				cyan(&method_name),
+				yellow_bold(&warning.to_string())
 			);
-		}
+		});
 	}
 
 	fn print_info(&mut self, message: Vec<u8>) {
@@ -35,14 +36,15 @@ pub trait Bench {
 		println!("{}", msg);
 	}
 
-	fn instant(&mut self) {
+	fn start_timer(&mut self) {
 		let tracker = &***self
 			.extension::<BenchTrackerExt>()
 			.expect("No `bench_tracker` associated for the current context!");
+		tracker.prepare_next_run();
 		tracker.instant();
 	}
 
-	fn elapsed(&mut self) -> u128 {
+	fn end_timer(&mut self) -> u128 {
 		let tracker = &***self
 			.extension::<BenchTrackerExt>()
 			.expect("No `bench_tracker` associated for the current context!");
@@ -70,13 +72,6 @@ pub trait Bench {
 		tracker.redundant_time()
 	}
 
-	fn prepare(&mut self) {
-		let tracker = &***self
-			.extension::<BenchTrackerExt>()
-			.expect("No `bench_tracker` associated for the current context!");
-		tracker.prepare();
-	}
-
 	fn read_written_keys(&mut self) -> Vec<u8> {
 		let tracker = &***self
 			.extension::<BenchTrackerExt>()
@@ -91,7 +86,7 @@ pub trait Bench {
 		tracker.whitelist(key, read, write);
 	}
 
-	fn reset(&mut self) {
+	fn init_bench(&mut self) {
 		let tracker = &***self
 			.extension::<BenchTrackerExt>()
 			.expect("No `bench_tracker` associated for the current context!");

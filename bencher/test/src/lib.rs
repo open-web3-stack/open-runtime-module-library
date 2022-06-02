@@ -81,5 +81,10 @@ pub mod pallet {
 		pub(crate) fn remove_all_bar() {
 			Bar::<T>::remove_all(None);
 		}
+
+		#[orml_weight_meter::weight(0)]
+		pub(crate) fn remove_all_bar_with_limit() {
+			Bar::<T>::remove_all(Some(10));
+		}
 	}
 }

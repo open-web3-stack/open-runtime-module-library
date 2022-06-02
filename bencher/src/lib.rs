@@ -28,7 +28,7 @@ pub mod handler;
 #[cfg(feature = "std")]
 mod colorize;
 #[cfg(feature = "std")]
-mod ext;
+mod bench_ext;
 #[cfg(feature = "std")]
 mod tracker;
 

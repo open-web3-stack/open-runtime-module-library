@@ -1,6 +1,6 @@
 use super::{
-	ext::BenchExt,
-	tracker::{BenchTracker, BenchTrackerExt},
+    bench_ext::BenchExt,
+    tracker::{BenchTracker, BenchTrackerExt},
 };
 use frame_benchmarking::frame_support::sp_runtime::traits::Block;
 use sc_executor::{WasmExecutionMethod, WasmExecutor};

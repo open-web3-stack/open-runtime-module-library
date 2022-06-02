@@ -24,6 +24,13 @@ fn remove_all_bar(b: &mut Bencher) {
 	});
 }
 
+fn remove_all_bar_with_limit(b: &mut Bencher) {
+	Bar::<Runtime>::insert(1, 1);
+	b.bench(|| {
+		Test::remove_all_bar_with_limit();
+	});
+}
+
 fn whitelist(b: &mut Bencher) {
 	b.whitelist(Bar::<Runtime>::hashed_key_for(1), true, true);
 	b.whitelist(Bar::<Runtime>::hashed_key_for(2), true, false);
@@ -34,4 +41,10 @@ fn whitelist(b: &mut Bencher) {
 	});
 }
 
-benches!(whitelist, set_value, set_foo, remove_all_bar);
+benches!(
+	whitelist,
+	set_value,
+	set_foo,
+	remove_all_bar,
+	remove_all_bar_with_limit
+);
