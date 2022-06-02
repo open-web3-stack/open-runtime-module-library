@@ -23,7 +23,7 @@ def inflate(pool, user_share):
 
 def add_share(pool, users, user, user_share):
     # virtually we add more rewards, but claim they were claimed by user
-    # so until `rewards` grows, users will not be able to claim more than zero
+    # so until `rewards` grows, user will not be able to claim more than zero
     to_withdraw = inflate(pool, user_share)
     pool["rewards"] = pool["rewards"] +  to_withdraw
     pool["withdrawn_rewards"] = pool["withdrawn_rewards"] +  to_withdraw
@@ -43,3 +43,10 @@ def claim_rewards(pool, users, user):
     user["withdrawn_rewards"] += to_withdraw
     return to_withdraw
 ```
+
+### Prove
+
+We want to prove that when a new share is added, it does not dilute previous rewards.
+The user who adds a share after the reward is accumulated, will not get any part of this reward.
+
+Let $$P_n$$
