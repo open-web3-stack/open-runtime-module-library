@@ -237,9 +237,13 @@ impl BenchTracker {
 			if let Some(report) = summary.get_mut(&prefix) {
 				report.written += items;
 			} else {
-				let mut report = AccessReport::default();
-				report.written = *items;
-				summary.insert(prefix, report);
+				summary.insert(
+					prefix,
+					AccessReport {
+						written: *items,
+						..Default::default()
+					},
+				);
 			}
 		});
 
