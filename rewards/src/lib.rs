@@ -286,20 +286,20 @@ impl<T: Config> Pallet<T> {
 								.saturating_sub(withdrawn_reward)
 								.min(total_reward.saturating_sub(*total_withdrawn_reward));
 
-							if reward_to_withdraw.is_zero() {
-								return;
+							if !reward_to_withdraw.is_zero() {
+								*total_withdrawn_reward = total_withdrawn_reward.saturating_add(reward_to_withdraw);
+								withdrawn_rewards
+									.insert(*reward_currency, withdrawn_reward.saturating_add(reward_to_withdraw));
+
+								// pay reward to `who`
+								T::Handler::payout(who, pool, *reward_currency, reward_to_withdraw);
 							}
-
-							*total_withdrawn_reward = total_withdrawn_reward.saturating_add(reward_to_withdraw);
-							withdrawn_rewards
-								.insert(*reward_currency, withdrawn_reward.saturating_add(reward_to_withdraw));
-
-							// pay reward to `who`
-							T::Handler::payout(who, pool, *reward_currency, reward_to_withdraw);
 						},
 					);
 				});
 			}
 		});
 	}
+
+	//fn withdrawn()
 }
