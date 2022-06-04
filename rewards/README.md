@@ -5,6 +5,7 @@
 This module exposes capabilities for staking rewards.
 
 ### Single asset algorithm
+
 If consider a single pool with a single reward asset, generally it will behave as next:
 
 ```python
