@@ -51,22 +51,22 @@ Parachains should implements config `MinXcmFee` in `xtokens` module config:
 
 ```rust
 parameter_type_with_key! {
-	pub ParachainMinFee: |location: MultiLocation| -> u128 {
+	pub ParachainMinFee: |location: MultiLocation| -> Option<u128> {
 		#[allow(clippy::match_ref_pats)] // false positive
 		match (location.parents, location.first_interior()) {
-			(1, Some(Parachain(parachains::statemine::ID))) => 4_000_000_000,
-			_ => u128::MAX,
+			(1, Some(Parachain(parachains::statemine::ID))) => Some(4_000_000_000),
+			_ => None,
 		}
 	};
 }
 ```
 
-If Parachain don't want have this case, can simply return Max value:
+If Parachain don't want have this case, can simply return None. A default implementation is provided by `DisabledParachainFee` in `xcm-support`.
 
 ```rust
 parameter_type_with_key! {
-	pub ParachainMinFee: |_location: MultiLocation| -> u128 {
-		u128::MAX
+	pub ParachainMinFee: |_location: MultiLocation| -> Option<u128> {
+		None
 	};
 }
 ```
