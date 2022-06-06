@@ -96,6 +96,8 @@ impl orml_tokens::Config for Runtime {
 	type MaxReserves = ();
 	type MaxLocks = ConstU32<50>;
 	type DustRemovalWhitelist = Nothing;
+	type OnNewTokenAccount = ();
+    type OnKilledTokenAccount = ();
 }
 
 #[derive(scale_info::TypeInfo, Encode, Decode, Clone, Eq, PartialEq, Debug)]
