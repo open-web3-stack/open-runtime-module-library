@@ -3,7 +3,7 @@ use super::{
 	tracker::{BenchTracker, BenchTrackerExt},
 };
 use frame_benchmarking::frame_support::sp_runtime::traits::Block;
-use sc_executor::{WasmExecutionMethod, WasmExecutor};
+use sc_executor::{WasmExecutionMethod, WasmExecutor, WasmtimeInstantiationStrategy};
 use sc_executor_common::runtime_blob::RuntimeBlob;
 use sp_externalities::Extensions;
 use sp_state_machine::{Ext, OverlayedChanges, StorageTransactionCache};
@@ -31,7 +31,9 @@ pub fn run<B: Block>(wasm_code: Vec<u8>) -> std::result::Result<Vec<u8>, sc_exec
 	let mut bench_ext = BenchExt::new(ext, tracker);
 
 	let executor =
-		WasmExecutor::<ComposeHostFunctions>::new(WasmExecutionMethod::Compiled, Default::default(), 1, None, 1);
+		WasmExecutor::<ComposeHostFunctions>::new(WasmExecutionMethod::Compiled{
+			instantiation_strategy: WasmtimeInstantiationStrategy::PoolingCopyOnWrite
+		}, Default::default(), 1, None, 1);
 
 	let blob = RuntimeBlob::uncompress_if_needed(&wasm_code[..]).unwrap();
 
