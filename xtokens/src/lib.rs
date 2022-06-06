@@ -89,7 +89,7 @@ pub mod module {
 		type SelfLocation: Get<MultiLocation>;
 
 		/// Minimum xcm execution fee paid on destination chain.
-		type MinXcmFee: GetByKey<MultiLocation, u128>;
+		type MinXcmFee: GetByKey<MultiLocation, Option<u128>>;
 
 		/// XCM executor.
 		type XcmExecutor: ExecuteXcm<Self::Call>;
@@ -173,6 +173,8 @@ pub mod module {
 		FeeNotEnough,
 		/// Not supported MultiLocation
 		NotSupportedMultiLocation,
+		/// MinXcmFee not registered for certain reserve location
+		MinXcmFeeNotDefined,
 	}
 
 	#[pallet::hooks]
@@ -538,7 +540,7 @@ pub mod module {
 				ensure!(non_fee_reserve == dest.chain_part(), Error::<T>::InvalidAsset);
 
 				let reserve_location = non_fee_reserve.clone().ok_or(Error::<T>::AssetHasNoReserve)?;
-				let min_xcm_fee = T::MinXcmFee::get(&reserve_location);
+				let min_xcm_fee = T::MinXcmFee::get(&reserve_location).ok_or(Error::<T>::MinXcmFeeNotDefined)?;
 
 				// min xcm fee should less than user fee
 				let fee_to_dest: MultiAsset = (fee.id.clone(), min_xcm_fee).into();
@@ -642,18 +644,14 @@ pub mod module {
 			recipient: MultiLocation,
 			dest_weight: Weight,
 		) -> Result<Xcm<T::Call>, DispatchError> {
-			Ok(Xcm(vec![
-				WithdrawAsset(assets.clone()),
-				DepositReserveAsset {
-					assets: All.into(),
-					max_assets: assets.len() as u32,
-					dest: dest.clone(),
-					xcm: Xcm(vec![
-						Self::buy_execution(fee, &dest, dest_weight)?,
-						Self::deposit_asset(recipient, assets.len() as u32),
-					]),
-				},
-			]))
+			Ok(Xcm(vec![TransferReserveAsset {
+				assets: assets.clone(),
+				dest: dest.clone(),
+				xcm: Xcm(vec![
+					Self::buy_execution(fee, &dest, dest_weight)?,
+					Self::deposit_asset(recipient, assets.len() as u32),
+				]),
+			}]))
 		}
 
 		fn transfer_to_reserve(
@@ -789,15 +787,11 @@ pub mod module {
 					Self::transfer_kind(T::ReserveProvider::reserve(&asset), &dest)
 				{
 					let mut msg = match transfer_kind {
-						SelfReserveAsset => Xcm(vec![
-							WithdrawAsset(MultiAssets::from(asset)),
-							DepositReserveAsset {
-								assets: All.into(),
-								max_assets: 1,
-								dest,
-								xcm: Xcm(vec![]),
-							},
-						]),
+						SelfReserveAsset => Xcm(vec![TransferReserveAsset {
+							assets: vec![].into(),
+							dest,
+							xcm: Xcm(vec![]),
+						}]),
 						ToReserve | ToNonReserve => Xcm(vec![
 							WithdrawAsset(MultiAssets::from(asset)),
 							InitiateReserveWithdraw {
@@ -854,18 +848,13 @@ pub mod module {
 			let dest = dest.clone().try_into();
 			if let (Ok(assets), Ok(dest)) = (assets, dest) {
 				let reserve_location = Self::get_reserve_location(&assets, fee_item);
-				// if let Ok(reserve_location) = reserve_location {
 				if let Ok((transfer_kind, dest, _, reserve)) = Self::transfer_kind(reserve_location, &dest) {
 					let mut msg = match transfer_kind {
-						SelfReserveAsset => Xcm(vec![
-							WithdrawAsset(assets.clone()),
-							DepositReserveAsset {
-								assets: All.into(),
-								max_assets: assets.len() as u32,
-								dest,
-								xcm: Xcm(vec![]),
-							},
-						]),
+						SelfReserveAsset => Xcm(vec![TransferReserveAsset {
+							assets,
+							dest,
+							xcm: Xcm(vec![]),
+						}]),
 						ToReserve | ToNonReserve => Xcm(vec![
 							WithdrawAsset(assets),
 							InitiateReserveWithdraw {
@@ -879,7 +868,6 @@ pub mod module {
 					return T::Weigher::weight(&mut msg)
 						.map_or(Weight::max_value(), |w| T::BaseXcmWeight::get().saturating_add(w));
 				}
-				// }
 			}
 			0
 		}

@@ -16,7 +16,7 @@ use sp_std::{marker::PhantomData, prelude::*};
 use xcm::latest::prelude::*;
 use xcm_executor::traits::{FilterAssetLocation, MatchesFungible};
 
-use orml_traits::location::Reserve;
+use orml_traits::{location::Reserve, GetByKey};
 
 pub use currency_adapter::{DepositToAlternative, MultiCurrencyAdapter, OnDepositFail};
 
@@ -76,5 +76,13 @@ impl UnknownAsset for () {
 	}
 	fn withdraw(_asset: &MultiAsset, _from: &MultiLocation) -> DispatchResult {
 		Err(DispatchError::Other(NO_UNKNOWN_ASSET_IMPL))
+	}
+}
+
+// Default implementation for xTokens::MinXcmFee
+pub struct DisabledParachainFee;
+impl GetByKey<MultiLocation, Option<u128>> for DisabledParachainFee {
+	fn get(_key: &MultiLocation) -> Option<u128> {
+		None
 	}
 }
