@@ -101,3 +101,7 @@ polkadot-runtime-parachains = { git = "https://github.com/paritytech//polkadot",
 polkadot-parachain = { git = "https://github.com/paritytech//polkadot", rev = "a7e188cd9665c735f4b9d5a58cdbc4dd1850eae0" }
 polkadot-primitives = { git = "https://github.com/paritytech//polkadot", rev = "a7e188cd9665c735f4b9d5a58cdbc4dd1850eae0" }
 xcm-simulator = { git = "https://github.com/paritytech//polkadot", rev = "a7e188cd9665c735f4b9d5a58cdbc4dd1850eae0" }
+
+# TODO: https://github.com/paritytech/substrate/pull/11609
+[patch.crates-io]
+wasm-instrument = { git = "https://github.com/paritytech/wasm-instrument", rev = "184b3f8b3a13cf49e06de2bf5a13b9b74eaeb404" }
