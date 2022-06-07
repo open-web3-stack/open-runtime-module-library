@@ -127,7 +127,7 @@ impl EnsureOriginWithArg<Origin, Option<u32>> for AssetAuthority {
 	}
 
 	#[cfg(feature = "runtime-benchmarks")]
-	fn successful_origin(a: &u32) -> OO {
+	fn successful_origin(a: &u32) -> Origin {
 		unimplemented!()
 	}
 }
