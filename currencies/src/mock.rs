@@ -85,6 +85,8 @@ impl orml_tokens::Config for Runtime {
 	type MaxReserves = ConstU32<100_000>;
 	type ReserveIdentifier = ReserveIdentifier;
 	type DustRemovalWhitelist = Nothing;
+	type OnNewTokenAccount = ();
+	type OnKilledTokenAccount = ();
 }
 
 pub const NATIVE_CURRENCY_ID: CurrencyId = 1;

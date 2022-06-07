@@ -67,7 +67,7 @@ use sp_std::{cmp, convert::Infallible, marker, prelude::*, vec::Vec};
 use orml_traits::{
 	arithmetic::{self, Signed},
 	currency::TransferAll,
-	BalanceStatus, GetByKey, LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency,
+	BalanceStatus, GetByKey, Happened, LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency,
 	MultiReservableCurrency, NamedMultiReservableCurrency, OnDust,
 };
 
@@ -215,6 +215,12 @@ pub mod module {
 
 		/// Handler to burn or transfer account's dust
 		type OnDust: OnDust<Self::AccountId, Self::CurrencyId, Self::Balance>;
+
+		/// Handler for when an account was created
+		type OnNewTokenAccount: Happened<(Self::AccountId, Self::CurrencyId)>;
+
+		/// Handler for when an account was created
+		type OnKilledTokenAccount: Happened<(Self::AccountId, Self::CurrencyId)>;
 
 		#[pallet::constant]
 		type MaxLocks: Get<u32>;
@@ -747,9 +753,11 @@ impl<T: Config> Pallet<T> {
 				// Ignore the result, because if it failed then there are remaining consumers,
 				// and the account storage in frame_system shouldn't be reaped.
 				let _ = frame_system::Pallet::<T>::dec_providers(who);
+				T::OnKilledTokenAccount::happened(&(who.clone(), currency_id));
 			} else if !existed && exists {
 				// if new, increase account provider
 				frame_system::Pallet::<T>::inc_providers(who);
+				T::OnNewTokenAccount::happened(&(who.clone(), currency_id));
 			}
 
 			if let Some(endowed) = maybe_endowed {
