@@ -25,7 +25,7 @@ def add_share(pool, users, user, user_share):
     # virtually we add more rewards, but claim they were claimed by user
     # so until `rewards` grows, user will not be able to claim more than zero
     to_withdraw = inflate(pool, user_share)
-    pool["rewards"] = pool["rewards"] +  to_withdraw
+    pool["rewards"] = pool["rewards"] + to_withdraw
     pool["withdrawn_rewards"] = pool["withdrawn_rewards"] + to_withdraw
     pool["shares"] += user_share
     user = users[user]
