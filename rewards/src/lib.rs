@@ -272,24 +272,16 @@ impl<T: Config> Pallet<T> {
 					let total_shares = U256::from(pool_info.total_shares.to_owned().saturated_into::<u128>());
 					pool_info.rewards.iter_mut().for_each(
 						|(reward_currency, (total_reward, total_withdrawn_reward))| {
-							let withdrawn_reward = withdrawn_rewards.get(reward_currency).copied().unwrap_or_default();
-
-							let reward_to_withdraw = Self::reward_to_withdraw(
+							Self::claim_one(
+								withdrawn_rewards,
+								*reward_currency,
 								share,
 								total_reward,
 								total_shares,
-								withdrawn_reward,
 								total_withdrawn_reward,
+								who,
+								pool,
 							);
-
-							if !reward_to_withdraw.is_zero() {
-								*total_withdrawn_reward = total_withdrawn_reward.saturating_add(reward_to_withdraw);
-								withdrawn_rewards
-									.insert(*reward_currency, withdrawn_reward.saturating_add(reward_to_withdraw));
-
-								// pay reward to `who`
-								T::Handler::payout(who, pool, *reward_currency, reward_to_withdraw);
-							}
 						},
 					);
 				});
@@ -307,27 +299,47 @@ impl<T: Config> Pallet<T> {
 				PoolInfos::<T>::mutate(pool, |pool_info| {
 					let total_shares = U256::from(pool_info.total_shares.to_owned().saturated_into::<u128>());
 					if let Some((total_reward, total_withdrawn_reward)) = pool_info.rewards.get_mut(&reward_currency) {
-						let withdrawn_reward = withdrawn_rewards.get(&reward_currency).copied().unwrap_or_default();
-						let reward_to_withdraw = Self::reward_to_withdraw(
+						Self::claim_one(
+							withdrawn_rewards,
+							reward_currency,
 							share,
 							total_reward,
 							total_shares,
-							withdrawn_reward,
 							total_withdrawn_reward,
+							who,
+							pool,
 						);
-
-						if !reward_to_withdraw.is_zero() {
-							*total_withdrawn_reward = total_withdrawn_reward.saturating_add(reward_to_withdraw);
-							withdrawn_rewards
-								.insert(reward_currency, withdrawn_reward.saturating_add(reward_to_withdraw));
-
-							// pay reward to `who`
-							T::Handler::payout(who, pool, reward_currency, reward_to_withdraw);
-						}
 					}
 				});
 			}
 		});
+	}
+
+	fn claim_one(
+		withdrawn_rewards: &mut BTreeMap<T::CurrencyId, T::Balance>,
+		reward_currency: T::CurrencyId,
+		share: &mut T::Share,
+		total_reward: &mut T::Balance,
+		total_shares: U256,
+		total_withdrawn_reward: &mut T::Balance,
+		who: &T::AccountId,
+		pool: &T::PoolId,
+	) {
+		let withdrawn_reward = withdrawn_rewards.get(&reward_currency).copied().unwrap_or_default();
+		let reward_to_withdraw = Self::reward_to_withdraw(
+			share,
+			total_reward,
+			total_shares,
+			withdrawn_reward,
+			total_withdrawn_reward,
+		);
+		if !reward_to_withdraw.is_zero() {
+			*total_withdrawn_reward = total_withdrawn_reward.saturating_add(reward_to_withdraw);
+			withdrawn_rewards.insert(reward_currency, withdrawn_reward.saturating_add(reward_to_withdraw));
+
+			// pay reward to `who`
+			T::Handler::payout(who, pool, reward_currency, reward_to_withdraw);
+		}
 	}
 
 	fn reward_to_withdraw(
