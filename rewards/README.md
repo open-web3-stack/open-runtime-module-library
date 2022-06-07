@@ -54,7 +54,7 @@ Let $R_n$ be the amount of the current reward asset.
 
 Let $s_i$ be the stake of any specific user our of $m$ total users.
 
-User current reward share equals $$r_i = R_n * ({s_i} / {\sum_{i=1}^m s_i}) $$.
+User current reward share equals $$r_i = R_n * ({s_i} / {\sum_{i=1}^m s_i}) $$
 
 User $m + 1$ brings his share, so $$r_i' = R_n * ({s_i} / {\sum_{i=1}^{m+1} s_i}) $$
 
