@@ -86,7 +86,7 @@ impl orml_tokens::Config for Runtime {
 	type ReserveIdentifier = ReserveIdentifier;
 	type DustRemovalWhitelist = Nothing;
 	type OnNewTokenAccount = ();
-    type OnKilledTokenAccount = ();
+	type OnKilledTokenAccount = ();
 }
 
 pub const NATIVE_CURRENCY_ID: CurrencyId = 1;

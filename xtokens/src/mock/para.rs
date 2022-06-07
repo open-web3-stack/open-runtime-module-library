@@ -88,7 +88,7 @@ impl orml_tokens::Config for Runtime {
 	type ReserveIdentifier = [u8; 8];
 	type DustRemovalWhitelist = Everything;
 	type OnNewTokenAccount = ();
-    type OnKilledTokenAccount = ();
+	type OnKilledTokenAccount = ();
 }
 
 parameter_types! {
