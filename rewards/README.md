@@ -64,7 +64,7 @@ What if we increase $R_n$ by $\delta_R$ so that original users get the same shar
 
 We get:
 
-$$ R_n * ({s_i} / {\sum_{i=1}^m s_i}) = ({R_n + \delta_R}) * ({s_i} / {\sum_{i=1}^{m+1} s_i})$$.
+$$ R_n * ({s_i} / {\sum_{i=1}^m s_i}) = ({R_n + \delta_R}) * ({s_i} / {\sum_{i=1}^{m+1} s_i})$$
 
 After easy to do algebraic simplification we get
 
