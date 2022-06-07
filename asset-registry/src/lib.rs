@@ -145,7 +145,7 @@ pub mod module {
 			metadata: AssetMetadata<T::Balance, T::CustomMetadata>,
 			asset_id: Option<T::AssetId>,
 		) -> DispatchResult {
-			T::AuthorityOrigin::ensure_origin(origin, &asset_id.clone())?;
+			T::AuthorityOrigin::ensure_origin(origin, &asset_id)?;
 
 			Self::do_register_asset(metadata, asset_id)
 		}
