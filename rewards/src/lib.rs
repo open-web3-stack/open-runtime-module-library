@@ -315,6 +315,7 @@ impl<T: Config> Pallet<T> {
 		});
 	}
 
+	#[allow(clippy::too_many_arguments)] // just we need to have all these to do the stuff
 	fn claim_one(
 		withdrawn_rewards: &mut BTreeMap<T::CurrencyId, T::Balance>,
 		reward_currency: T::CurrencyId,
