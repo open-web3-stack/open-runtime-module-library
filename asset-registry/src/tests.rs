@@ -8,7 +8,10 @@ use mock::*;
 use orml_traits::MultiCurrency;
 use polkadot_parachain::primitives::Sibling;
 
-use sp_runtime::{traits::{AccountIdConversion, BadOrigin}, AccountId32};
+use sp_runtime::{
+	traits::{AccountIdConversion, BadOrigin},
+	AccountId32,
+};
 use xcm_simulator::TestExt;
 
 fn treasury_account() -> AccountId32 {
