@@ -6,40 +6,36 @@ use cumulus_primitives_core::ParaId;
 use frame_support::{assert_err, assert_noop, assert_ok, traits::Currency};
 use mock::*;
 use orml_traits::{ConcreteFungibleAsset, MultiCurrency};
-use polkadot_parachain::primitives::{AccountIdConversion, Sibling};
-use sp_runtime::AccountId32;
+use polkadot_parachain::primitives::Sibling;
+use sp_runtime::{traits::AccountIdConversion, AccountId32};
 use xcm_simulator::TestExt;
 
 fn para_a_account() -> AccountId32 {
-	ParaId::from(1).into_account()
+	ParaId::from(1).into_account_truncating()
 }
 
 fn para_b_account() -> AccountId32 {
-	ParaId::from(2).into_account()
+	ParaId::from(2).into_account_truncating()
 }
 
 fn para_d_account() -> AccountId32 {
-	ParaId::from(4).into_account()
+	ParaId::from(4).into_account_truncating()
 }
 
 fn sibling_a_account() -> AccountId32 {
-	use sp_runtime::traits::AccountIdConversion;
-	Sibling::from(1).into_account()
+	Sibling::from(1).into_account_truncating()
 }
 
 fn sibling_b_account() -> AccountId32 {
-	use sp_runtime::traits::AccountIdConversion;
-	Sibling::from(2).into_account()
+	Sibling::from(2).into_account_truncating()
 }
 
 fn sibling_c_account() -> AccountId32 {
-	use sp_runtime::traits::AccountIdConversion;
-	Sibling::from(3).into_account()
+	Sibling::from(3).into_account_truncating()
 }
 
 fn sibling_d_account() -> AccountId32 {
-	use sp_runtime::traits::AccountIdConversion;
-	Sibling::from(4).into_account()
+	Sibling::from(4).into_account_truncating()
 }
 
 // Not used in any unit tests, but it's super helpful for debugging. Let's

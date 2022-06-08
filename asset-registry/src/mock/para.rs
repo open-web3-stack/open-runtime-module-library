@@ -158,7 +158,7 @@ pub type XcmRouter = ParachainXcmRouter<ParachainInfo>;
 pub type Barrier = (TakeWeightCredit, AllowTopLevelPaidExecutionFrom<Everything>);
 
 parameter_types! {
-	pub TreasuryAccount: AccountId = PalletId(*b"Treasury").into_account();
+	pub TreasuryAccount: AccountId = PalletId(*b"Treasury").into_account_truncating();
 }
 
 pub struct ToTreasury;

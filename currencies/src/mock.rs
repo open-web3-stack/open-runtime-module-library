@@ -70,7 +70,7 @@ parameter_type_with_key! {
 }
 
 parameter_types! {
-	pub DustAccount: AccountId = PalletId(*b"orml/dst").into_account();
+	pub DustAccount: AccountId = PalletId(*b"orml/dst").into_account_truncating();
 }
 
 impl orml_tokens::Config for Runtime {
