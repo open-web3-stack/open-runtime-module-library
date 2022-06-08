@@ -4,13 +4,14 @@ use crate as orml_asset_registry;
 
 use codec::{Decode, Encode};
 use cumulus_primitives_core::{ChannelStatus, GetChannelInfo, ParaId};
+use frame_support::traits::{EnsureOrigin, EnsureOriginWithArg};
 use frame_support::{
-	construct_runtime, match_types, parameter_types,
+	construct_runtime, match_types, ord_parameter_types, parameter_types,
 	traits::{ConstU128, ConstU32, ConstU64, Everything, Nothing},
 	weights::{constants::WEIGHT_PER_SECOND, Weight},
 	PalletId,
 };
-use frame_system::EnsureRoot;
+use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_asset_registry::{AssetRegistryTrader, FixedRateAssetRegistryTrader};
 use orml_traits::{
 	location::{AbsoluteReserveProvider, RelativeReserveProvider},
@@ -105,11 +106,39 @@ pub struct CustomMetadata {
 	pub fee_per_second: u128,
 }
 
+const ADMIN_ASSET_TWO: AccountId = AccountId32::new([42u8; 32]);
+
+ord_parameter_types! {
+	pub const AdminAssetTwo: AccountId = ADMIN_ASSET_TWO;
+}
+
+pub struct AssetAuthority;
+impl EnsureOriginWithArg<Origin, Option<u32>> for AssetAuthority {
+	type Success = ();
+
+	fn try_origin(origin: Origin, asset_id: &Option<u32>) -> Result<Self::Success, Origin> {
+		match asset_id {
+			// We mock an edge case where the asset_id 2 requires a special origin check.
+			Some(2) => EnsureSignedBy::<AdminAssetTwo, AccountId32>::try_origin(origin.clone())
+				.map(|_| ())
+				.map_err(|_| origin),
+
+			// Any other `asset_id` defaults to EnsureRoot
+			_ => EnsureRoot::try_origin(origin),
+		}
+	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn successful_origin(_asset_id: &Option<u32>) -> Origin {
+		unimplemented!()
+	}
+}
+
 impl orml_asset_registry::Config for Runtime {
 	type Event = Event;
 	type Balance = Balance;
 	type AssetId = u32;
-	type AuthorityOrigin = EnsureRoot<AccountId>;
+	type AuthorityOrigin = AssetAuthority;
 	type CustomMetadata = CustomMetadata;
 	type AssetProcessor = orml_asset_registry::SequentialId<Runtime>;
 	type WeightInfo = ();

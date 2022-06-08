@@ -2,8 +2,7 @@
 // Older clippy versions give a false positive on the expansion of [pallet::call].
 // This is fixed in https://github.com/rust-lang/rust-clippy/issues/8321
 #![allow(clippy::large_enum_variant)]
-
-use frame_support::{pallet_prelude::*, traits::EnsureOrigin, transactional};
+use frame_support::{pallet_prelude::*, traits::EnsureOriginWithArg, transactional};
 use frame_system::pallet_prelude::*;
 use orml_traits::asset_registry::AssetProcessor;
 use scale_info::TypeInfo;
@@ -19,9 +18,12 @@ pub use module::*;
 pub use weights::WeightInfo;
 
 mod impls;
-mod mock;
-mod tests;
 mod weights;
+
+#[cfg(test)]
+mod mock;
+#[cfg(test)]
+mod tests;
 
 /// Data describing the asset properties.
 #[derive(scale_info::TypeInfo, Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
@@ -48,8 +50,8 @@ pub mod module {
 		/// The type used as a unique asset id,
 		type AssetId: Parameter + Member + Default + TypeInfo;
 
-		/// The origin that is allowed to manipulate metadata.
-		type AuthorityOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+		/// Checks that an origin has the authority to register/update an asset
+		type AuthorityOrigin: EnsureOriginWithArg<Self::Origin, Option<Self::AssetId>>;
 
 		/// A filter ran upon metadata registration that assigns an is and
 		/// potentially modifies the supplied metadata.
@@ -87,10 +89,6 @@ pub mod module {
 		UpdatedAsset {
 			asset_id: T::AssetId,
 			metadata: AssetMetadata<T::Balance, T::CustomMetadata>,
-		},
-		SetLocation {
-			asset_id: T::AssetId,
-			location: Box<VersionedMultiLocation>,
 		},
 	}
 
@@ -147,7 +145,7 @@ pub mod module {
 			metadata: AssetMetadata<T::Balance, T::CustomMetadata>,
 			asset_id: Option<T::AssetId>,
 		) -> DispatchResult {
-			T::AuthorityOrigin::ensure_origin(origin)?;
+			T::AuthorityOrigin::ensure_origin(origin, &asset_id)?;
 
 			Self::do_register_asset(metadata, asset_id)
 		}
@@ -165,7 +163,7 @@ pub mod module {
 			location: Option<Option<VersionedMultiLocation>>,
 			additional: Option<T::CustomMetadata>,
 		) -> DispatchResult {
-			T::AuthorityOrigin::ensure_origin(origin)?;
+			T::AuthorityOrigin::ensure_origin(origin, &Some(asset_id.clone()))?;
 
 			Self::do_update_asset(
 				asset_id,
