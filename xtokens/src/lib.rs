@@ -89,7 +89,7 @@ pub mod module {
 		type SelfLocation: Get<MultiLocation>;
 
 		/// Minimum xcm execution fee paid on destination chain.
-		type MinXcmFee: GetByKey<MultiLocation, u128>;
+		type MinXcmFee: GetByKey<MultiLocation, Option<u128>>;
 
 		/// XCM executor.
 		type XcmExecutor: ExecuteXcm<Self::Call>;
@@ -173,6 +173,8 @@ pub mod module {
 		FeeNotEnough,
 		/// Not supported MultiLocation
 		NotSupportedMultiLocation,
+		/// MinXcmFee not registered for certain reserve location
+		MinXcmFeeNotDefined,
 	}
 
 	#[pallet::hooks]
@@ -538,7 +540,7 @@ pub mod module {
 				ensure!(non_fee_reserve == dest.chain_part(), Error::<T>::InvalidAsset);
 
 				let reserve_location = non_fee_reserve.clone().ok_or(Error::<T>::AssetHasNoReserve)?;
-				let min_xcm_fee = T::MinXcmFee::get(&reserve_location);
+				let min_xcm_fee = T::MinXcmFee::get(&reserve_location).ok_or(Error::<T>::MinXcmFeeNotDefined)?;
 
 				// min xcm fee should less than user fee
 				let fee_to_dest: MultiAsset = (fee.id.clone(), min_xcm_fee).into();

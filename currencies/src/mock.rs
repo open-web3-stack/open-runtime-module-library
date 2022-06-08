@@ -70,7 +70,7 @@ parameter_type_with_key! {
 }
 
 parameter_types! {
-	pub DustAccount: AccountId = PalletId(*b"orml/dst").into_account();
+	pub DustAccount: AccountId = PalletId(*b"orml/dst").into_account_truncating();
 }
 
 impl orml_tokens::Config for Runtime {
@@ -85,6 +85,8 @@ impl orml_tokens::Config for Runtime {
 	type MaxReserves = ConstU32<100_000>;
 	type ReserveIdentifier = ReserveIdentifier;
 	type DustRemovalWhitelist = Nothing;
+	type OnNewTokenAccount = ();
+	type OnKilledTokenAccount = ();
 }
 
 pub const NATIVE_CURRENCY_ID: CurrencyId = 1;

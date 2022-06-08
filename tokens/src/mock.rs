@@ -220,8 +220,53 @@ parameter_type_with_key! {
 	};
 }
 
+thread_local! {
+	pub static CREATED: RefCell<Vec<(AccountId, CurrencyId)>> = RefCell::new(vec![]);
+	pub static KILLED: RefCell<Vec<(AccountId, CurrencyId)>> = RefCell::new(vec![]);
+}
+
+pub struct TrackCreatedAccounts;
+impl TrackCreatedAccounts {
+	pub fn accounts() -> Vec<(AccountId, CurrencyId)> {
+		CREATED.with(|accounts| accounts.borrow().clone())
+	}
+
+	pub fn reset() {
+		CREATED.with(|accounts| {
+			accounts.replace(vec![]);
+		});
+	}
+}
+impl Happened<(AccountId, CurrencyId)> for TrackCreatedAccounts {
+	fn happened((who, currency): &(AccountId, CurrencyId)) {
+		CREATED.with(|accounts| {
+			accounts.borrow_mut().push((who.clone(), *currency));
+		});
+	}
+}
+
+pub struct TrackKilledAccounts;
+impl TrackKilledAccounts {
+	pub fn accounts() -> Vec<(AccountId, CurrencyId)> {
+		KILLED.with(|accounts| accounts.borrow().clone())
+	}
+
+	pub fn reset() {
+		KILLED.with(|accounts| {
+			accounts.replace(vec![]);
+		});
+	}
+}
+impl Happened<(AccountId, CurrencyId)> for TrackKilledAccounts {
+	fn happened((who, currency): &(AccountId, CurrencyId)) {
+		KILLED.with(|accounts| {
+			accounts.borrow_mut().push((who.clone(), *currency));
+		});
+	}
+}
+
 parameter_types! {
-	pub DustReceiver: AccountId = PalletId(*b"orml/dst").into_account();
+	pub DustReceiver: AccountId = PalletId(*b"orml/dst").into_account_truncating();
 }
 
 impl Config for Runtime {
@@ -232,6 +277,8 @@ impl Config for Runtime {
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = TransferDust<Runtime, DustReceiver>;
+	type OnNewTokenAccount = TrackCreatedAccounts;
+	type OnKilledTokenAccount = TrackKilledAccounts;
 	type MaxLocks = ConstU32<2>;
 	type MaxReserves = ConstU32<2>;
 	type ReserveIdentifier = ReserveIdentifier;
@@ -295,6 +342,9 @@ impl ExtBuilder {
 			.assimilate_storage(&mut t)
 			.unwrap();
 		}
+
+		TrackCreatedAccounts::reset();
+		TrackKilledAccounts::reset();
 
 		let mut ext = sp_io::TestExternalities::new(t);
 		ext.execute_with(|| System::set_block_number(1));

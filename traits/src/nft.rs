@@ -12,5 +12,5 @@ pub trait InspectExtended<AccountId>: Inspect<AccountId> {
 	fn balance(who: &AccountId) -> Self::Balance;
 
 	/// Get the next token ID to be minted for a Class
-	fn next_token_id(class: Self::ClassId) -> Self::InstanceId;
+	fn next_token_id(class: Self::CollectionId) -> Self::ItemId;
 }

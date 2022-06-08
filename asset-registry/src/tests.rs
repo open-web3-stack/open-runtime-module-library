@@ -7,8 +7,8 @@ use frame_support::{assert_noop, assert_ok};
 use mock::*;
 use orml_traits::MultiCurrency;
 use polkadot_parachain::primitives::Sibling;
-use sp_runtime::traits::BadOrigin;
-use sp_runtime::AccountId32;
+
+use sp_runtime::{traits::{AccountIdConversion, BadOrigin}, AccountId32};
 use xcm_simulator::TestExt;
 
 fn treasury_account() -> AccountId32 {
@@ -16,18 +16,15 @@ fn treasury_account() -> AccountId32 {
 }
 
 fn sibling_a_account() -> AccountId32 {
-	use sp_runtime::traits::AccountIdConversion;
-	Sibling::from(1).into_account()
+	Sibling::from(1).into_account_truncating()
 }
 
 fn sibling_b_account() -> AccountId32 {
-	use sp_runtime::traits::AccountIdConversion;
-	Sibling::from(2).into_account()
+	Sibling::from(2).into_account_truncating()
 }
 
 fn sibling_c_account() -> AccountId32 {
-	use sp_runtime::traits::AccountIdConversion;
-	Sibling::from(3).into_account()
+	Sibling::from(3).into_account_truncating()
 }
 
 // Not used in any unit tests, but it's super helpful for debugging. Let's
