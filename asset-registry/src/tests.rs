@@ -15,15 +15,15 @@ fn treasury_account() -> AccountId32 {
 }
 
 fn sibling_a_account() -> AccountId32 {
-	Sibling::from(1).into_sub_account_truncating(&())
+	Sibling::from(1).into_account_truncating()
 }
 
 fn sibling_b_account() -> AccountId32 {
-	Sibling::from(2).into_sub_account_truncating(&())
+	Sibling::from(2).into_account_truncating()
 }
 
 fn sibling_c_account() -> AccountId32 {
-	Sibling::from(3).into_sub_account_truncating(&())
+	Sibling::from(3).into_account_truncating()
 }
 
 // Not used in any unit tests, but it's super helpful for debugging. Let's

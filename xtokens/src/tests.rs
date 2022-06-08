@@ -11,31 +11,31 @@ use sp_runtime::{traits::AccountIdConversion, AccountId32};
 use xcm_simulator::TestExt;
 
 fn para_a_account() -> AccountId32 {
-	ParaId::from(1).into_sub_account_truncating(&())
+	ParaId::from(1).into_account_truncating()
 }
 
 fn para_b_account() -> AccountId32 {
-	ParaId::from(2).into_sub_account_truncating(&())
+	ParaId::from(2).into_account_truncating()
 }
 
 fn para_d_account() -> AccountId32 {
-	ParaId::from(4).into_sub_account_truncating(&())
+	ParaId::from(4).into_account_truncating()
 }
 
 fn sibling_a_account() -> AccountId32 {
-	Sibling::from(1).into_sub_account_truncating(&())
+	Sibling::from(1).into_account_truncating()
 }
 
 fn sibling_b_account() -> AccountId32 {
-	Sibling::from(2).into_sub_account_truncating(&())
+	Sibling::from(2).into_account_truncating()
 }
 
 fn sibling_c_account() -> AccountId32 {
-	Sibling::from(3).into_sub_account_truncating(&())
+	Sibling::from(3).into_account_truncating()
 }
 
 fn sibling_d_account() -> AccountId32 {
-	Sibling::from(4).into_sub_account_truncating(&())
+	Sibling::from(4).into_account_truncating()
 }
 
 // Not used in any unit tests, but it's super helpful for debugging. Let's
