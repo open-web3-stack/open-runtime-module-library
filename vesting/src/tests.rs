@@ -413,3 +413,45 @@ fn exceeding_maximum_schedules_should_fail() {
 		);
 	});
 }
+
+#[test]
+fn cliff_vesting_works() {
+	const VESTING_AMOUNT: u64 = 12;
+	const VESTING_PERIOD: u64 = 20;
+
+	ExtBuilder::build().execute_with(|| {
+		let cliff_schedule = VestingSchedule {
+			start: VESTING_PERIOD - 1,
+			period: 1,
+			period_count: 1,
+			per_period: VESTING_AMOUNT,
+		};
+
+		let balance_lock = BalanceLock {
+			id: VESTING_LOCK_ID,
+			amount: VESTING_AMOUNT,
+			reasons: Reasons::All,
+		};
+
+		assert_eq!(PalletBalances::free_balance(BOB), 0);
+		assert_ok!(Vesting::vested_transfer(Origin::signed(ALICE), BOB, cliff_schedule));
+		assert_eq!(PalletBalances::free_balance(BOB), VESTING_AMOUNT);
+		assert_eq!(PalletBalances::locks(&BOB), vec![balance_lock.clone()]);
+
+		for i in 1..VESTING_PERIOD {
+			MockBlockNumberProvider::set(i);
+			assert_ok!(Vesting::claim(Origin::signed(BOB)));
+			assert_eq!(PalletBalances::free_balance(BOB), VESTING_AMOUNT);
+			assert_eq!(PalletBalances::locks(&BOB), vec![balance_lock.clone()]);
+			assert_noop!(
+				PalletBalances::transfer(Origin::signed(BOB), CHARLIE, VESTING_AMOUNT),
+				pallet_balances::Error::<Runtime>::LiquidityRestrictions,
+			);
+		}
+
+		MockBlockNumberProvider::set(VESTING_PERIOD);
+		assert_ok!(Vesting::claim(Origin::signed(BOB)));
+		assert!(PalletBalances::locks(&BOB).is_empty());
+		assert_ok!(PalletBalances::transfer(Origin::signed(BOB), CHARLIE, VESTING_AMOUNT));
+	});
+}

@@ -4,7 +4,10 @@
 
 use super::*;
 use frame_benchmarking::account;
-use frame_support::{assert_err, assert_ok, construct_runtime, ensure, traits::Everything};
+use frame_support::{
+	assert_err, assert_ok, construct_runtime, ensure,
+	traits::{ConstU32, Everything},
+};
 use frame_system::RawOrigin;
 use sp_runtime::{
 	testing::{Header, H256},
@@ -72,7 +75,7 @@ impl frame_system::Config for Test {
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
 	type OnSetCode = ();
-	type MaxConsumers = frame_support::traits::ConstU32<16>;
+	type MaxConsumers = ConstU32<16>;
 }
 
 impl Config for Test {}
