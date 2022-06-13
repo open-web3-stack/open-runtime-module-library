@@ -2,6 +2,8 @@
 // Older clippy versions give a false positive on the expansion of [pallet::call].
 // This is fixed in https://github.com/rust-lang/rust-clippy/issues/8321
 #![allow(clippy::large_enum_variant)]
+#![allow(clippy::too_many_arguments)]
+
 use frame_support::{pallet_prelude::*, traits::EnsureOriginWithArg, transactional};
 use frame_system::pallet_prelude::*;
 use orml_traits::asset_registry::AssetProcessor;
@@ -150,7 +152,6 @@ pub mod module {
 			Self::do_register_asset(metadata, asset_id)
 		}
 
-		#[allow(clippy::too_many_arguments)]
 		#[pallet::weight(T::WeightInfo::update_asset())]
 		#[transactional]
 		pub fn update_asset(
