@@ -10,7 +10,6 @@ use orml_traits::RewardHandler;
 use scale_info::TypeInfo;
 use sp_core::U256;
 use sp_runtime::{
-	helpers_128bit::multiply_by_rational,
 	traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize, Member, Saturating, UniqueSaturatedInto, Zero},
 	FixedPointOperand, RuntimeDebug, SaturatedConversion,
 };
@@ -327,7 +326,7 @@ impl<T: Config> Pallet<T> {
 	///
 	/// Similar too claim and add 2 shares later, but does not requires pool
 	/// inflation and is more efficient.
-	pub fn transfer_share(
+	pub fn transfer_share_and_rewards(
 		who: &T::AccountId,
 		pool: &T::PoolId,
 		move_share: T::Share,
@@ -339,11 +338,11 @@ impl<T: Config> Pallet<T> {
 				if let Some((share, rewards)) = share {
 					if move_share < *share {
 						for (reward_currency, balance) in rewards {
-							if let Ok(move_balance) = multiply_by_rational(
-								UniqueSaturatedInto::<u128>::unique_saturated_into(*balance),
-								UniqueSaturatedInto::<u128>::unique_saturated_into(move_share),
-								UniqueSaturatedInto::<u128>::unique_saturated_into(*share),
-							) {
+							let move_balance = U256::from(balance.to_owned().saturated_into::<u128>())
+								* U256::from(move_share.to_owned().saturated_into::<u128>())
+								/ U256::from(share.to_owned().saturated_into::<u128>());
+							let move_balance: Option<u128> = move_balance.try_into().ok();
+							if let Some(move_balance) = move_balance {
 								let move_balance: T::Balance = move_balance.unique_saturated_into();
 								*balance = balance.saturating_sub(move_balance);
 								increased_rewards
