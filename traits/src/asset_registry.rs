@@ -1,5 +1,6 @@
 use frame_support::pallet_prelude::*;
 use sp_runtime::DispatchResult;
+use sp_std::vec::Vec;
 use xcm::latest::prelude::*;
 use xcm::VersionedMultiLocation;
 
