@@ -4,7 +4,8 @@
 #![allow(clippy::large_enum_variant)]
 use frame_support::{pallet_prelude::*, traits::EnsureOriginWithArg, transactional};
 use frame_system::pallet_prelude::*;
-use orml_traits::asset_registry::{AssetMetadata, AssetProcessor};
+pub use orml_traits::asset_registry::AssetMetadata;
+use orml_traits::asset_registry::AssetProcessor;
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, Member},
