@@ -19,6 +19,7 @@ frame-support = {  git = "https://github.com/paritytech/substrate", branch = "po
 frame-system = {  git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.23", default-features = false }
 
 # polkadot
+pallet-xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.23" }
 xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.23", default-features = false }
 xcm-builder = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.23", default-features = false }
 xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.23", default-features = false }
@@ -40,7 +41,6 @@ cumulus-pallet-xcm = { git = "https://github.com/paritytech/cumulus", branch = "
 parachain-info = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.23" }
 
 # polkadot
-pallet-xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.23" }
 polkadot-parachain = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.23" }
 polkadot-runtime-parachains = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.23" }
 xcm-simulator = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.23"}
@@ -69,8 +69,7 @@ std = [
 runtime-benchmarks = [
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
-
 	"xcm-builder/runtime-benchmarks",
-	"xcm-executor/runtime-benchmarks",
+	"pallet-xcm/runtime-benchmarks",
 ]
 try-runtime = ["frame-support/try-runtime"]
