@@ -83,6 +83,7 @@ pub mod module {
 		type OracleValue: Parameter + Member + Ord + MaxEncodedLen;
 
 		/// The root operator account id, record all sudo feeds on this account.
+		#[pallet::constant]
 		type RootOperatorAccountId: Get<Self::AccountId>;
 
 		/// Oracle operators.
@@ -92,6 +93,7 @@ pub mod module {
 		type WeightInfo: WeightInfo;
 
 		/// Maximum size of HasDispatched
+		#[pallet::constant]
 		type MaxHasDispatchedSize: Get<u32>;
 	}
 
@@ -132,7 +134,6 @@ pub mod module {
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
-	#[pallet::without_storage_info]
 	pub struct Pallet<T, I = ()>(PhantomData<(T, I)>);
 
 	#[pallet::hooks]
