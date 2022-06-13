@@ -315,6 +315,16 @@ impl<T: Config> Pallet<T> {
 		});
 	}
 
+	/// `split_out` - amount of share to remove and put into new share
+	/// `other` - new account who will own new share
+	pub fn split_share(who:&T::AccountId, pool:&T::PoolId, split_out:T::Share, other: &T::AccountId) {
+		SharesAndWithdrawnRewards::mutate(pool, who, |share| {
+			Ok(())
+		});
+	}
+
+
+
 	#[allow(clippy::too_many_arguments)] // just we need to have all these to do the stuff
 	fn claim_one(
 		withdrawn_rewards: &mut BTreeMap<T::CurrencyId, T::Balance>,
