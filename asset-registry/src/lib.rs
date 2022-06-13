@@ -4,6 +4,7 @@
 #![allow(clippy::large_enum_variant)]
 use frame_support::{pallet_prelude::*, traits::EnsureOriginWithArg, transactional};
 use frame_system::pallet_prelude::*;
+pub use orml_traits::asset_registry::AssetMetadata;
 use orml_traits::asset_registry::AssetProcessor;
 use scale_info::TypeInfo;
 use sp_runtime::{
@@ -24,17 +25,6 @@ mod weights;
 mod mock;
 #[cfg(test)]
 mod tests;
-
-/// Data describing the asset properties.
-#[derive(scale_info::TypeInfo, Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
-pub struct AssetMetadata<Balance, CustomMetadata: Parameter + Member + TypeInfo> {
-	pub decimals: u32,
-	pub name: Vec<u8>,
-	pub symbol: Vec<u8>,
-	pub existential_deposit: Balance,
-	pub location: Option<VersionedMultiLocation>,
-	pub additional: CustomMetadata,
-}
 
 #[frame_support::pallet]
 pub mod module {

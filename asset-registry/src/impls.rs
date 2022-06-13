@@ -1,7 +1,9 @@
-use crate::{module::*, AssetMetadata};
+use crate::module::*;
 use frame_support::{log, pallet_prelude::*, weights::constants::WEIGHT_PER_SECOND};
 use orml_traits::{
-	asset_registry::{AssetProcessor, FixedConversionRateProvider, WeightToFeeConverter},
+	asset_registry::{
+		AssetMetadata, AssetProcessor, FixedConversionRateProvider, Inspect, Mutate, WeightToFeeConverter,
+	},
 	GetByKey,
 };
 use sp_runtime::FixedPointNumber;
@@ -10,7 +12,8 @@ use sp_runtime::{
 	ArithmeticError, FixedU128,
 };
 use sp_std::prelude::*;
-use xcm::v2::prelude::*;
+use xcm::latest::prelude::*;
+use xcm::VersionedMultiLocation;
 use xcm_builder::TakeRevenue;
 use xcm_executor::{traits::WeightTrader, Assets};
 
@@ -167,5 +170,56 @@ impl<T: Config> GetByKey<T::AssetId, T::Balance> for ExistentialDeposits<T> {
 			// Asset does not exist - not supported
 			T::Balance::max_value()
 		}
+	}
+}
+
+impl<T: Config> Inspect for Pallet<T> {
+	type AssetId = T::AssetId;
+	type Balance = T::Balance;
+	type CustomMetadata = T::CustomMetadata;
+
+	fn asset_id(location: &MultiLocation) -> Option<Self::AssetId> {
+		Pallet::<T>::location_to_asset_id(location)
+	}
+
+	fn metadata(id: &Self::AssetId) -> Option<AssetMetadata<Self::Balance, Self::CustomMetadata>> {
+		Pallet::<T>::metadata(id)
+	}
+
+	fn metadata_by_location(location: &MultiLocation) -> Option<AssetMetadata<Self::Balance, Self::CustomMetadata>> {
+		Pallet::<T>::fetch_metadata_by_location(location)
+	}
+
+	fn location(asset_id: &Self::AssetId) -> Result<Option<MultiLocation>, DispatchError> {
+		Pallet::<T>::multilocation(asset_id)
+	}
+}
+
+impl<T: Config> Mutate for Pallet<T> {
+	fn register_asset(
+		asset_id: Option<Self::AssetId>,
+		metadata: AssetMetadata<Self::Balance, Self::CustomMetadata>,
+	) -> DispatchResult {
+		Pallet::<T>::do_register_asset(metadata, asset_id)
+	}
+
+	fn update_asset(
+		asset_id: Self::AssetId,
+		decimals: Option<u32>,
+		name: Option<Vec<u8>>,
+		symbol: Option<Vec<u8>>,
+		existential_deposit: Option<Self::Balance>,
+		location: Option<Option<VersionedMultiLocation>>,
+		additional: Option<Self::CustomMetadata>,
+	) -> DispatchResult {
+		Pallet::<T>::do_update_asset(
+			asset_id,
+			decimals,
+			name,
+			symbol,
+			existential_deposit,
+			location,
+			additional,
+		)
 	}
 }
