@@ -275,8 +275,8 @@ impl<T: Config> Pallet<T> {
 							Self::claim_one(
 								withdrawn_rewards,
 								*reward_currency,
-								share,
-								total_reward,
+								share.to_owned(),
+								total_reward.to_owned(),
 								total_shares,
 								total_withdrawn_reward,
 								who,
@@ -302,8 +302,8 @@ impl<T: Config> Pallet<T> {
 						Self::claim_one(
 							withdrawn_rewards,
 							reward_currency,
-							share,
-							total_reward,
+							share.to_owned(),
+							total_reward.to_owned(),
 							total_shares,
 							total_withdrawn_reward,
 							who,
@@ -319,8 +319,8 @@ impl<T: Config> Pallet<T> {
 	fn claim_one(
 		withdrawn_rewards: &mut BTreeMap<T::CurrencyId, T::Balance>,
 		reward_currency: T::CurrencyId,
-		share: &mut T::Share,
-		total_reward: &mut T::Balance,
+		share: T::Share,
+		total_reward: T::Balance,
 		total_shares: U256,
 		total_withdrawn_reward: &mut T::Balance,
 		who: &T::AccountId,
@@ -344,8 +344,8 @@ impl<T: Config> Pallet<T> {
 	}
 
 	fn reward_to_withdraw(
-		share: &mut T::Share,
-		total_reward: &mut T::Balance,
+		share: T::Share,
+		total_reward: T::Balance,
 		total_shares: U256,
 		withdrawn_reward: T::Balance,
 		total_withdrawn_reward: &mut T::Balance,
