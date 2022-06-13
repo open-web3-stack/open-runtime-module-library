@@ -10,6 +10,7 @@ use orml_traits::RewardHandler;
 use scale_info::TypeInfo;
 use sp_core::U256;
 use sp_runtime::{
+	helpers_128bit::multiply_by_rational,
 	traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize, Member, Saturating, UniqueSaturatedInto, Zero},
 	FixedPointOperand, RuntimeDebug, SaturatedConversion,
 };
@@ -79,6 +80,8 @@ pub mod module {
 	pub enum Error<T> {
 		/// Pool does not exist
 		PoolDoesNotExist,
+		ShareDoesNotExist,
+		CanSplitOnlyLessThanShare,
 	}
 
 	/// Record reward pool info.
@@ -315,15 +318,52 @@ impl<T: Config> Pallet<T> {
 		});
 	}
 
-	/// `split_out` - amount of share to remove and put into new share
+	/// Splits share into two parts.
+	///
+	/// `move_share` - amount of share to remove and put into `other` share
 	/// `other` - new account who will own new share
-	pub fn split_share(who:&T::AccountId, pool:&T::PoolId, split_out:T::Share, other: &T::AccountId) {
-		SharesAndWithdrawnRewards::mutate(pool, who, |share| {
-			Ok(())
-		});
+	///
+	/// Similar too claim and add 2 shares later, but does not requires pool
+	/// inflation and is more efficient.
+	pub fn transfer_share(
+		who: &T::AccountId,
+		pool: &T::PoolId,
+		move_share: T::Share,
+		other: &T::AccountId,
+	) -> DispatchResult {
+		SharesAndWithdrawnRewards::<T>::mutate(pool, other, |increased_share| {
+			let (increased_share, increased_rewards) = increased_share;
+			SharesAndWithdrawnRewards::<T>::mutate_exists(pool, who, |share| {
+				if let Some((share, rewards)) = share {
+					if move_share < *share {
+						for (reward_currency, balance) in rewards {
+							if let Ok(move_balance) = multiply_by_rational(
+								UniqueSaturatedInto::<u128>::unique_saturated_into(*balance),
+								UniqueSaturatedInto::<u128>::unique_saturated_into(move_share),
+								UniqueSaturatedInto::<u128>::unique_saturated_into(*share),
+							) {
+								let move_balance: T::Balance = move_balance.unique_saturated_into();
+								*balance = balance.saturating_sub(move_balance);
+								increased_rewards
+									.entry(*reward_currency)
+									.and_modify(|increased_reward| {
+										*increased_reward = increased_reward.saturating_add(move_balance);
+									})
+									.or_insert(move_balance);
+							}
+						}
+						*share = share.saturating_sub(move_share);
+						*increased_share = increased_share.saturating_add(move_share);
+						Ok(())
+					} else {
+						Err(Error::<T>::CanSplitOnlyLessThanShare.into())
+					}
+				} else {
+					Err(Error::<T>::ShareDoesNotExist.into())
+				}
+			})
+		})
 	}
-
-
 
 	#[allow(clippy::too_many_arguments)] // just we need to have all these to do the stuff
 	fn claim_one(
