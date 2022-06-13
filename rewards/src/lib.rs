@@ -350,8 +350,8 @@ impl<T: Config> Pallet<T> {
 		withdrawn_reward: T::Balance,
 		total_withdrawn_reward: &mut T::Balance,
 	) -> T::Balance {
-		let total_reward_proportion: T::Balance = U256::from(share.to_owned().saturated_into::<u128>())
-			.saturating_mul(U256::from(total_reward.to_owned().saturated_into::<u128>()))
+		let total_reward_proportion: T::Balance = U256::from(share.saturated_into::<u128>())
+			.saturating_mul(U256::from(total_reward.saturated_into::<u128>()))
 			.checked_div(total_shares)
 			.unwrap_or_default()
 			.as_u128()
