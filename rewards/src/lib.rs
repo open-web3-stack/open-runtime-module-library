@@ -76,6 +76,8 @@ pub mod module {
 		type Handler: RewardHandler<Self::AccountId, Self::CurrencyId, Balance = Self::Balance, PoolId = Self::PoolId>;
 	}
 
+	type WithdrawnRewards<T> = BTreeMap<<T as Config>::CurrencyId, <T as Config>::Balance>;
+
 	#[pallet::error]
 	pub enum Error<T> {
 		/// Pool does not exist
@@ -104,7 +106,7 @@ pub mod module {
 		T::PoolId,
 		Twox64Concat,
 		T::AccountId,
-		(T::Share, BTreeMap<T::CurrencyId, T::Balance>),
+		(T::Share, WithdrawnRewards<T>),
 		ValueQuery,
 	>;
 
