@@ -332,7 +332,7 @@ impl<T: Config> Pallet<T> {
 			total_reward,
 			total_shares,
 			withdrawn_reward,
-			total_withdrawn_reward,
+			total_withdrawn_reward.to_owned(),
 		);
 		if !reward_to_withdraw.is_zero() {
 			*total_withdrawn_reward = total_withdrawn_reward.saturating_add(reward_to_withdraw);
@@ -348,7 +348,7 @@ impl<T: Config> Pallet<T> {
 		total_reward: T::Balance,
 		total_shares: U256,
 		withdrawn_reward: T::Balance,
-		total_withdrawn_reward: &mut T::Balance,
+		total_withdrawn_reward: T::Balance,
 	) -> T::Balance {
 		let total_reward_proportion: T::Balance = U256::from(share.saturated_into::<u128>())
 			.saturating_mul(U256::from(total_reward.saturated_into::<u128>()))
@@ -358,6 +358,6 @@ impl<T: Config> Pallet<T> {
 			.unique_saturated_into();
 		total_reward_proportion
 			.saturating_sub(withdrawn_reward)
-			.min(total_reward.saturating_sub(*total_withdrawn_reward))
+			.min(total_reward.saturating_sub(total_withdrawn_reward))
 	}
 }
