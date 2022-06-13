@@ -12,7 +12,8 @@ use sp_runtime::{
 	ArithmeticError, FixedU128,
 };
 use sp_std::prelude::*;
-use xcm::v2::prelude::*;
+use xcm::latest::prelude::*;
+use xcm::VersionedMultiLocation;
 use xcm_builder::TakeRevenue;
 use xcm_executor::{traits::WeightTrader, Assets};
 
@@ -208,7 +209,7 @@ impl<T: Config> Mutate for Pallet<T> {
 		name: Option<Vec<u8>>,
 		symbol: Option<Vec<u8>>,
 		existential_deposit: Option<Self::Balance>,
-		location: Option<Option<xcm::VersionedMultiLocation>>,
+		location: Option<Option<VersionedMultiLocation>>,
 		additional: Option<Self::CustomMetadata>,
 	) -> DispatchResult {
 		Pallet::<T>::do_update_asset(
