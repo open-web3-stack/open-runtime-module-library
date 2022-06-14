@@ -35,6 +35,7 @@ std = [
 	"frame-support/std",
 	"frame-system/std",
 	"orml-traits/std",
+	"mangata-primitives/std"
 ]
 runtime-benchmarks = [
 	"frame-support/runtime-benchmarks",
