@@ -11,22 +11,28 @@ edition = "2021"
 scale-info = { version = "2.1.2", default-features = false, features = ["derive"] }
 serde = { version = "1.0.136", optional = true }
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false }
+
+# substrate
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.23", default-features = false }
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.23", default-features = false }
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.23", default-features = false }
-
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.23", default-features = false }
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.23", default-features = false }
 
+# cumulus
 cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.23", default-features = false }
 
+# polkadot
+pallet-xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.23", default-features = false }
 xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.23", default-features = false }
 xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.23", default-features = false }
 
+# orml
 orml-xcm-support = { path = "../xcm-support", default-features = false }
 orml-traits = { path = "../traits", default-features = false}
 
 [dev-dependencies]
+# substrate
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.23" }
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.23" }
 
@@ -39,13 +45,11 @@ parachain-info = { git = "https://github.com/paritytech/cumulus", branch = "polk
 
 # polkadot
 polkadot-parachain = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.23" }
-xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.23" }
-xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.23" }
-xcm-builder = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.23" }
-pallet-xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.23" }
 polkadot-runtime-parachains = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.23" }
+xcm-builder = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.23" }
 xcm-simulator = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.23"}
 
+# orml
 orml-tokens = { path = "../tokens" }
 orml-xcm = { path = "../xcm" }
 
@@ -66,9 +70,8 @@ std = [
 	"orml-xcm-support/std",
 	"orml-traits/std",
 ]
-try-runtime = ["frame-support/try-runtime"]
-# Needed because of cargo feature pollution.
 runtime-benchmarks = [
-	"xcm-builder/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
+	"xcm-builder/runtime-benchmarks",
 ]
+try-runtime = ["frame-support/try-runtime"]
