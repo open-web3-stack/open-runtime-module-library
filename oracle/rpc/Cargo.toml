@@ -10,8 +10,8 @@ description = "RPC module for orml-oracle."
 codec = { package = "parity-scale-codec", version = "3.0.0" }
 jsonrpsee = { version = "0.13.0", features = ["server", "macros"] }
 
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.23" }
-sp-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.23" }
-sp-blockchain = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.23" }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24" }
+sp-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24" }
+sp-blockchain = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24" }
 
 orml-oracle-rpc-runtime-api = { path = "runtime-api", version = "0.4.1-dev" }
