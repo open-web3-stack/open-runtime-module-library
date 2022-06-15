@@ -41,14 +41,6 @@ where
 
 pub use module::*;
 
-#[macro_export]
-macro_rules! ensure_some {
-	( $x:expr, $y:expr $(,)? ) => {{
-		ensure!(&$x.is_some(), $y);
-		$x.as_mut().unwrap()
-	}};
-}
-
 #[frame_support::pallet]
 pub mod module {
 
@@ -345,7 +337,7 @@ impl<T: Config> Pallet<T> {
 		SharesAndWithdrawnRewards::<T>::mutate(pool, other, |increased_share| {
 			let (increased_share, increased_rewards) = increased_share;
 			SharesAndWithdrawnRewards::<T>::mutate_exists(pool, who, |share| {
-				let (share, rewards) = ensure_some!(share, Error::<T>::ShareDoesNotExist);
+				let (share, rewards) = share.as_mut().ok_or(Error::<T>::ShareDoesNotExist)?;
 				ensure!(move_share < *share, Error::<T>::CanSplitOnlyLessThanShare);
 				for (reward_currency, balance) in rewards {
 					// u128 * u128 is always less than u256
