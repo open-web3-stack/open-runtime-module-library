@@ -40,8 +40,17 @@ where
 
 pub use module::*;
 
+#[macro_export]
+macro_rules! ensure_some {
+	( $x:expr, $y:expr $(,)? ) => {{
+		ensure!(&$x.is_some(), $y);
+		$x.as_mut().unwrap()
+	}};
+}
+
 #[frame_support::pallet]
 pub mod module {
+
 	use super::*;
 
 	#[pallet::config]
@@ -335,33 +344,30 @@ impl<T: Config> Pallet<T> {
 		SharesAndWithdrawnRewards::<T>::mutate(pool, other, |increased_share| {
 			let (increased_share, increased_rewards) = increased_share;
 			SharesAndWithdrawnRewards::<T>::mutate_exists(pool, who, |share| {
-				if let Some((share, rewards)) = share {
-					if move_share < *share {
-						for (reward_currency, balance) in rewards {
-							let move_balance = U256::from(balance.to_owned().saturated_into::<u128>())
-								* U256::from(move_share.to_owned().saturated_into::<u128>())
-								/ U256::from(share.to_owned().saturated_into::<u128>());
-							let move_balance: Option<u128> = move_balance.try_into().ok();
-							if let Some(move_balance) = move_balance {
-								let move_balance: T::Balance = move_balance.unique_saturated_into();
-								*balance = balance.saturating_sub(move_balance);
-								increased_rewards
-									.entry(*reward_currency)
-									.and_modify(|increased_reward| {
-										*increased_reward = increased_reward.saturating_add(move_balance);
-									})
-									.or_insert(move_balance);
-							}
-						}
-						*share = share.saturating_sub(move_share);
-						*increased_share = increased_share.saturating_add(move_share);
-						Ok(())
-					} else {
-						Err(Error::<T>::CanSplitOnlyLessThanShare.into())
+				let (share, rewards) = ensure_some!(share, Error::<T>::ShareDoesNotExist);
+				ensure!(move_share < *share, Error::<T>::CanSplitOnlyLessThanShare);
+				for (reward_currency, balance) in rewards {
+					// u128 * u128 is always less than u256
+					// move_share / share always less then 1 and share > 0
+					// so final results is computable and is always less or equal than u128
+					let move_balance = U256::from(balance.to_owned().saturated_into::<u128>())
+						* U256::from(move_share.to_owned().saturated_into::<u128>())
+						/ U256::from(share.to_owned().saturated_into::<u128>());
+					let move_balance: Option<u128> = move_balance.try_into().ok();
+					if let Some(move_balance) = move_balance {
+						let move_balance: T::Balance = move_balance.unique_saturated_into();
+						*balance = balance.saturating_sub(move_balance);
+						increased_rewards
+							.entry(*reward_currency)
+							.and_modify(|increased_reward| {
+								*increased_reward = increased_reward.saturating_add(move_balance);
+							})
+							.or_insert(move_balance);
 					}
-				} else {
-					Err(Error::<T>::ShareDoesNotExist.into())
 				}
+				*share = share.saturating_sub(move_share);
+				*increased_share = increased_share.saturating_add(move_share);
+				Ok(())
 			})
 		})
 	}

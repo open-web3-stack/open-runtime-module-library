@@ -535,7 +535,7 @@ fn claim_single_reward() {
 fn transfer_share_and_rewards() {
 	ExtBuilder::default().build().execute_with(|| {
 		RewardsModule::add_share(&ALICE, &DOT_POOL, 100);
-		RewardsModule::accumulate_reward(&DOT_POOL, NATIVE_COIN, 100);
+		assert_ok!(RewardsModule::accumulate_reward(&DOT_POOL, NATIVE_COIN, 100));
 		RewardsModule::add_share(&BOB, &DOT_POOL, 100);
 		let pool_info = RewardsModule::pool_infos(DOT_POOL);
 		assert_ok!(RewardsModule::transfer_share_and_rewards(&ALICE, &DOT_POOL, 33, &BOB));
@@ -559,6 +559,11 @@ fn transfer_share_and_rewards() {
 		assert_eq!(
 			RewardsModule::shares_and_withdrawn_rewards(DOT_POOL, CAROL),
 			(43, vec![(NATIVE_COIN, 100 * 10 / 133)].into_iter().collect())
+		);
+
+		assert_noop!(
+			RewardsModule::transfer_share_and_rewards(&CAROL, &DOT_POOL, 1000, &ALICE),
+			Error::<Runtime>::CanSplitOnlyLessThanShare
 		);
 	});
 }
