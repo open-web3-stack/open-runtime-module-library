@@ -1,5 +1,6 @@
-#![allow(clippy::unused_unit)]
 #![cfg_attr(not(feature = "std"), no_std)]
+#![allow(clippy::unused_unit)]
+#![allow(clippy::too_many_arguments)]
 
 mod mock;
 mod tests;
@@ -275,8 +276,8 @@ impl<T: Config> Pallet<T> {
 							Self::claim_one(
 								withdrawn_rewards,
 								*reward_currency,
-								share,
-								total_reward,
+								share.to_owned(),
+								total_reward.to_owned(),
 								total_shares,
 								total_withdrawn_reward,
 								who,
@@ -302,8 +303,8 @@ impl<T: Config> Pallet<T> {
 						Self::claim_one(
 							withdrawn_rewards,
 							reward_currency,
-							share,
-							total_reward,
+							share.to_owned(),
+							total_reward.to_owned(),
 							total_shares,
 							total_withdrawn_reward,
 							who,
@@ -315,12 +316,11 @@ impl<T: Config> Pallet<T> {
 		});
 	}
 
-	#[allow(clippy::too_many_arguments)] // just we need to have all these to do the stuff
 	fn claim_one(
 		withdrawn_rewards: &mut BTreeMap<T::CurrencyId, T::Balance>,
 		reward_currency: T::CurrencyId,
-		share: &mut T::Share,
-		total_reward: &mut T::Balance,
+		share: T::Share,
+		total_reward: T::Balance,
 		total_shares: U256,
 		total_withdrawn_reward: &mut T::Balance,
 		who: &T::AccountId,
@@ -332,7 +332,7 @@ impl<T: Config> Pallet<T> {
 			total_reward,
 			total_shares,
 			withdrawn_reward,
-			total_withdrawn_reward,
+			total_withdrawn_reward.to_owned(),
 		);
 		if !reward_to_withdraw.is_zero() {
 			*total_withdrawn_reward = total_withdrawn_reward.saturating_add(reward_to_withdraw);
@@ -344,20 +344,20 @@ impl<T: Config> Pallet<T> {
 	}
 
 	fn reward_to_withdraw(
-		share: &mut T::Share,
-		total_reward: &mut T::Balance,
+		share: T::Share,
+		total_reward: T::Balance,
 		total_shares: U256,
 		withdrawn_reward: T::Balance,
-		total_withdrawn_reward: &mut T::Balance,
+		total_withdrawn_reward: T::Balance,
 	) -> T::Balance {
-		let total_reward_proportion: T::Balance = U256::from(share.to_owned().saturated_into::<u128>())
-			.saturating_mul(U256::from(total_reward.to_owned().saturated_into::<u128>()))
+		let total_reward_proportion: T::Balance = U256::from(share.saturated_into::<u128>())
+			.saturating_mul(U256::from(total_reward.saturated_into::<u128>()))
 			.checked_div(total_shares)
 			.unwrap_or_default()
 			.as_u128()
 			.unique_saturated_into();
 		total_reward_proportion
 			.saturating_sub(withdrawn_reward)
-			.min(total_reward.saturating_sub(*total_withdrawn_reward))
+			.min(total_reward.saturating_sub(total_withdrawn_reward))
 	}
 }
