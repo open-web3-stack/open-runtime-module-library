@@ -8,11 +8,11 @@ use sp_std::{fmt, prelude::*};
 #[derive(PartialEqNoBound, Eq, Encode, Decode, DefaultNoBound, CloneNoBound, TypeInfo, MaxEncodedLen)]
 #[codec(mel_bound())]
 #[scale_info(skip_type_params(S))]
-pub struct OrderedSet<T: Ord + Encode + Decode + MaxEncodedLen + Clone + Eq + PartialEq + fmt::Debug, S: Get<u32>>(
+pub struct OrderedSet<T: Ord + Encode + Decode + MaxEncodedLen + Clone + Eq + PartialEq, S: Get<u32>>(
 	pub BoundedVec<T, S>,
 );
 
-impl<T: Ord + Encode + Decode + MaxEncodedLen + Clone + Eq + PartialEq + fmt::Debug, S: Get<u32>> OrderedSet<T, S> {
+impl<T: Ord + Encode + Decode + MaxEncodedLen + Clone + Eq + PartialEq, S: Get<u32>> OrderedSet<T, S> {
 	/// Create a new empty set
 	pub fn new() -> Self {
 		Self(BoundedVec::default())
@@ -66,7 +66,7 @@ impl<T: Ord + Encode + Decode + MaxEncodedLen + Clone + Eq + PartialEq + fmt::De
 	}
 }
 
-impl<T: Ord + Encode + Decode + MaxEncodedLen + Clone + Eq + PartialEq + fmt::Debug, S: Get<u32>> From<BoundedVec<T, S>>
+impl<T: Ord + Encode + Decode + MaxEncodedLen + Clone + Eq + PartialEq, S: Get<u32>> From<BoundedVec<T, S>>
 	for OrderedSet<T, S>
 {
 	fn from(v: BoundedVec<T, S>) -> Self {
