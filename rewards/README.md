@@ -1,12 +1,10 @@
 # Rewards module
 
-### Overview
-
 This module exposes capabilities for staking rewards.
 
-### Single asset algorithm
+## Single asset algorithm
 
-If consider a single pool with a single reward asset, generally it will behave as next:
+Consider a single pool with a single reward asset, generally, it will behave as next:
 
 ```python
 from collections import defaultdict
@@ -54,9 +52,13 @@ Let $R_n$ be the amount of the current reward asset.
 
 Let $s_i$ be the stake of any specific user our of $m$ total users.
 
-User current reward share equals $$r_i = R_n * ({s_i} / {\sum_{i=1}^m s_i}) $$
+User current reward share equals
 
-User $m + 1$ brings his share, so $$r_i' = R_n * ({s_i} / {\sum_{i=1}^{m+1} s_i}) $$
+$$ r_i = R_n * ({s_i} / {\sum_{i=1}^m s_i}) $$
+
+User $m + 1$ brings his share, so
+
+$$r_i' = R_n * ({s_i} / {\sum_{i=1}^{m+1} s_i}) $$
 
 $r_i > r_i'$, so the original share was diluted and a new user can claim the share of existing users.
 
