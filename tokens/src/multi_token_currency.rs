@@ -361,4 +361,5 @@ pub trait MultiTokenCurrencyExtended<AccountId>: MultiTokenCurrency<AccountId> {
 	fn exists(currency_id: Self::CurrencyId) -> bool;
 	fn burn_and_settle(currency_id: Self::CurrencyId, who: &AccountId, amount: Self::Balance) -> DispatchResult;
 	fn locked_balance(currency_id: Self::CurrencyId, who: &AccountId) -> Self::Balance;
+	fn available_balance(currency_id: Self::CurrencyId, who: &AccountId) -> Self::Balance;
 }
