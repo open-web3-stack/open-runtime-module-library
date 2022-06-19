@@ -14,7 +14,7 @@ on:
       - '**/README.md'
 
 env:
-  TARPAULIN_VERSION: 0.18.5
+  TARPAULIN_VERSION: 0.19.1
 
 jobs:
   test:
@@ -32,14 +32,14 @@ jobs:
           df -h
           curl -s https://raw.githubusercontent.com/apache/flink/master/tools/azure-pipelines/free_disk_space.sh | bash
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           submodules: recursive
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: nightly-2021-11-07
+          toolchain: nightly-2022-02-19
           components: rustfmt
           target: wasm32-unknown-unknown
           default: true
@@ -48,8 +48,7 @@ jobs:
           wget https://github.com/xd009642/tarpaulin/releases/download/${{ env.TARPAULIN_VERSION }}/cargo-tarpaulin-${{ env.TARPAULIN_VERSION }}-travis.tar.gz
           tar -zxvf cargo-tarpaulin-${{ env.TARPAULIN_VERSION }}-travis.tar.gz -C $HOME/.cargo/bin
           make Cargo.toml
-          # TODO: remove `--avoid-cfg-tarpaulin` after https://github.com/xd009642/tarpaulin/issues/756
-          cargo tarpaulin --avoid-cfg-tarpaulin --verbose --no-fail-fast --workspace --timeout 300 --out Xml
+          cargo tarpaulin --verbose --no-fail-fast --workspace --timeout 300 --out Xml
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v2
         with:

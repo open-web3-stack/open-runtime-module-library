@@ -325,7 +325,7 @@ fn project_enabled_features(cargo_manifest: &Path, crate_metadata: &cargo_metada
 		.features
 		.keys()
 		.filter(|f| {
-			let mut feature_env = f.replace("-", "_");
+			let mut feature_env = f.replace('-', "_");
 			feature_env.make_ascii_uppercase();
 
 			// We don't want to enable the `std`/`default` feature for the wasm build and

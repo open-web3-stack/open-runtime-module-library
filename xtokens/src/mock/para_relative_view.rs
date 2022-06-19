@@ -2,7 +2,7 @@ use super::{Amount, Balance, CurrencyId, CurrencyIdConvert, ParachainXcmRouter};
 use crate as orml_xtokens;
 
 use frame_support::{
-	construct_runtime, match_type, parameter_types,
+	construct_runtime, match_types, parameter_types,
 	traits::{ConstU128, ConstU32, ConstU64, Everything, Nothing},
 	weights::{constants::WEIGHT_PER_SECOND, Weight},
 };
@@ -87,6 +87,8 @@ impl orml_tokens::Config for Runtime {
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = ();
 	type MaxLocks = ConstU32<50>;
+	type MaxReserves = ConstU32<50>;
+	type ReserveIdentifier = [u8; 8];
 	type DustRemovalWhitelist = Everything;
 }
 
@@ -324,7 +326,7 @@ parameter_types! {
 	pub const MaxAssetsForTransfer: usize = 2;
 }
 
-match_type! {
+match_types! {
 	pub type ParentOrParachains: impl Contains<MultiLocation> = {
 		MultiLocation { parents: 0, interior: X1(Junction::AccountId32 { .. }) } |
 		MultiLocation { parents: 1, interior: X1(Junction::AccountId32 { .. }) } |
