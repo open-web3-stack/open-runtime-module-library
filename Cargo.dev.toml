@@ -101,3 +101,6 @@ xcm = { git = "https://github.com/paritytech//polkadot", rev = "22836e55d41eef24
 xcm-executor = { git = "https://github.com/paritytech//polkadot", rev = "22836e55d41eef24ed5917fd654ee82a683a7cfe" }
 xcm-builder = { git = "https://github.com/paritytech//polkadot", rev = "22836e55d41eef24ed5917fd654ee82a683a7cfe" }
 xcm-simulator = { git = "https://github.com/paritytech//polkadot", rev = "22836e55d41eef24ed5917fd654ee82a683a7cfe" }
+
+[patch.crates-io]
+syn = { git = "https://github.com/dtolnay/syn", rev = "19b3f0b53525ac7ab0882882a822adbd874dbe8c" }
