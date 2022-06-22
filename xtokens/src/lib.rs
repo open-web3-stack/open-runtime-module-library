@@ -21,6 +21,7 @@
 #![allow(clippy::from_over_into)]
 #![allow(clippy::unused_unit)]
 #![allow(clippy::large_enum_variant)]
+#![allow(clippy::boxed_local)]
 
 use frame_support::{
 	log,
