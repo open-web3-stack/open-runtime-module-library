@@ -4,8 +4,9 @@
 
 use super::*;
 use frame_support::{assert_noop, assert_ok, error::BadOrigin};
-use mock::{Event, *};
+use mock::{Call, Event, *};
 use pallet_balances::{BalanceLock, Reasons};
+use sp_runtime::traits::Dispatchable;
 
 #[test]
 fn vesting_from_chain_spec_works() {
@@ -400,8 +401,13 @@ fn exceeding_maximum_schedules_should_fail() {
 		};
 		assert_ok!(Vesting::vested_transfer(Origin::signed(ALICE), BOB, schedule.clone()));
 		assert_ok!(Vesting::vested_transfer(Origin::signed(ALICE), BOB, schedule.clone()));
+
+		let create = Call::Vesting(crate::Call::<Runtime>::vested_transfer {
+			dest: BOB,
+			schedule: schedule.clone(),
+		});
 		assert_noop!(
-			Vesting::vested_transfer(Origin::signed(ALICE), BOB, schedule.clone()),
+			create.dispatch(Origin::signed(ALICE)),
 			Error::<Runtime>::MaxVestingSchedulesExceeded
 		);
 

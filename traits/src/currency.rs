@@ -1,4 +1,4 @@
-#![allow(deprecated)] // TODO: clean transactinal
+#![allow(deprecated)] // TODO: clean transactional
 
 use crate::arithmetic;
 use codec::{Codec, FullCodec, MaxEncodedLen};

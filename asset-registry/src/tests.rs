@@ -4,12 +4,12 @@ use super::*;
 use crate as orml_asset_registry;
 use crate::tests::para::{AdminAssetTwo, AssetRegistry, CustomMetadata, Origin, Tokens, TreasuryAccount};
 use frame_support::{assert_noop, assert_ok};
-use mock::*;
+use mock::{para::Call, *};
 use orml_traits::MultiCurrency;
 use polkadot_parachain::primitives::Sibling;
 
 use sp_runtime::{
-	traits::{AccountIdConversion, BadOrigin},
+	traits::{AccountIdConversion, BadOrigin, Dispatchable},
 	AccountId32,
 };
 use xcm_simulator::TestExt;
@@ -346,8 +346,12 @@ fn test_register_duplicate_location_returns_error() {
 		let metadata = dummy_metadata();
 
 		assert_ok!(AssetRegistry::register_asset(Origin::root(), metadata.clone(), None));
+		let register_asset = Call::AssetRegistry(crate::Call::<para::Runtime>::register_asset {
+			metadata: metadata.clone(),
+			asset_id: None,
+		});
 		assert_noop!(
-			AssetRegistry::register_asset(Origin::root(), metadata.clone(), None),
+			register_asset.dispatch(Origin::root()),
 			Error::<para::Runtime>::ConflictingLocation
 		);
 	});
