@@ -1,5 +1,6 @@
 #![cfg(any(test, feature = "bench"))]
 
+use frame_support::pallet_prelude::ConstU32;
 use sp_core::H256;
 use sp_runtime::{
 	traits::{BlakeTwo256, IdentityLookup},

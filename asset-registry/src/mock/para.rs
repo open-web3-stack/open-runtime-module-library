@@ -1,32 +1,38 @@
 use super::{Amount, Balance, CurrencyId, CurrencyIdConvert, ParachainXcmRouter};
-use crate as orml_xtokens;
 
+use crate as orml_asset_registry;
+
+use codec::{Decode, Encode};
+use cumulus_primitives_core::{ChannelStatus, GetChannelInfo, ParaId};
+use frame_support::traits::{EnsureOrigin, EnsureOriginWithArg};
 use frame_support::{
-	construct_runtime, match_types, parameter_types,
-	traits::{ConstU128, ConstU32, ConstU64, Everything, Get, Nothing},
+	construct_runtime, match_types, ord_parameter_types, parameter_types,
+	traits::{ConstU128, ConstU32, ConstU64, Everything, Nothing},
 	weights::{constants::WEIGHT_PER_SECOND, Weight},
+	PalletId,
 };
-use frame_system::EnsureRoot;
+use frame_system::{EnsureRoot, EnsureSignedBy};
+use orml_asset_registry::{AssetRegistryTrader, FixedRateAssetRegistryTrader};
+use orml_traits::{
+	location::{AbsoluteReserveProvider, RelativeReserveProvider},
+	parameter_type_with_key, FixedConversionRateProvider, MultiCurrency,
+};
+use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
+use pallet_xcm::XcmPassthrough;
+use polkadot_parachain::primitives::Sibling;
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
-	traits::{Convert, IdentityLookup, Zero},
+	traits::{AccountIdConversion, Convert, IdentityLookup},
 	AccountId32,
 };
-
-use cumulus_primitives_core::{ChannelStatus, GetChannelInfo, ParaId};
-use pallet_xcm::XcmPassthrough;
-use polkadot_parachain::primitives::Sibling;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin, FixedWeightBounds, LocationInverter,
 	ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
-	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
+	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue, TakeWeightCredit,
 };
-use xcm_executor::{traits::WeightTrader, Assets, Config, XcmExecutor};
-
-use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
-use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
+use xcm_executor::{Config, XcmExecutor};
 
 pub type AccountId = AccountId32;
 
@@ -69,9 +75,13 @@ impl pallet_balances::Config for Runtime {
 	type ReserveIdentifier = [u8; 8];
 }
 
+use orml_asset_registry::impls::ExistentialDeposits as AssetRegistryExistentialDeposits;
 parameter_type_with_key! {
-	pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
-		Default::default()
+	pub ExistentialDeposits: |currency_id: CurrencyId| -> Balance {
+		match currency_id {
+			CurrencyId::RegisteredAsset(asset_id) => AssetRegistryExistentialDeposits::<Runtime>::get(asset_id),
+			_ => Default::default()
+		}
 	};
 }
 
@@ -83,12 +93,55 @@ impl orml_tokens::Config for Runtime {
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = ();
-	type MaxLocks = ConstU32<50>;
-	type MaxReserves = ConstU32<50>;
 	type ReserveIdentifier = [u8; 8];
-	type DustRemovalWhitelist = Everything;
+	type MaxReserves = ();
+	type MaxLocks = ConstU32<50>;
+	type DustRemovalWhitelist = Nothing;
 	type OnNewTokenAccount = ();
 	type OnKilledTokenAccount = ();
+}
+
+#[derive(scale_info::TypeInfo, Encode, Decode, Clone, Eq, PartialEq, Debug)]
+pub struct CustomMetadata {
+	pub fee_per_second: u128,
+}
+
+const ADMIN_ASSET_TWO: AccountId = AccountId32::new([42u8; 32]);
+
+ord_parameter_types! {
+	pub const AdminAssetTwo: AccountId = ADMIN_ASSET_TWO;
+}
+
+pub struct AssetAuthority;
+impl EnsureOriginWithArg<Origin, Option<u32>> for AssetAuthority {
+	type Success = ();
+
+	fn try_origin(origin: Origin, asset_id: &Option<u32>) -> Result<Self::Success, Origin> {
+		match asset_id {
+			// We mock an edge case where the asset_id 2 requires a special origin check.
+			Some(2) => EnsureSignedBy::<AdminAssetTwo, AccountId32>::try_origin(origin.clone())
+				.map(|_| ())
+				.map_err(|_| origin),
+
+			// Any other `asset_id` defaults to EnsureRoot
+			_ => EnsureRoot::try_origin(origin),
+		}
+	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn successful_origin(_asset_id: &Option<u32>) -> Origin {
+		unimplemented!()
+	}
+}
+
+impl orml_asset_registry::Config for Runtime {
+	type Event = Event;
+	type Balance = Balance;
+	type AssetId = u32;
+	type AuthorityOrigin = AssetAuthority;
+	type CustomMetadata = CustomMetadata;
+	type AssetProcessor = orml_asset_registry::SequentialId<Runtime>;
+	type WeightInfo = ();
 }
 
 parameter_types! {
@@ -133,46 +186,33 @@ pub type LocalAssetTransactor = MultiCurrencyAdapter<
 pub type XcmRouter = ParachainXcmRouter<ParachainInfo>;
 pub type Barrier = (TakeWeightCredit, AllowTopLevelPaidExecutionFrom<Everything>);
 
-/// A trader who believes all tokens are created equal to "weight" of any chain,
-/// which is not true, but good enough to mock the fee payment of XCM execution.
-///
-/// This mock will always trade `n` amount of weight to `n` amount of tokens.
-pub struct AllTokensAreCreatedEqualToWeight(MultiLocation);
-impl WeightTrader for AllTokensAreCreatedEqualToWeight {
-	fn new() -> Self {
-		Self(MultiLocation::parent())
-	}
+parameter_types! {
+	pub TreasuryAccount: AccountId = PalletId(*b"Treasury").into_account_truncating();
+}
 
-	fn buy_weight(&mut self, weight: Weight, payment: Assets) -> Result<Assets, XcmError> {
-		let asset_id = payment
-			.fungible
-			.iter()
-			.next()
-			.expect("Payment must be something; qed")
-			.0;
-		let required = MultiAsset {
-			id: asset_id.clone(),
-			fun: Fungible(weight as u128),
-		};
-
+pub struct ToTreasury;
+impl TakeRevenue for ToTreasury {
+	fn take_revenue(revenue: MultiAsset) {
 		if let MultiAsset {
-			fun: _,
-			id: Concrete(ref id),
-		} = &required
+			id: Concrete(location),
+			fun: Fungible(amount),
+		} = revenue
 		{
-			self.0 = id.clone();
+			if let Some(currency_id) = CurrencyIdConvert::convert(location) {
+				let _ = Tokens::deposit(currency_id, &TreasuryAccount::get(), amount);
+			}
 		}
-
-		let unused = payment.checked_sub(required).map_err(|_| XcmError::TooExpensive)?;
-		Ok(unused)
 	}
+}
 
-	fn refund_weight(&mut self, weight: Weight) -> Option<MultiAsset> {
-		if weight.is_zero() {
-			None
-		} else {
-			Some((self.0.clone(), weight as u128).into())
-		}
+pub type AssetRegistryWeightTrader =
+	(AssetRegistryTrader<FixedRateAssetRegistryTrader<MyFixedConversionRateProvider>, ToTreasury>,);
+
+pub struct MyFixedConversionRateProvider;
+impl FixedConversionRateProvider for MyFixedConversionRateProvider {
+	fn get_fee_per_second(location: &MultiLocation) -> Option<u128> {
+		let metadata = AssetRegistry::fetch_metadata_by_location(location)?;
+		Some(metadata.additional.fee_per_second)
 	}
 }
 
@@ -187,7 +227,7 @@ impl Config for XcmConfig {
 	type LocationInverter = LocationInverter<Ancestry>;
 	type Barrier = Barrier;
 	type Weigher = FixedWeightBounds<ConstU64<10>, Call, ConstU32<100>>;
-	type Trader = AllTokensAreCreatedEqualToWeight;
+	type Trader = AssetRegistryWeightTrader;
 	type ResponseHandler = ();
 	type AssetTrap = PolkadotXcm;
 	type AssetClaims = PolkadotXcm;
@@ -257,7 +297,7 @@ impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 }
 
 parameter_types! {
-	pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::get().into())));
+	pub SelfLocation: MultiLocation = MultiLocation::here();
 	pub const MaxAssetsForTransfer: usize = 3;
 }
 
@@ -297,7 +337,7 @@ impl orml_xtokens::Config for Runtime {
 	type BaseXcmWeight = ConstU64<100_000_000>;
 	type LocationInverter = LocationInverter<Ancestry>;
 	type MaxAssetsForTransfer = MaxAssetsForTransfer;
-	type ReserveProvider = AbsoluteReserveProvider;
+	type ReserveProvider = RelativeReserveProvider;
 }
 
 impl orml_xcm::Config for Runtime {
@@ -324,6 +364,7 @@ construct_runtime!(
 
 		Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
 		XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>},
+		AssetRegistry: orml_asset_registry::{Pallet, Storage, Call, Event<T>},
 
 		PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Origin},
 		OrmlXcm: orml_xcm::{Pallet, Call, Event<T>},
