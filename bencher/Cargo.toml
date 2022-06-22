@@ -32,7 +32,7 @@ sp-runtime-interface = { git = "https://github.com/paritytech/substrate", defaul
 sp-state-machine = { git = "https://github.com/paritytech/substrate", default-features = false, optional = true , branch = "polkadot-v0.9.25" }
 sc-executor = { git = "https://github.com/paritytech/substrate", default-features = false, features = ["wasmtime"], optional = true , branch = "polkadot-v0.9.25" }
 sc-executor-common = { git = "https://github.com/paritytech/substrate", optional = true , branch = "polkadot-v0.9.25" }
-sc-client-db = { git = "https://github.com/paritytech/substrate", default-features = false, features = ["with-kvdb-rocksdb"], optional = true , branch = "polkadot-v0.9.25" }
+sc-client-db = { git = "https://github.com/paritytech/substrate", default-features = false, features = ["rocksdb"], optional = true , branch = "polkadot-v0.9.25" }
 sp-maybe-compressed-blob = { git = "https://github.com/paritytech/substrate", default-features = false, optional = true , branch = "polkadot-v0.9.25" }
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.25" }
 sp-externalities = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.25" }
