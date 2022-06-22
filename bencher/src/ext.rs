@@ -1,6 +1,6 @@
 use core::any::{Any, TypeId};
 use hash_db::Hasher;
-use sp_externalities::{Extension, ExtensionStore, Externalities};
+use sp_externalities::{Extension, ExtensionStore, Externalities, MultiRemovalResults};
 use sp_state_machine::{Backend, Ext};
 use sp_std::sync::Arc;
 use sp_storage::{ChildInfo, StateVersion, TrackedStorageKey};
@@ -66,19 +66,30 @@ where
 		self.ext.next_child_storage_key(child_info, key)
 	}
 
-	fn kill_child_storage(&mut self, child_info: &ChildInfo, limit: Option<u32>) -> (bool, u32) {
+	fn kill_child_storage(
+		&mut self,
+		child_info: &ChildInfo,
+		limit: Option<u32>,
+		maybe_cursor: Option<&[u8]>,
+	) -> MultiRemovalResults {
 		self.tracker.warn_child_prefix_removal();
-		self.ext.kill_child_storage(child_info, limit)
+		self.ext.kill_child_storage(child_info, limit, maybe_cursor)
 	}
 
-	fn clear_prefix(&mut self, prefix: &[u8], limit: Option<u32>) -> (bool, u32) {
+	fn clear_prefix(&mut self, prefix: &[u8], limit: Option<u32>, maybe_cursor: Option<&[u8]>) -> MultiRemovalResults {
 		self.tracker.warn_child_prefix_removal();
-		self.ext.clear_prefix(prefix, limit)
+		self.ext.clear_prefix(prefix, limit, maybe_cursor)
 	}
 
-	fn clear_child_prefix(&mut self, child_info: &ChildInfo, prefix: &[u8], limit: Option<u32>) -> (bool, u32) {
+	fn clear_child_prefix(
+		&mut self,
+		child_info: &ChildInfo,
+		prefix: &[u8],
+		limit: Option<u32>,
+		maybe_cursor: Option<&[u8]>,
+	) -> MultiRemovalResults {
 		self.tracker.warn_child_prefix_removal();
-		self.ext.clear_child_prefix(child_info, prefix, limit)
+		self.ext.clear_child_prefix(child_info, prefix, limit, maybe_cursor)
 	}
 
 	fn place_storage(&mut self, key: Vec<u8>, value: Option<Vec<u8>>) {
