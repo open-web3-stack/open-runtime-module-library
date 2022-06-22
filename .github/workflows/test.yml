@@ -29,9 +29,6 @@ jobs:
     needs: cancel
     steps:
     - uses: actions/checkout@v3
-    
-    
-
     - name: Install toolchain
       uses: actions-rs/toolchain@v1
       with:
