@@ -692,10 +692,6 @@ fn sending_sibling_asset_to_reserve_sibling_with_relay_fee_works() {
 			1000 - (fee_amount - dest_weight),
 			RelayBalances::free_balance(&para_a_account())
 		);
-		assert_eq!(
-			fee_amount - dest_weight * 2,
-			RelayBalances::free_balance(&para_b_account())
-		);
 	});
 
 	ParaB::execute_with(|| {
@@ -755,10 +751,6 @@ fn sending_sibling_asset_to_reserve_sibling_with_relay_fee_not_enough() {
 		assert_eq!(
 			1000 - (fee_amount - dest_weight),
 			RelayBalances::free_balance(&para_a_account())
-		);
-		assert_eq!(
-			fee_amount - dest_weight * 2,
-			RelayBalances::free_balance(&para_b_account())
 		);
 	});
 
