@@ -145,6 +145,12 @@ impl<
 		DepositFailureHandler,
 	>
 {
+	fn check_in(_origin: &MultiLocation, _what: &MultiAsset) {}
+
+	fn can_check_in(_origin: &MultiLocation, _what: &MultiAsset) -> Result {
+		Ok(())
+	}
+
 	fn deposit_asset(asset: &MultiAsset, location: &MultiLocation) -> Result {
 		match (
 			AccountIdConvert::convert_ref(location),
