@@ -121,19 +121,6 @@ pub type XcmOriginToCallOrigin = (
 	XcmPassthrough<Origin>,
 );
 
-// pub type LocalAssetTransactor = CurrencyAdapter<
-// 	// Use this currency:
-// 	Tokens,
-// 	// Use this currency when it is a fungible asset matching the given location
-// or name: 	IsConcrete<RelayLocation>,
-// 	// Convert an XCM MultiLocation into a local account id:
-// 	LocationToAccountId,
-// 	// Our chain's account ID type (we can't get away without mentioning it
-// explicitly): 	AccountId,
-// 	// We don't track any teleports of `Balances`.
-// 	(),
-// >;
-
 pub type LocalAssetTransactor = MultiTeleportCurrencyAdapter<
 	Tokens,
 	(),
