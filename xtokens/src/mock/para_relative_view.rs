@@ -10,7 +10,7 @@ use frame_system::EnsureRoot;
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
-	traits::{Convert, IdentityLookup, Zero},
+	traits::{Convert, IdentityLookup},
 	AccountId32,
 };
 
@@ -23,8 +23,9 @@ use xcm_builder::{
 	ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
 	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 };
-use xcm_executor::{traits::WeightTrader, Assets, Config, XcmExecutor};
+use xcm_executor::{Config, XcmExecutor};
 
+use crate::mock::AllTokensAreCreatedEqualToWeight;
 use orml_traits::{
 	location::{AbsoluteReserveProvider, RelativeReserveProvider},
 	parameter_type_with_key,
@@ -136,49 +137,6 @@ pub type LocalAssetTransactor = MultiCurrencyAdapter<
 pub type XcmRouter = ParachainXcmRouter<ParachainInfo>;
 pub type Barrier = (TakeWeightCredit, AllowTopLevelPaidExecutionFrom<Everything>);
 
-/// A trader who believes all tokens are created equal to "weight" of any chain,
-/// which is not true, but good enough to mock the fee payment of XCM execution.
-///
-/// This mock will always trade `n` amount of weight to `n` amount of tokens.
-pub struct AllTokensAreCreatedEqualToWeight(MultiLocation);
-impl WeightTrader for AllTokensAreCreatedEqualToWeight {
-	fn new() -> Self {
-		Self(MultiLocation::parent())
-	}
-
-	fn buy_weight(&mut self, weight: Weight, payment: Assets) -> Result<Assets, XcmError> {
-		let asset_id = payment
-			.fungible
-			.iter()
-			.next()
-			.expect("Payment must be something; qed")
-			.0;
-		let required = MultiAsset {
-			id: asset_id.clone(),
-			fun: Fungible(weight as u128),
-		};
-
-		if let MultiAsset {
-			fun: _,
-			id: Concrete(ref id),
-		} = &required
-		{
-			self.0 = id.clone();
-		}
-
-		let unused = payment.checked_sub(required).map_err(|_| XcmError::TooExpensive)?;
-		Ok(unused)
-	}
-
-	fn refund_weight(&mut self, weight: Weight) -> Option<MultiAsset> {
-		if weight.is_zero() {
-			None
-		} else {
-			Some((self.0.clone(), weight as u128).into())
-		}
-	}
-}
-
 pub struct XcmConfig;
 impl Config for XcmConfig {
 	type Call = Call;
@@ -269,6 +227,7 @@ impl Convert<CurrencyId, Option<MultiLocation>> for RelativeCurrencyIdConvert {
 			CurrencyId::B => Some((Parent, Parachain(2), GeneralKey("B".into())).into()),
 			CurrencyId::B1 => Some((Parent, Parachain(2), GeneralKey("B1".into())).into()),
 			CurrencyId::B2 => Some((Parent, Parachain(2), GeneralKey("B2".into())).into()),
+			CurrencyId::C => Some((Parent, Parachain(3), GeneralKey("C".into())).into()),
 			CurrencyId::D => Some(GeneralKey("D".into()).into()),
 		}
 	}
@@ -280,6 +239,7 @@ impl Convert<MultiLocation, Option<CurrencyId>> for RelativeCurrencyIdConvert {
 		let b: Vec<u8> = "B".into();
 		let b1: Vec<u8> = "B1".into();
 		let b2: Vec<u8> = "B2".into();
+		let c: Vec<u8> = "C".into();
 		let d: Vec<u8> = "D".into();
 
 		let self_para_id: u32 = ParachainInfo::parachain_id().into();
@@ -293,6 +253,7 @@ impl Convert<MultiLocation, Option<CurrencyId>> for RelativeCurrencyIdConvert {
 				X2(Parachain(2), GeneralKey(k)) if k == b => Some(CurrencyId::B),
 				X2(Parachain(2), GeneralKey(k)) if k == b1 => Some(CurrencyId::B1),
 				X2(Parachain(2), GeneralKey(k)) if k == b2 => Some(CurrencyId::B2),
+				X2(Parachain(3), GeneralKey(k)) if k == c => Some(CurrencyId::C),
 				X2(Parachain(para_id), GeneralKey(k)) if k == d && para_id == self_para_id => Some(CurrencyId::D),
 				_ => None,
 			},
@@ -302,6 +263,7 @@ impl Convert<MultiLocation, Option<CurrencyId>> for RelativeCurrencyIdConvert {
 				X1(GeneralKey(k)) if k == a1 => Some(CurrencyId::A1),
 				X1(GeneralKey(k)) if k == b1 => Some(CurrencyId::B1),
 				X1(GeneralKey(k)) if k == b2 => Some(CurrencyId::B2),
+				X1(GeneralKey(k)) if k == c => Some(CurrencyId::C),
 				X1(GeneralKey(k)) if k == d => Some(CurrencyId::D),
 				_ => None,
 			},

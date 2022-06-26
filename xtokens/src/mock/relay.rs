@@ -90,7 +90,7 @@ pub type Barrier = (TakeWeightCredit, AllowTopLevelPaidExecutionFrom<Everything>
 
 parameter_types! {
 	pub const Kusama: MultiAssetFilter = Wild(AllOf { fun: WildFungible, id: Concrete(KsmLocation::get()) });
-	pub const Statemine: MultiLocation = Parachain(2).into();
+	pub const Statemine: MultiLocation = Parachain(3).into();
 	pub const KusamaForStatemine: (MultiAssetFilter, MultiLocation) = (Kusama::get(), Statemine::get());
 }
 
