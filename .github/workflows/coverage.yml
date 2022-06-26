@@ -19,7 +19,7 @@ env:
 jobs:
   test:
     name: Coverage Report
-    runs-on: ubuntu-latest
+    runs-on: custom-runner-AWS
     steps:
       - name: Cancel Previous Runs
         # Only cancel non-master branch runs
