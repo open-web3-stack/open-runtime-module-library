@@ -561,6 +561,9 @@ pub mod module {
 				assets_to_fee_reserve.push(asset_to_fee_reserve.clone());
 
 				// First xcm sent to fee reserve chain and routed to dest chain.
+				// We can use `MinXcmFee` configuration to decide which target parachain use
+				// teleport. But as current there's only one case which is Parachain send back
+				// asset to Statemine/t, So we set `use_teleport` to always `true` in this case.
 				Self::execute_and_send_reserve_kind_xcm(
 					origin_location.clone(),
 					assets_to_fee_reserve,
