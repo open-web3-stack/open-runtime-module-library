@@ -21,6 +21,7 @@
 #![allow(clippy::from_over_into)]
 #![allow(clippy::unused_unit)]
 #![allow(clippy::large_enum_variant)]
+#![allow(clippy::too_many_arguments)]
 #![allow(clippy::boxed_local)]
 #![allow(deprecated)]
 
