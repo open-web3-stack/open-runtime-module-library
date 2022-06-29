@@ -21,6 +21,7 @@
 #![allow(clippy::from_over_into)]
 #![allow(clippy::unused_unit)]
 #![allow(clippy::large_enum_variant)]
+#![allow(clippy::too_many_arguments)]
 
 use frame_support::{
 	log,
@@ -561,6 +562,9 @@ pub mod module {
 				assets_to_fee_reserve.push(asset_to_fee_reserve.clone());
 
 				// First xcm sent to fee reserve chain and routed to dest chain.
+				// We can use `MinXcmFee` configuration to decide which target parachain use
+				// teleport. But as current there's only one case which is Parachain send back
+				// asset to Statemine/t, So we set `use_teleport` to always `true` in this case.
 				Self::execute_and_send_reserve_kind_xcm(
 					origin_location.clone(),
 					assets_to_fee_reserve,
@@ -569,6 +573,7 @@ pub mod module {
 					&dest,
 					Some(T::SelfLocation::get()),
 					dest_weight,
+					true,
 				)?;
 
 				// Second xcm send to dest chain.
@@ -580,6 +585,7 @@ pub mod module {
 					&dest,
 					None,
 					dest_weight,
+					false,
 				)?;
 			} else {
 				Self::execute_and_send_reserve_kind_xcm(
@@ -590,6 +596,7 @@ pub mod module {
 					&dest,
 					None,
 					dest_weight,
+					false,
 				)?;
 			}
 
@@ -613,6 +620,7 @@ pub mod module {
 			dest: &MultiLocation,
 			maybe_recipient_override: Option<MultiLocation>,
 			dest_weight: Weight,
+			use_teleport: bool,
 		) -> DispatchResult {
 			let (transfer_kind, dest, reserve, recipient) = Self::transfer_kind(reserve, dest)?;
 			let recipient = match maybe_recipient_override {
@@ -623,7 +631,9 @@ pub mod module {
 			let mut msg = match transfer_kind {
 				SelfReserveAsset => Self::transfer_self_reserve_asset(assets, fee, dest, recipient, dest_weight)?,
 				ToReserve => Self::transfer_to_reserve(assets, fee, dest, recipient, dest_weight)?,
-				ToNonReserve => Self::transfer_to_non_reserve(assets, fee, reserve, dest, recipient, dest_weight)?,
+				ToNonReserve => {
+					Self::transfer_to_non_reserve(assets, fee, reserve, dest, recipient, dest_weight, use_teleport)?
+				}
 			};
 
 			let weight = T::Weigher::weight(&mut msg).map_err(|()| Error::<T>::UnweighableMessage)?;
@@ -681,6 +691,7 @@ pub mod module {
 			dest: MultiLocation,
 			recipient: MultiLocation,
 			dest_weight: Weight,
+			use_teleport: bool,
 		) -> Result<Xcm<T::Call>, DispatchError> {
 			let mut reanchored_dest = dest.clone();
 			if reserve == MultiLocation::parent() {
@@ -695,25 +706,46 @@ pub mod module {
 				}
 			}
 
-			Ok(Xcm(vec![
-				WithdrawAsset(assets.clone()),
-				InitiateReserveWithdraw {
-					assets: All.into(),
-					reserve: reserve.clone(),
-					xcm: Xcm(vec![
-						Self::buy_execution(half(&fee), &reserve, dest_weight)?,
-						DepositReserveAsset {
-							assets: All.into(),
-							max_assets: assets.len() as u32,
-							dest: reanchored_dest,
-							xcm: Xcm(vec![
-								Self::buy_execution(half(&fee), &dest, dest_weight)?,
-								Self::deposit_asset(recipient, assets.len() as u32),
-							]),
-						},
-					]),
-				},
-			]))
+			if !use_teleport {
+				Ok(Xcm(vec![
+					WithdrawAsset(assets.clone()),
+					InitiateReserveWithdraw {
+						assets: All.into(),
+						reserve: reserve.clone(),
+						xcm: Xcm(vec![
+							Self::buy_execution(half(&fee), &reserve, dest_weight)?,
+							DepositReserveAsset {
+								assets: All.into(),
+								max_assets: assets.len() as u32,
+								dest: reanchored_dest,
+								xcm: Xcm(vec![
+									Self::buy_execution(half(&fee), &dest, dest_weight)?,
+									Self::deposit_asset(recipient, assets.len() as u32),
+								]),
+							},
+						]),
+					},
+				]))
+			} else {
+				Ok(Xcm(vec![
+					WithdrawAsset(assets.clone()),
+					InitiateReserveWithdraw {
+						assets: All.into(),
+						reserve: reserve.clone(),
+						xcm: Xcm(vec![
+							Self::buy_execution(half(&fee), &reserve, dest_weight)?,
+							InitiateTeleport {
+								assets: All.into(),
+								dest: reanchored_dest,
+								xcm: Xcm(vec![
+									Self::buy_execution(half(&fee), &dest, dest_weight)?,
+									Self::deposit_asset(recipient, assets.len() as u32),
+								]),
+							},
+						]),
+					},
+				]))
+			}
 		}
 
 		fn deposit_asset(recipient: MultiLocation, max_assets: u32) -> Instruction<()> {

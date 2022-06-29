@@ -25,9 +25,10 @@ use xcm_builder::{
 };
 use xcm_executor::{Config, XcmExecutor};
 
+use crate::mock::teleport_currency_adapter::MultiTeleportCurrencyAdapter;
 use crate::mock::AllTokensAreCreatedEqualToWeight;
 use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
-use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
+use orml_xcm_support::{DisabledParachainFee, IsNativeConcrete, MultiNativeAsset};
 
 pub type AccountId = AccountId32;
 
@@ -120,7 +121,7 @@ pub type XcmOriginToCallOrigin = (
 	XcmPassthrough<Origin>,
 );
 
-pub type LocalAssetTransactor = MultiCurrencyAdapter<
+pub type LocalAssetTransactor = MultiTeleportCurrencyAdapter<
 	Tokens,
 	(),
 	IsNativeConcrete<CurrencyId, CurrencyIdConvert>,
@@ -231,16 +232,6 @@ match_types! {
 	};
 }
 
-parameter_type_with_key! {
-	pub ParachainMinFee: |location: MultiLocation| -> Option<u128> {
-		#[allow(clippy::match_ref_pats)] // false positive
-		match (location.parents, location.first_interior()) {
-			(1, Some(Parachain(3))) => Some(40),
-			_ => None,
-		}
-	};
-}
-
 impl orml_xtokens::Config for Runtime {
 	type Event = Event;
 	type Balance = Balance;
@@ -249,7 +240,7 @@ impl orml_xtokens::Config for Runtime {
 	type AccountIdToMultiLocation = AccountIdToMultiLocation;
 	type SelfLocation = SelfLocation;
 	type MultiLocationsFilter = ParentOrParachains;
-	type MinXcmFee = ParachainMinFee;
+	type MinXcmFee = DisabledParachainFee;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type Weigher = FixedWeightBounds<ConstU64<10>, Call, ConstU32<100>>;
 	type BaseXcmWeight = ConstU64<100_000_000>;

@@ -650,11 +650,11 @@ fn sending_sibling_asset_to_reserve_sibling_with_relay_fee_works() {
 	TestNet::reset();
 
 	ParaA::execute_with(|| {
-		assert_ok!(ParaTokens::deposit(CurrencyId::B, &ALICE, 1_000));
+		assert_ok!(ParaTokens::deposit(CurrencyId::C, &ALICE, 1_000));
 	});
 
-	ParaB::execute_with(|| {
-		assert_ok!(ParaTokens::deposit(CurrencyId::B, &sibling_a_account(), 1_000));
+	ParaC::execute_with(|| {
+		assert_ok!(ParaTeleportTokens::deposit(CurrencyId::C, &sibling_a_account(), 1_000));
 	});
 
 	Relay::execute_with(|| {
@@ -668,12 +668,12 @@ fn sending_sibling_asset_to_reserve_sibling_with_relay_fee_works() {
 	ParaA::execute_with(|| {
 		assert_ok!(ParaXTokens::transfer_multicurrencies(
 			Some(ALICE).into(),
-			vec![(CurrencyId::B, 450), (CurrencyId::R, fee_amount)],
+			vec![(CurrencyId::C, 450), (CurrencyId::R, fee_amount)],
 			1,
 			Box::new(
 				(
 					Parent,
-					Parachain(2),
+					Parachain(3),
 					Junction::AccountId32 {
 						network: NetworkId::Any,
 						id: BOB.into(),
@@ -683,7 +683,7 @@ fn sending_sibling_asset_to_reserve_sibling_with_relay_fee_works() {
 			),
 			weight as u64,
 		));
-		assert_eq!(550, ParaTokens::free_balance(CurrencyId::B, &ALICE));
+		assert_eq!(550, ParaTokens::free_balance(CurrencyId::C, &ALICE));
 		assert_eq!(1000 - fee_amount, ParaTokens::free_balance(CurrencyId::R, &ALICE));
 	});
 
@@ -692,20 +692,16 @@ fn sending_sibling_asset_to_reserve_sibling_with_relay_fee_works() {
 			1000 - (fee_amount - dest_weight),
 			RelayBalances::free_balance(&para_a_account())
 		);
-		assert_eq!(
-			fee_amount - dest_weight * 2,
-			RelayBalances::free_balance(&para_b_account())
-		);
 	});
 
-	ParaB::execute_with(|| {
+	ParaC::execute_with(|| {
 		assert_eq!(
 			fee_amount - dest_weight * 4,
-			ParaTokens::free_balance(CurrencyId::R, &sibling_a_account())
+			ParaTeleportTokens::free_balance(CurrencyId::R, &sibling_a_account())
 		);
 
-		assert_eq!(450, ParaTokens::free_balance(CurrencyId::B, &BOB));
-		assert_eq!(0, ParaTokens::free_balance(CurrencyId::R, &BOB));
+		assert_eq!(450, ParaTeleportTokens::free_balance(CurrencyId::C, &BOB));
+		assert_eq!(0, ParaTeleportTokens::free_balance(CurrencyId::R, &BOB));
 	});
 }
 
@@ -714,11 +710,11 @@ fn sending_sibling_asset_to_reserve_sibling_with_relay_fee_not_enough() {
 	TestNet::reset();
 
 	ParaA::execute_with(|| {
-		assert_ok!(ParaTokens::deposit(CurrencyId::B, &ALICE, 1_000));
+		assert_ok!(ParaTokens::deposit(CurrencyId::C, &ALICE, 1_000));
 	});
 
-	ParaB::execute_with(|| {
-		assert_ok!(ParaTokens::deposit(CurrencyId::B, &sibling_a_account(), 1_000));
+	ParaC::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::C, &sibling_a_account(), 1_000));
 	});
 
 	Relay::execute_with(|| {
@@ -732,12 +728,12 @@ fn sending_sibling_asset_to_reserve_sibling_with_relay_fee_not_enough() {
 	ParaA::execute_with(|| {
 		assert_ok!(ParaXTokens::transfer_multicurrencies(
 			Some(ALICE).into(),
-			vec![(CurrencyId::B, 450), (CurrencyId::R, fee_amount)],
+			vec![(CurrencyId::C, 450), (CurrencyId::R, fee_amount)],
 			1,
 			Box::new(
 				(
 					Parent,
-					Parachain(2),
+					Parachain(3),
 					Junction::AccountId32 {
 						network: NetworkId::Any,
 						id: BOB.into(),
@@ -747,7 +743,7 @@ fn sending_sibling_asset_to_reserve_sibling_with_relay_fee_not_enough() {
 			),
 			weight as u64,
 		));
-		assert_eq!(550, ParaTokens::free_balance(CurrencyId::B, &ALICE));
+		assert_eq!(550, ParaTokens::free_balance(CurrencyId::C, &ALICE));
 		assert_eq!(1000 - fee_amount, ParaTokens::free_balance(CurrencyId::R, &ALICE));
 	});
 
@@ -756,19 +752,15 @@ fn sending_sibling_asset_to_reserve_sibling_with_relay_fee_not_enough() {
 			1000 - (fee_amount - dest_weight),
 			RelayBalances::free_balance(&para_a_account())
 		);
-		assert_eq!(
-			fee_amount - dest_weight * 2,
-			RelayBalances::free_balance(&para_b_account())
-		);
 	});
 
-	ParaB::execute_with(|| {
+	ParaC::execute_with(|| {
 		// after first xcm succeed, sibling_a amount = 159-120=39
 		// second xcm failed, so sibling_a amount stay same.
 		assert_eq!(39, ParaTokens::free_balance(CurrencyId::R, &sibling_a_account()));
 
 		// second xcm failed, so recipient account don't receive any token of B and R.
-		assert_eq!(0, ParaTokens::free_balance(CurrencyId::B, &BOB));
+		assert_eq!(0, ParaTokens::free_balance(CurrencyId::C, &BOB));
 		assert_eq!(0, ParaTokens::free_balance(CurrencyId::R, &BOB));
 	});
 }
@@ -806,12 +798,12 @@ fn transfer_asset_with_relay_fee_failed() {
 		assert_noop!(
 			ParaXTokens::transfer_multicurrencies(
 				Some(ALICE).into(),
-				vec![(CurrencyId::B, 450), (CurrencyId::R, 100)],
+				vec![(CurrencyId::C, 450), (CurrencyId::R, 100)],
 				1,
 				Box::new(
 					(
 						Parent,
-						Parachain(3),
+						Parachain(2),
 						Junction::AccountId32 {
 							network: NetworkId::Any,
 							id: BOB.into(),
@@ -825,17 +817,18 @@ fn transfer_asset_with_relay_fee_failed() {
 		);
 	});
 
-	// User fee is less than `MinXcmFee`
+	// `ToReserve` with relay-chain as fee supported.
+	// But user fee is less than `MinXcmFee`
 	ParaA::execute_with(|| {
 		assert_noop!(
 			ParaXTokens::transfer_multicurrencies(
 				Some(ALICE).into(),
-				vec![(CurrencyId::B, 450), (CurrencyId::R, 39)],
+				vec![(CurrencyId::C, 450), (CurrencyId::R, 39)],
 				1,
 				Box::new(
 					(
 						Parent,
-						Parachain(2),
+						Parachain(3),
 						Junction::AccountId32 {
 							network: NetworkId::Any,
 							id: BOB.into(),
