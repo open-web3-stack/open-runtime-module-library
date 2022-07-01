@@ -706,6 +706,12 @@ pub mod module {
 				}
 			}
 
+			let mut reanchored_recipient = recipient.clone();
+			if recipient == MultiLocation::here() {
+				let ancestry = T::LocationInverter::ancestry();
+				reanchored_recipient.reanchor(&dest, &ancestry);
+			}
+
 			if !use_teleport {
 				Ok(Xcm(vec![
 					WithdrawAsset(assets.clone()),
@@ -720,7 +726,7 @@ pub mod module {
 								dest: reanchored_dest,
 								xcm: Xcm(vec![
 									Self::buy_execution(half(&fee), &dest, dest_weight)?,
-									Self::deposit_asset(recipient, assets.len() as u32),
+									Self::deposit_asset(reanchored_recipient, assets.len() as u32),
 								]),
 							},
 						]),
@@ -739,7 +745,7 @@ pub mod module {
 								dest: reanchored_dest,
 								xcm: Xcm(vec![
 									Self::buy_execution(half(&fee), &dest, dest_weight)?,
-									Self::deposit_asset(recipient, assets.len() as u32),
+									Self::deposit_asset(reanchored_recipient, assets.len() as u32),
 								]),
 							},
 						]),
