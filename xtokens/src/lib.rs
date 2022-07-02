@@ -709,7 +709,9 @@ pub mod module {
 			let mut reanchored_recipient = recipient.clone();
 			if recipient == MultiLocation::here() {
 				let ancestry = T::LocationInverter::ancestry();
-				reanchored_recipient.reanchor(&dest, &ancestry);
+				reanchored_recipient
+					.reanchor(&dest, &ancestry)
+					.map_err(|_| DispatchError::Other("Cannot reanchor recipient"));
 			}
 
 			if !use_teleport {
