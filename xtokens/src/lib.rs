@@ -707,6 +707,7 @@ pub mod module {
 			}
 
 			let mut reanchored_recipient = recipient.clone();
+			println!("\n {:?} \n", recipient);
 			if recipient == MultiLocation::here() {
 				let ancestry = T::LocationInverter::ancestry();
 				let _ = reanchored_recipient

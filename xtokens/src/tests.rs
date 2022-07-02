@@ -726,7 +726,7 @@ fn sending_sibling_asset_to_reserve_sibling_with_relay_fee_works_with_relative_s
 	let dest_weight: u128 = 40;
 
 	ParaD::execute_with(|| {
-		assert_ok!(ParaXTokens::transfer_multicurrencies(
+		assert_ok!(ParaRelativeXTokens::transfer_multicurrencies(
 			Some(ALICE).into(),
 			vec![(CurrencyId::C, 450), (CurrencyId::R, fee_amount)],
 			1,
@@ -743,8 +743,11 @@ fn sending_sibling_asset_to_reserve_sibling_with_relay_fee_works_with_relative_s
 			),
 			weight as u64,
 		));
-		assert_eq!(550, ParaTokens::free_balance(CurrencyId::C, &ALICE));
-		assert_eq!(1000 - fee_amount, ParaTokens::free_balance(CurrencyId::R, &ALICE));
+		assert_eq!(550, ParaRelativeTokens::free_balance(CurrencyId::C, &ALICE));
+		assert_eq!(
+			1000 - fee_amount,
+			ParaRelativeTokens::free_balance(CurrencyId::R, &ALICE)
+		);
 	});
 
 	Relay::execute_with(|| {
