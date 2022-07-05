@@ -706,6 +706,69 @@ fn sending_sibling_asset_to_reserve_sibling_with_relay_fee_works() {
 }
 
 #[test]
+fn sending_sibling_asset_to_reserve_sibling_with_relay_fee_works_with_relative_self_location() {
+	TestNet::reset();
+
+	ParaD::execute_with(|| {
+		assert_ok!(ParaTokens::deposit(CurrencyId::C, &ALICE, 1_000));
+	});
+
+	ParaC::execute_with(|| {
+		assert_ok!(ParaTeleportTokens::deposit(CurrencyId::C, &sibling_d_account(), 1_000));
+	});
+
+	Relay::execute_with(|| {
+		let _ = RelayBalances::deposit_creating(&para_d_account(), 1_000);
+	});
+
+	let fee_amount: u128 = 200;
+	let weight: u128 = 50;
+	let dest_weight: u128 = 40;
+
+	ParaD::execute_with(|| {
+		assert_ok!(ParaRelativeXTokens::transfer_multicurrencies(
+			Some(ALICE).into(),
+			vec![(CurrencyId::C, 450), (CurrencyId::R, fee_amount)],
+			1,
+			Box::new(
+				(
+					Parent,
+					Parachain(3),
+					Junction::AccountId32 {
+						network: NetworkId::Any,
+						id: BOB.into(),
+					},
+				)
+					.into()
+			),
+			weight as u64,
+		));
+		assert_eq!(550, ParaRelativeTokens::free_balance(CurrencyId::C, &ALICE));
+		assert_eq!(
+			1000 - fee_amount,
+			ParaRelativeTokens::free_balance(CurrencyId::R, &ALICE)
+		);
+	});
+
+	Relay::execute_with(|| {
+		assert_eq!(
+			1000 - (fee_amount - dest_weight),
+			RelayBalances::free_balance(&para_d_account())
+		);
+	});
+
+	ParaC::execute_with(|| {
+		assert_eq!(
+			fee_amount - dest_weight * 4,
+			ParaTeleportTokens::free_balance(CurrencyId::R, &sibling_d_account())
+		);
+
+		assert_eq!(450, ParaTeleportTokens::free_balance(CurrencyId::C, &BOB));
+		assert_eq!(0, ParaTeleportTokens::free_balance(CurrencyId::R, &BOB));
+	});
+}
+
+#[test]
 fn sending_sibling_asset_to_reserve_sibling_with_relay_fee_not_enough() {
 	TestNet::reset();
 

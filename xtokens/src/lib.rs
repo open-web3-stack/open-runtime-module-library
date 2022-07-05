@@ -561,6 +561,15 @@ pub mod module {
 				let asset_to_fee_reserve = subtract_fee(&fee, min_xcm_fee);
 				assets_to_fee_reserve.push(asset_to_fee_reserve.clone());
 
+				let mut override_recipient = T::SelfLocation::get();
+				if override_recipient == MultiLocation::here() {
+					let dest_chain_part = dest.chain_part().ok_or(Error::<T>::InvalidDest)?;
+					let ancestry = T::LocationInverter::ancestry();
+					let _ = override_recipient
+						.reanchor(&dest_chain_part, &ancestry)
+						.map_err(|_| Error::<T>::CannotReanchor);
+				}
+
 				// First xcm sent to fee reserve chain and routed to dest chain.
 				// We can use `MinXcmFee` configuration to decide which target parachain use
 				// teleport. But as current there's only one case which is Parachain send back
@@ -571,7 +580,7 @@ pub mod module {
 					asset_to_fee_reserve,
 					fee_reserve,
 					&dest,
-					Some(T::SelfLocation::get()),
+					Some(override_recipient),
 					dest_weight,
 					true,
 				)?;
