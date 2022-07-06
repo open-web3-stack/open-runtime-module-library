@@ -26,9 +26,9 @@ pub mod build_wasm;
 pub mod handler;
 
 #[cfg(feature = "std")]
-mod colorize;
+mod bench_ext;
 #[cfg(feature = "std")]
-mod ext;
+mod colorize;
 #[cfg(feature = "std")]
 mod tracker;
 

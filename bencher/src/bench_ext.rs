@@ -37,57 +37,57 @@ where
 	}
 
 	fn storage(&self, key: &[u8]) -> Option<Vec<u8>> {
-		self.tracker.reading_key(key.to_vec());
+		self.tracker.on_read_storage(key.to_vec());
 		self.ext.storage(key)
 	}
 
 	fn storage_hash(&self, key: &[u8]) -> Option<Vec<u8>> {
-		self.tracker.reading_key(key.to_vec());
+		self.tracker.on_read_storage(key.to_vec());
 		self.ext.storage_hash(key)
 	}
 
 	fn child_storage_hash(&self, child_info: &ChildInfo, key: &[u8]) -> Option<Vec<u8>> {
-		self.tracker.reading_child_key(child_info, key.to_vec());
+		self.tracker.on_read_child_storage(child_info, key.to_vec());
 		self.ext.child_storage_hash(child_info, key)
 	}
 
 	fn child_storage(&self, child_info: &ChildInfo, key: &[u8]) -> Option<Vec<u8>> {
-		self.tracker.reading_child_key(child_info, key.to_vec());
+		self.tracker.on_read_child_storage(child_info, key.to_vec());
 		self.ext.child_storage(child_info, key)
 	}
 
 	fn next_storage_key(&self, key: &[u8]) -> Option<Vec<u8>> {
-		self.tracker.reading_key(key.to_vec());
+		self.tracker.on_read_storage(key.to_vec());
 		self.ext.next_storage_key(key)
 	}
 
 	fn next_child_storage_key(&self, child_info: &ChildInfo, key: &[u8]) -> Option<Vec<u8>> {
-		self.tracker.reading_child_key(child_info, key.to_vec());
+		self.tracker.on_read_child_storage(child_info, key.to_vec());
 		self.ext.next_child_storage_key(child_info, key)
 	}
 
 	fn kill_child_storage(&mut self, child_info: &ChildInfo, limit: Option<u32>) -> (bool, u32) {
-		self.tracker.warn_child_prefix_removal();
+		self.tracker.on_kill_child_storage(child_info, limit);
 		self.ext.kill_child_storage(child_info, limit)
 	}
 
 	fn clear_prefix(&mut self, prefix: &[u8], limit: Option<u32>) -> (bool, u32) {
-		self.tracker.warn_child_prefix_removal();
+		self.tracker.on_clear_prefix(prefix, limit);
 		self.ext.clear_prefix(prefix, limit)
 	}
 
 	fn clear_child_prefix(&mut self, child_info: &ChildInfo, prefix: &[u8], limit: Option<u32>) -> (bool, u32) {
-		self.tracker.warn_child_prefix_removal();
+		self.tracker.on_clear_child_prefix(child_info, prefix, limit);
 		self.ext.clear_child_prefix(child_info, prefix, limit)
 	}
 
 	fn place_storage(&mut self, key: Vec<u8>, value: Option<Vec<u8>>) {
-		self.tracker.changing_key(key.clone());
+		self.tracker.on_update_storage(key.clone());
 		self.ext.place_storage(key, value);
 	}
 
 	fn place_child_storage(&mut self, child_info: &ChildInfo, key: Vec<u8>, value: Option<Vec<u8>>) {
-		self.tracker.changing_child_key(child_info, key.clone());
+		self.tracker.on_update_child_storage(child_info, key.clone());
 		self.ext.place_child_storage(child_info, key, value);
 	}
 
@@ -100,7 +100,8 @@ where
 	}
 
 	fn storage_append(&mut self, key: Vec<u8>, value: Vec<u8>) {
-		self.tracker.changing_key(key.clone());
+		self.tracker.on_read_storage(key.clone());
+		self.tracker.on_update_storage(key.clone());
 		self.ext.storage_append(key, value);
 	}
 
