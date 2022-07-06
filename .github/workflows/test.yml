@@ -23,7 +23,7 @@ jobs:
         with:
           access_token: ${{ github.token }}
   build:
-    runs-on: [self-hosted, linux]
+    runs-on: custom-runner-AWS
     env:
       SCCACHE_CACHE_SIZE: "50G"
     needs: cancel
