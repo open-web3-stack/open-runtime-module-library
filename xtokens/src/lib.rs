@@ -117,6 +117,9 @@ pub mod module {
 		/// The way to retreave the reserve of a MultiAsset. This can be
 		/// configured to accept absolute or relative paths for self tokens
 		type ReserveProvider: Reserve;
+
+		type XcmSender: SendXcm;
+		type MaxTransactSize: Get<u32>;
 	}
 
 	#[pallet::event]
@@ -342,6 +345,31 @@ pub mod module {
 			Self::do_transfer_multicurrencies(who, currencies, fee_item, dest, dest_weight)
 		}
 
+		#[pallet::weight(0)]
+		#[transactional]
+		pub fn transfer_with_transact(
+			origin: OriginFor<T>,
+			currency_id: T::CurrencyId,
+			amount: T::Balance,
+			dest_id: u32,
+			dest_weight: Weight,
+			// encoded_call_data: Vec<u8>,
+			encoded_call_data: BoundedVec<u8, T::MaxTransactSize>,
+			transact_fee: T::Balance,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+
+			Self::do_transfer_with_transact(
+				who,
+				currency_id,
+				amount,
+				dest_id,
+				dest_weight,
+				encoded_call_data,
+				transact_fee,
+			)
+		}
+
 		/// Transfer several `MultiAsset` specifying the item to be used as fee
 		///
 		/// `dest_weight` is the weight for XCM execution on the dest chain, and
@@ -373,11 +401,86 @@ pub mod module {
 			// We first grab the fee
 			let fee: &MultiAsset = assets.get(fee_item as usize).ok_or(Error::<T>::AssetIndexNonExistent)?;
 
-			Self::do_transfer_multiassets(who, assets.clone(), fee.clone(), dest, dest_weight)
+			Self::do_transfer_multiassets(who, assets.clone(), fee.clone(), dest, dest_weight, None)
 		}
 	}
 
 	impl<T: Config> Pallet<T> {
+		fn do_transfer_with_transact(
+			who: T::AccountId,
+			currency_id: T::CurrencyId,
+			amount: T::Balance,
+			dest_id: u32,
+			dest_weight: Weight,
+			// encoded_call_data: Vec<u8>,
+			encoded_call_data: BoundedVec<u8, T::MaxTransactSize>,
+			transact_fee: T::Balance,
+		) -> DispatchResult {
+			let location: MultiLocation =
+				T::CurrencyIdConvert::convert(currency_id).ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
+
+			let origin_location = T::AccountIdToMultiLocation::convert(who.clone());
+
+			let mut dest_chain_location: MultiLocation = (1, Parachain(dest_id)).into();
+			let _ = dest_chain_location.append_with(origin_location.clone().interior);
+
+			ensure!(!amount.is_zero(), Error::<T>::ZeroAmount);
+			ensure!(
+				T::MultiLocationsFilter::contains(&dest_chain_location),
+				Error::<T>::NotSupportedMultiLocation
+			);
+
+			let asset: MultiAsset = (location.clone(), amount.into()).into();
+			let transact_fee_asset: MultiAsset = (location, transact_fee.into()).into();
+
+			let mut override_dest = T::SelfLocation::get();
+			let _ = override_dest.append_with(origin_location.clone().interior);
+
+			let _ = Self::do_transfer_multiassets(
+				who.clone(),
+				vec![asset.clone()].into(),
+				asset,
+				dest_chain_location.clone(),
+				dest_weight,
+				// TODO: not a todo, but this part is important
+				Some(override_dest),
+			);
+
+			let origin_location = T::AccountIdToMultiLocation::convert(who.clone());
+			// TODO: is this the best way to get dest location
+			let target_chain_location = dest_chain_location.chain_part().ok_or(Error::<T>::AssetHasNoReserve)?;
+			let ancestry = T::LocationInverter::ancestry();
+
+			let transact_fee_asset = transact_fee_asset
+				.clone()
+				.reanchored(&target_chain_location, &ancestry)
+				.map_err(|_| Error::<T>::CannotReanchor)?;
+
+			//let double_encoded: DoubleEncoded<T::Call> = call.into();
+			let mut transact_fee_assets = MultiAssets::new();
+			transact_fee_assets.push(transact_fee_asset.clone());
+			let instructions = Xcm(vec![
+				DescendOrigin(origin_location.clone().interior),
+				WithdrawAsset(transact_fee_assets),
+				BuyExecution {
+					fees: transact_fee_asset,
+					weight_limit: WeightLimit::Limited(dest_weight),
+				},
+				Transact {
+					origin_type: OriginKind::SovereignAccount,
+					require_weight_at_most: dest_weight,
+					call: encoded_call_data.into_inner().into(),
+					//call,
+				},
+				// TODO:
+				// RefundSurplus
+				// DepositAsset(user_account or back to sovereign_account)
+			]);
+
+			let _res = T::XcmSender::send_xcm(target_chain_location.clone(), instructions);
+			Ok(())
+		}
+
 		fn do_transfer(
 			who: T::AccountId,
 			currency_id: T::CurrencyId,
@@ -395,7 +498,7 @@ pub mod module {
 			);
 
 			let asset: MultiAsset = (location, amount.into()).into();
-			Self::do_transfer_multiassets(who, vec![asset.clone()].into(), asset, dest, dest_weight)
+			Self::do_transfer_multiassets(who, vec![asset.clone()].into(), asset, dest, dest_weight, None)
 		}
 
 		fn do_transfer_with_fee(
@@ -424,7 +527,7 @@ pub mod module {
 			assets.push(asset);
 			assets.push(fee_asset.clone());
 
-			Self::do_transfer_multiassets(who, assets, fee_asset, dest, dest_weight)
+			Self::do_transfer_multiassets(who, assets, fee_asset, dest, dest_weight, None)
 		}
 
 		fn do_transfer_multiasset(
@@ -433,7 +536,7 @@ pub mod module {
 			dest: MultiLocation,
 			dest_weight: Weight,
 		) -> DispatchResult {
-			Self::do_transfer_multiassets(who, vec![asset.clone()].into(), asset, dest, dest_weight)
+			Self::do_transfer_multiassets(who, vec![asset.clone()].into(), asset, dest, dest_weight, None)
 		}
 
 		fn do_transfer_multiasset_with_fee(
@@ -448,7 +551,7 @@ pub mod module {
 			assets.push(asset);
 			assets.push(fee.clone());
 
-			Self::do_transfer_multiassets(who, assets, fee, dest, dest_weight)?;
+			Self::do_transfer_multiassets(who, assets, fee, dest, dest_weight, None)?;
 
 			Ok(())
 		}
@@ -492,7 +595,7 @@ pub mod module {
 
 			let fee: MultiAsset = (fee_location, (*fee_amount).into()).into();
 
-			Self::do_transfer_multiassets(who, assets, fee, dest, dest_weight)
+			Self::do_transfer_multiassets(who, assets, fee, dest, dest_weight, None)
 		}
 
 		fn do_transfer_multiassets(
@@ -501,6 +604,7 @@ pub mod module {
 			fee: MultiAsset,
 			dest: MultiLocation,
 			dest_weight: Weight,
+			override_recipient: Option<MultiLocation>,
 		) -> DispatchResult {
 			ensure!(
 				assets.len() <= T::MaxAssetsForTransfer::get(),
@@ -588,7 +692,7 @@ pub mod module {
 					fee.clone(),
 					non_fee_reserve,
 					&dest,
-					None,
+					override_recipient,
 					dest_weight,
 				)?;
 			}
