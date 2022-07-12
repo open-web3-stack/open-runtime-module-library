@@ -57,6 +57,8 @@ pub mod module {
 
 	use super::*;
 
+	pub const XtokensTransferWeight: Weight = 2_000_000_000.saturating_add(T::BaseXcmWeight::get());
+
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
@@ -208,7 +210,7 @@ pub mod module {
 		/// received. Receiving depends on if the XCM message could be delivered
 		/// by the network, and if the receiving chain would handle
 		/// messages correctly.
-		#[pallet::weight(Pallet::<T>::weight_of_transfer(currency_id.clone(), *amount, dest))]
+		#[pallet::weight(XtokensTransferWeight)]
 		#[transactional]
 		pub fn transfer(
 			origin: OriginFor<T>,
@@ -269,7 +271,7 @@ pub mod module {
 		/// received. Receiving depends on if the XCM message could be delivered
 		/// by the network, and if the receiving chain would handle
 		/// messages correctly.
-		#[pallet::weight(Pallet::<T>::weight_of_transfer(currency_id.clone(), *amount, dest))]
+		#[pallet::weight(XtokensTransferWeight)]
 		#[transactional]
 		pub fn transfer_with_fee(
 			origin: OriginFor<T>,
@@ -346,7 +348,7 @@ pub mod module {
 		/// received. Receiving depends on if the XCM message could be delivered
 		/// by the network, and if the receiving chain would handle
 		/// messages correctly.
-		#[pallet::weight(Pallet::<T>::weight_of_transfer_multicurrencies(currencies, fee_item, dest))]
+		#[pallet::weight(XtokensTransferWeight)]
 		#[transactional]
 		pub fn transfer_multicurrencies(
 			origin: OriginFor<T>,
