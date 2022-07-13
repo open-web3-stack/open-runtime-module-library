@@ -57,8 +57,6 @@ pub mod module {
 
 	use super::*;
 
-	pub const XtokensTransferWeight: Weight = 2_000_000_000.saturating_add(T::BaseXcmWeight::get());
-
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
@@ -210,7 +208,7 @@ pub mod module {
 		/// received. Receiving depends on if the XCM message could be delivered
 		/// by the network, and if the receiving chain would handle
 		/// messages correctly.
-		#[pallet::weight(XtokensTransferWeight)]
+		#[pallet::weight(Pallet::<T>::fixed_weight_of_transfer())]
 		#[transactional]
 		pub fn transfer(
 			origin: OriginFor<T>,
@@ -271,7 +269,7 @@ pub mod module {
 		/// received. Receiving depends on if the XCM message could be delivered
 		/// by the network, and if the receiving chain would handle
 		/// messages correctly.
-		#[pallet::weight(XtokensTransferWeight)]
+		#[pallet::weight(Pallet::<T>::fixed_weight_of_transfer())]
 		#[transactional]
 		pub fn transfer_with_fee(
 			origin: OriginFor<T>,
@@ -348,7 +346,7 @@ pub mod module {
 		/// received. Receiving depends on if the XCM message could be delivered
 		/// by the network, and if the receiving chain would handle
 		/// messages correctly.
-		#[pallet::weight(XtokensTransferWeight)]
+		#[pallet::weight(Pallet::<T>::fixed_weight_of_transfer())]
 		#[transactional]
 		pub fn transfer_multicurrencies(
 			origin: OriginFor<T>,
@@ -766,6 +764,11 @@ pub mod module {
 
 	// weights
 	impl<T: Config> Pallet<T> {
+
+		fn fixed_weight_of_transfer() -> Weight {
+			(2_000_000_000 as Weight).saturating_add(T::BaseXcmWeight::get())
+		}
+
 		/// Returns weight of `transfer_multiasset` call.
 		fn weight_of_transfer_multiasset(asset: &VersionedMultiAsset, dest: &VersionedMultiLocation) -> Weight {
 			let asset = asset.clone().try_into();
