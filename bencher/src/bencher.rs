@@ -1,7 +1,7 @@
 use codec::{Decode, Encode};
 use sp_std::prelude::Vec;
 
-#[derive(Encode, Decode, Default, Clone, PartialEq, Debug)]
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, Debug)]
 pub struct BenchResult {
 	pub method: Vec<u8>,
 	pub elapses: Vec<u128>,
