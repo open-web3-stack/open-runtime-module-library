@@ -6,6 +6,7 @@ use codec::Decode;
 use frame_benchmarking::frame_support::traits::StorageInfo;
 use linregress::{FormulaRegressionBuilder, RegressionDataBuilder};
 use serde::{Deserialize, Serialize};
+use sp_core::hexdisplay::HexDisplay;
 use std::io::Write;
 use std::time::Duration;
 
@@ -46,22 +47,27 @@ pub fn handle(output: Vec<u8>, storage_infos: Vec<StorageInfo>) {
 			let mut total_writes = 0u32;
 			let mut comments = Vec::<String>::new();
 			let keys = <Vec<(Vec<u8>, u32, u32)> as Decode>::decode(&mut &result.keys[..]).unwrap();
-			keys.iter().for_each(|(prefix, reads, writes)| {
+			keys.into_iter().for_each(|(prefix, reads, writes)| {
 				total_reads += reads;
 				total_writes += writes;
-				if let Some(info) = storage_infos.iter().find(|x| x.prefix.eq(prefix)) {
+				if let Some(info) = storage_infos.iter().find(|x| x.prefix.eq(&prefix)) {
 					let pallet = String::from_utf8(info.pallet_name.clone()).unwrap();
 					let name = String::from_utf8(info.storage_name.clone()).unwrap();
-					let comment = format!("{}::{} (r: {}, w: {})", pallet, name, reads, writes);
-					comments.push(comment);
+					comments.push(format!("{}::{} (r: {}, w: {})", pallet, name, reads, writes));
 				} else {
-					let comment = format!("Unknown (r: {}, w: {})", reads, writes);
-					comments.push(comment);
+					comments.push(format!(
+						"Unknown 0x{} (r: {}, w: {})",
+						HexDisplay::from(&prefix),
+						reads,
+						writes
+					));
 				}
 			});
 
+			comments.sort();
+
 			println!(
-				"{} {:<40} {:>20} {:<20} {:<20}",
+				"{} {:<40} {:>20} storage: {:<20}",
 				green_bold("Bench"),
 				cyan(&name),
 				green_bold(&format!(
@@ -69,11 +75,10 @@ pub fn handle(output: Vec<u8>, storage_infos: Vec<StorageInfo>) {
 					Duration::from_nanos(model.parameters.intercept_value as u64)
 				)),
 				green_bold(&format!(
-					"tracked: [r: {}, w: {}]",
+					"[r: {}, w: {}]",
 					&total_reads.to_string(),
 					&total_writes.to_string()
 				)),
-				green_bold(&format!("total: [r: {}, w: {}]", result.reads, result.writes))
 			);
 
 			BenchData {
