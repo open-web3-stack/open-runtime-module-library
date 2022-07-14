@@ -26,18 +26,18 @@ hash-db = { version = "0.15.2", default-features = false, optional = true }
 bencher-procedural = { path = "bencher-procedural", default-features = false }
 codec = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"], default-features = false }
 
-sp-core = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.24" }
-sp-std = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.24" }
-sp-io = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.24" }
-sp-runtime-interface = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.24" }
-sp-state-machine = { git = "https://github.com/paritytech/substrate", default-features = false, optional = true , branch = "polkadot-v0.9.24" }
-sc-executor = { git = "https://github.com/paritytech/substrate", default-features = false, features = ["wasmtime"], optional = true , branch = "polkadot-v0.9.24" }
-sc-executor-common = { git = "https://github.com/paritytech/substrate", optional = true , branch = "polkadot-v0.9.24" }
-sc-client-db = { git = "https://github.com/paritytech/substrate", default-features = false, features = ["with-kvdb-rocksdb"], optional = true , branch = "polkadot-v0.9.24" }
-sp-maybe-compressed-blob = { git = "https://github.com/paritytech/substrate", default-features = false, optional = true , branch = "polkadot-v0.9.24" }
-frame-benchmarking = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.24" }
-sp-externalities = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.24" }
-sp-storage = { git = "https://github.com/paritytech/substrate", default-features = false, optional = true , branch = "polkadot-v0.9.24" }
+sp-core = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.25" }
+sp-std = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.25" }
+sp-io = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.25" }
+sp-runtime-interface = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.25" }
+sp-state-machine = { git = "https://github.com/paritytech/substrate", default-features = false, optional = true , branch = "polkadot-v0.9.25" }
+sc-executor = { git = "https://github.com/paritytech/substrate", default-features = false, features = ["wasmtime"], optional = true , branch = "polkadot-v0.9.25" }
+sc-executor-common = { git = "https://github.com/paritytech/substrate", optional = true , branch = "polkadot-v0.9.25" }
+sc-client-db = { git = "https://github.com/paritytech/substrate", default-features = false, features = ["rocksdb"], optional = true , branch = "polkadot-v0.9.25" }
+sp-maybe-compressed-blob = { git = "https://github.com/paritytech/substrate", default-features = false, optional = true , branch = "polkadot-v0.9.25" }
+frame-benchmarking = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.25" }
+sp-externalities = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.25" }
+sp-storage = { git = "https://github.com/paritytech/substrate", default-features = false, optional = true , branch = "polkadot-v0.9.25" }
 
 [features]
 default = ["std"]

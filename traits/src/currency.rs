@@ -1,3 +1,5 @@
+#![allow(deprecated)] // TODO: clean transactional
+
 use crate::arithmetic;
 use codec::{Codec, FullCodec, MaxEncodedLen};
 pub use frame_support::{

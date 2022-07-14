@@ -53,6 +53,7 @@
 //! The `PaymentState` enum tracks the possible states that a payment can be in.
 //! When a payment is 'completed' or 'cancelled' it is removed from storage and
 //! hence not tracked by a state.
+#![allow(deprecated)] // TODO: clean transactional
 #![cfg_attr(not(feature = "std"), no_std)]
 pub use pallet::*;
 
