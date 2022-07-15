@@ -2138,7 +2138,7 @@ where
 {
 	fn create(who: &T::AccountId, amount: T::Balance) -> sp_std::result::Result<T::CurrencyId, DispatchError> {
 		let token_id = <NextCurrencyId<T>>::get();
-		<Pallet<T> as fungibles::Inspect<_>>::can_deposit(token_id, who, amount, false).into_result()?;
+		<Pallet<T> as fungibles::Inspect<_>>::can_deposit(token_id, who, amount, true).into_result()?;
 		NextCurrencyId::<T>::mutate(|id| *id += One::one());
 		// we are creating new token so amount can not be overflowed as its always true
 		// 0 + amount < T::Balance::max_value()
