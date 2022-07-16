@@ -938,7 +938,7 @@ fn transfer_no_reserve_assets_fails() {
 		assert_noop!(
 			ParaXTokens::transfer_multiasset(
 				Some(ALICE).into(),
-				Box::new((X1(GeneralKey("B".into())).into(), 100).into()),
+				Box::new((X1(GeneralKey(b"B".to_vec().try_into().unwrap())).into(), 100).into()),
 				Box::new(
 					(
 						Parent,

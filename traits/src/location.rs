@@ -82,7 +82,13 @@ pub trait RelativeLocations {
 
 impl RelativeLocations for MultiLocation {
 	fn sibling_parachain_general_key(para_id: u32, general_key: Vec<u8>) -> MultiLocation {
-		MultiLocation::new(1, X2(Parachain(para_id), GeneralKey(general_key)))
+		MultiLocation::new(
+			1,
+			X2(
+				Parachain(para_id),
+				GeneralKey(general_key.to_vec().try_into().expect("less than length limit; qed")),
+			),
+		)
 	}
 }
 
@@ -136,11 +142,17 @@ mod tests {
 	#[test]
 	fn no_reserve_chain_for_absolute_self_for_relative() {
 		assert_eq!(
-			AbsoluteReserveProvider::reserve(&concrete_fungible(MultiLocation::new(0, X1(GeneralKey("DOT".into()))))),
+			AbsoluteReserveProvider::reserve(&concrete_fungible(MultiLocation::new(
+				0,
+				X1(GeneralKey(b"DOT".to_vec().try_into().unwrap()))
+			))),
 			None
 		);
 		assert_eq!(
-			RelativeReserveProvider::reserve(&concrete_fungible(MultiLocation::new(0, X1(GeneralKey("DOT".into()))))),
+			RelativeReserveProvider::reserve(&concrete_fungible(MultiLocation::new(
+				0,
+				X1(GeneralKey(b"DOT".to_vec().try_into().unwrap()))
+			))),
 			Some(MultiLocation::here())
 		);
 	}

@@ -46,7 +46,7 @@ fn dummy_metadata() -> AssetMetadata<<para::Runtime as orml_asset_registry::Conf
 		name: "para A native token".as_bytes().to_vec(),
 		symbol: "paraA".as_bytes().to_vec(),
 		existential_deposit: 0,
-		location: Some(MultiLocation::new(1, X2(Parachain(1), GeneralKey(vec![0]))).into()),
+		location: Some(MultiLocation::new(1, X2(Parachain(1), GeneralKey(vec![0].try_into().unwrap()))).into()),
 		additional: CustomMetadata {
 			fee_per_second: 1_000_000_000_000,
 		},
@@ -65,7 +65,7 @@ fn send_self_parachain_asset_to_sibling() {
 	});
 
 	ParaA::execute_with(|| {
-		metadata.location = Some(MultiLocation::new(0, X1(GeneralKey(vec![0]))).into());
+		metadata.location = Some(MultiLocation::new(0, X1(GeneralKey(vec![0].try_into().unwrap()))).into());
 		AssetRegistry::register_asset(Origin::root(), metadata, None).unwrap();
 
 		assert_ok!(ParaTokens::deposit(CurrencyId::RegisteredAsset(1), &ALICE, 1_000));
@@ -117,7 +117,7 @@ fn send_sibling_asset_to_non_reserve_sibling() {
 		AssetRegistry::register_asset(
 			Origin::root(),
 			AssetMetadata {
-				location: Some(MultiLocation::new(1, X2(Parachain(2), GeneralKey(vec![0]))).into()),
+				location: Some(MultiLocation::new(1, X2(Parachain(2), GeneralKey(vec![0].try_into().unwrap()))).into()),
 				..dummy_metadata()
 			},
 			None,
@@ -130,7 +130,7 @@ fn send_sibling_asset_to_non_reserve_sibling() {
 		AssetRegistry::register_asset(
 			Origin::root(),
 			AssetMetadata {
-				location: Some(MultiLocation::new(0, X1(GeneralKey(vec![0]))).into()),
+				location: Some(MultiLocation::new(0, X1(GeneralKey(vec![0].try_into().unwrap()))).into()),
 				..dummy_metadata()
 			},
 			None,
@@ -147,7 +147,7 @@ fn send_sibling_asset_to_non_reserve_sibling() {
 		AssetRegistry::register_asset(
 			Origin::root(),
 			AssetMetadata {
-				location: Some(MultiLocation::new(1, X2(Parachain(2), GeneralKey(vec![0]))).into()),
+				location: Some(MultiLocation::new(1, X2(Parachain(2), GeneralKey(vec![0].try_into().unwrap()))).into()),
 				..dummy_metadata()
 			},
 			None,
@@ -206,7 +206,7 @@ fn test_sequential_id_normal_behavior() {
 		let metadata2 = AssetMetadata {
 			name: "para A native token 2".as_bytes().to_vec(),
 			symbol: "paraA2".as_bytes().to_vec(),
-			location: Some(MultiLocation::new(1, X2(Parachain(1), GeneralKey(vec![1]))).into()),
+			location: Some(MultiLocation::new(1, X2(Parachain(1), GeneralKey(vec![1].try_into().unwrap()))).into()),
 			..dummy_metadata()
 		};
 		AssetRegistry::register_asset(Origin::root(), metadata1.clone(), None).unwrap();
@@ -243,7 +243,7 @@ fn test_fixed_rate_asset_trader() {
 
 	ParaA::execute_with(|| {
 		let para_a_metadata = AssetMetadata {
-			location: Some(MultiLocation::new(0, X1(GeneralKey(vec![0]))).into()),
+			location: Some(MultiLocation::new(0, X1(GeneralKey(vec![0].try_into().unwrap()))).into()),
 			..metadata.clone()
 		};
 		AssetRegistry::register_asset(Origin::root(), para_a_metadata, None).unwrap();
@@ -387,7 +387,7 @@ fn test_update_metadata_works() {
 			name: "para A native token2".as_bytes().to_vec(),
 			symbol: "paraA2".as_bytes().to_vec(),
 			existential_deposit: 1,
-			location: Some(MultiLocation::new(1, X2(Parachain(1), GeneralKey(vec![1]))).into()),
+			location: Some(MultiLocation::new(1, X2(Parachain(1), GeneralKey(vec![1].try_into().unwrap()))).into()),
 			additional: CustomMetadata {
 				fee_per_second: 2_000_000_000_000,
 			},
