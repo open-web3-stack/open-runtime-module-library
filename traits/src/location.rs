@@ -1,3 +1,4 @@
+use sp_runtime::{traits::ConstU32, WeakBoundedVec};
 use sp_std::prelude::*;
 use xcm::latest::prelude::*;
 
@@ -77,18 +78,12 @@ impl Reserve for RelativeReserveProvider {
 }
 
 pub trait RelativeLocations {
-	fn sibling_parachain_general_key(para_id: u32, general_key: Vec<u8>) -> MultiLocation;
+	fn sibling_parachain_general_key(para_id: u32, general_key: WeakBoundedVec<u8, ConstU32<32>>) -> MultiLocation;
 }
 
 impl RelativeLocations for MultiLocation {
-	fn sibling_parachain_general_key(para_id: u32, general_key: Vec<u8>) -> MultiLocation {
-		MultiLocation::new(
-			1,
-			X2(
-				Parachain(para_id),
-				GeneralKey(general_key.to_vec().try_into().expect("less than length limit; qed")),
-			),
-		)
+	fn sibling_parachain_general_key(para_id: u32, general_key: WeakBoundedVec<u8, ConstU32<32>>) -> MultiLocation {
+		MultiLocation::new(1, X2(Parachain(para_id), GeneralKey(general_key)))
 	}
 }
 
