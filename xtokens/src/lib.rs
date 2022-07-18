@@ -23,7 +23,6 @@
 #![allow(clippy::large_enum_variant)]
 #![allow(clippy::boxed_local)]
 #![allow(clippy::too_many_arguments)]
-#![allow(deprecated)]
 
 use frame_support::{
 	log,

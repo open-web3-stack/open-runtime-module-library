@@ -47,13 +47,13 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
 	fn convert(id: CurrencyId) -> Option<MultiLocation> {
 		match id {
 			CurrencyId::R => Some(Parent.into()),
-			CurrencyId::A => Some((Parent, Parachain(1), GeneralKey("A".into())).into()),
-			CurrencyId::A1 => Some((Parent, Parachain(1), GeneralKey("A1".into())).into()),
-			CurrencyId::B => Some((Parent, Parachain(2), GeneralKey("B".into())).into()),
-			CurrencyId::B1 => Some((Parent, Parachain(2), GeneralKey("B1".into())).into()),
-			CurrencyId::B2 => Some((Parent, Parachain(2), GeneralKey("B2".into())).into()),
-			CurrencyId::C => Some((Parent, Parachain(3), GeneralKey("C".into())).into()),
-			CurrencyId::D => Some((Parent, Parachain(4), GeneralKey("D".into())).into()),
+			CurrencyId::A => Some((Parent, Parachain(1), GeneralKey(b"A".to_vec().try_into().unwrap())).into()),
+			CurrencyId::A1 => Some((Parent, Parachain(1), GeneralKey(b"A1".to_vec().try_into().unwrap())).into()),
+			CurrencyId::B => Some((Parent, Parachain(2), GeneralKey(b"B".to_vec().try_into().unwrap())).into()),
+			CurrencyId::B1 => Some((Parent, Parachain(2), GeneralKey(b"B1".to_vec().try_into().unwrap())).into()),
+			CurrencyId::B2 => Some((Parent, Parachain(2), GeneralKey(b"B2".to_vec().try_into().unwrap())).into()),
+			CurrencyId::C => Some((Parent, Parachain(3), GeneralKey(b"C".to_vec().try_into().unwrap())).into()),
+			CurrencyId::D => Some((Parent, Parachain(4), GeneralKey(b"D".to_vec().try_into().unwrap())).into()),
 		}
 	}
 }

@@ -938,7 +938,7 @@ fn transfer_no_reserve_assets_fails() {
 		assert_noop!(
 			ParaXTokens::transfer_multiasset(
 				Some(ALICE).into(),
-				Box::new((X1(GeneralKey("B".into())).into(), 100).into()),
+				Box::new((X1(GeneralKey(b"B".to_vec().try_into().unwrap())).into(), 100).into()),
 				Box::new(
 					(
 						Parent,
@@ -965,7 +965,7 @@ fn transfer_to_self_chain_fails() {
 		assert_noop!(
 			ParaXTokens::transfer_multiasset(
 				Some(ALICE).into(),
-				Box::new(MultiAsset::sibling_parachain_asset(1, "A".into(), 100).into()),
+				Box::new(MultiAsset::sibling_parachain_asset(1, b"A".to_vec().try_into().unwrap(), 100).into()),
 				Box::new(
 					MultiLocation::new(
 						1,
@@ -994,7 +994,7 @@ fn transfer_to_invalid_dest_fails() {
 		assert_noop!(
 			ParaXTokens::transfer_multiasset(
 				Some(ALICE).into(),
-				Box::new(MultiAsset::sibling_parachain_asset(1, "A".into(), 100).into()),
+				Box::new(MultiAsset::sibling_parachain_asset(1, b"A".to_vec().try_into().unwrap(), 100).into()),
 				Box::new(
 					MultiLocation::new(
 						0,
