@@ -17,6 +17,7 @@ use xcm::VersionedMultiLocation;
 use xcm_builder::TakeRevenue;
 use xcm_executor::{traits::WeightTrader, Assets};
 
+/*
 /// Alias for AssetMetadata to improve readability (and to placate clippy)
 pub type DefaultAssetMetadata<T> = AssetMetadata<<T as Config>::Balance, <T as Config>::CustomMetadata>;
 
@@ -48,6 +49,7 @@ where
 		}
 	}
 }
+*/
 
 /// A default implementation for WeightToFeeConverter that takes a fixed
 /// conversion rate.
