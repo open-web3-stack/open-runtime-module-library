@@ -1,6 +1,6 @@
 // wrapping these imbalances in a private module is necessary to ensure absolute
 // privacy of the inner member.
-use crate::{TotalIssuance, Config};
+use crate::{Config, TotalIssuance};
 use frame_support::traits::{Imbalance, SameOrOther, TryDrop};
 use sp_runtime::traits::{Saturating, Zero};
 use sp_std::{mem, result};
@@ -40,10 +40,7 @@ impl<T: Config> PositiveImbalance<T> {
 
 impl<T: Config> Default for PositiveImbalance<T> {
 	fn default() -> Self {
-        PositiveImbalance(
-            Default::default(),
-            Default::default(),
-        )
+		PositiveImbalance(Default::default(), Default::default())
 	}
 }
 
@@ -66,10 +63,7 @@ impl<T: Config> NegativeImbalance<T> {
 
 impl<T: Config> Default for NegativeImbalance<T> {
 	fn default() -> Self {
-        NegativeImbalance(
-            Default::default(),
-            Default::default(),
-        )
+		NegativeImbalance(Default::default(), Default::default())
 	}
 }
 

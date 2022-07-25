@@ -52,12 +52,12 @@ use frame_support::{
 	},
 	transactional, BoundedVec,
 };
-use frame_system::{ensure_signed, pallet_prelude::*, ensure_root};
+use frame_system::{ensure_root, ensure_signed, pallet_prelude::*};
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{
-		AtLeast32BitUnsigned, Bounded, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, Saturating,
-		StaticLookup, Zero, One
+		AtLeast32BitUnsigned, Bounded, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, One, Saturating,
+		StaticLookup, Zero,
 	},
 	ArithmeticError, DispatchError, DispatchResult, RuntimeDebug,
 };
@@ -70,23 +70,24 @@ use orml_traits::{
 	MultiReservableCurrency, OnDust,
 };
 
-use codec::{Encode, Decode, FullCodec};
+use codec::{Decode, Encode, FullCodec};
 
 use mangata_primitives::{Amount, Balance, TokenId};
 pub use multi_token_currency::{
 	MultiTokenCurrency, MultiTokenCurrencyExtended, MultiTokenLockableCurrency, MultiTokenReservableCurrency,
 };
 pub use multi_token_imbalances::{
-	NegativeImbalance as MultiTokenNegativeImbalance, PositiveImbalance as MultiTokenPositiveImbalance, MultiTokenImbalanceWithZeroTrait
+	MultiTokenImbalanceWithZeroTrait, NegativeImbalance as MultiTokenNegativeImbalance,
+	PositiveImbalance as MultiTokenPositiveImbalance,
 };
 
 mod imbalances;
 mod impls;
 mod mock;
-mod tests;
-mod weights;
 mod multi_token_currency;
 mod multi_token_imbalances;
+mod tests;
+mod weights;
 
 mod benchmarking;
 
@@ -205,13 +206,19 @@ pub mod module {
 			+ From<Amount>
 			+ Into<Amount>;
 
-
 		/// The currency ID type
-		type CurrencyId: Parameter + Member + Copy + MaybeSerializeDeserialize + Ord + TypeInfo + MaxEncodedLen + Default
-		+ AtLeast32BitUnsigned
-		+ FullCodec
-		+ From<TokenId>
-		+ Into<TokenId>;
+		type CurrencyId: Parameter
+			+ Member
+			+ Copy
+			+ MaybeSerializeDeserialize
+			+ Ord
+			+ TypeInfo
+			+ MaxEncodedLen
+			+ Default
+			+ AtLeast32BitUnsigned
+			+ FullCodec
+			+ From<TokenId>
+			+ Into<TokenId>;
 
 		/// Weight information for extrinsics in this module.
 		type WeightInfo: WeightInfo;
@@ -371,22 +378,40 @@ pub mod module {
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
-			self.tokens_endowment.iter().for_each(|(account_id, token_id, initial_balance)| {
-				if MultiTokenCurrencyAdapter::<T>::exists(*token_id){
-					assert!(MultiTokenCurrencyAdapter::<T>::mint(*token_id, account_id, *initial_balance).is_ok(), "Tokens mint failed");
-				}else{
-					let created_token_id = MultiTokenCurrencyAdapter::<T>::create(account_id, *initial_balance).expect("Token creation failed");
-					assert!(created_token_id == *token_id, "Assets not initialized in the expected sequence");
-				}
-			});
-			self.created_tokens_for_staking.iter().for_each(|(account_id, token_id, initial_balance)| {
-				if MultiTokenCurrencyAdapter::<T>::exists(*token_id){
-					assert!(MultiTokenCurrencyAdapter::<T>::mint(*token_id, account_id, *initial_balance).is_ok(), "Tokens mint failed");
-				}else{
-					let created_token_id = MultiTokenCurrencyAdapter::<T>::create(account_id, *initial_balance).expect("Token creation failed");
-					assert!(created_token_id == *token_id, "Assets not initialized in the expected sequence");
-				}
-			})
+			self.tokens_endowment
+				.iter()
+				.for_each(|(account_id, token_id, initial_balance)| {
+					if MultiTokenCurrencyAdapter::<T>::exists(*token_id) {
+						assert!(
+							MultiTokenCurrencyAdapter::<T>::mint(*token_id, account_id, *initial_balance).is_ok(),
+							"Tokens mint failed"
+						);
+					} else {
+						let created_token_id = MultiTokenCurrencyAdapter::<T>::create(account_id, *initial_balance)
+							.expect("Token creation failed");
+						assert!(
+							created_token_id == *token_id,
+							"Assets not initialized in the expected sequence"
+						);
+					}
+				});
+			self.created_tokens_for_staking
+				.iter()
+				.for_each(|(account_id, token_id, initial_balance)| {
+					if MultiTokenCurrencyAdapter::<T>::exists(*token_id) {
+						assert!(
+							MultiTokenCurrencyAdapter::<T>::mint(*token_id, account_id, *initial_balance).is_ok(),
+							"Tokens mint failed"
+						);
+					} else {
+						let created_token_id = MultiTokenCurrencyAdapter::<T>::create(account_id, *initial_balance)
+							.expect("Token creation failed");
+						assert!(
+							created_token_id == *token_id,
+							"Assets not initialized in the expected sequence"
+						);
+					}
+				})
 		}
 	}
 
@@ -620,7 +645,6 @@ pub mod module {
 			Self::deposit_event(Event::Minted(currency_id, who, amount));
 			Ok(().into())
 		}
-
 	}
 }
 
@@ -1363,7 +1387,12 @@ impl<T: Config> fungibles::Inspect<T::AccountId> for Pallet<T> {
 		}
 	}
 
-	fn can_deposit(asset_id: Self::AssetId, who: &T::AccountId, amount: Self::Balance) -> DepositConsequence {
+	fn can_deposit(
+		asset_id: Self::AssetId,
+		who: &T::AccountId,
+		amount: Self::Balance,
+		_mint: bool,
+	) -> DepositConsequence {
 		Self::deposit_consequence(who, asset_id, amount, &Self::accounts(who, asset_id))
 	}
 
@@ -1765,8 +1794,8 @@ where
 	fn reducible_balance(who: &T::AccountId, keep_alive: bool) -> Self::Balance {
 		<Pallet<T> as fungibles::Inspect<_>>::reducible_balance(GetCurrencyId::get(), who, keep_alive)
 	}
-	fn can_deposit(who: &T::AccountId, amount: Self::Balance) -> DepositConsequence {
-		<Pallet<T> as fungibles::Inspect<_>>::can_deposit(GetCurrencyId::get(), who, amount)
+	fn can_deposit(who: &T::AccountId, amount: Self::Balance, mint: bool) -> DepositConsequence {
+		<Pallet<T> as fungibles::Inspect<_>>::can_deposit(GetCurrencyId::get(), who, amount, mint)
 	}
 	fn can_withdraw(who: &T::AccountId, amount: Self::Balance) -> WithdrawConsequence<Self::Balance> {
 		<Pallet<T> as fungibles::Inspect<_>>::can_withdraw(GetCurrencyId::get(), who, amount)
@@ -1972,7 +2001,8 @@ where
 		who: &T::AccountId,
 		value: Self::Balance,
 	) -> sp_std::result::Result<Self::PositiveImbalance, DispatchError> {
-		Pallet::<T>::do_deposit(currency_id, who, value, true, false).map(|_| Self::PositiveImbalance::new(currency_id, value))
+		Pallet::<T>::do_deposit(currency_id, who, value, true, false)
+			.map(|_| Self::PositiveImbalance::new(currency_id, value))
 	}
 
 	fn deposit_creating(
@@ -1980,8 +2010,10 @@ where
 		who: &T::AccountId,
 		value: Self::Balance,
 	) -> Self::PositiveImbalance {
-		Pallet::<T>::do_deposit(currency_id, who, value, false, false)
-			.map_or_else(|_| Self::PositiveImbalance::zero(currency_id), |_| Self::PositiveImbalance::new(currency_id, value))
+		Pallet::<T>::do_deposit(currency_id, who, value, false, false).map_or_else(
+			|_| Self::PositiveImbalance::zero(currency_id),
+			|_| Self::PositiveImbalance::new(currency_id, value),
+		)
 	}
 
 	fn withdraw(
@@ -2106,7 +2138,7 @@ where
 {
 	fn create(who: &T::AccountId, amount: T::Balance) -> sp_std::result::Result<T::CurrencyId, DispatchError> {
 		let token_id = <NextCurrencyId<T>>::get();
-		<Pallet<T> as fungibles::Inspect<_>>::can_deposit(token_id, who, amount).into_result()?;
+		<Pallet<T> as fungibles::Inspect<_>>::can_deposit(token_id, who, amount, true).into_result()?;
 		NextCurrencyId::<T>::mutate(|id| *id += One::one());
 		// we are creating new token so amount can not be overflowed as its always true
 		// 0 + amount < T::Balance::max_value()
@@ -2134,7 +2166,7 @@ where
 		Pallet::<T>::do_withdraw(currency_id, who, amount, ExistenceRequirement::AllowDeath, true)
 	}
 
-	fn locked_balance(currency_id: T::CurrencyId, who: &T::AccountId) -> T::Balance{
+	fn locked_balance(currency_id: T::CurrencyId, who: &T::AccountId) -> T::Balance {
 		Pallet::<T>::accounts(who, currency_id).frozen()
 	}
 

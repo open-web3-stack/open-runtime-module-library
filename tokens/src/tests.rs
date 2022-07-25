@@ -5,7 +5,7 @@
 use super::*;
 use frame_support::{assert_noop, assert_ok};
 use frame_system::RawOrigin;
-use mock::{Event, Balance, *};
+use mock::{Balance, Event, *};
 use sp_runtime::{traits::BadOrigin, TokenError};
 
 // *************************************************
@@ -691,7 +691,12 @@ fn do_transfer_report_keep_alive_error_when_ed_is_not_zero() {
 #[test]
 fn do_transfer_will_not_report_keep_alive_error_when_ed_is_zero() {
 	ExtBuilder::default()
-		.balances(vec![(ALICE, DOT, 100), (ALICE, BTC, 100), (ALICE, ETH, 100), (DAVE, ETH, 100)])
+		.balances(vec![
+			(ALICE, DOT, 100),
+			(ALICE, BTC, 100),
+			(ALICE, ETH, 100),
+			(DAVE, ETH, 100),
+		])
 		.build()
 		.execute_with(|| {
 			assert!(Accounts::<Runtime>::contains_key(ALICE, ETH));
@@ -888,7 +893,12 @@ fn do_withdraw_report_keep_alive_error_when_ed_is_not_zero() {
 #[test]
 fn do_withdraw_will_not_report_keep_alive_error_when_ed_is_zero() {
 	ExtBuilder::default()
-		.balances(vec![(ALICE, DOT, 100), (ALICE, BTC, 100), (ALICE, ETH, 100), (DAVE, ETH, 100)])
+		.balances(vec![
+			(ALICE, DOT, 100),
+			(ALICE, BTC, 100),
+			(ALICE, ETH, 100),
+			(DAVE, ETH, 100),
+		])
 		.build()
 		.execute_with(|| {
 			assert!(Accounts::<Runtime>::contains_key(ALICE, ETH));
@@ -2488,7 +2498,8 @@ fn multi_token_currency_extended_create() {
 	ExtBuilder::default().build().execute_with(|| {
 		System::set_block_number(1);
 		let amount = 1_000_000;
-		let currency_id = <MultiTokenCurrencyAdapter<Runtime>>::create(&ALICE.into(), amount).expect("Token creation failed");
+		let currency_id =
+			<MultiTokenCurrencyAdapter<Runtime>>::create(&ALICE.into(), amount).expect("Token creation failed");
 		assert_eq!(Tokens::accounts(&ALICE, currency_id).free, amount);
 		assert_eq!(Tokens::total_issuance(currency_id), amount);
 	});
@@ -2501,7 +2512,8 @@ fn multi_token_currency_extended_mint() {
 		let initial_amount = 1_000_000;
 		let minted_amount = 500_000;
 
-		let currency_id = <MultiTokenCurrencyAdapter<Runtime>>::create(&ALICE.into(), initial_amount).expect("Token creation failed");
+		let currency_id =
+			<MultiTokenCurrencyAdapter<Runtime>>::create(&ALICE.into(), initial_amount).expect("Token creation failed");
 		assert_ok!(<MultiTokenCurrencyAdapter<Runtime>>::mint(
 			currency_id,
 			&ALICE.into(),
@@ -2531,7 +2543,8 @@ fn multi_token_currency_extended_burn_and_settle_fail_to_burn_too_many_tokens() 
 	ExtBuilder::default().build().execute_with(|| {
 		System::set_block_number(1);
 
-		let token_id = <MultiTokenCurrencyAdapter<Runtime>>::create(&ALICE.into(), 1_000_000).expect("Token creation failed");
+		let token_id =
+			<MultiTokenCurrencyAdapter<Runtime>>::create(&ALICE.into(), 1_000_000).expect("Token creation failed");
 		assert_noop!(
 			<MultiTokenCurrencyAdapter<Runtime>>::burn_and_settle(token_id, &ALICE.into(), 2_000_000),
 			Error::<Runtime>::BalanceTooLow,
@@ -2544,7 +2557,8 @@ fn multi_token_currency_extended_burn_and_settle_verify_burned_amount() {
 	ExtBuilder::default().build().execute_with(|| {
 		System::set_block_number(1);
 
-		let currency_id = <MultiTokenCurrencyAdapter<Runtime>>::create(&ALICE.into(), 1_000_000).expect("Token creation failed");
+		let currency_id =
+			<MultiTokenCurrencyAdapter<Runtime>>::create(&ALICE.into(), 1_000_000).expect("Token creation failed");
 		assert_ok!(<MultiTokenCurrencyAdapter<Runtime>>::burn_and_settle(
 			currency_id,
 			&ALICE.into(),

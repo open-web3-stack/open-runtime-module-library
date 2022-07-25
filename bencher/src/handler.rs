@@ -22,7 +22,7 @@ struct BenchData {
 pub fn handle(output: Vec<u8>, storage_infos: Vec<StorageInfo>) {
 	println!();
 
-	let pkg_name = std::env::var("CARGO_PKG_NAME").unwrap_or_default().replace("-", "_");
+	let pkg_name = std::env::var("CARGO_PKG_NAME").unwrap_or_default().replace('-', "_");
 
 	let results = <Vec<BenchResult> as Decode>::decode(&mut &output[..]).unwrap();
 	let data: Vec<BenchData> = results
@@ -54,6 +54,9 @@ pub fn handle(output: Vec<u8>, storage_infos: Vec<StorageInfo>) {
 					let name = String::from_utf8(info.storage_name.clone()).unwrap();
 					let comment = format!("{}::{} (r: {}, w: {})", pallet, name, reads, writes);
 					comments.push(comment);
+				} else {
+					let comment = format!("Unknown (r: {}, w: {})", reads, writes);
+					comments.push(comment);
 				}
 			});
 
@@ -65,12 +68,12 @@ pub fn handle(output: Vec<u8>, storage_infos: Vec<StorageInfo>) {
 					"{:?}",
 					Duration::from_nanos(model.parameters.intercept_value as u64)
 				)),
-				format!(
+				green_bold(&format!(
 					"tracked: [r: {}, w: {}]",
-					green_bold(&total_reads.to_string()),
-					green_bold(&total_writes.to_string())
-				),
-				format!("total: [r: {}, w: {}]", result.reads, result.writes)
+					&total_reads.to_string(),
+					&total_writes.to_string()
+				)),
+				green_bold(&format!("total: [r: {}, w: {}]", result.reads, result.writes))
 			);
 
 			BenchData {

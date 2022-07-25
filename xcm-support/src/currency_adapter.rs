@@ -174,4 +174,24 @@ impl<
 
 		Ok(asset.clone().into())
 	}
+
+	fn transfer_asset(
+		asset: &MultiAsset,
+		from: &MultiLocation,
+		to: &MultiLocation,
+	) -> result::Result<Assets, XcmError> {
+		let from_account =
+			AccountIdConvert::convert_ref(from).map_err(|_| XcmError::from(Error::AccountIdConversionFailed))?;
+		let to_account =
+			AccountIdConvert::convert_ref(to).map_err(|_| XcmError::from(Error::AccountIdConversionFailed))?;
+		let currency_id = CurrencyIdConvert::convert(asset.clone())
+			.ok_or_else(|| XcmError::from(Error::CurrencyIdConversionFailed))?;
+		let amount: MultiCurrency::Balance = Match::matches_fungible(asset)
+			.ok_or_else(|| XcmError::from(Error::FailedToMatchFungible))?
+			.saturated_into();
+		MultiCurrency::transfer(currency_id, &from_account, &to_account, amount)
+			.map_err(|e| XcmError::FailedToTransactAsset(e.into()))?;
+
+		Ok(asset.clone().into())
+	}
 }

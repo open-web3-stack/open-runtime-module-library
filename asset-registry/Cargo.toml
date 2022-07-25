@@ -1,0 +1,76 @@
+[package]
+name = "orml-asset-registry"
+description = "Registry for (foreign) assets"
+repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/asset-registry"
+license = "Apache-2.0"
+version = "0.4.1-dev"
+authors = ["Interlay Ltd, etc"]
+edition = "2021"
+
+[dependencies]
+scale-info = { version = "2.1.2", default-features = false, features = ["derive"] }
+serde = { version = "1.0.136", optional = true }
+codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["max-encoded-len"] }
+
+# substrate
+sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.24" }
+sp-std = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.24" }
+frame-support = {  git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.24" }
+frame-system = {  git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.24" }
+
+# polkadot
+pallet-xcm = { git = "https://github.com/paritytech/polkadot", default-features = false , branch = "release-v0.9.24" }
+xcm = { git = "https://github.com/paritytech/polkadot", default-features = false , branch = "release-v0.9.24" }
+xcm-builder = { git = "https://github.com/paritytech/polkadot", default-features = false , branch = "release-v0.9.24" }
+xcm-executor = { git = "https://github.com/paritytech/polkadot", default-features = false , branch = "release-v0.9.24" }
+
+# orml
+orml-traits = { path = "../traits", version = "0.4.1-dev", default-features = false }
+
+[dev-dependencies]
+# substrate
+sp-io = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.24" }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24" }
+pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24" }
+
+# cumulus
+cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.24" }
+cumulus-pallet-dmp-queue = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.24" }
+cumulus-pallet-xcmp-queue = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.24" }
+cumulus-pallet-xcm = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.24" }
+parachain-info = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.24" }
+
+# polkadot
+polkadot-parachain = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.24" }
+polkadot-runtime-parachains = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.24" }
+xcm-simulator = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.24" }
+
+# orml
+orml-tokens = { path = "../tokens" }
+orml-xtokens = { path = "../xtokens" }
+orml-xcm = { path = "../xcm" }
+orml-xcm-support = { path = "../xcm-support", default-features = false }
+
+[features]
+default = ["std"]
+std = [
+	"serde",
+	"codec/std",
+	"scale-info/std",
+	"sp-runtime/std",
+	"sp-std/std",
+	"frame-support/std",
+	"frame-system/std",
+	"orml-traits/std",
+	"pallet-xcm/std",
+	"xcm/std",
+	"xcm-builder/std",
+	"xcm-executor/std",
+]
+runtime-benchmarks = [
+	"frame-support/runtime-benchmarks",
+	"frame-system/runtime-benchmarks",
+	"pallet-xcm/runtime-benchmarks",
+	"xcm-builder/runtime-benchmarks",
+]
+try-runtime = ["frame-support/try-runtime"]

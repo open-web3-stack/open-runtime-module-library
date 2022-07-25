@@ -1,0 +1,44 @@
+[package]
+authors = ["Virto Network <we@virto.team>"]
+edition = '2021'
+name = "orml-payments"
+version = "0.4.1-dev"
+license = "Apache-2.0"
+homepage = "https://github.com/virto-network/virto-node"
+repository = "https://github.com/virto-network/virto-node"
+description = "Allows users to post escrow payment on-chain"
+readme = "README.md"
+
+[dependencies]
+parity-scale-codec = { version = "3.1.2", default-features = false, features = ["max-encoded-len"] }
+log = { version = "0.4.17", default-features = false }
+scale-info = { version = "2.1.1", default-features = false, features = ["derive"] }
+
+frame-support = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.24" }
+frame-system = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.24" }
+sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.24" }
+sp-std = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.24" }
+
+orml-traits = {path = "../traits", version = "0.4.1-dev", default-features = false }
+
+[dev-dependencies]
+serde = { version = "1.0.136" }
+
+sp-core = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.24" }
+sp-io = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.24" }
+
+orml-tokens = { path = "../tokens", version = "0.4.1-dev", default-features = false }
+
+[features]
+default = ['std']
+std = [
+	'parity-scale-codec/std',
+	'frame-support/std',
+	'frame-system/std',
+	'log/std',
+	'sp-runtime/std',
+	'sp-std/std',
+	'scale-info/std',
+	'orml-traits/std',
+	'orml-tokens/std'
+]

@@ -1,5 +1,6 @@
 #![cfg(any(test, feature = "bench"))]
 
+use frame_support::pallet_prelude::ConstU32;
 use sp_core::H256;
 use sp_runtime::{
 	traits::{BlakeTwo256, IdentityLookup},
@@ -54,7 +55,7 @@ impl frame_system::Config for Runtime {
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
 	type OnSetCode = ();
-	type MaxConsumers = frame_support::traits::ConstU32<16>;
+	type MaxConsumers = ConstU32<16>;
 }
 
 impl crate::pallet::Config for Runtime {}
