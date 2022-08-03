@@ -72,6 +72,7 @@ _In alphabetical order_
 - [Interlay and Kintsugi](https://github.com/interlay/interbtc)
 - [KodaDot: MetaPrime Network](https://github.com/kodadot/metaprime.network) 
 - [Laminar Chain](https://github.com/laminar-protocol/laminar-chain)
+- [Libra](https://github.com/atscaletech/libra)
 - [Listen](https://github.com/listenofficial)
 - [Manta Network](https://github.com/Manta-Network)
 - [Minterest](https://github.com/minterest-finance/minterest-chain-node)
