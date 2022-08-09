@@ -103,4 +103,4 @@ xcm-builder = { git = "https://github.com/paritytech//polkadot", rev = "d8785970
 xcm-simulator = { git = "https://github.com/paritytech//polkadot", rev = "d8785970175dce344f2a6ad1cd88297529a6dd59" }
 
 [build]
-rustc-wrapper = "/cachepot"
+rustc-wrapper = "/root/.cache/cachepot"
