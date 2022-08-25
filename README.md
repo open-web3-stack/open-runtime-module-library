@@ -76,6 +76,7 @@ _In alphabetical order_
 - [Listen](https://github.com/listenofficial)
 - [Manta Network](https://github.com/Manta-Network)
 - [Minterest](https://github.com/minterest-finance/minterest-chain-node)
+- [OAK](https://github.com/OAK-Foundation/OAK-blockchain)
 - [Plasm Network](https://github.com/PlasmNetwork)
 - [PolkaFoundry Network](https://github.com/PolkaFoundry)
 - [Setheum Network](https://github.com/Setheum-Labs/Setheum)
