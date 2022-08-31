@@ -80,13 +80,13 @@ fn schedule_dispatch_at_work() {
 				delay: 1,
 				origin: Box::new(OriginCaller::system(RawOrigin::Root)),
 			}),
-			index: 1,
+			index: 0,
 		}));
 
 		run_to_block(2);
 		System::assert_last_event(mock::Event::Scheduler(pallet_scheduler::Event::<Runtime>::Dispatched {
 			task: (2, 0),
-			id: Some([1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0].to_vec()),
+			id: Some([1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0].to_vec()),
 			result: Ok(()),
 		}));
 
@@ -100,13 +100,13 @@ fn schedule_dispatch_at_work() {
 		));
 		System::assert_last_event(mock::Event::Authority(Event::Scheduled {
 			origin: OriginCaller::system(RawOrigin::Root),
-			index: 2,
+			index: 1,
 		}));
 
 		run_to_block(3);
 		System::assert_last_event(mock::Event::Scheduler(pallet_scheduler::Event::<Runtime>::Dispatched {
 			task: (3, 0),
-			id: Some([0, 0, 2, 0, 0, 0].to_vec()),
+			id: Some([0, 0, 1, 0, 0, 0].to_vec()),
 			result: Ok(()),
 		}));
 	});
@@ -138,13 +138,13 @@ fn schedule_dispatch_after_work() {
 				delay: 0,
 				origin: Box::new(OriginCaller::system(RawOrigin::Root)),
 			}),
-			index: 1,
+			index: 0,
 		}));
 
 		run_to_block(2);
 		System::assert_last_event(mock::Event::Scheduler(pallet_scheduler::Event::<Runtime>::Dispatched {
 			task: (2, 0),
-			id: Some([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0].to_vec()),
+			id: Some([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0].to_vec()),
 			result: Ok(()),
 		}));
 
@@ -158,13 +158,13 @@ fn schedule_dispatch_after_work() {
 		));
 		System::assert_last_event(mock::Event::Authority(Event::Scheduled {
 			origin: OriginCaller::system(RawOrigin::Root),
-			index: 2,
+			index: 1,
 		}));
 
 		run_to_block(3);
 		System::assert_last_event(mock::Event::Scheduler(pallet_scheduler::Event::<Runtime>::Dispatched {
 			task: (3, 0),
-			id: Some([0, 0, 2, 0, 0, 0].to_vec()),
+			id: Some([0, 0, 1, 0, 0, 0].to_vec()),
 			result: Ok(()),
 		}));
 	});
