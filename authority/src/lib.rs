@@ -268,7 +268,6 @@ pub mod module {
 
 			let id = NextTaskIndex::<T>::mutate(|id| -> sp_std::result::Result<ScheduleTaskIndex, DispatchError> {
 				let current_id = *id;
-				println!("current id {:?}", current_id);
 				*id = id.checked_add(1).ok_or(ArithmeticError::Overflow)?;
 				Ok(current_id)
 			})?;
