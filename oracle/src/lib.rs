@@ -83,6 +83,7 @@ pub mod module {
 		type OracleValue: Parameter + Member + Ord + MaxEncodedLen;
 
 		/// The root operator account id, record all sudo feeds on this account.
+		#[pallet::constant]
 		type RootOperatorAccountId: Get<Self::AccountId>;
 
 		/// Oracle operators.
@@ -92,6 +93,7 @@ pub mod module {
 		type WeightInfo: WeightInfo;
 
 		/// Maximum size of HasDispatched
+		#[pallet::constant]
 		type MaxHasDispatchedSize: Get<u32>;
 	}
 
@@ -132,7 +134,6 @@ pub mod module {
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
-	#[pallet::without_storage_info]
 	pub struct Pallet<T, I = ()>(PhantomData<(T, I)>);
 
 	#[pallet::hooks]
@@ -230,7 +231,7 @@ impl<T: Config<I>, I: 'static> ChangeMembers<T::AccountId> for Pallet<T, I> {
 	fn change_members_sorted(_incoming: &[T::AccountId], outgoing: &[T::AccountId], _new: &[T::AccountId]) {
 		// remove values
 		for removed in outgoing {
-			RawValues::<T, I>::remove_prefix(removed, None);
+			let _ = RawValues::<T, I>::clear_prefix(removed, u32::MAX, None);
 		}
 	}
 

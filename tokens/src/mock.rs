@@ -128,6 +128,7 @@ impl pallet_treasury::Config for Runtime {
 	type SpendFunds = ();
 	type WeightInfo = ();
 	type MaxApprovals = MaxApprovals;
+	type SpendOrigin = frame_support::traits::NeverEnsureOrigin<Balance>;
 }
 
 thread_local! {
