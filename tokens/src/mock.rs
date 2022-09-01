@@ -198,6 +198,8 @@ impl pallet_elections_phragmen::Config for Runtime {
 	type TermDuration = ConstU64<5>;
 	type DesiredMembers = ConstU32<2>;
 	type DesiredRunnersUp = ConstU32<2>;
+	type MaxCandidates = ConstU32<5>;
+	type MaxVoters = ConstU32<5>;
 	type LoserCandidate = ();
 	type KickedMember = ();
 	type WeightInfo = ();
