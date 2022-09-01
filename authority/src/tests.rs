@@ -63,9 +63,9 @@ fn schedule_dispatch_at_work() {
 			call: Box::new(ensure_root_call),
 		});
 		run_to_block(1);
-		assert_eq!(
+		assert_noop!(
 			Authority::schedule_dispatch(Origin::root(), DispatchTime::At(1), 0, true, Box::new(call.clone())),
-			Err(Error::<Runtime>::FailedToSchedule.into())
+			Error::<Runtime>::FailedToSchedule
 		);
 
 		assert_ok!(Authority::schedule_dispatch(
@@ -121,9 +121,9 @@ fn schedule_dispatch_after_work() {
 			call: Box::new(ensure_root_call),
 		});
 		run_to_block(1);
-		assert_eq!(
+		assert_noop!(
 			Authority::schedule_dispatch(Origin::root(), DispatchTime::At(0), 0, true, Box::new(call.clone())),
-			Err(ArithmeticError::Overflow.into())
+			ArithmeticError::Overflow
 		);
 
 		assert_ok!(Authority::schedule_dispatch(
