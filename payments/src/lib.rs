@@ -72,8 +72,8 @@ pub mod pallet {
 		weights::WeightInfo,
 	};
 	use frame_support::{
-		dispatch::DispatchResultWithPostInfo, fail, pallet_prelude::*, require_transactional,
-		storage::bounded_btree_map::BoundedBTreeMap, traits::tokens::BalanceStatus, transactional,
+		dispatch::DispatchResultWithPostInfo, fail, pallet_prelude::*, storage::bounded_btree_map::BoundedBTreeMap,
+		traits::tokens::BalanceStatus,
 	};
 	use frame_system::pallet_prelude::*;
 	use orml_traits::{MultiCurrency, MultiReservableCurrency};
@@ -279,7 +279,6 @@ pub mod pallet {
 		/// the option to add a remark, this remark can then be used to run
 		/// custom logic and trigger alternate payment flows. the specified
 		/// amount.
-		#[transactional]
 		#[pallet::weight(T::WeightInfo::pay(T::MaxRemarkLength::get()))]
 		pub fn pay(
 			origin: OriginFor<T>,
@@ -314,7 +313,6 @@ pub mod pallet {
 
 		/// Release any created payment, this will transfer the reserved amount
 		/// from the creator of the payment to the assigned recipient
-		#[transactional]
 		#[pallet::weight(T::WeightInfo::release())]
 		pub fn release(origin: OriginFor<T>, to: T::AccountId) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
@@ -333,7 +331,6 @@ pub mod pallet {
 		/// Cancel a payment in created state, this will release the reserved
 		/// back to creator of the payment. This extrinsic can only be called by
 		/// the recipient of the payment
-		#[transactional]
 		#[pallet::weight(T::WeightInfo::cancel())]
 		pub fn cancel(origin: OriginFor<T>, creator: T::AccountId) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
@@ -356,7 +353,6 @@ pub mod pallet {
 		/// recipient of the payment.
 		/// This extrinsic allows the assigned judge to
 		/// cancel/release/partial_release the payment.
-		#[transactional]
 		#[pallet::weight(T::WeightInfo::resolve_payment())]
 		pub fn resolve_payment(
 			origin: OriginFor<T>,
@@ -392,7 +388,6 @@ pub mod pallet {
 		/// Allow the creator of a payment to initiate a refund that will return
 		/// the funds after a configured amount of time that the reveiver has to
 		/// react and opose the request
-		#[transactional]
 		#[pallet::weight(T::WeightInfo::request_refund())]
 		pub fn request_refund(origin: OriginFor<T>, recipient: T::AccountId) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
@@ -440,7 +435,6 @@ pub mod pallet {
 		/// payment creator This does not cancel the request, instead sends the
 		/// payment to a NeedsReview state The assigned resolver account can
 		/// then change the state of the payment after review.
-		#[transactional]
 		#[pallet::weight(T::WeightInfo::dispute_refund())]
 		pub fn dispute_refund(origin: OriginFor<T>, creator: T::AccountId) -> DispatchResultWithPostInfo {
 			use PaymentState::*;
@@ -487,7 +481,6 @@ pub mod pallet {
 		// using the `accept_and_pay` extrinsic.  The payment will be in
 		// PaymentRequested State and can only be modified by the `accept_and_pay`
 		// extrinsic.
-		#[transactional]
 		#[pallet::weight(T::WeightInfo::request_payment())]
 		pub fn request_payment(
 			origin: OriginFor<T>,
@@ -516,7 +509,6 @@ pub mod pallet {
 		// This extrinsic allows the sender to fulfill a payment request created by a
 		// recipient. The amount will be transferred to the recipient and payment
 		// removed from storage
-		#[transactional]
 		#[pallet::weight(T::WeightInfo::accept_and_pay())]
 		pub fn accept_and_pay(origin: OriginFor<T>, to: T::AccountId) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
@@ -544,7 +536,6 @@ pub mod pallet {
 		/// The function will create a new payment. The fee and incentive
 		/// amounts will be calculated and the `PaymentDetail` will be added to
 		/// storage.
-		#[require_transactional]
 		fn create_payment(
 			from: &T::AccountId,
 			recipient: &T::AccountId,
@@ -595,7 +586,6 @@ pub mod pallet {
 		/// The function will reserve the fees+transfer amount from the `from`
 		/// account. After reserving the payment.amount will be transferred to
 		/// the recipient but will stay in Reserve state.
-		#[require_transactional]
 		fn reserve_payment_amount(from: &T::AccountId, to: &T::AccountId, payment: PaymentDetail<T>) -> DispatchResult {
 			let fee_amount = payment.fee_detail.map(|(_, f)| f).unwrap_or_else(|| 0u32.into());
 

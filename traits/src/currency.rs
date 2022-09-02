@@ -1,9 +1,6 @@
 use crate::arithmetic;
 use codec::{Codec, FullCodec, MaxEncodedLen};
-pub use frame_support::{
-	traits::{BalanceStatus, LockIdentifier},
-	transactional,
-};
+pub use frame_support::traits::{BalanceStatus, LockIdentifier};
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize},
 	DispatchError, DispatchResult,
@@ -649,7 +646,6 @@ pub trait TransferAll<AccountId> {
 
 #[impl_trait_for_tuples::impl_for_tuples(5)]
 impl<AccountId> TransferAll<AccountId> for Tuple {
-	#[transactional]
 	fn transfer_all(source: &AccountId, dest: &AccountId) -> DispatchResult {
 		for_tuples!( #( {
 			Tuple::transfer_all(source, dest)?;

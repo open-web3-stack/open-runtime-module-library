@@ -51,7 +51,7 @@ use frame_support::{
 		NamedReservableCurrency as PalletNamedReservableCurrency, ReservableCurrency as PalletReservableCurrency,
 		SignedImbalance, WithdrawReasons,
 	},
-	transactional, BoundedVec,
+	BoundedVec,
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
 use scale_info::TypeInfo;
@@ -2135,7 +2135,6 @@ where
 }
 
 impl<T: Config> TransferAll<T::AccountId> for Pallet<T> {
-	#[transactional]
 	fn transfer_all(source: &T::AccountId, dest: &T::AccountId) -> DispatchResult {
 		Accounts::<T>::iter_prefix(source).try_for_each(|(currency_id, account_data)| -> DispatchResult {
 			// allow death
