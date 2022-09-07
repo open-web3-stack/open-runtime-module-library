@@ -12,7 +12,7 @@ use sp_std::marker::PhantomData;
 pub trait WeightInfo {
 	fn register_asset() -> Weight;
 	fn update_asset() -> Weight;
-	fn set_asset_location() -> Weight;
+	// fn set_asset_location() -> Weight;
 }
 
 /// Default weights.
@@ -23,7 +23,7 @@ impl WeightInfo for () {
 	fn update_asset() -> Weight {
 		0
 	}
-	fn set_asset_location() -> Weight {
-		0
-	}
+	// fn set_asset_location() -> Weight {
+	// 	0
+	// }
 }
