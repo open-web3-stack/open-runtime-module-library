@@ -8,7 +8,7 @@ description = "RPC module for orml-oracle."
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.0.0" }
-jsonrpsee = { version = "0.14.0", features = ["server", "macros"] }
+jsonrpsee = { version = "0.15.1", features = ["server", "macros"] }
 tracing = { version = "0.1.29" }
 tracing-core = { version = "0.1.28" }
 
