@@ -40,7 +40,7 @@ pub mod module {
 		type CustomMetadata: Parameter + Member + TypeInfo;
 
 		/// The type used as a unique asset id,
-		type AssetId: Parameter + Member + Default + TypeInfo;
+		type AssetId: Parameter + Member + Default + TypeInfo + MaybeSerializeDeserialize + Copy;
 
 		/// Checks that an origin has the authority to register/update an asset
 		type AuthorityOrigin: EnsureOriginWithArg<Self::Origin, Option<Self::AssetId>>;
@@ -72,7 +72,7 @@ pub mod module {
 	}
 
 	#[pallet::event]
-	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
+	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
 	pub enum Event<T: Config> {
 		RegisteredAsset {
 			asset_id: T::AssetId,
@@ -88,7 +88,7 @@ pub mod module {
 	#[pallet::storage]
 	#[pallet::getter(fn metadata)]
 	pub type Metadata<T: Config> =
-		StorageMap<_, Twox64Concat, T::AssetId, AssetMetadata<T::Balance, T::CustomMetadata>, OptionQuery>;
+	StorageMap<_, Twox64Concat, T::AssetId, AssetMetadata<T::Balance, T::CustomMetadata>, OptionQuery>;
 
 	/// Maps a multilocation to an asset id - useful when processing xcm
 	/// messages.
@@ -97,31 +97,36 @@ pub mod module {
 	pub type LocationToAssetId<T: Config> = StorageMap<_, Twox64Concat, MultiLocation, T::AssetId, OptionQuery>;
 
 	/// The last processed asset id - used when assigning a sequential id.
-	#[pallet::storage]
-	#[pallet::getter(fn last_asset_id)]
-	pub(crate) type LastAssetId<T: Config> = StorageValue<_, T::AssetId, ValueQuery>;
+	// #[pallet::storage]
+	// #[pallet::getter(fn last_asset_id)]
+	// pub(crate) type LastAssetId<T: Config> = StorageValue<_, T::AssetId, ValueQuery>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
-		_phantom: PhantomData<T>,
+		pub pre_register_assets: Vec<(T::AssetId, Vec<u8>)>,
 	}
 
 	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
-			Self {
-				_phantom: Default::default(),
-			}
+			Self { pre_register_assets: vec![] }
 		}
 	}
 
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
-		fn build(&self) {}
+		fn build(&self) {
+			for (asset_id, metadata_encoded) in self.pre_register_assets.iter() {
+				let metadata = AssetMetadata::decode(&mut &metadata_encoded[..])
+					.expect("Error decoding AssetMetadata");
+				Pallet::<T>::do_register_asset(metadata, Some(*asset_id))
+					.expect("Error registering Asset");
+			}
+		}
 	}
 
 	#[pallet::pallet]
-	#[pallet::generate_store(pub(super) trait Store)]
+	#[pallet::generate_store(pub (super) trait Store)]
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
