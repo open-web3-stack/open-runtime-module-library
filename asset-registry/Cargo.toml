@@ -17,6 +17,7 @@ sp-runtime = { git = "https://github.com/paritytech/substrate", default-features
 sp-std = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.24" }
 frame-support = {  git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.24" }
 frame-system = {  git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.24" }
+frame-benchmarking = {  git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false, optional = true }
 
 # polkadot
 pallet-xcm = { git = "https://github.com/paritytech/polkadot", default-features = false , branch = "release-v0.9.24" }
@@ -26,6 +27,9 @@ xcm-executor = { git = "https://github.com/paritytech/polkadot", default-feature
 
 # orml
 orml-traits = { path = "../traits", version = "0.4.1-dev", default-features = false }
+
+# mangata
+mangata-primitives = { git = "https://github.com/mangata-finance/mangata-node", default-features = false, branch = "feature/orml-asset-registry" }
 
 [dev-dependencies]
 # substrate
@@ -61,6 +65,7 @@ std = [
 	"sp-std/std",
 	"frame-support/std",
 	"frame-system/std",
+	"frame-benchmarking/std",
 	"orml-traits/std",
 	"pallet-xcm/std",
 	"xcm/std",
@@ -68,6 +73,7 @@ std = [
 	"xcm-executor/std",
 ]
 runtime-benchmarks = [
+	"frame-benchmarking/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
