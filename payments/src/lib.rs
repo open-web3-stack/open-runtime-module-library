@@ -72,8 +72,8 @@ pub mod pallet {
 		weights::WeightInfo,
 	};
 	use frame_support::{
-		dispatch::DispatchResultWithPostInfo, fail, pallet_prelude::*, storage::bounded_btree_map::BoundedBTreeMap,
-		traits::tokens::BalanceStatus,
+		dispatch::DispatchResultWithPostInfo, fail, pallet_prelude::*, require_transactional,
+		storage::bounded_btree_map::BoundedBTreeMap, traits::tokens::BalanceStatus,
 	};
 	use frame_system::pallet_prelude::*;
 	use orml_traits::{MultiCurrency, MultiReservableCurrency};
@@ -536,6 +536,7 @@ pub mod pallet {
 		/// The function will create a new payment. The fee and incentive
 		/// amounts will be calculated and the `PaymentDetail` will be added to
 		/// storage.
+		#[require_transactional]
 		fn create_payment(
 			from: &T::AccountId,
 			recipient: &T::AccountId,
@@ -586,6 +587,7 @@ pub mod pallet {
 		/// The function will reserve the fees+transfer amount from the `from`
 		/// account. After reserving the payment.amount will be transferred to
 		/// the recipient but will stay in Reserve state.
+		#[require_transactional]
 		fn reserve_payment_amount(from: &T::AccountId, to: &T::AccountId, payment: PaymentDetail<T>) -> DispatchResult {
 			let fee_amount = payment.fee_detail.map(|(_, f)| f).unwrap_or_else(|| 0u32.into());
 
