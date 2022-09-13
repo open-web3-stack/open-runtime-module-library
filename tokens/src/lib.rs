@@ -907,8 +907,8 @@ impl<T: Config> Pallet<T> {
 		existence_requirement: ExistenceRequirement,
 	) -> DispatchResult {
 		log::debug!("do_transfer: currency_id: {:?}", currency_id);
-		log::debug!("from: {}", from);
-		log::debug!("to: {}", to);
+		log::debug!("from: {:?}", from);
+		log::debug!("to: {:?}", to);
 		log::debug!("amount: {:?}", amount);
 		if amount.is_zero() || from == to {
 			log::debug!("IS ZERO: {:?}", amount);
