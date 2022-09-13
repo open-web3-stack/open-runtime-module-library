@@ -170,6 +170,7 @@ impl<Balance: Saturating + Copy + Ord> AccountData<Balance> {
 }
 
 pub use module::*;
+use crate::log::log;
 
 #[frame_support::pallet]
 pub mod module {
@@ -737,10 +738,11 @@ impl<T: Config> Pallet<T> {
 		if amount.is_zero() {
 			return Ok(());
 		}
-
+		log::debug!("Inside ensure_can_withdraw function");
 		let new_balance = Self::free_balance(currency_id, who)
 			.checked_sub(&amount)
 			.ok_or(Error::<T>::BalanceTooLow)?;
+		log::debug!("New balance: {:?}", new_balance);
 		ensure!(
 			new_balance >= Self::accounts(who, currency_id).frozen(),
 			Error::<T>::LiquidityRestrictions
@@ -904,19 +906,32 @@ impl<T: Config> Pallet<T> {
 		amount: T::Balance,
 		existence_requirement: ExistenceRequirement,
 	) -> DispatchResult {
+		log::debug!("do_transfer: currency_id: {:?}", currency_id);
+		log::debug!("from: {}", from);
+		log::debug!("to: {}", to);
+		log::debug!("amount: {:?}", amount);
 		if amount.is_zero() || from == to {
+			log::debug!("IS ZERO: {:?}", amount);
+			log::debug!("from == to: {:?} {:?}", from, to);
 			return Ok(());
 		}
 
 		Self::try_mutate_account(to, currency_id, |to_account, _existed| -> DispatchResult {
+			log::debug!("Inside first try to mutate account");
 			Self::try_mutate_account(from, currency_id, |from_account, _existed| -> DispatchResult {
+				log::debug!("from account free: {:?}", from_account.free);
+				log::debug!("Amount to substract from free: {:?}", amount);
 				from_account.free = from_account
 					.free
 					.checked_sub(&amount)
 					.ok_or(Error::<T>::BalanceTooLow)?;
 				to_account.free = to_account.free.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
 
+				log::debug!("to account free: {:?}", to_account.free);
+				log::debug!("Amount to add to TO account: {:?}", amount);
+
 				let ed = T::ExistentialDeposits::get(&currency_id);
+				log::debug!("EXISTENTIAL DEPOSITS: {:?}", ed);
 				// if the total of `to_account` is below existential deposit, would return an
 				// error.
 				// Note: if `to_account` is in `T::DustRemovalWhitelist`, can bypass this check.
@@ -925,26 +940,35 @@ impl<T: Config> Pallet<T> {
 					Error::<T>::ExistentialDeposit
 				);
 
+				log::debug!("After ensure: If the total of `to_account` is below existential deposit, would return an // error.");
+
 				Self::ensure_can_withdraw(currency_id, from, amount)?;
+
+				log::debug!("User can WITHDRAW");
 
 				let allow_death = existence_requirement == ExistenceRequirement::AllowDeath;
 				let allow_death = allow_death && frame_system::Pallet::<T>::can_dec_provider(from);
 				let would_be_dead = if from_account.total() < ed {
+					log::debug!("Inside would be dead block");
 					if from_account.total().is_zero() {
+						log::debug!("Inside if block whether {:?}", from_account.total().is_zero());
 						true
 					} else {
+						log::debug!("Inside else block {:?}", from_account.total().is_zero());
 						// Note: if account is not in `T::DustRemovalWhitelist`, account will eventually
 						// be reaped due to the dust removal.
 						!T::DustRemovalWhitelist::contains(from)
 					}
 				} else {
+					log::debug!("Inside else would be dead block");
 					false
 				};
 
 				ensure!(allow_death || !would_be_dead, Error::<T>::KeepAlive);
-
+				log::debug!("Almost at the end");
 				Ok(())
 			})?;
+			log::debug!("Almost at the end part 2");
 			Ok(())
 		})
 	}
