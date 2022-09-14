@@ -820,7 +820,6 @@ pub mod module {
 
 	// weights
 	impl<T: Config> Pallet<T> {
-
 		fn fixed_weight_of_transfer() -> Weight {
 			(2_000_000_000 as Weight).saturating_add(T::BaseXcmWeight::get())
 		}

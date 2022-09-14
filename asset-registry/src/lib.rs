@@ -88,7 +88,7 @@ pub mod module {
 	#[pallet::storage]
 	#[pallet::getter(fn metadata)]
 	pub type Metadata<T: Config> =
-	StorageMap<_, Twox64Concat, T::AssetId, AssetMetadata<T::Balance, T::CustomMetadata>, OptionQuery>;
+		StorageMap<_, Twox64Concat, T::AssetId, AssetMetadata<T::Balance, T::CustomMetadata>, OptionQuery>;
 
 	/// Maps a multilocation to an asset id - useful when processing xcm
 	/// messages.
@@ -109,7 +109,9 @@ pub mod module {
 	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
-			Self { pre_register_assets: vec![] }
+			Self {
+				pre_register_assets: vec![],
+			}
 		}
 	}
 
@@ -117,10 +119,8 @@ pub mod module {
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
 			for (asset_id, metadata_encoded) in self.pre_register_assets.iter() {
-				let metadata = AssetMetadata::decode(&mut &metadata_encoded[..])
-					.expect("Error decoding AssetMetadata");
-				Pallet::<T>::do_register_asset(metadata, Some(*asset_id))
-					.expect("Error registering Asset");
+				let metadata = AssetMetadata::decode(&mut &metadata_encoded[..]).expect("Error decoding AssetMetadata");
+				Pallet::<T>::do_register_asset(metadata, Some(*asset_id)).expect("Error registering Asset");
 			}
 		}
 	}
