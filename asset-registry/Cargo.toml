@@ -29,7 +29,7 @@ xcm-executor = { git = "https://github.com/paritytech/polkadot", default-feature
 orml-traits = { path = "../traits", version = "0.4.1-dev", default-features = false }
 
 # mangata
-mangata-primitives = { git = "https://github.com/mangata-finance/mangata-node", default-features = false, branch = "feature/orml-asset-registry" }
+mangata-primitives = { git = "https://github.com/mangata-finance/mangata-node", default-features = false, branch = "develop-v0.9.26" }
 
 [dev-dependencies]
 # substrate
@@ -71,6 +71,7 @@ std = [
 	"xcm/std",
 	"xcm-builder/std",
 	"xcm-executor/std",
+	"mangata-primitives/std"
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
