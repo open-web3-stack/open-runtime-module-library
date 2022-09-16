@@ -2170,9 +2170,8 @@ where
 		Pallet::<T>::accounts(who, currency_id).frozen()
 	}
 
-	fn available_balance(currency_id: T::CurrencyId, who: &T::AccountId) -> T::Balance{
+	fn available_balance(currency_id: T::CurrencyId, who: &T::AccountId) -> T::Balance {
 		let account_balance_info = Pallet::<T>::accounts(who, currency_id);
 		account_balance_info.free.saturating_sub(account_balance_info.frozen())
 	}
-
 }

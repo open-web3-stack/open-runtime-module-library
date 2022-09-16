@@ -1,4 +1,6 @@
 use super::{Amount, Balance, CurrencyId, CurrencyIdConvert, ParachainXcmRouter};
+use std::cmp::Ordering;
+use std::marker::PhantomData;
 
 use crate as orml_asset_registry;
 
@@ -13,6 +15,8 @@ use frame_support::{
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_asset_registry::{AssetRegistryTrader, FixedRateAssetRegistryTrader};
+use orml_tokens::MultiTokenCurrencyExtended;
+use orml_traits::asset_registry::{AssetMetadata, AssetProcessor};
 use orml_traits::{
 	location::{AbsoluteReserveProvider, RelativeReserveProvider},
 	parameter_type_with_key, FixedConversionRateProvider, MultiCurrency,
@@ -24,7 +28,7 @@ use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
 	traits::{AccountIdConversion, Convert, IdentityLookup},
-	AccountId32,
+	AccountId32, DispatchError,
 };
 use xcm::latest::prelude::*;
 use xcm_builder::{
@@ -75,13 +79,9 @@ impl pallet_balances::Config for Runtime {
 	type ReserveIdentifier = [u8; 8];
 }
 
-use orml_asset_registry::impls::ExistentialDeposits as AssetRegistryExistentialDeposits;
 parameter_type_with_key! {
-	pub ExistentialDeposits: |currency_id: CurrencyId| -> Balance {
-		match currency_id {
-			CurrencyId::RegisteredAsset(asset_id) => AssetRegistryExistentialDeposits::<Runtime>::get(asset_id),
-			_ => Default::default()
-		}
+	pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
+		0
 	};
 }
 
@@ -93,12 +93,8 @@ impl orml_tokens::Config for Runtime {
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = ();
-	type ReserveIdentifier = [u8; 8];
-	type MaxReserves = ();
 	type MaxLocks = ConstU32<50>;
 	type DustRemovalWhitelist = Nothing;
-	type OnNewTokenAccount = ();
-	type OnKilledTokenAccount = ();
 }
 
 #[derive(scale_info::TypeInfo, Encode, Decode, Clone, Eq, PartialEq, Debug)]
@@ -134,13 +130,39 @@ impl EnsureOriginWithArg<Origin, Option<u32>> for AssetAuthority {
 	}
 }
 
+pub type AssetMetadataOf = AssetMetadata<Balance, CustomMetadata>;
+type CurrencyAdapter = orml_tokens::MultiTokenCurrencyAdapter<Runtime>;
+
+pub struct SequentialIdWithCreation<T>(PhantomData<T>);
+impl<T: orml_asset_registry::Config> AssetProcessor<CurrencyId, AssetMetadataOf> for SequentialIdWithCreation<T> {
+	fn pre_register(
+		id: Option<CurrencyId>,
+		asset_metadata: AssetMetadataOf,
+	) -> Result<(CurrencyId, AssetMetadataOf), DispatchError> {
+		let next_id = CurrencyAdapter::get_next_currency_id();
+		let asset_id = id.unwrap_or(next_id);
+		match asset_id.cmp(&next_id) {
+			Ordering::Equal => {
+				CurrencyAdapter::create(&TreasuryAccount::get(), Default::default()).and_then(|created_asset_id| {
+					match created_asset_id.cmp(&asset_id) {
+						Ordering::Equal => Ok((asset_id, asset_metadata)),
+						_ => Err(orml_asset_registry::Error::<T>::InvalidAssetId.into()),
+					}
+				})
+			}
+			Ordering::Less => Ok((asset_id, asset_metadata)),
+			_ => Err(orml_asset_registry::Error::<T>::InvalidAssetId.into()),
+		}
+	}
+}
+
 impl orml_asset_registry::Config for Runtime {
 	type Event = Event;
 	type Balance = Balance;
 	type AssetId = u32;
 	type AuthorityOrigin = AssetAuthority;
 	type CustomMetadata = CustomMetadata;
-	type AssetProcessor = orml_asset_registry::SequentialId<Runtime>;
+	type AssetProcessor = SequentialIdWithCreation<Runtime>;
 	type WeightInfo = ();
 }
 

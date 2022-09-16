@@ -17,13 +17,20 @@ pub trait WeightInfo {
 
 /// Default weights.
 impl WeightInfo for () {
+	// Storage: Tokens NextCurrencyId (r:1 w:1)
+	// Storage: Tokens Accounts (r:1 w:0)
+	// Storage: AssetRegistry Metadata (r:1 w:1)
+	// Storage: AssetRegistry LocationToAssetId (r:1 w:1)
 	fn register_asset() -> Weight {
-		0
+		(34_624_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(4 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(3 as Weight))
 	}
+	// Storage: AssetRegistry Metadata (r:1 w:1)
+	// Storage: AssetRegistry LocationToAssetId (r:1 w:1)
 	fn update_asset() -> Weight {
-		0
+		(28_712_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(2 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(2 as Weight))
 	}
-	// fn set_asset_location() -> Weight {
-	// 	0
-	// }
 }

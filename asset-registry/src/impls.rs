@@ -1,21 +1,17 @@
-use crate::module::*;
 use frame_support::{log, pallet_prelude::*, weights::constants::WEIGHT_PER_SECOND};
 use orml_traits::{
-	asset_registry::{
-		AssetMetadata, AssetProcessor, FixedConversionRateProvider, Inspect, Mutate, WeightToFeeConverter,
-	},
+	asset_registry::{AssetMetadata, FixedConversionRateProvider, Inspect, Mutate, WeightToFeeConverter},
 	GetByKey,
 };
 use sp_runtime::FixedPointNumber;
-use sp_runtime::{
-	traits::{AtLeast32BitUnsigned, Bounded, CheckedAdd, One},
-	ArithmeticError, FixedU128,
-};
+use sp_runtime::{traits::Bounded, FixedU128};
 use sp_std::prelude::*;
 use xcm::latest::prelude::*;
 use xcm::VersionedMultiLocation;
 use xcm_builder::TakeRevenue;
 use xcm_executor::{traits::WeightTrader, Assets};
+
+use crate::module::*;
 
 /*
 /// Alias for AssetMetadata to improve readability (and to placate clippy)
