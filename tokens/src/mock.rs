@@ -227,7 +227,7 @@ parameter_type_with_key! {
 }
 
 parameter_types! {
-	pub DustReceiver: AccountId = PalletId(*b"orml/dst").into_account();
+	pub DustReceiver: AccountId = PalletId(*b"orml/dst").into_account_truncating();
 	pub MaxLocks: u32 = 2;
 }
 

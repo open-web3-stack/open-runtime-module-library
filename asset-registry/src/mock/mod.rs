@@ -3,8 +3,6 @@
 use super::*;
 
 use mock::para::AssetRegistry;
-use scale_info::TypeInfo;
-use serde::{Deserialize, Serialize};
 use sp_io::TestExternalities;
 use sp_runtime::{traits::Convert, AccountId32};
 use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain};
@@ -14,77 +12,27 @@ pub mod relay;
 
 pub const ALICE: AccountId32 = AccountId32::new([0u8; 32]);
 pub const BOB: AccountId32 = AccountId32::new([1u8; 32]);
-pub const CHARLIE: AccountId32 = AccountId32::new([2u8; 32]);
 
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord, codec::MaxEncodedLen, TypeInfo)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub enum CurrencyId {
-	/// Relay chain token.
-	R,
-	/// Parachain A token.
-	A,
-	/// Parachain A A1 token.
-	A1,
-	/// Parachain B token.
-	B,
-	/// Parachain B B1 token
-	B1,
-	/// Parachain B B2 token
-	B2,
-	/// Parachain D token
-	D,
-	/// Some asset from the asset registry
-	RegisteredAsset(u32),
-}
+pub type CurrencyId = u32;
 
 pub struct CurrencyIdConvert;
 impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
 	fn convert(id: CurrencyId) -> Option<MultiLocation> {
 		match id {
-			CurrencyId::R => Some(Parent.into()),
-			CurrencyId::A => Some((Parent, Parachain(1), GeneralKey(b"A".to_vec().try_into().unwrap())).into()),
-			CurrencyId::A1 => Some((Parent, Parachain(1), GeneralKey(b"A1".to_vec().try_into().unwrap())).into()),
-			CurrencyId::B => Some((Parent, Parachain(2), GeneralKey(b"B".to_vec().try_into().unwrap())).into()),
-			CurrencyId::B1 => Some((Parent, Parachain(2), GeneralKey(b"B1".to_vec().try_into().unwrap())).into()),
-			CurrencyId::B2 => Some((Parent, Parachain(2), GeneralKey(b"B2".to_vec().try_into().unwrap())).into()),
-			CurrencyId::D => Some((Parent, Parachain(4), GeneralKey(b"D".to_vec().try_into().unwrap())).into()),
-			CurrencyId::RegisteredAsset(id) => AssetRegistry::multilocation(&id).unwrap_or_default(),
+			0 => Some(Parent.into()),
+			_ => AssetRegistry::multilocation(&id).unwrap_or_default(),
 		}
 	}
 }
 impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
 	fn convert(l: MultiLocation) -> Option<CurrencyId> {
-		let a: Vec<u8> = "A".into();
-		let a1: Vec<u8> = "A1".into();
-		let b: Vec<u8> = "B".into();
-		let b1: Vec<u8> = "B1".into();
-		let b2: Vec<u8> = "B2".into();
-		let d: Vec<u8> = "D".into();
 		if l == MultiLocation::parent() {
-			return Some(CurrencyId::R);
+			return Some(0);
 		}
-		let currency_id = match l.clone() {
-			MultiLocation { parents, interior } if parents == 1 => match interior {
-				X2(Parachain(1), GeneralKey(k)) if k == a => Some(CurrencyId::A),
-				X2(Parachain(1), GeneralKey(k)) if k == a1 => Some(CurrencyId::A1),
-				X2(Parachain(2), GeneralKey(k)) if k == b => Some(CurrencyId::B),
-				X2(Parachain(2), GeneralKey(k)) if k == b1 => Some(CurrencyId::B1),
-				X2(Parachain(2), GeneralKey(k)) if k == b2 => Some(CurrencyId::B2),
-				X2(Parachain(4), GeneralKey(k)) if k == d => Some(CurrencyId::D),
-				_ => None,
-			},
-			MultiLocation { parents, interior } if parents == 0 => match interior {
-				X1(GeneralKey(k)) if k == a => Some(CurrencyId::A),
-				X1(GeneralKey(k)) if k == b => Some(CurrencyId::B),
-				X1(GeneralKey(k)) if k == a1 => Some(CurrencyId::A1),
-				X1(GeneralKey(k)) if k == b1 => Some(CurrencyId::B1),
-				X1(GeneralKey(k)) if k == b2 => Some(CurrencyId::B2),
-				X1(GeneralKey(k)) if k == d => Some(CurrencyId::D),
-				_ => None,
-			},
-			_ => None,
-		};
-		currency_id.or_else(|| AssetRegistry::location_to_asset_id(&l).map(|id| CurrencyId::RegisteredAsset(id)))
+		if let Some(asset_id) = AssetRegistry::location_to_asset_id(&l) {
+			return Some(asset_id);
+		}
+		None
 	}
 }
 impl Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert {
@@ -167,7 +115,8 @@ pub fn para_ext(para_id: u32) -> TestExternalities {
 		.unwrap();
 
 	orml_tokens::GenesisConfig::<Runtime> {
-		balances: vec![(ALICE, CurrencyId::R, 1_000)],
+		tokens_endowment: vec![(ALICE, 0, 1_000)],
+		created_tokens_for_staking: vec![],
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();

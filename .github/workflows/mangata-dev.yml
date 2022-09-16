@@ -30,10 +30,10 @@ jobs:
         with:
           toolchain: nightly-x86_64-unknown-linux-gnu
           command: check
-          args: -p orml-tokens
+          args: -p orml-tokens -p orml-asset-registry
       - name: Test cargo check
         uses: actions-rs/cargo@v1
         with:
           toolchain: nightly-x86_64-unknown-linux-gnu
           command: test
-          args: -p orml-tokens
+          args: -p orml-tokens -p orml-asset-registry

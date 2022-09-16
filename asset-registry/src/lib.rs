@@ -23,6 +23,7 @@ pub use weights::WeightInfo;
 mod impls;
 mod weights;
 
+mod benchmarking;
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
