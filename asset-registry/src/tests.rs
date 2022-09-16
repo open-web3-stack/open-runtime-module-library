@@ -327,14 +327,14 @@ fn test_register_duplicate_location_returns_error() {
 	ParaA::execute_with(|| {
 		let metadata = dummy_metadata();
 
-		assert_ok!(AssetRegistry::register_asset(Origin::root(), metadata.clone(), None));
+		assert_ok!(AssetRegistry::register_asset(Origin::root(), metadata.clone(), Some(1)));
 		let register_asset = Call::AssetRegistry(crate::Call::<para::Runtime>::register_asset {
 			metadata: metadata.clone(),
-			asset_id: None,
+			asset_id: Some(1),
 		});
 
 		assert_noop!(
-			AssetRegistry::register_asset(Origin::root(), metadata.clone(), None),
+			AssetRegistry::register_asset(Origin::root(), metadata.clone(), Some(1)),
 			Error::<para::Runtime>::ConflictingLocation
 		);
 	});
