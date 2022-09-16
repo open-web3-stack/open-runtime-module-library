@@ -332,8 +332,9 @@ fn test_register_duplicate_location_returns_error() {
 			metadata: metadata.clone(),
 			asset_id: None,
 		});
+
 		assert_noop!(
-			register_asset.dispatch(Origin::root()),
+			AssetRegistry::register_asset(Origin::root(), metadata.clone(), None),
 			Error::<para::Runtime>::ConflictingLocation
 		);
 	});
