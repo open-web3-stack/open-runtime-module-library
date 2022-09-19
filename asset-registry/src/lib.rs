@@ -4,7 +4,7 @@
 #![allow(clippy::large_enum_variant)]
 #![allow(clippy::too_many_arguments)]
 
-use frame_support::{pallet_prelude::*, traits::EnsureOriginWithArg};
+use frame_support::{pallet_prelude::*, traits::EnsureOriginWithArg, transactional};
 use frame_system::pallet_prelude::*;
 pub use orml_traits::asset_registry::AssetMetadata;
 use orml_traits::asset_registry::AssetProcessor;
@@ -137,6 +137,7 @@ pub mod module {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight(T::WeightInfo::register_asset())]
+		#[transactional]
 		pub fn register_asset(
 			origin: OriginFor<T>,
 			metadata: AssetMetadata<T::Balance, T::CustomMetadata>,
@@ -148,6 +149,7 @@ pub mod module {
 		}
 
 		#[pallet::weight(T::WeightInfo::update_asset())]
+		#[transactional]
 		pub fn update_asset(
 			origin: OriginFor<T>,
 			asset_id: T::AssetId,
