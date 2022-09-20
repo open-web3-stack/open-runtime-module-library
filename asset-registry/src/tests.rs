@@ -54,6 +54,37 @@ fn dummy_metadata() -> AssetMetadata<<para::Runtime as orml_asset_registry::Conf
 }
 
 #[test]
+fn genesis_issuance_should_work() {
+	TestNet::reset();
+
+	ParaG::execute_with(|| {
+		let metadata1 = AssetMetadata {
+			decimals: 12,
+			name: "para G native token".as_bytes().to_vec(),
+			symbol: "paraG".as_bytes().to_vec(),
+			existential_deposit: 0,
+			location: None,
+			additional: CustomMetadata {
+				fee_per_second: 1_000_000_000_000,
+			},
+		};
+		let metadata2 = AssetMetadata {
+			decimals: 12,
+			name: "para G foreign token".as_bytes().to_vec(),
+			symbol: "paraF".as_bytes().to_vec(),
+			existential_deposit: 0,
+			location: None,
+			additional: CustomMetadata {
+				fee_per_second: 1_000_000_000_000,
+			},
+		};
+		assert_eq!(AssetRegistry::metadata(4).unwrap(), metadata1);
+		assert_eq!(AssetRegistry::metadata(5).unwrap(), metadata2);
+		assert_eq!(LastAssetId::<para::Runtime>::get(), 5);
+	});
+}
+
+#[test]
 /// test that the asset registry can be used in xcm transfers
 fn send_self_parachain_asset_to_sibling() {
 	TestNet::reset();
