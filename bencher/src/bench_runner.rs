@@ -1,5 +1,5 @@
 use super::{
-	ext::BenchExt,
+	bench_ext::BenchExt,
 	tracker::{BenchTracker, BenchTrackerExt},
 };
 use frame_benchmarking::frame_support::sp_runtime::traits::Block;

@@ -169,6 +169,7 @@ impl<Balance: Saturating + Copy + Ord> AccountData<Balance> {
 	}
 }
 
+use crate::log::log;
 pub use module::*;
 
 #[frame_support::pallet]
@@ -737,7 +738,6 @@ impl<T: Config> Pallet<T> {
 		if amount.is_zero() {
 			return Ok(());
 		}
-
 		let new_balance = Self::free_balance(currency_id, who)
 			.checked_sub(&amount)
 			.ok_or(Error::<T>::BalanceTooLow)?;
@@ -942,7 +942,6 @@ impl<T: Config> Pallet<T> {
 				};
 
 				ensure!(allow_death || !would_be_dead, Error::<T>::KeepAlive);
-
 				Ok(())
 			})?;
 			Ok(())

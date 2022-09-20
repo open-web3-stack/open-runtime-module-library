@@ -71,6 +71,6 @@ parameter_type_with_key! {
 }
 ```
 
-Notice the implementation for now also rely on `SelfLocation` which already in `xtokens` config. The `SelfLocation` current is `(1, Parachain(id))` refer to sender parachain. If parachain set `SelfLocation` to (0, Here), it'll be error in this case.
+Notice the implementation for now also relies on `SelfLocation` which is already in `xtokens` config. The `SelfLocation` is currently set to absolute view `(1, Parachain(id))` and refers to the sender parachain. However `SelfLocation` set to relative view `(0, Here)` will also work.
 
 We use `SelfLocation` to fund fee to sender's parachain sovereign account on destination parachain, which asset is originated from sender account on sender parachain. This means if user setup too much fee, the fee will not returned to user, instead deposit to sibling parachain sovereign account on destination parachain.

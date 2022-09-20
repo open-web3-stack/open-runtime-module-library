@@ -1,5 +1,5 @@
 /// Error which may occur while executing the off-chain code.
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq)]
 pub enum OffchainErr {
 	OffchainStore,
 	SubmitTransaction,

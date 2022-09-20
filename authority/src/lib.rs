@@ -19,12 +19,13 @@
 #![allow(clippy::borrowed_box)]
 #![allow(clippy::unused_unit)]
 
+use codec::MaxEncodedLen;
 use frame_support::{
 	dispatch::PostDispatchInfo,
 	pallet_prelude::*,
 	traits::{
 		schedule::{DispatchTime, Named as ScheduleNamed, Priority},
-		EnsureOneOf, EnsureOrigin, Get, IsType, OriginTrait,
+		EitherOfDiverse, EnsureOrigin, Get, IsType, OriginTrait,
 	},
 	weights::{DispatchClass, GetDispatchInfo, Pays},
 };
@@ -43,7 +44,7 @@ mod weights;
 pub use weights::WeightInfo;
 
 /// A delayed origin. Can only be dispatched via `dispatch_as` with a delay.
-#[derive(PartialEq, Eq, Clone, RuntimeDebug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Eq, Clone, RuntimeDebug, Encode, Decode, TypeInfo, MaxEncodedLen)]
 pub struct DelayedOrigin<BlockNumber, PalletsOrigin> {
 	/// Number of blocks that this call have been delayed.
 	pub delay: BlockNumber,
@@ -394,7 +395,7 @@ pub mod module {
 		#[pallet::weight(T::WeightInfo::remove_authorized_call())]
 		pub fn remove_authorized_call(origin: OriginFor<T>, hash: T::Hash) -> DispatchResult {
 			let root_or_sigend =
-				EnsureOneOf::<EnsureRoot<T::AccountId>, EnsureSigned<T::AccountId>>::ensure_origin(origin)?;
+				EitherOfDiverse::<EnsureRoot<T::AccountId>, EnsureSigned<T::AccountId>>::ensure_origin(origin)?;
 
 			SavedCalls::<T>::try_mutate_exists(hash, |maybe_call| {
 				let (_, maybe_caller) = maybe_call.take().ok_or(Error::<T>::CallNotAuthorized)?;

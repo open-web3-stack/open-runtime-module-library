@@ -11,7 +11,6 @@ pub mod pallet {
 	use frame_support::{
 		dispatch::{DispatchResult, DispatchResultWithPostInfo},
 		pallet_prelude::*,
-		transactional,
 	};
 	use frame_system::pallet_prelude::*;
 
@@ -59,7 +58,6 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
-		#[transactional]
 		#[orml_weight_meter::weight(ModuleWeights::<T>::set_foo())]
 		pub(crate) fn set_foo() -> frame_support::dispatch::DispatchResult {
 			Value::<T>::put(2);
@@ -80,6 +78,11 @@ pub mod pallet {
 		#[orml_weight_meter::weight(0)]
 		pub(crate) fn remove_all_bar() {
 			Bar::<T>::remove_all(None);
+		}
+
+		#[orml_weight_meter::weight(0)]
+		pub(crate) fn remove_all_bar_with_limit() {
+			Bar::<T>::remove_all(Some(10));
 		}
 	}
 }
