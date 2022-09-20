@@ -40,7 +40,7 @@ pub mod module {
 		type CustomMetadata: Parameter + Member + TypeInfo;
 
 		/// The type used as a unique asset id,
-		type AssetId: Parameter + Member + Default + TypeInfo + Copy + MaybeSerializeDeserialize + Ord;
+		type AssetId: Parameter + Member + Default + TypeInfo + Copy + MaybeSerializeDeserialize;
 
 		/// Checks that an origin has the authority to register/update an asset
 		type AuthorityOrigin: EnsureOriginWithArg<Self::Origin, Option<Self::AssetId>>;
@@ -120,17 +120,6 @@ pub mod module {
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
-			// ensure no duplicates exist.
-			let unique_asset_ids = self
-				.assets
-				.iter()
-				.map(|(asset_id, _metadata)| asset_id)
-				.collect::<std::collections::BTreeSet<_>>();
-			assert!(
-				unique_asset_ids.len() == self.assets.len(),
-				"Duplicate assets id's in genesis."
-			);
-
 			self.assets.iter().for_each(|(asset_id, metadata_encoded)| {
 				let metadata = AssetMetadata::decode(&mut &metadata_encoded[..]).expect("Error decoding AssetMetadata");
 				Pallet::<T>::do_register_asset_without_asset_processor(metadata, *asset_id)
