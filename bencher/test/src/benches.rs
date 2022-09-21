@@ -25,6 +25,7 @@ fn remove_all_bar(b: &mut Bencher) {
 }
 
 fn remove_all_bar_with_limit(b: &mut Bencher) {
+	b.count_clear_prefix();
 	Bar::<Runtime>::insert(1, 1);
 	b.bench(|| {
 		Test::remove_all_bar_with_limit();
