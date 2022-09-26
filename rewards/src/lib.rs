@@ -2,6 +2,7 @@
 #![allow(clippy::unused_unit)]
 #![allow(clippy::too_many_arguments)]
 
+pub mod migration;
 mod mock;
 mod tests;
 
@@ -77,7 +78,7 @@ pub mod module {
 		type Handler: RewardHandler<Self::AccountId, Self::CurrencyId, Balance = Self::Balance, PoolId = Self::PoolId>;
 	}
 
-	type WithdrawnRewards<T> = BTreeMap<<T as Config>::CurrencyId, <T as Config>::Balance>;
+	pub(crate) type WithdrawnRewards<T> = BTreeMap<<T as Config>::CurrencyId, <T as Config>::Balance>;
 
 	#[pallet::error]
 	pub enum Error<T> {
