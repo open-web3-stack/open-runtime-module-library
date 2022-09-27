@@ -124,7 +124,7 @@ pub mod test_module {
 			Self::put_100();
 		}
 
-		#[orml_weight_meter::weight(Weight::MAX)]
+		#[orml_weight_meter::weight(Weight::MAX.ref_time())]
 		fn max_weight() {}
 	}
 }

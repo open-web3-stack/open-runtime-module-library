@@ -38,7 +38,7 @@ use sp_runtime::{
 };
 use sp_std::{prelude::*, result::Result};
 
-use xcm::prelude::*;
+use xcm::{latest::Weight, prelude::*};
 use xcm_executor::traits::{InvertLocation, WeightBounds};
 
 pub use module::*;

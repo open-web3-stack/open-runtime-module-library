@@ -222,7 +222,8 @@ pub mod pallet {
 
 			// calculate count of tasks that can be processed with remaining weight
 			let possible_task_count: usize = remaining_weight
-				.saturating_div(cancel_weight)
+				.ref_time()
+				.saturating_div(cancel_weight.ref_time())
 				.try_into()
 				.unwrap_or(MAX_TASKS_TO_PROCESS);
 

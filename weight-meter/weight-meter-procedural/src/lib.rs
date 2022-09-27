@@ -14,7 +14,7 @@ pub fn start(attr: TokenStream, item: TokenStream) -> TokenStream {
 		#(#attrs)*
 		#[cfg_attr(feature = "bench", ::orml_bencher::benchmarkable)]
 		#vis #sig {
-			::orml_weight_meter::start(#weight);
+			::orml_weight_meter::start(frame_support::weights::Weight::from_ref_time(#weight));
 			let result = #block;
 			::orml_weight_meter::finish();
 			result
@@ -31,7 +31,7 @@ pub fn weight(attr: TokenStream, item: TokenStream) -> TokenStream {
 		#(#attrs)*
 		#[cfg_attr(feature = "bench", ::orml_bencher::benchmarkable)]
 		#vis #sig {
-			::orml_weight_meter::using(#weight);
+			::orml_weight_meter::using(frame_support::weights::Weight::from_ref_time(#weight));
 			#block
 		}
 	})
