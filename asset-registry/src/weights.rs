@@ -18,12 +18,12 @@ pub trait WeightInfo {
 /// Default weights.
 impl WeightInfo for () {
 	fn register_asset() -> Weight {
-		0
+		Weight::zero()
 	}
 	fn update_asset() -> Weight {
-		0
+		Weight::zero()
 	}
 	fn set_asset_location() -> Weight {
-		0
+		Weight::zero()
 	}
 }

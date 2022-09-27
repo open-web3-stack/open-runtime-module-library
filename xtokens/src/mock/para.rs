@@ -4,7 +4,7 @@ use crate as orml_xtokens;
 use frame_support::{
 	construct_runtime, match_types, parameter_types,
 	traits::{ConstU128, ConstU32, ConstU64, Everything, Get, Nothing},
-	weights::{constants::WEIGHT_PER_SECOND, Weight},
+	weights::constants::WEIGHT_PER_SECOND,
 };
 use frame_system::EnsureRoot;
 use sp_core::H256;
@@ -17,7 +17,7 @@ use sp_runtime::{
 use cumulus_primitives_core::{ChannelStatus, GetChannelInfo, ParaId};
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
-use xcm::latest::prelude::*;
+use xcm::latest::{prelude::*, Weight};
 use xcm_builder::{
 	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin, FixedWeightBounds, LocationInverter,
 	NativeAsset, ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
@@ -93,8 +93,8 @@ impl orml_tokens::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ReservedXcmpWeight: Weight = WEIGHT_PER_SECOND / 4;
-	pub const ReservedDmpWeight: Weight = WEIGHT_PER_SECOND / 4;
+	pub const ReservedXcmpWeight: Weight = WEIGHT_PER_SECOND.ref_time() / 4;
+	pub const ReservedDmpWeight: Weight = WEIGHT_PER_SECOND.ref_time() / 4;
 }
 
 impl parachain_info::Config for Runtime {}
