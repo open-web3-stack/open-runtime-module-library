@@ -824,7 +824,7 @@ pub mod module {
 				{
 					let mut msg = match transfer_kind {
 						SelfReserveAsset => Xcm(vec![TransferReserveAsset {
-							assets: vec![].into(),
+							assets: vec![asset].into(),
 							dest,
 							xcm: Xcm(vec![]),
 						}]),
