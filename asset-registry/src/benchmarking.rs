@@ -3,7 +3,7 @@
 use crate::*;
 use frame_benchmarking::benchmarks;
 use frame_system::RawOrigin;
-use mangata_primitives::assets::CustomMetadata;
+use mangata_types::assets::CustomMetadata;
 
 benchmarks! {
 

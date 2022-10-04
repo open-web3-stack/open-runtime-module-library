@@ -1,13 +1,10 @@
 // wrapping these imbalances in a private module is necessary to ensure absolute
 // privacy of the inner member.
 use crate::{Config, TotalIssuance};
-use frame_support::traits::{Imbalance, SameOrOther, TryDrop};
+use frame_support::traits::{Imbalance, SameOrOther, TryDrop, tokens::currency::{MultiTokenImbalanceWithZeroTrait}};
 use sp_runtime::traits::{Saturating, Zero};
 use sp_std::{mem, result};
 
-pub trait MultiTokenImbalanceWithZeroTrait<CurrencyId> {
-	fn from_zero(currency_id: CurrencyId) -> Self;
-}
 
 impl<T: Config> MultiTokenImbalanceWithZeroTrait<T::CurrencyId> for PositiveImbalance<T> {
 	fn from_zero(currency_id: T::CurrencyId) -> Self {
