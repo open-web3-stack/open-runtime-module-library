@@ -146,7 +146,7 @@ pub mod module {
 			if Self::_need_update(now) {
 				T::WeightInfo::on_finalize(GraduallyUpdates::<T>::get().len() as u32)
 			} else {
-				0
+				Weight::zero()
 			}
 		}
 

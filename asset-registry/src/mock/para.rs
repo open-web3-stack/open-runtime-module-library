@@ -8,7 +8,7 @@ use frame_support::traits::{EnsureOrigin, EnsureOriginWithArg};
 use frame_support::{
 	construct_runtime, match_types, ord_parameter_types, parameter_types,
 	traits::{ConstU128, ConstU32, ConstU64, Everything, Nothing},
-	weights::{constants::WEIGHT_PER_SECOND, Weight},
+	weights::constants::WEIGHT_PER_SECOND,
 	PalletId,
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
@@ -26,7 +26,7 @@ use sp_runtime::{
 	traits::{AccountIdConversion, Convert, IdentityLookup},
 	AccountId32,
 };
-use xcm::latest::prelude::*;
+use xcm::latest::{prelude::*, Weight};
 use xcm_builder::{
 	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin, FixedWeightBounds, LocationInverter,
 	ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
@@ -145,8 +145,8 @@ impl orml_asset_registry::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ReservedXcmpWeight: Weight = WEIGHT_PER_SECOND / 4;
-	pub const ReservedDmpWeight: Weight = WEIGHT_PER_SECOND / 4;
+	pub const ReservedXcmpWeight: Weight = WEIGHT_PER_SECOND.ref_time() / 4;
+	pub const ReservedDmpWeight: Weight = WEIGHT_PER_SECOND.ref_time() / 4;
 }
 
 impl parachain_info::Config for Runtime {}

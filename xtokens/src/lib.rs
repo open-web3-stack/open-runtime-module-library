@@ -29,7 +29,7 @@ use frame_support::{
 	pallet_prelude::*,
 	require_transactional,
 	traits::{Contains, Get},
-	transactional, Parameter,
+	Parameter,
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
 use sp_runtime::{
@@ -38,7 +38,7 @@ use sp_runtime::{
 };
 use sp_std::{prelude::*, result::Result};
 
-use xcm::prelude::*;
+use xcm::{latest::Weight, prelude::*};
 use xcm_executor::traits::{InvertLocation, WeightBounds};
 
 pub use module::*;
@@ -200,7 +200,6 @@ pub mod module {
 		/// by the network, and if the receiving chain would handle
 		/// messages correctly.
 		#[pallet::weight(Pallet::<T>::weight_of_transfer(currency_id.clone(), *amount, dest))]
-		#[transactional]
 		pub fn transfer(
 			origin: OriginFor<T>,
 			currency_id: T::CurrencyId,
@@ -226,7 +225,6 @@ pub mod module {
 		/// by the network, and if the receiving chain would handle
 		/// messages correctly.
 		#[pallet::weight(Pallet::<T>::weight_of_transfer_multiasset(asset, dest))]
-		#[transactional]
 		pub fn transfer_multiasset(
 			origin: OriginFor<T>,
 			asset: Box<VersionedMultiAsset>,
@@ -261,7 +259,6 @@ pub mod module {
 		/// by the network, and if the receiving chain would handle
 		/// messages correctly.
 		#[pallet::weight(Pallet::<T>::weight_of_transfer(currency_id.clone(), *amount, dest))]
-		#[transactional]
 		pub fn transfer_with_fee(
 			origin: OriginFor<T>,
 			currency_id: T::CurrencyId,
@@ -298,7 +295,6 @@ pub mod module {
 		/// by the network, and if the receiving chain would handle
 		/// messages correctly.
 		#[pallet::weight(Pallet::<T>::weight_of_transfer_multiasset(asset, dest))]
-		#[transactional]
 		pub fn transfer_multiasset_with_fee(
 			origin: OriginFor<T>,
 			asset: Box<VersionedMultiAsset>,
@@ -330,7 +326,6 @@ pub mod module {
 		/// by the network, and if the receiving chain would handle
 		/// messages correctly.
 		#[pallet::weight(Pallet::<T>::weight_of_transfer_multicurrencies(currencies, fee_item, dest))]
-		#[transactional]
 		pub fn transfer_multicurrencies(
 			origin: OriginFor<T>,
 			currencies: Vec<(T::CurrencyId, T::Balance)>,
@@ -360,7 +355,6 @@ pub mod module {
 		/// by the network, and if the receiving chain would handle
 		/// messages correctly.
 		#[pallet::weight(Pallet::<T>::weight_of_transfer_multiassets(assets, fee_item, dest))]
-		#[transactional]
 		pub fn transfer_multiassets(
 			origin: OriginFor<T>,
 			assets: Box<VersionedMultiAssets>,
@@ -830,7 +824,7 @@ pub mod module {
 				{
 					let mut msg = match transfer_kind {
 						SelfReserveAsset => Xcm(vec![TransferReserveAsset {
-							assets: vec![].into(),
+							assets: vec![asset].into(),
 							dest,
 							xcm: Xcm(vec![]),
 						}]),

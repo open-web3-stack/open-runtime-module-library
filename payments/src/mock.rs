@@ -185,7 +185,7 @@ pub fn run_n_blocks(n: u64) -> u64 {
 		};
 		// ensure the on_idle is executed
 		<frame_system::Pallet<Test>>::register_extra_weight_unchecked(
-			Payment::on_idle(block_number, idle_weight),
+			Payment::on_idle(block_number, frame_support::weights::Weight::from_ref_time(idle_weight)),
 			DispatchClass::Mandatory,
 		);
 

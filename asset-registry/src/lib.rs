@@ -40,7 +40,7 @@ pub mod module {
 		type CustomMetadata: Parameter + Member + TypeInfo;
 
 		/// The type used as a unique asset id,
-		type AssetId: Parameter + Member + Default + TypeInfo;
+		type AssetId: Parameter + Member + Default + TypeInfo + MaybeSerializeDeserialize;
 
 		/// Checks that an origin has the authority to register/update an asset
 		type AuthorityOrigin: EnsureOriginWithArg<Self::Origin, Option<Self::AssetId>>;
@@ -103,21 +103,31 @@ pub mod module {
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
-		_phantom: PhantomData<T>,
+		pub assets: Vec<(T::AssetId, Vec<u8>)>,
+		pub last_asset_id: T::AssetId,
 	}
 
 	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
 			Self {
-				_phantom: Default::default(),
+				assets: vec![],
+				last_asset_id: Default::default(),
 			}
 		}
 	}
 
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
-		fn build(&self) {}
+		fn build(&self) {
+			self.assets.iter().for_each(|(asset_id, metadata_encoded)| {
+				let metadata = AssetMetadata::decode(&mut &metadata_encoded[..]).expect("Error decoding AssetMetadata");
+				Pallet::<T>::do_register_asset_without_asset_processor(metadata, asset_id.clone())
+					.expect("Error registering Asset");
+			});
+
+			LastAssetId::<T>::set(self.last_asset_id.clone());
+		}
 	}
 
 	#[pallet::pallet]
