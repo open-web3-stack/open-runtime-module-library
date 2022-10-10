@@ -5,7 +5,7 @@
 use super::*;
 use frame_support::{
 	construct_runtime, parameter_types,
-	traits::{ChangeMembers, ContainsLengthBound, Everything, GenesisBuild, SaturatingCurrencyToVote, SortedMembers},
+	traits::{ChangeMembers, ContainsLengthBound, Everything, GenesisBuild, SaturatingCurrencyToVote, SortedMembers, ConstU64},
 	PalletId,
 };
 use orml_traits::parameter_type_with_key;
@@ -15,7 +15,6 @@ use sp_runtime::{
 	traits::{AccountIdConversion, IdentityLookup},
 	AccountId32, Permill,
 };
-use sp_runtime::traits::ConstU64;
 use sp_std::cell::RefCell;
 
 pub type AccountId = AccountId32;
@@ -192,22 +191,22 @@ parameter_types! {
 }
 
 impl pallet_elections_phragmen::Config for Runtime {
-	type PalletId = ElectionsPhragmenPalletId;
 	type Event = Event;
+	type PalletId = ElectionsPhragmenPalletId;
 	type Currency = CurrencyAdapter<Runtime, GetTokenId>;
-	type CurrencyToVote = SaturatingCurrencyToVote;
 	type ChangeMembers = TestChangeMembers;
 	type InitializeMembers = ();
+	type CurrencyToVote = SaturatingCurrencyToVote;
 	type CandidacyBond = ConstU64<3>;
 	type VotingBondBase = ConstU64<2>;
 	type VotingBondFactor = ConstU64<0>;
-	type TermDuration = ConstU64<5>;
-	type DesiredMembers = ConstU32<2>;
-	type DesiredRunnersUp = ConstU32<2>;
-	type MaxCandidates = ConstU32<5>;
-	type MaxVoters = ConstU32<5>;
 	type LoserCandidate = ();
 	type KickedMember = ();
+	type DesiredMembers = ConstU32<2>;
+	type DesiredRunnersUp = ConstU32<2>;
+	type TermDuration = ConstU64<5>;
+	type MaxCandidates = ConstU32<5>;
+	type MaxVoters = ConstU32<5>;
 	type WeightInfo = ();
 }
 
