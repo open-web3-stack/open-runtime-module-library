@@ -15,7 +15,7 @@ use sp_runtime::{
 	traits::{AccountIdConversion, IdentityLookup},
 	AccountId32, Permill,
 };
-use frame_support::traits::ConstU64;
+use sp_runtime::traits::ConstU64;
 use sp_std::cell::RefCell;
 
 pub type AccountId = AccountId32;
