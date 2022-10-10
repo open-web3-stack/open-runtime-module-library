@@ -15,6 +15,7 @@ use sp_runtime::{
 	traits::{AccountIdConversion, IdentityLookup},
 	AccountId32, Permill,
 };
+use sp_runtime::traits::ConstU128;
 use sp_std::cell::RefCell;
 
 pub type AccountId = AccountId32;
@@ -197,9 +198,9 @@ impl pallet_elections_phragmen::Config for Runtime {
 	type ChangeMembers = TestChangeMembers;
 	type InitializeMembers = ();
 	type CurrencyToVote = SaturatingCurrencyToVote;
-	type CandidacyBond = ConstU64<3>;
-	type VotingBondBase = ConstU64<2>;
-	type VotingBondFactor = ConstU64<0>;
+	type CandidacyBond = ConstU128<3>;
+	type VotingBondBase = ConstU128<2>;
+	type VotingBondFactor = ConstU128<0>;
 	type LoserCandidate = ();
 	type KickedMember = ();
 	type DesiredMembers = ConstU32<2>;
