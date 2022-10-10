@@ -4,12 +4,12 @@ use super::*;
 use crate as orml_asset_registry;
 use crate::tests::para::{AdminAssetTwo, AssetRegistry, CustomMetadata, Origin, TreasuryAccount};
 use frame_support::{assert_noop, assert_ok};
-use mock::{para::Call, *};
+use mock::{*};
 use orml_traits::MultiCurrency;
 use polkadot_parachain::primitives::Sibling;
 
 use sp_runtime::{
-	traits::{AccountIdConversion, BadOrigin, Dispatchable},
+	traits::{AccountIdConversion, BadOrigin},
 	AccountId32,
 };
 use xcm_simulator::TestExt;
