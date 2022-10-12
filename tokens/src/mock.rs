@@ -15,7 +15,6 @@ use sp_runtime::{
 	traits::{AccountIdConversion, IdentityLookup},
 	AccountId32, Permill,
 };
-use sp_runtime::traits::ConstU128;
 use sp_std::cell::RefCell;
 
 pub type AccountId = AccountId32;
@@ -189,6 +188,8 @@ parameter_types! {
 	pub const TermDuration: u64 = 5;
 	pub const VotingBondBase: u64 = 2;
 	pub const VotingBondFactor: u64 = 0;
+	pub const MaxCandidates: u32 = 5;
+	pub const MaxVoters: u32 = 5;
 }
 
 impl pallet_elections_phragmen::Config for Runtime {
@@ -198,16 +199,16 @@ impl pallet_elections_phragmen::Config for Runtime {
 	type ChangeMembers = TestChangeMembers;
 	type InitializeMembers = ();
 	type CurrencyToVote = SaturatingCurrencyToVote;
-	type CandidacyBond = ConstU128<3>;
-	type VotingBondBase = ConstU128<2>;
-	type VotingBondFactor = ConstU128<0>;
+	type CandidacyBond = CandidacyBond;
+	type VotingBondBase = VotingBondBase;
+	type VotingBondFactor = VotingBondFactor;
 	type LoserCandidate = ();
 	type KickedMember = ();
-	type DesiredMembers = ConstU32<2>;
-	type DesiredRunnersUp = ConstU32<2>;
-	type TermDuration = ConstU64<5>;
-	type MaxCandidates = ConstU32<5>;
-	type MaxVoters = ConstU32<5>;
+	type DesiredMembers = DesiredMembers;
+	type DesiredRunnersUp = DesiredRunnersUp;
+	type TermDuration = TermDuration;
+	type MaxCandidates =MaxCandidates;
+	type MaxVoters = MaxVoters;
 	type WeightInfo = ();
 }
 
