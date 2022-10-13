@@ -48,7 +48,7 @@ use frame_support::{
 		tokens::{fungible, fungibles, DepositConsequence, WithdrawConsequence},
 		BalanceStatus as Status, Contains, Currency as PalletCurrency, ExistenceRequirement, Get, Imbalance,
 		LockableCurrency as PalletLockableCurrency, ReservableCurrency as PalletReservableCurrency, SignedImbalance,
-		WithdrawReasons,
+		WithdrawReasons, tokens::currency::{MultiTokenCurrency, MultiTokenLockableCurrency}
 	},
 	transactional, BoundedVec,
 };
@@ -72,12 +72,12 @@ use orml_traits::{
 
 use codec::{Decode, Encode, FullCodec};
 
-use mangata_primitives::{Amount, Balance, TokenId};
+use mangata_types::{Amount, Balance, TokenId};
 pub use multi_token_currency::{
-	MultiTokenCurrency, MultiTokenCurrencyExtended, MultiTokenLockableCurrency, MultiTokenReservableCurrency,
+	MultiTokenCurrencyExtended, MultiTokenReservableCurrency,
 };
 pub use multi_token_imbalances::{
-	MultiTokenImbalanceWithZeroTrait, NegativeImbalance as MultiTokenNegativeImbalance,
+	NegativeImbalance as MultiTokenNegativeImbalance,
 	PositiveImbalance as MultiTokenPositiveImbalance,
 };
 
@@ -169,7 +169,6 @@ impl<Balance: Saturating + Copy + Ord> AccountData<Balance> {
 	}
 }
 
-use crate::log::log;
 pub use module::*;
 
 #[frame_support::pallet]

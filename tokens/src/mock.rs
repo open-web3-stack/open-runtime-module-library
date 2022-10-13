@@ -5,7 +5,7 @@
 use super::*;
 use frame_support::{
 	construct_runtime, parameter_types,
-	traits::{ChangeMembers, ContainsLengthBound, Everything, GenesisBuild, SaturatingCurrencyToVote, SortedMembers},
+	traits::{ChangeMembers, ContainsLengthBound, Everything, GenesisBuild, SaturatingCurrencyToVote, SortedMembers, ConstU64},
 	PalletId,
 };
 use orml_traits::parameter_type_with_key;
@@ -188,23 +188,27 @@ parameter_types! {
 	pub const TermDuration: u64 = 5;
 	pub const VotingBondBase: u64 = 2;
 	pub const VotingBondFactor: u64 = 0;
+	pub const MaxCandidates: u32 = 5;
+	pub const MaxVoters: u32 = 5;
 }
 
 impl pallet_elections_phragmen::Config for Runtime {
-	type PalletId = ElectionsPhragmenPalletId;
 	type Event = Event;
+	type PalletId = ElectionsPhragmenPalletId;
 	type Currency = CurrencyAdapter<Runtime, GetTokenId>;
-	type CurrencyToVote = SaturatingCurrencyToVote;
 	type ChangeMembers = TestChangeMembers;
 	type InitializeMembers = ();
+	type CurrencyToVote = SaturatingCurrencyToVote;
 	type CandidacyBond = CandidacyBond;
 	type VotingBondBase = VotingBondBase;
 	type VotingBondFactor = VotingBondFactor;
-	type TermDuration = TermDuration;
-	type DesiredMembers = DesiredMembers;
-	type DesiredRunnersUp = DesiredRunnersUp;
 	type LoserCandidate = ();
 	type KickedMember = ();
+	type DesiredMembers = DesiredMembers;
+	type DesiredRunnersUp = DesiredRunnersUp;
+	type TermDuration = TermDuration;
+	type MaxCandidates =MaxCandidates;
+	type MaxVoters = MaxVoters;
 	type WeightInfo = ();
 }
 
