@@ -18,7 +18,7 @@ frame-support = {  git = "https://github.com/paritytech/substrate", default-feat
 frame-system = {  git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.28" }
 
 orml-traits = { path = "../traits", version = "0.4.1-dev", default-features = false }
-mangata-types = { git="https://github.com/mangata-finance/substrate", branch="mangata-dev-v0.9.28", default-features = false, version = '0.1.0' }
+mangata-types = { git="https://github.com/mangata-finance/substrate", branch="mangata-dev", default-features = false, version = '0.1.0' }
 frame-benchmarking = {  git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.28", default-features = false, optional = true }
 
 [dev-dependencies]

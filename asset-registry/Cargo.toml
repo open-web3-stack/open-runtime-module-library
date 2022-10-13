@@ -29,7 +29,7 @@ xcm-executor = { git = "https://github.com/paritytech/polkadot", default-feature
 orml-traits = { path = "../traits", version = "0.4.1-dev", default-features = false }
 
 # mangata
-mangata-types = { git = "https://github.com/mangata-finance/substrate", default-features = false, branch = "mangata-dev-v0.9.28" }
+mangata-types = { git = "https://github.com/mangata-finance/substrate", default-features = false, branch = "mangata-dev" }
 
 
 [dev-dependencies]
