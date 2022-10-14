@@ -280,6 +280,9 @@ impl Config for Runtime {
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = TransferDust<Runtime, DustReceiver>;
+	type OnSlash = ();
+	type OnDeposit = ();
+	type OnTransfer = ();
 	type OnNewTokenAccount = TrackCreatedAccounts;
 	type OnKilledTokenAccount = TrackKilledAccounts;
 	type MaxLocks = ConstU32<2>;

@@ -66,7 +66,7 @@ use sp_std::{cmp, convert::Infallible, marker, prelude::*, vec::Vec};
 
 use orml_traits::{
 	arithmetic::{self, Signed},
-	currency::TransferAll,
+	currency::{OnDeposit, OnSlash, OnTransfer, TransferAll},
 	BalanceStatus, GetByKey, Happened, LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency,
 	MultiReservableCurrency, NamedMultiReservableCurrency, OnDust,
 };
@@ -173,6 +173,8 @@ pub use module::*;
 
 #[frame_support::pallet]
 pub mod module {
+	use orml_traits::currency::{OnDeposit, OnSlash, OnTransfer};
+
 	use super::*;
 
 	#[pallet::config]
@@ -215,6 +217,15 @@ pub mod module {
 
 		/// Handler to burn or transfer account's dust
 		type OnDust: OnDust<Self::AccountId, Self::CurrencyId, Self::Balance>;
+
+		/// Hook to run before slashing an account.
+		type OnSlash: OnSlash<Self::AccountId, Self::CurrencyId, Self::Balance>;
+
+		/// Hook to run before depositing into an account.
+		type OnDeposit: OnDeposit<Self::AccountId, Self::CurrencyId, Self::Balance>;
+
+		/// Hook to run before transferring from an account to another.
+		type OnTransfer: OnTransfer<Self::AccountId, Self::CurrencyId, Self::Balance>;
 
 		/// Handler for when an account was created
 		type OnNewTokenAccount: Happened<(Self::AccountId, Self::CurrencyId)>;
@@ -890,6 +901,7 @@ impl<T: Config> Pallet<T> {
 		amount: T::Balance,
 		existence_requirement: ExistenceRequirement,
 	) -> DispatchResult {
+		T::OnTransfer::on_transfer(currency_id, from, to, amount)?;
 		if amount.is_zero() || from == to {
 			return Ok(());
 		}
@@ -1015,6 +1027,7 @@ impl<T: Config> Pallet<T> {
 		require_existed: bool,
 		change_total_issuance: bool,
 	) -> DispatchResult {
+		T::OnDeposit::on_deposit(currency_id, who, amount)?;
 		if amount.is_zero() {
 			return Ok(());
 		}
@@ -1110,6 +1123,7 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
 	/// reserved funds, however we err on the side of punishment if things
 	/// are inconsistent or `can_slash` wasn't used appropriately.
 	fn slash(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> Self::Balance {
+		T::OnSlash::on_slash(currency_id, who, amount);
 		if amount.is_zero() {
 			return amount;
 		}
@@ -1276,6 +1290,7 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 	///
 	/// Is a no-op if the value to be slashed is zero.
 	fn slash_reserved(currency_id: Self::CurrencyId, who: &T::AccountId, value: Self::Balance) -> Self::Balance {
+		T::OnSlash::on_slash(currency_id, who, value);
 		if value.is_zero() {
 			return value;
 		}
