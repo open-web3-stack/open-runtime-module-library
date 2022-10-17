@@ -901,11 +901,11 @@ impl<T: Config> Pallet<T> {
 		amount: T::Balance,
 		existence_requirement: ExistenceRequirement,
 	) -> DispatchResult {
-		T::OnTransfer::on_transfer(currency_id, from, to, amount)?;
 		if amount.is_zero() || from == to {
 			return Ok(());
 		}
 
+		T::OnTransfer::on_transfer(currency_id, from, to, amount)?;
 		Self::try_mutate_account(to, currency_id, |to_account, _existed| -> DispatchResult {
 			Self::try_mutate_account(from, currency_id, |from_account, _existed| -> DispatchResult {
 				from_account.free = from_account
@@ -1027,11 +1027,11 @@ impl<T: Config> Pallet<T> {
 		require_existed: bool,
 		change_total_issuance: bool,
 	) -> DispatchResult {
-		T::OnDeposit::on_deposit(currency_id, who, amount)?;
 		if amount.is_zero() {
 			return Ok(());
 		}
 
+		T::OnDeposit::on_deposit(currency_id, who, amount)?;
 		Self::try_mutate_account(who, currency_id, |account, existed| -> DispatchResult {
 			if require_existed {
 				ensure!(existed, Error::<T>::DeadAccount);
@@ -1123,11 +1123,11 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
 	/// reserved funds, however we err on the side of punishment if things
 	/// are inconsistent or `can_slash` wasn't used appropriately.
 	fn slash(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> Self::Balance {
-		T::OnSlash::on_slash(currency_id, who, amount);
 		if amount.is_zero() {
 			return amount;
 		}
 
+		T::OnSlash::on_slash(currency_id, who, amount);
 		let account = Self::accounts(who, currency_id);
 		let free_slashed_amount = account.free.min(amount);
 		// Cannot underflow because free_slashed_amount can never be greater than amount
@@ -1290,11 +1290,11 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 	///
 	/// Is a no-op if the value to be slashed is zero.
 	fn slash_reserved(currency_id: Self::CurrencyId, who: &T::AccountId, value: Self::Balance) -> Self::Balance {
-		T::OnSlash::on_slash(currency_id, who, value);
 		if value.is_zero() {
 			return value;
 		}
 
+		T::OnSlash::on_slash(currency_id, who, value);
 		let reserved_balance = Self::reserved_balance(currency_id, who);
 		let actual = reserved_balance.min(value);
 		Self::mutate_account(who, currency_id, |account, _| {
