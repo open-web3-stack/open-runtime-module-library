@@ -66,7 +66,7 @@ use sp_std::{cmp, convert::Infallible, marker, prelude::*, vec::Vec};
 
 use orml_traits::{
 	arithmetic::{self, Signed},
-	currency::TransferAll,
+	currency::{OnDeposit, OnSlash, OnTransfer, TransferAll},
 	BalanceStatus, GetByKey, Happened, LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency,
 	MultiReservableCurrency, NamedMultiReservableCurrency, OnDust,
 };
@@ -173,6 +173,8 @@ pub use module::*;
 
 #[frame_support::pallet]
 pub mod module {
+	use orml_traits::currency::{OnDeposit, OnSlash, OnTransfer};
+
 	use super::*;
 
 	#[pallet::config]
@@ -215,6 +217,15 @@ pub mod module {
 
 		/// Handler to burn or transfer account's dust
 		type OnDust: OnDust<Self::AccountId, Self::CurrencyId, Self::Balance>;
+
+		/// Hook to run before slashing an account.
+		type OnSlash: OnSlash<Self::AccountId, Self::CurrencyId, Self::Balance>;
+
+		/// Hook to run before depositing into an account.
+		type OnDeposit: OnDeposit<Self::AccountId, Self::CurrencyId, Self::Balance>;
+
+		/// Hook to run before transferring from an account to another.
+		type OnTransfer: OnTransfer<Self::AccountId, Self::CurrencyId, Self::Balance>;
 
 		/// Handler for when an account was created
 		type OnNewTokenAccount: Happened<(Self::AccountId, Self::CurrencyId)>;
@@ -894,6 +905,7 @@ impl<T: Config> Pallet<T> {
 			return Ok(());
 		}
 
+		T::OnTransfer::on_transfer(currency_id, from, to, amount)?;
 		Self::try_mutate_account(to, currency_id, |to_account, _existed| -> DispatchResult {
 			Self::try_mutate_account(from, currency_id, |from_account, _existed| -> DispatchResult {
 				from_account.free = from_account
@@ -1019,6 +1031,7 @@ impl<T: Config> Pallet<T> {
 			return Ok(());
 		}
 
+		T::OnDeposit::on_deposit(currency_id, who, amount)?;
 		Self::try_mutate_account(who, currency_id, |account, existed| -> DispatchResult {
 			if require_existed {
 				ensure!(existed, Error::<T>::DeadAccount);
@@ -1114,6 +1127,7 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
 			return amount;
 		}
 
+		T::OnSlash::on_slash(currency_id, who, amount);
 		let account = Self::accounts(who, currency_id);
 		let free_slashed_amount = account.free.min(amount);
 		// Cannot underflow because free_slashed_amount can never be greater than amount
@@ -1280,6 +1294,7 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 			return value;
 		}
 
+		T::OnSlash::on_slash(currency_id, who, value);
 		let reserved_balance = Self::reserved_balance(currency_id, who);
 		let actual = reserved_balance.min(value);
 		Self::mutate_account(who, currency_id, |account, _| {

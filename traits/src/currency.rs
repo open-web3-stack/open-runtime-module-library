@@ -657,3 +657,34 @@ impl<AccountId> TransferAll<AccountId> for Tuple {
 		Ok(())
 	}
 }
+
+/// Hook to run before slashing an account.
+pub trait OnSlash<AccountId, CurrencyId, Balance> {
+	fn on_slash(currency_id: CurrencyId, who: &AccountId, amount: Balance);
+}
+
+impl<AccountId, CurrencyId, Balance> OnSlash<AccountId, CurrencyId, Balance> for () {
+	fn on_slash(_: CurrencyId, _: &AccountId, _: Balance) {}
+}
+
+/// Hook to run before depositing into an account.
+pub trait OnDeposit<AccountId, CurrencyId, Balance> {
+	fn on_deposit(currency_id: CurrencyId, who: &AccountId, amount: Balance) -> DispatchResult;
+}
+
+impl<AccountId, CurrencyId, Balance> OnDeposit<AccountId, CurrencyId, Balance> for () {
+	fn on_deposit(_: CurrencyId, _: &AccountId, _: Balance) -> DispatchResult {
+		Ok(())
+	}
+}
+
+/// Hook to run before transferring from an account to another.
+pub trait OnTransfer<AccountId, CurrencyId, Balance> {
+	fn on_transfer(currency_id: CurrencyId, from: &AccountId, to: &AccountId, amount: Balance) -> DispatchResult;
+}
+
+impl<AccountId, CurrencyId, Balance> OnTransfer<AccountId, CurrencyId, Balance> for () {
+	fn on_transfer(_: CurrencyId, _: &AccountId, _: &AccountId, _: Balance) -> DispatchResult {
+		Ok(())
+	}
+}

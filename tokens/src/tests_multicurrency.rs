@@ -731,3 +731,72 @@ fn named_multi_reservable_repatriate_all_reserved_named_works() {
 			}));
 		});
 }
+
+#[test]
+fn slash_hook_works() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			let initial_hook_calls = OnSlashHook::<Runtime>::calls();
+
+			// slashing zero tokens is a no-op
+			assert_eq!(Tokens::slash(DOT, &ALICE, 0), 0);
+			assert_eq!(OnSlashHook::<Runtime>::calls(), initial_hook_calls);
+
+			assert_eq!(Tokens::slash(DOT, &ALICE, 50), 0);
+			assert_eq!(OnSlashHook::<Runtime>::calls(), initial_hook_calls + 1);
+
+			// `slash` calls the hook even if no amount was slashed
+			assert_eq!(Tokens::slash(DOT, &ALICE, 100), 50);
+			assert_eq!(OnSlashHook::<Runtime>::calls(), initial_hook_calls + 2);
+		});
+}
+
+#[test]
+fn slash_hook_works_for_reserved() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			let initial_slash_hook_calls = OnSlashHook::<Runtime>::calls();
+
+			assert_ok!(Tokens::reserve(DOT, &ALICE, 50));
+			// slashing zero tokens is a no-op
+			assert_eq!(Tokens::slash_reserved(DOT, &ALICE, 0), 0);
+			assert_eq!(OnSlashHook::<Runtime>::calls(), initial_slash_hook_calls);
+
+			assert_eq!(Tokens::slash_reserved(DOT, &ALICE, 50), 0);
+			assert_eq!(OnSlashHook::<Runtime>::calls(), initial_slash_hook_calls + 1);
+
+			// `slash_reserved` calls the hook even if no amount was slashed
+			assert_eq!(Tokens::slash_reserved(DOT, &ALICE, 50), 50);
+			assert_eq!(OnSlashHook::<Runtime>::calls(), initial_slash_hook_calls + 2);
+		});
+}
+
+#[test]
+fn slash_hook_works_for_reserved_named() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			let initial_slash_hook_calls = OnSlashHook::<Runtime>::calls();
+
+			assert_ok!(Tokens::reserve_named(&RID_1, DOT, &ALICE, 10));
+			// slashing zero tokens is a no-op
+			assert_eq!(Tokens::slash_reserved_named(&RID_1, DOT, &ALICE, 0), 0);
+			assert_eq!(OnSlashHook::<Runtime>::calls(), initial_slash_hook_calls);
+
+			assert_eq!(Tokens::slash_reserved_named(&RID_1, DOT, &ALICE, 10), 0);
+			assert_eq!(OnSlashHook::<Runtime>::calls(), initial_slash_hook_calls + 1);
+
+			// `slash_reserved_named` calls `slash_reserved` under-the-hood with a
+			// value to slash based on the account's balance. Because the account's
+			// balance is currently zero, `slash_reserved` will be a no-op and
+			// the OnSlash hook will not be called.
+			assert_eq!(Tokens::slash_reserved_named(&RID_1, DOT, &ALICE, 50), 50);
+			// Same value as previously because of the no-op
+			assert_eq!(OnSlashHook::<Runtime>::calls(), initial_slash_hook_calls + 1);
+		});
+}
