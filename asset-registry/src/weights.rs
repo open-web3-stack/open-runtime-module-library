@@ -22,15 +22,20 @@ impl WeightInfo for () {
 	// Storage: AssetRegistry Metadata (r:1 w:1)
 	// Storage: AssetRegistry LocationToAssetId (r:1 w:1)
 	fn register_asset() -> Weight {
-		(34_624_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(4 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(3 as Weight))
+		Weight::from_ref_time(34_624_000)
+			.saturating_add(RocksDbWeight::get().reads(4 as u64))
+			.saturating_add(RocksDbWeight::get().writes(3 as u64))
 	}
 	// Storage: AssetRegistry Metadata (r:1 w:1)
 	// Storage: AssetRegistry LocationToAssetId (r:1 w:1)
 	fn update_asset() -> Weight {
-		(28_712_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(2 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(2 as Weight))
+		Weight::from_ref_time(28_712_000)
+			.saturating_add(RocksDbWeight::get().reads(2 as u64))
+			.saturating_add(RocksDbWeight::get().writes(2 as u64))
 	}
+	// fn set_asset_location() -> Weight {
+	// 	Weight::from_ref_time(28_712_000)
+	// 		.saturating_add(RocksDbWeight::get().reads(2 as Weight))
+	// 		.saturating_add(RocksDbWeight::get().writes(2 as Weight))
+	// }
 }

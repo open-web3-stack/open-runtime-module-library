@@ -456,7 +456,7 @@ fn trigger_call_works() {
 
 		// wrong call weight bound
 		assert_noop!(
-			Authority::trigger_call(Origin::signed(1), hash, call_weight_bound - 1),
+			Authority::trigger_call(Origin::signed(1), hash, call_weight_bound - Weight::from_ref_time(1)),
 			Error::<Runtime>::WrongCallWeightBound
 		);
 

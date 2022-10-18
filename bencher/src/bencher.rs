@@ -45,6 +45,11 @@ impl Bencher {
 		}
 	}
 
+	pub fn count_clear_prefix(&mut self) {
+		#[cfg(not(feature = "std"))]
+		crate::bench::count_clear_prefix();
+	}
+
 	pub fn bench<T, F>(&mut self, mut inner: F) -> T
 	where
 		F: FnMut() -> T,

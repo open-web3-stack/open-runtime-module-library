@@ -1,6 +1,5 @@
 use frame_support::dispatch::DispatchResult;
-use frame_support::weights::Weight;
-use xcm::latest::prelude::*;
+use xcm::latest::{prelude::*, Weight};
 
 /// Abstraction over cross-chain token transfers.
 pub trait XcmTransfer<AccountId, Balance, CurrencyId> {

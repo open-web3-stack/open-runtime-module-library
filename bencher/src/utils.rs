@@ -92,4 +92,11 @@ pub trait Bench {
 			.expect("No `bench_tracker` associated for the current context!");
 		tracker.reset();
 	}
+
+	fn count_clear_prefix(&mut self) {
+		let tracker = &***self
+			.extension::<BenchTrackerExt>()
+			.expect("No `bench_tracker` associated for the current context!");
+		tracker.count_clear_prefix();
+	}
 }

@@ -6,7 +6,7 @@ use std::cell::RefCell;
 
 thread_local! {
 	static METER: RefCell<Meter> = RefCell::new(Meter {
-		used_weight: 0,
+		used_weight: Weight::zero(),
 		depth: 0,
 	});
 }

@@ -8,22 +8,22 @@ use frame_support::weights::{constants::RocksDbWeight as DbWeight, Weight};
 
 impl crate::WeightInfo for () {
 	fn transfer_non_native_currency() -> Weight {
-		(172_011_000 as Weight)
-			.saturating_add(DbWeight::get().reads(5 as Weight))
-			.saturating_add(DbWeight::get().writes(2 as Weight))
+		Weight::from_ref_time(172_011_000)
+			.saturating_add(DbWeight::get().reads(5 as u64))
+			.saturating_add(DbWeight::get().writes(2 as u64))
 	}
 	fn transfer_native_currency() -> Weight {
-		(43_023_000 as Weight)
+		Weight::from_ref_time(43_023_000)
 	}
 	fn update_balance_non_native_currency() -> Weight {
-		(137_440_000 as Weight)
-			.saturating_add(DbWeight::get().reads(5 as Weight))
-			.saturating_add(DbWeight::get().writes(2 as Weight))
+		Weight::from_ref_time(137_440_000)
+			.saturating_add(DbWeight::get().reads(5 as u64))
+			.saturating_add(DbWeight::get().writes(2 as u64))
 	}
 	fn update_balance_native_currency_creating() -> Weight {
-		(64_432_000 as Weight)
+		Weight::from_ref_time(64_432_000)
 	}
 	fn update_balance_native_currency_killing() -> Weight {
-		(62_595_000 as Weight)
+		Weight::from_ref_time(62_595_000)
 	}
 }

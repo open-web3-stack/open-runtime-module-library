@@ -87,7 +87,7 @@ pub enum Warning {
 	#[error("clear prefix without limit, cannot be tracked")]
 	ClearPrefixWithoutLimit,
 	#[error("child storage is not supported")]
-	ChildStorageNoSupported,
+	ChildStorageNotSupported,
 }
 
 pub struct BenchTracker {
@@ -99,6 +99,7 @@ pub struct BenchTracker {
 	clear_prefixes: RwLock<HashMap<StorageKey, u32>>,
 	warnings: RwLock<Vec<Warning>>,
 	whitelisted_keys: RwLock<HashMap<StorageKey, (bool, bool)>>,
+	count_clear_prefix: RwLock<bool>,
 }
 
 impl BenchTracker {
@@ -112,6 +113,7 @@ impl BenchTracker {
 			clear_prefixes: RwLock::new(HashMap::new()),
 			warnings: RwLock::new(Vec::new()),
 			whitelisted_keys: RwLock::new(HashMap::new()),
+			count_clear_prefix: RwLock::new(false),
 		}
 	}
 
@@ -152,7 +154,10 @@ impl BenchTracker {
 	}
 
 	pub fn on_read_child_storage(&self, _child_info: &ChildInfo, _key: StorageKey) {
-		self.warn(Warning::ChildStorageNoSupported);
+		if self.is_redundant() {
+			return;
+		}
+		self.warn(Warning::ChildStorageNotSupported);
 	}
 
 	pub fn on_update_storage(&self, key: StorageKey) {
@@ -172,11 +177,14 @@ impl BenchTracker {
 	}
 
 	pub fn on_update_child_storage(&self, _child_info: &ChildInfo, _key: StorageKey) {
-		self.warn(Warning::ChildStorageNoSupported);
+		if self.is_redundant() {
+			return;
+		}
+		self.warn(Warning::ChildStorageNotSupported);
 	}
 
 	pub fn on_clear_prefix(&self, prefix: &[u8], limit: Option<u32>) {
-		if self.is_redundant() {
+		if self.is_redundant() || !(*self.count_clear_prefix.read()) {
 			return;
 		}
 		if let Some(limit) = limit {
@@ -196,11 +204,17 @@ impl BenchTracker {
 	}
 
 	pub fn on_clear_child_prefix(&self, _child_info: &ChildInfo, _prefix: &[u8], _limit: Option<u32>) {
-		self.warn(Warning::ChildStorageNoSupported);
+		if self.is_redundant() {
+			return;
+		}
+		self.warn(Warning::ChildStorageNotSupported);
 	}
 
 	pub fn on_kill_child_storage(&self, _child_info: &ChildInfo, _limit: Option<u32>) {
-		self.warn(Warning::ChildStorageNoSupported);
+		if self.is_redundant() {
+			return;
+		}
+		self.warn(Warning::ChildStorageNotSupported);
 	}
 
 	/// Get the benchmark summary
@@ -325,6 +339,10 @@ impl BenchTracker {
 		whitelisted.insert(key, (read, write));
 	}
 
+	pub fn count_clear_prefix(&self) {
+		*self.count_clear_prefix.write() = true;
+	}
+
 	/// Reset for the next benchmark
 	pub fn reset(&self) {
 		*self.depth.write() = 0;
@@ -334,6 +352,7 @@ impl BenchTracker {
 		self.clear_prefixes.write().clear();
 		self.warnings.write().clear();
 		self.whitelisted_keys.write().clear();
+		*self.count_clear_prefix.write() = false;
 	}
 }
 
