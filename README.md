@@ -83,4 +83,3 @@ _In alphabetical order_
 - [Valiu Liquidity Network](https://github.com/valibre-org/vln-node)
 - [Zeitgeist](https://github.com/zeitgeistpm/zeitgeist)
 - [ZERO Network](https://github.com/playzero/subzero)
-
