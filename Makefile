@@ -61,3 +61,4 @@ benchmark-all:
 	cargo run --release --bin=acala --features=runtime-benchmarks -- benchmark --chain=dev --steps=50 --repeat=20 --pallet=orml_tokens --extrinsic="*" --execution=wasm --wasm-execution=compiled --heap-pages=4096 --output=./tokens/src/weights.rs --template ../templates/orml-weight-template.hbs
 
 	cargo run --release --bin=acala --features=runtime-benchmarks -- benchmark --chain=dev --steps=50 --repeat=20 --pallet=orml_vesting --extrinsic="*" --execution=wasm --wasm-execution=compiled --heap-pages=4096 --output=./vesting/src/weights.rs --template ../templates/orml-weight-template.hbs
+
