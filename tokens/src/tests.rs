@@ -5,7 +5,7 @@
 use super::*;
 use frame_support::{assert_noop, assert_ok};
 use frame_system::RawOrigin;
-use mock::{Event, *};
+use mock::*;
 use sp_runtime::{traits::BadOrigin, TokenError};
 
 // *************************************************
@@ -36,7 +36,7 @@ fn transfer_should_work() {
 		.build()
 		.execute_with(|| {
 			assert_ok!(Tokens::transfer(Some(ALICE).into(), BOB, DOT, 50));
-			System::assert_last_event(Event::Tokens(crate::Event::Transfer {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Transfer {
 				currency_id: DOT,
 				from: ALICE,
 				to: BOB,
@@ -83,7 +83,7 @@ fn transfer_keep_alive_should_work() {
 			);
 
 			assert_ok!(Tokens::transfer_keep_alive(Some(ALICE).into(), BOB, DOT, 98));
-			System::assert_last_event(Event::Tokens(crate::Event::Transfer {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Transfer {
 				currency_id: DOT,
 				from: ALICE,
 				to: BOB,
@@ -102,7 +102,7 @@ fn transfer_all_keep_alive_should_work() {
 		.execute_with(|| {
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
 			assert_ok!(Tokens::transfer_all(Some(ALICE).into(), CHARLIE, DOT, true));
-			System::assert_has_event(Event::Tokens(crate::Event::Transfer {
+			System::assert_has_event(RuntimeEvent::Tokens(crate::Event::Transfer {
 				currency_id: DOT,
 				from: ALICE,
 				to: CHARLIE,
@@ -114,7 +114,7 @@ fn transfer_all_keep_alive_should_work() {
 			assert_eq!(Tokens::accounts(&BOB, DOT).frozen, 50);
 			assert_eq!(Tokens::free_balance(DOT, &BOB), 100);
 			assert_ok!(Tokens::transfer_all(Some(BOB).into(), CHARLIE, DOT, true));
-			System::assert_has_event(Event::Tokens(crate::Event::Transfer {
+			System::assert_has_event(RuntimeEvent::Tokens(crate::Event::Transfer {
 				currency_id: DOT,
 				from: BOB,
 				to: CHARLIE,
@@ -133,7 +133,7 @@ fn transfer_all_allow_death_should_work() {
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
 			assert_ok!(Tokens::transfer_all(Some(ALICE).into(), CHARLIE, DOT, false));
 			assert_eq!(TrackCreatedAccounts::accounts(), vec![(CHARLIE, DOT)]);
-			System::assert_last_event(Event::Tokens(crate::Event::Transfer {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Transfer {
 				currency_id: DOT,
 				from: ALICE,
 				to: CHARLIE,
@@ -147,7 +147,7 @@ fn transfer_all_allow_death_should_work() {
 			assert_eq!(Tokens::accounts(&BOB, DOT).frozen, 50);
 			assert_eq!(Tokens::free_balance(DOT, &BOB), 100);
 			assert_ok!(Tokens::transfer_all(Some(BOB).into(), CHARLIE, DOT, false));
-			System::assert_last_event(Event::Tokens(crate::Event::Transfer {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Transfer {
 				currency_id: DOT,
 				from: BOB,
 				to: CHARLIE,
@@ -172,7 +172,7 @@ fn force_transfer_should_work() {
 
 			// imply AllowDeath
 			assert_ok!(Tokens::force_transfer(RawOrigin::Root.into(), ALICE, BOB, DOT, 100));
-			System::assert_last_event(Event::Tokens(crate::Event::Transfer {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Transfer {
 				currency_id: DOT,
 				from: ALICE,
 				to: BOB,
@@ -218,7 +218,7 @@ fn set_balance_should_work() {
 			assert_eq!(Tokens::total_issuance(DOT), 200);
 
 			assert_ok!(Tokens::set_balance(RawOrigin::Root.into(), ALICE, DOT, 200, 100));
-			System::assert_has_event(Event::Tokens(crate::Event::BalanceSet {
+			System::assert_has_event(RuntimeEvent::Tokens(crate::Event::BalanceSet {
 				currency_id: DOT,
 				who: ALICE,
 				free: 200,
@@ -234,7 +234,7 @@ fn set_balance_should_work() {
 			assert_eq!(Tokens::reserved_balance(DOT, &BOB), 0);
 
 			assert_ok!(Tokens::set_balance(RawOrigin::Root.into(), BOB, DOT, 0, 0));
-			System::assert_has_event(Event::Tokens(crate::Event::BalanceSet {
+			System::assert_has_event(RuntimeEvent::Tokens(crate::Event::BalanceSet {
 				currency_id: DOT,
 				who: BOB,
 				free: 0,
@@ -251,7 +251,7 @@ fn set_balance_should_work() {
 
 			// below ED,
 			assert_ok!(Tokens::set_balance(RawOrigin::Root.into(), CHARLIE, DOT, 1, 0));
-			System::assert_has_event(Event::Tokens(crate::Event::BalanceSet {
+			System::assert_has_event(RuntimeEvent::Tokens(crate::Event::BalanceSet {
 				currency_id: DOT,
 				who: CHARLIE,
 				free: 0,
@@ -1000,7 +1000,7 @@ fn endowed_account_work() {
 		assert_eq!(System::providers(&ALICE), 0);
 		assert!(!Accounts::<Runtime>::contains_key(ALICE, DOT));
 		Tokens::set_free_balance(DOT, &ALICE, 100);
-		System::assert_last_event(Event::Tokens(crate::Event::Endowed {
+		System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Endowed {
 			currency_id: DOT,
 			who: ALICE,
 			amount: 100,
@@ -1084,7 +1084,7 @@ fn dust_removal_work() {
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
 			assert_eq!(Tokens::free_balance(DOT, &DustReceiver::get()), 0);
 			Tokens::set_free_balance(DOT, &ALICE, 1);
-			System::assert_last_event(Event::Tokens(crate::Event::DustLost {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::DustLost {
 				currency_id: DOT,
 				who: ALICE,
 				amount: 1,
@@ -1103,7 +1103,7 @@ fn dust_removal_work() {
 			assert!(Accounts::<Runtime>::contains_key(DAVE, DOT));
 			assert_eq!(System::providers(&DAVE), 1);
 			assert_eq!(Tokens::free_balance(DOT, &DAVE), 1);
-			System::assert_last_event(Event::Tokens(crate::Event::Endowed {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Endowed {
 				currency_id: DOT,
 				who: DAVE,
 				amount: 1,
@@ -1122,7 +1122,7 @@ fn account_survive_due_to_dust_transfer_failure() {
 		assert!(!Accounts::<Runtime>::contains_key(ALICE, DOT));
 
 		Tokens::set_reserved_balance(DOT, &ALICE, 1);
-		System::assert_last_event(Event::Tokens(crate::Event::DustLost {
+		System::assert_last_event(RuntimeEvent::Tokens(crate::Event::DustLost {
 			currency_id: DOT,
 			who: ALICE,
 			amount: 1,

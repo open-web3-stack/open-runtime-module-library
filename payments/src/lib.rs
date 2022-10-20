@@ -102,7 +102,7 @@ pub mod pallet {
 	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's
 		/// definition of an event.
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// the type of assets this pallet can hold in payment
 		type Asset: MultiReservableCurrency<Self::AccountId>;
 		/// Dispute resolution account
@@ -239,7 +239,7 @@ pub mod pallet {
 				// order by oldest task to process
 				task_list.sort_by(|(_, t), (_, x)| x.when.cmp(&t.when));
 
-				while !task_list.is_empty() && remaining_weight >= cancel_weight {
+				while !task_list.is_empty() && remaining_weight.all_gte(cancel_weight) {
 					if let Some((account_pair, _)) = task_list.pop() {
 						remaining_weight = remaining_weight.saturating_sub(cancel_weight);
 						// remove the task form the tasks storage
