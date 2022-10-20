@@ -86,7 +86,7 @@ decl_test_parachain! {
 		DmpMessageHandler = para::DmpQueue,
 		new_ext = para_ext(4, Some((
 			vec![(
-				4,
+				0,
 				AssetMetadata::<Balance, para::CustomMetadata>::encode(&AssetMetadata {
 				decimals: 12,
 				name: "para G native token".as_bytes().to_vec(),
@@ -98,7 +98,7 @@ decl_test_parachain! {
 				},
 			})),
 			(
-				5,
+				1,
 				AssetMetadata::<Balance, para::CustomMetadata>::encode(&AssetMetadata {
 				decimals: 12,
 				name: "para G foreign token".as_bytes().to_vec(),
@@ -156,13 +156,10 @@ pub fn para_ext(para_id: u32, asset_data: Option<(Vec<(u32, Vec<u8>)>, u32)>) ->
 	.assimilate_storage(&mut t)
 	.unwrap();
 
-	if let Some((assets, last_asset_id)) = asset_data {
-		GenesisConfig::<Runtime> {
-			assets: assets,
-			last_asset_id: last_asset_id,
-		}
-		.assimilate_storage(&mut t)
-		.unwrap();
+	if let Some((assets, _)) = asset_data {
+		GenesisConfig::<Runtime> { assets: assets }
+			.assimilate_storage(&mut t)
+			.unwrap();
 	}
 
 	let mut ext = TestExternalities::new(t);

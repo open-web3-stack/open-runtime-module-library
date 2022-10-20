@@ -1,3 +1,5 @@
+[workspace]
+
 [package]
 authors = ["Virto Network <we@virto.team>"]
 edition = '2021'

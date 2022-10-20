@@ -4,7 +4,7 @@ use super::*;
 use crate as orml_asset_registry;
 use crate::tests::para::{AdminAssetTwo, AssetRegistry, CustomMetadata, Origin, TreasuryAccount};
 use frame_support::{assert_noop, assert_ok};
-use mock::{*};
+use mock::*;
 use orml_traits::MultiCurrency;
 use polkadot_parachain::primitives::Sibling;
 
@@ -78,9 +78,8 @@ fn genesis_issuance_should_work() {
 				fee_per_second: 1_000_000_000_000,
 			},
 		};
-		assert_eq!(AssetRegistry::metadata(4).unwrap(), metadata1);
-		assert_eq!(AssetRegistry::metadata(5).unwrap(), metadata2);
-		assert_eq!(LastAssetId::<para::Runtime>::get(), 5);
+		assert_eq!(AssetRegistry::metadata(0).unwrap(), metadata1);
+		assert_eq!(AssetRegistry::metadata(1).unwrap(), metadata2);
 	});
 }
 
