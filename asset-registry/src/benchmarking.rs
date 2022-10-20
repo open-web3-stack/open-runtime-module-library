@@ -6,7 +6,6 @@ use frame_system::RawOrigin;
 use mangata_types::assets::CustomMetadata;
 
 benchmarks! {
-
 		where_clause { where T::CustomMetadata: From<CustomMetadata>, T::AssetId: From<u32>, T::Balance: From<u32> }
 
 		register_asset {
