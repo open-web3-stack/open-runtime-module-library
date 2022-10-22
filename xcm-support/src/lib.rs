@@ -18,7 +18,7 @@ use xcm_executor::traits::{FilterAssetLocation, MatchesFungible};
 
 use orml_traits::{location::Reserve, GetByKey};
 
-pub use currency_adapter::{DepositToAlternative, MultiCurrencyAdapter, OnDepositFail};
+pub use currency_adapter::{DepositToAlternative, EqualDecimalsNormalizer, MultiCurrencyAdapter, OnDepositFail};
 
 mod currency_adapter;
 

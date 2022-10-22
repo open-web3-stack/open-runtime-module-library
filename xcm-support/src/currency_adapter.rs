@@ -5,8 +5,6 @@ use sp_runtime::{
 	DispatchError,
 };
 
-use num_traits::pow::checked_pow;
-
 use sp_std::{
 	cmp::{Eq, PartialEq},
 	fmt::Debug,
@@ -31,7 +29,7 @@ enum Error {
 	AccountIdConversionFailed,
 	/// `CurrencyId` conversion failed.
 	CurrencyIdConversionFailed,
-	/// Happens when normalizing to desired decimals failed
+	/// Failed to normalize to desired decimals
 	AmountNormalizationFailed,
 }
 
@@ -100,10 +98,9 @@ impl<
 }
 
 /// do not consider normalization needed
-struct EqualDecimals {}
-
-impl<CurrencyId> orml_traits::GetByKey<CurrencyId, i8> for EqualDecimals {
-	fn get(k: &CurrencyId) -> i8 {
+pub struct EqualDecimalsNormalizer {}
+impl<CurrencyId> orml_traits::GetByKey<CurrencyId, i8> for EqualDecimalsNormalizer {
+	fn get(_: &CurrencyId) -> i8 {
 		0
 	}
 }
@@ -142,6 +139,50 @@ pub struct MultiCurrencyAdapter<
 );
 
 impl<
+		MultiCurrency,
+		UnknownAsset,
+		Match,
+		AccountId,
+		AccountIdConvert,
+		CurrencyId,
+		CurrencyIdConvert,
+		DepositFailureHandler,
+		Normalizer,
+	>
+	MultiCurrencyAdapter<
+		MultiCurrency,
+		UnknownAsset,
+		Match,
+		AccountId,
+		AccountIdConvert,
+		CurrencyId,
+		CurrencyIdConvert,
+		DepositFailureHandler,
+		Normalizer,
+	> where
+	MultiCurrency: orml_traits::MultiCurrency<AccountId, CurrencyId = CurrencyId>,
+	CurrencyId: FullCodec + Eq + PartialEq + Copy + MaybeSerializeDeserialize + Debug,
+	Normalizer: orml_traits::GetByKey<CurrencyId, i8>,
+{
+	fn normalize(
+		currency_id: CurrencyId,
+		amount: <MultiCurrency as orml_traits::MultiCurrency<AccountId>>::Balance,
+	) -> sp_std::result::Result<<MultiCurrency as orml_traits::MultiCurrency<AccountId>>::Balance, XcmError> {
+		let decimals = Normalizer::get(&currency_id);
+		let amount = if decimals == 0 {
+			amount
+		} else if decimals > 0 {
+			num_traits::pow::checked_pow(amount, decimals as usize)
+				.ok_or_else(|| XcmError::from(Error::AmountNormalizationFailed))?
+		} else {
+			// may be risky to reduce to lost precision until proven it is safe
+			Err(XcmError::from(Error::AmountNormalizationFailed))?
+		};
+		Ok(amount)
+	}
+}
+
+impl<
 		MultiCurrency: orml_traits::MultiCurrency<AccountId, CurrencyId = CurrencyId>,
 		UnknownAsset: UnknownAssetT,
 		Match: MatchesFungible<MultiCurrency::Balance>,
@@ -172,17 +213,7 @@ impl<
 		) {
 			// known asset
 			(Ok(who), Some(currency_id), Some(amount)) => {
-				let decimals = Normalizer::get(&currency_id);
-				let amount = if decimals == 0 {
-					amount
-				} else if (decimals > 0) {
-					num_traits::pow::checked_pow(amount, decimals as usize).ok_or(Err(
-						Error::AmountNormalizationFailed.into(),
-					))?
-				} else {
-					// may be risky to reduce to lost precision until proven it is safe
-					Err(Error::AmountNormalizationFailed.into())?
-				};
+				let amount = Self::normalize(currency_id, amount)?;
 				MultiCurrency::deposit(currency_id, &who, amount)
 					.or_else(|err| DepositFailureHandler::on_deposit_currency_fail(err, currency_id, &who, amount))
 			}

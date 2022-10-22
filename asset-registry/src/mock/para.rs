@@ -17,7 +17,7 @@ use orml_traits::{
 	location::{AbsoluteReserveProvider, RelativeReserveProvider},
 	parameter_type_with_key, FixedConversionRateProvider, MultiCurrency,
 };
-use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
+use orml_xcm_support::{EqualDecimalsNormalizer, IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
 use sp_core::H256;
@@ -184,6 +184,7 @@ pub type LocalAssetTransactor = MultiCurrencyAdapter<
 	CurrencyId,
 	CurrencyIdConvert,
 	(),
+	EqualDecimalsNormalizer,
 >;
 
 pub type XcmRouter = ParachainXcmRouter<ParachainInfo>;

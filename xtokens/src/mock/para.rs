@@ -27,7 +27,7 @@ use xcm_executor::{Config, XcmExecutor};
 
 use crate::mock::AllTokensAreCreatedEqualToWeight;
 use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
-use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
+use orml_xcm_support::{EqualDecimalsNormalizer, IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
 
 pub type AccountId = AccountId32;
 
@@ -132,6 +132,7 @@ pub type LocalAssetTransactor = MultiCurrencyAdapter<
 	CurrencyId,
 	CurrencyIdConvert,
 	(),
+	EqualDecimalsNormalizer,
 >;
 
 pub type XcmRouter = ParachainXcmRouter<ParachainInfo>;
