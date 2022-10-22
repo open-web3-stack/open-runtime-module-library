@@ -4,6 +4,9 @@ use sp_runtime::{
 	traits::{Convert, MaybeSerializeDeserialize, SaturatedConversion},
 	DispatchError,
 };
+
+use num_traits::pow::checked_pow;
+
 use sp_std::{
 	cmp::{Eq, PartialEq},
 	fmt::Debug,
@@ -28,6 +31,8 @@ enum Error {
 	AccountIdConversionFailed,
 	/// `CurrencyId` conversion failed.
 	CurrencyIdConversionFailed,
+	/// Happens when normalizing to desired decimals failed
+	AmountNormalizationFailed,
 }
 
 impl From<Error> for XcmError {
@@ -36,6 +41,7 @@ impl From<Error> for XcmError {
 			Error::FailedToMatchFungible => XcmError::FailedToTransactAsset("FailedToMatchFungible"),
 			Error::AccountIdConversionFailed => XcmError::FailedToTransactAsset("AccountIdConversionFailed"),
 			Error::CurrencyIdConversionFailed => XcmError::FailedToTransactAsset("CurrencyIdConversionFailed"),
+			Error::AmountNormalizationFailed => XcmError::FailedToTransactAsset("AmountNormalizationFailed"),
 		}
 	}
 }
@@ -93,6 +99,15 @@ impl<
 	}
 }
 
+/// do not consider normalization needed
+struct EqualDecimals {}
+
+impl<CurrencyId> orml_traits::GetByKey<CurrencyId, i8> for EqualDecimals {
+	fn get(k: &CurrencyId) -> i8 {
+		0
+	}
+}
+
 /// The `TransactAsset` implementation, to handle `MultiAsset` deposit/withdraw.
 /// Note that teleport related functions are unimplemented.
 ///
@@ -111,6 +126,7 @@ pub struct MultiCurrencyAdapter<
 	CurrencyId,
 	CurrencyIdConvert,
 	DepositFailureHandler,
+	Normalizer,
 >(
 	PhantomData<(
 		MultiCurrency,
@@ -121,6 +137,7 @@ pub struct MultiCurrencyAdapter<
 		CurrencyId,
 		CurrencyIdConvert,
 		DepositFailureHandler,
+		Normalizer,
 	)>,
 );
 
@@ -133,6 +150,7 @@ impl<
 		CurrencyId: FullCodec + Eq + PartialEq + Copy + MaybeSerializeDeserialize + Debug,
 		CurrencyIdConvert: Convert<MultiAsset, Option<CurrencyId>>,
 		DepositFailureHandler: OnDepositFail<CurrencyId, AccountId, MultiCurrency::Balance>,
+		Normalizer: orml_traits::GetByKey<CurrencyId, i8>,
 	> TransactAsset
 	for MultiCurrencyAdapter<
 		MultiCurrency,
@@ -143,6 +161,7 @@ impl<
 		CurrencyId,
 		CurrencyIdConvert,
 		DepositFailureHandler,
+		Normalizer,
 	>
 {
 	fn deposit_asset(asset: &MultiAsset, location: &MultiLocation) -> Result {
@@ -152,8 +171,22 @@ impl<
 			Match::matches_fungible(asset),
 		) {
 			// known asset
-			(Ok(who), Some(currency_id), Some(amount)) => MultiCurrency::deposit(currency_id, &who, amount)
-				.or_else(|err| DepositFailureHandler::on_deposit_currency_fail(err, currency_id, &who, amount)),
+			(Ok(who), Some(currency_id), Some(amount)) => {
+				let decimals = Normalizer::get(&currency_id);
+				let amount = if decimals == 0 {
+					amount
+				} else if (decimals > 0) {
+					num_traits::pow::checked_pow(amount, decimals as usize).ok_or(Err(
+						Error::AmountNormalizationFailed.into(),
+					))?
+				} else {
+					// may be risky to reduce to lost precision until proven it is safe
+					Err(Error::AmountNormalizationFailed.into())?
+				};
+				MultiCurrency::deposit(currency_id, &who, amount)
+					.or_else(|err| DepositFailureHandler::on_deposit_currency_fail(err, currency_id, &who, amount))
+			}
+
 			// unknown asset
 			_ => UnknownAsset::deposit(asset, location)
 				.or_else(|err| DepositFailureHandler::on_deposit_unknown_asset_fail(err, asset, location)),
