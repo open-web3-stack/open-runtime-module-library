@@ -200,7 +200,7 @@ pub mod module {
 		/// received. Receiving depends on if the XCM message could be delivered
 		/// by the network, and if the receiving chain would handle
 		/// messages correctly.
-		#[pallet::weight(Pallet::<T>::weight_of_transfer(currency_id.clone(), *amount, dest))]
+		#[pallet::weight(Pallet::<T>::fixed_weight_of_transfer())]
 		#[transactional]
 		pub fn transfer(
 			origin: OriginFor<T>,
@@ -227,6 +227,7 @@ pub mod module {
 		/// by the network, and if the receiving chain would handle
 		/// messages correctly.
 		#[pallet::weight(Pallet::<T>::weight_of_transfer_multiasset(asset, dest))]
+		#[transactional]
 		pub fn transfer_multiasset(
 			origin: OriginFor<T>,
 			asset: Box<VersionedMultiAsset>,
@@ -260,7 +261,7 @@ pub mod module {
 		/// received. Receiving depends on if the XCM message could be delivered
 		/// by the network, and if the receiving chain would handle
 		/// messages correctly.
-		#[pallet::weight(Pallet::<T>::weight_of_transfer(currency_id.clone(), *amount, dest))]
+		#[pallet::weight(Pallet::<T>::fixed_weight_of_transfer())]
 		#[transactional]
 		pub fn transfer_with_fee(
 			origin: OriginFor<T>,
@@ -298,6 +299,7 @@ pub mod module {
 		/// by the network, and if the receiving chain would handle
 		/// messages correctly.
 		#[pallet::weight(Pallet::<T>::weight_of_transfer_multiasset(asset, dest))]
+		#[transactional]
 		pub fn transfer_multiasset_with_fee(
 			origin: OriginFor<T>,
 			asset: Box<VersionedMultiAsset>,
@@ -328,7 +330,7 @@ pub mod module {
 		/// received. Receiving depends on if the XCM message could be delivered
 		/// by the network, and if the receiving chain would handle
 		/// messages correctly.
-		#[pallet::weight(Pallet::<T>::weight_of_transfer_multicurrencies(currencies, fee_item, dest))]
+		#[pallet::weight(Pallet::<T>::fixed_weight_of_transfer())]
 		#[transactional]
 		pub fn transfer_multicurrencies(
 			origin: OriginFor<T>,
@@ -359,6 +361,7 @@ pub mod module {
 		/// by the network, and if the receiving chain would handle
 		/// messages correctly.
 		#[pallet::weight(Pallet::<T>::weight_of_transfer_multiassets(assets, fee_item, dest))]
+		#[transactional]
 		pub fn transfer_multiassets(
 			origin: OriginFor<T>,
 			assets: Box<VersionedMultiAssets>,
@@ -818,6 +821,9 @@ pub mod module {
 
 	// weights
 	impl<T: Config> Pallet<T> {
+		fn fixed_weight_of_transfer() -> Weight {
+			(2_000_000_000 as Weight).saturating_add(T::BaseXcmWeight::get())
+		}
 		/// Returns weight of `transfer_multiasset` call.
 		fn weight_of_transfer_multiasset(asset: &VersionedMultiAsset, dest: &VersionedMultiLocation) -> Weight {
 			let asset: Result<MultiAsset, _> = asset.clone().try_into();
