@@ -82,6 +82,23 @@ fn fungibles_unbalanced_trait_should_work() {
 				Ok(5)
 			);
 			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 0);
+			// set reserved
+			assert_ok!(<Tokens as fungibles::Unbalanced<_>>::set_balance(DOT, &ALICE, 100));
+			assert_ok!(<Tokens as MultiReservableCurrency<AccountId>>::reserve(DOT, &ALICE, 50));
+			assert_noop!(
+				<Tokens as fungibles::Unbalanced<_>>::decrease_balance(DOT, &ALICE, 60),
+				ArithmeticError::Underflow
+			);
+			assert_eq!(
+				<Tokens as fungibles::Unbalanced<_>>::decrease_balance(DOT, &ALICE, 50),
+				Ok(50)
+			);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 50);
+			assert_eq!(
+				<Tokens as MultiReservableCurrency<AccountId>>::unreserve(DOT, &ALICE, 50),
+				0
+			);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 50);
 
 			// decrease_balance_at_most
 			assert_ok!(<Tokens as fungibles::Unbalanced<_>>::set_balance(DOT, &ALICE, 10));
@@ -102,8 +119,26 @@ fn fungibles_unbalanced_trait_should_work() {
 				5
 			);
 			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 0);
+			// set reserved
+			assert_ok!(<Tokens as fungibles::Unbalanced<_>>::set_balance(DOT, &ALICE, 100));
+			assert_ok!(<Tokens as MultiReservableCurrency<AccountId>>::reserve(DOT, &ALICE, 50));
+			assert_eq!(
+				<Tokens as fungibles::Unbalanced<_>>::decrease_balance_at_most(DOT, &ALICE, 60),
+				0
+			);
+			assert_eq!(
+				<Tokens as fungibles::Unbalanced<_>>::decrease_balance_at_most(DOT, &ALICE, 50),
+				50
+			);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 50);
+			assert_eq!(
+				<Tokens as MultiReservableCurrency<AccountId>>::unreserve(DOT, &ALICE, 50),
+				0
+			);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 50);
 
 			// increase_balance
+			assert_ok!(<Tokens as fungibles::Unbalanced<_>>::set_balance(DOT, &ALICE, 0));
 			assert_noop!(
 				<Tokens as fungibles::Unbalanced<_>>::increase_balance(DOT, &ALICE, 1),
 				TokenError::BelowMinimum
