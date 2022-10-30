@@ -68,7 +68,7 @@ impl EnsureOrigin<RuntimeOrigin> for EnsureAliceOrBob {
 	}
 
 	#[cfg(feature = "runtime-benchmarks")]
-	fn successful_origin() -> Origin {
+	fn successful_origin() -> RuntimeOrigin {
 		let zero_account_id = AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes())
 			.expect("infinite length input; no invalid inputs for type; qed");
 		Origin::from(RawOrigin::Signed(zero_account_id))
