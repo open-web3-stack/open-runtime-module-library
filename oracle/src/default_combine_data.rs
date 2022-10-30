@@ -23,7 +23,7 @@ where
 		let expires_in = ExpiresIn::get();
 		let now = T::Time::now();
 
-		values.retain(|x| x.timestamp + expires_in > now);
+		values.retain(|x| x.timestamp.saturating_add(expires_in) > now);
 
 		let count = values.len() as u32;
 		let minimum_count = MinimumCount::get();

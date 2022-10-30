@@ -5,7 +5,7 @@ pub use frame_support::{
 	transactional,
 };
 use sp_runtime::{
-	traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize},
+	traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize, Saturating},
 	DispatchError, DispatchResult,
 };
 use sp_std::{
@@ -304,12 +304,12 @@ pub trait NamedMultiReservableCurrency<AccountId>: MultiReservableCurrency<Accou
 		match current.cmp(&value) {
 			Ordering::Less => {
 				// we checked value > current
-				Self::reserve_named(id, currency_id, who, value - current)
+				Self::reserve_named(id, currency_id, who, value.saturating_sub(current))
 			}
 			Ordering::Equal => Ok(()),
 			Ordering::Greater => {
 				// we always have enough balance to unreserve here
-				Self::unreserve_named(id, currency_id, who, current - value);
+				Self::unreserve_named(id, currency_id, who, current.saturating_sub(value));
 				Ok(())
 			}
 		}
@@ -586,12 +586,12 @@ pub trait NamedBasicReservableCurrency<AccountId, ReserveIdentifier>: BasicReser
 		match current.cmp(&value) {
 			Ordering::Less => {
 				// we checked value > current
-				Self::reserve_named(id, who, value - current)
+				Self::reserve_named(id, who, value.saturating_sub(current))
 			}
 			Ordering::Equal => Ok(()),
 			Ordering::Greater => {
 				// we always have enough balance to unreserve here
-				Self::unreserve_named(id, who, current - value);
+				Self::unreserve_named(id, who, current.saturating_sub(value));
 				Ok(())
 			}
 		}
