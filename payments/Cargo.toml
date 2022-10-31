@@ -44,3 +44,8 @@ std = [
 	'orml-traits/std',
 	'orml-tokens/std'
 ]
+
+try-runtime = [
+	"frame-system/try-runtime",
+	"frame-support/try-runtime",
+]
