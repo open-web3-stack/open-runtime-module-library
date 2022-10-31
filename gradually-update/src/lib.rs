@@ -31,7 +31,10 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use scale_info::TypeInfo;
-use sp_runtime::{traits::SaturatedConversion, DispatchResult, RuntimeDebug};
+use sp_runtime::{
+	traits::{SaturatedConversion, Saturating},
+	DispatchResult, RuntimeDebug,
+};
 
 mod default_weight;
 mod mock;

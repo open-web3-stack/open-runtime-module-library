@@ -1,6 +1,7 @@
 use crate::{Config, MomentOf, TimestampedValueOf};
 use frame_support::traits::{Get, Time};
 use orml_traits::CombineData;
+use sp_runtime::traits::Saturating;
 use sp_std::{marker, prelude::*};
 
 /// Sort by value and returns median timestamped value.
