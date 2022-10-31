@@ -1344,8 +1344,10 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 		Self::ensure_can_withdraw(currency_id, who, value)?;
 
 		Self::mutate_account(who, currency_id, |account, _| {
-			account.free = account.free.checked_sub(&value).ok_or(ArithmeticError::Underflow)?;
-			account.reserved = account.reserved.checked_add(&value).ok_or(ArithmeticError::Overflow)?;
+			// this sub can't underflow but just to be defensive here.
+			account.free = account.free.defensive_saturating_sub(value);
+			// this add can't overflow but just to be defensive here.
+			account.reserved = account.reserved.defensive_saturating_add(value);
 
 			Self::deposit_event(Event::Reserved {
 				currency_id,
