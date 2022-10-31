@@ -140,16 +140,16 @@ type Block = frame_system::mocking::MockBlock<Runtime>;
 type Balance = u128;
 
 impl frame_system::Config for Runtime {
-	type Origin = Origin;
+	type RuntimeOrigin = RuntimeOrigin;
 	type Index = u64;
 	type BlockNumber = BlockNumber;
-	type Call = Call;
+	type RuntimeCall = RuntimeCall;
 	type Hash = H256;
 	type Hashing = ::sp_runtime::traits::BlakeTwo256;
 	type AccountId = u64;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = ConstU64<250>;
 	type BlockWeights = ();
 	type BlockLength = ();
@@ -168,7 +168,7 @@ impl frame_system::Config for Runtime {
 
 impl pallet_balances::Config for Runtime {
 	type Balance = Balance;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type DustRemoval = ();
 	type ExistentialDeposit = ConstU128<1>;
 	type AccountStore = frame_system::Pallet<Runtime>;

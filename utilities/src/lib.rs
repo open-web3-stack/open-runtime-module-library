@@ -56,7 +56,7 @@ mod tests {
 	pub trait Config: frame_system::Config {}
 
 	decl_module! {
-		pub struct Module<T: Config> for enum Call where origin: T::Origin {}
+		pub struct Module<T: Config> for enum Call where origin: T::RuntimeOrigin {}
 	}
 
 	decl_storage! {

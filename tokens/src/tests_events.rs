@@ -4,7 +4,7 @@
 
 use super::*;
 use frame_support::assert_ok;
-use mock::{Event, *};
+use mock::*;
 
 #[test]
 fn pallet_multicurrency_deposit_events() {
@@ -13,7 +13,7 @@ fn pallet_multicurrency_deposit_events() {
 		.build()
 		.execute_with(|| {
 			assert_ok!(<Tokens as MultiCurrency<AccountId>>::transfer(DOT, &ALICE, &BOB, 10));
-			System::assert_last_event(Event::Tokens(crate::Event::Transfer {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Transfer {
 				currency_id: DOT,
 				from: ALICE,
 				to: BOB,
@@ -21,14 +21,14 @@ fn pallet_multicurrency_deposit_events() {
 			}));
 
 			assert_ok!(<Tokens as MultiCurrency<AccountId>>::deposit(DOT, &ALICE, 10));
-			System::assert_last_event(Event::Tokens(crate::Event::Deposited {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Deposited {
 				currency_id: DOT,
 				who: ALICE,
 				amount: 10,
 			}));
 
 			assert_ok!(<Tokens as MultiCurrency<AccountId>>::withdraw(DOT, &ALICE, 10));
-			System::assert_last_event(Event::Tokens(crate::Event::Withdrawn {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Withdrawn {
 				currency_id: DOT,
 				who: ALICE,
 				amount: 10,
@@ -36,7 +36,7 @@ fn pallet_multicurrency_deposit_events() {
 
 			assert_ok!(<Tokens as MultiReservableCurrency<AccountId>>::reserve(DOT, &ALICE, 50));
 			assert_eq!(<Tokens as MultiCurrency<AccountId>>::slash(DOT, &ALICE, 60), 0);
-			System::assert_last_event(Event::Tokens(crate::Event::Slashed {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Slashed {
 				currency_id: DOT,
 				who: ALICE,
 				free_amount: 40,
@@ -54,7 +54,7 @@ fn pallet_multicurrency_extended_deposit_events() {
 			assert_ok!(<Tokens as MultiCurrencyExtended<AccountId>>::update_balance(
 				DOT, &ALICE, 500
 			));
-			System::assert_last_event(Event::Tokens(crate::Event::Deposited {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Deposited {
 				currency_id: DOT,
 				who: ALICE,
 				amount: 500,
@@ -62,7 +62,7 @@ fn pallet_multicurrency_extended_deposit_events() {
 			assert_ok!(<Tokens as MultiCurrencyExtended<AccountId>>::update_balance(
 				DOT, &ALICE, -500
 			));
-			System::assert_last_event(Event::Tokens(crate::Event::Withdrawn {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Withdrawn {
 				currency_id: DOT,
 				who: ALICE,
 				amount: 500,
@@ -79,7 +79,7 @@ fn pallet_multi_lockable_currency_deposit_events() {
 			assert_ok!(<Tokens as MultiLockableCurrency<AccountId>>::set_lock(
 				[0u8; 8], DOT, &ALICE, 10
 			));
-			System::assert_last_event(Event::Tokens(crate::Event::LockSet {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::LockSet {
 				lock_id: [0u8; 8],
 				currency_id: DOT,
 				who: ALICE,
@@ -89,7 +89,7 @@ fn pallet_multi_lockable_currency_deposit_events() {
 			assert_ok!(<Tokens as MultiLockableCurrency<AccountId>>::remove_lock(
 				[0u8; 8], DOT, &ALICE
 			));
-			System::assert_last_event(Event::Tokens(crate::Event::LockRemoved {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::LockRemoved {
 				lock_id: [0u8; 8],
 				currency_id: DOT,
 				who: ALICE,
@@ -106,7 +106,7 @@ fn pallet_multi_reservable_currency_deposit_events() {
 			assert_ok!(<Tokens as MultiReservableCurrency<AccountId>>::reserve(
 				DOT, &ALICE, 500
 			));
-			System::assert_last_event(Event::Tokens(crate::Event::Reserved {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Reserved {
 				currency_id: DOT,
 				who: ALICE,
 				amount: 500,
@@ -116,7 +116,7 @@ fn pallet_multi_reservable_currency_deposit_events() {
 				<Tokens as MultiReservableCurrency<AccountId>>::slash_reserved(DOT, &ALICE, 300),
 				0
 			);
-			System::assert_last_event(Event::Tokens(crate::Event::Slashed {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Slashed {
 				currency_id: DOT,
 				who: ALICE,
 				free_amount: 0,
@@ -127,7 +127,7 @@ fn pallet_multi_reservable_currency_deposit_events() {
 				<Tokens as MultiReservableCurrency<AccountId>>::unreserve(DOT, &ALICE, 100),
 				0
 			);
-			System::assert_last_event(Event::Tokens(crate::Event::Unreserved {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Unreserved {
 				currency_id: DOT,
 				who: ALICE,
 				amount: 100,
@@ -140,7 +140,7 @@ fn pallet_multi_reservable_currency_deposit_events() {
 				100,
 				BalanceStatus::Free
 			));
-			System::assert_last_event(Event::Tokens(crate::Event::ReserveRepatriated {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::ReserveRepatriated {
 				currency_id: DOT,
 				from: ALICE,
 				to: BOB,
@@ -157,13 +157,13 @@ fn pallet_fungibles_mutate_deposit_events() {
 		.build()
 		.execute_with(|| {
 			assert_ok!(<Tokens as fungibles::Mutate<AccountId>>::mint_into(DOT, &ALICE, 500));
-			System::assert_last_event(Event::Tokens(crate::Event::Deposited {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Deposited {
 				currency_id: DOT,
 				who: ALICE,
 				amount: 500,
 			}));
 			assert_ok!(<Tokens as fungibles::Mutate<AccountId>>::burn_from(DOT, &ALICE, 500));
-			System::assert_last_event(Event::Tokens(crate::Event::Withdrawn {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Withdrawn {
 				currency_id: DOT,
 				who: ALICE,
 				amount: 500,
@@ -180,7 +180,7 @@ fn pallet_fungibles_transfer_deposit_events() {
 			assert_ok!(<Tokens as fungibles::Transfer<AccountId>>::transfer(
 				DOT, &ALICE, &BOB, 50, true
 			));
-			System::assert_last_event(Event::Tokens(crate::Event::Transfer {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Transfer {
 				currency_id: DOT,
 				from: ALICE,
 				to: BOB,
@@ -199,7 +199,7 @@ fn pallet_fungibles_unbalanced_deposit_events() {
 			assert_ok!(<Tokens as fungibles::Unbalanced<AccountId>>::set_balance(
 				DOT, &ALICE, 500
 			));
-			System::assert_last_event(Event::Tokens(crate::Event::BalanceSet {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::BalanceSet {
 				currency_id: DOT,
 				who: ALICE,
 				free: 500,
@@ -207,7 +207,7 @@ fn pallet_fungibles_unbalanced_deposit_events() {
 			}));
 
 			<Tokens as fungibles::Unbalanced<AccountId>>::set_total_issuance(DOT, 1000);
-			System::assert_last_event(Event::Tokens(crate::Event::TotalIssuanceSet {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::TotalIssuanceSet {
 				currency_id: DOT,
 				amount: 1000,
 			}));
@@ -221,7 +221,7 @@ fn pallet_fungibles_mutate_hold_deposit_events() {
 		.build()
 		.execute_with(|| {
 			assert_ok!(<Tokens as fungibles::MutateHold<AccountId>>::hold(DOT, &ALICE, 50));
-			System::assert_last_event(Event::Tokens(crate::Event::Reserved {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Reserved {
 				currency_id: DOT,
 				who: ALICE,
 				amount: 50,
@@ -230,7 +230,7 @@ fn pallet_fungibles_mutate_hold_deposit_events() {
 			assert_ok!(<Tokens as fungibles::MutateHold<AccountId>>::transfer_held(
 				DOT, &ALICE, &BOB, 50, true, true
 			));
-			System::assert_last_event(Event::Tokens(crate::Event::ReserveRepatriated {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::ReserveRepatriated {
 				currency_id: DOT,
 				from: ALICE,
 				to: BOB,
@@ -242,7 +242,7 @@ fn pallet_fungibles_mutate_hold_deposit_events() {
 				<Tokens as fungibles::MutateHold<AccountId>>::release(DOT, &BOB, 50, true),
 				Ok(50)
 			);
-			System::assert_last_event(Event::Tokens(crate::Event::Unreserved {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Unreserved {
 				currency_id: DOT,
 				who: BOB,
 				amount: 50,
@@ -258,13 +258,13 @@ fn currency_adapter_pallet_currency_deposit_events() {
 		.execute_with(|| {
 			// Use std::mem::forget to get rid the returned imbalance.
 			std::mem::forget(<MockCurrencyAdapter as PalletCurrency<AccountId>>::burn(500));
-			System::assert_last_event(Event::Tokens(crate::Event::TotalIssuanceSet {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::TotalIssuanceSet {
 				currency_id: DOT,
 				amount: 0,
 			}));
 
 			std::mem::forget(<MockCurrencyAdapter as PalletCurrency<AccountId>>::issue(200));
-			System::assert_last_event(Event::Tokens(crate::Event::TotalIssuanceSet {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::TotalIssuanceSet {
 				currency_id: DOT,
 				amount: 200,
 			}));
@@ -275,7 +275,7 @@ fn currency_adapter_pallet_currency_deposit_events() {
 				50,
 				ExistenceRequirement::AllowDeath
 			));
-			System::assert_last_event(Event::Tokens(crate::Event::Transfer {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Transfer {
 				currency_id: DOT,
 				from: ALICE,
 				to: BOB,
@@ -284,7 +284,7 @@ fn currency_adapter_pallet_currency_deposit_events() {
 
 			assert_ok!(<Tokens as MultiReservableCurrency<AccountId>>::reserve(DOT, &BOB, 50));
 			std::mem::forget(<MockCurrencyAdapter as PalletCurrency<AccountId>>::slash(&BOB, 110));
-			System::assert_last_event(Event::Tokens(crate::Event::Slashed {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Slashed {
 				currency_id: DOT,
 				who: BOB,
 				free_amount: 100,
@@ -292,7 +292,7 @@ fn currency_adapter_pallet_currency_deposit_events() {
 			}));
 
 			std::mem::forget(<MockCurrencyAdapter as PalletCurrency<AccountId>>::make_free_balance_be(&BOB, 200));
-			System::assert_last_event(Event::Tokens(crate::Event::BalanceSet {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::BalanceSet {
 				currency_id: DOT,
 				who: BOB,
 				free: 200,

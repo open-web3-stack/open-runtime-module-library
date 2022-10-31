@@ -4,7 +4,7 @@
 
 use super::*;
 use frame_support::{assert_noop, assert_ok};
-use mock::{Event, *};
+use mock::*;
 
 #[test]
 fn multicurrency_deposit_work() {
@@ -196,7 +196,7 @@ fn multi_reservable_currency_reserve_work() {
 			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 0);
 			assert_eq!(Tokens::total_balance(DOT, &ALICE), 100);
 			assert_ok!(Tokens::reserve(DOT, &ALICE, 50));
-			System::assert_last_event(Event::Tokens(crate::Event::Reserved {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Reserved {
 				currency_id: DOT,
 				who: ALICE,
 				amount: 50,
@@ -212,7 +212,7 @@ fn multi_reservable_currency_reserve_work() {
 			// ensure will not trigger Endowed event
 			assert!(System::events().iter().all(|record| !matches!(
 				record.event,
-				Event::Tokens(crate::Event::Endowed {
+				RuntimeEvent::Tokens(crate::Event::Endowed {
 					currency_id: DOT,
 					who: ALICE,
 					amount: _
@@ -231,13 +231,13 @@ fn multi_reservable_currency_unreserve_work() {
 			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 0);
 			assert_eq!(Tokens::unreserve(DOT, &ALICE, 0), 0);
 			assert_eq!(Tokens::unreserve(DOT, &ALICE, 50), 50);
-			System::assert_last_event(Event::Tokens(crate::Event::Unreserved {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Unreserved {
 				currency_id: DOT,
 				who: ALICE,
 				amount: 0,
 			}));
 			assert_ok!(Tokens::reserve(DOT, &ALICE, 30));
-			System::assert_last_event(Event::Tokens(crate::Event::Reserved {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Reserved {
 				currency_id: DOT,
 				who: ALICE,
 				amount: 30,
@@ -245,7 +245,7 @@ fn multi_reservable_currency_unreserve_work() {
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 70);
 			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 30);
 			assert_eq!(Tokens::unreserve(DOT, &ALICE, 15), 0);
-			System::assert_last_event(Event::Tokens(crate::Event::Unreserved {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Unreserved {
 				currency_id: DOT,
 				who: ALICE,
 				amount: 15,
@@ -253,7 +253,7 @@ fn multi_reservable_currency_unreserve_work() {
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 85);
 			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 15);
 			assert_eq!(Tokens::unreserve(DOT, &ALICE, 30), 15);
-			System::assert_last_event(Event::Tokens(crate::Event::Unreserved {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Unreserved {
 				currency_id: DOT,
 				who: ALICE,
 				amount: 15,
@@ -263,7 +263,7 @@ fn multi_reservable_currency_unreserve_work() {
 			// ensure will not trigger Endowed event
 			assert!(System::events().iter().all(|record| !matches!(
 				record.event,
-				Event::Tokens(crate::Event::Endowed {
+				RuntimeEvent::Tokens(crate::Event::Endowed {
 					currency_id: DOT,
 					who: ALICE,
 					amount: _
@@ -289,7 +289,7 @@ fn multi_reservable_currency_repatriate_reserved_work() {
 				Ok(50)
 			);
 			// Repatriating from and to the same account, fund is `unreserved`.
-			System::assert_last_event(Event::Tokens(crate::Event::Unreserved {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Unreserved {
 				currency_id: DOT,
 				who: ALICE,
 				amount: 0,
@@ -315,7 +315,7 @@ fn multi_reservable_currency_repatriate_reserved_work() {
 				Tokens::repatriate_reserved(DOT, &BOB, &ALICE, 30, BalanceStatus::Reserved),
 				Ok(0)
 			);
-			System::assert_last_event(Event::Tokens(crate::Event::ReserveRepatriated {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::ReserveRepatriated {
 				currency_id: DOT,
 				from: BOB,
 				to: ALICE,
@@ -334,7 +334,7 @@ fn multi_reservable_currency_repatriate_reserved_work() {
 			);
 
 			// Actual amount repatriated is 20.
-			System::assert_last_event(Event::Tokens(crate::Event::ReserveRepatriated {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::ReserveRepatriated {
 				currency_id: DOT,
 				from: BOB,
 				to: ALICE,
@@ -448,7 +448,7 @@ fn named_multi_reservable_currency_reserve_work() {
 			assert_eq!(Tokens::reserved_balance_named(&RID_1, DOT, &ALICE), 0);
 			assert_eq!(Tokens::total_balance(DOT, &ALICE), 100);
 			assert_ok!(Tokens::reserve_named(&RID_1, DOT, &ALICE, 50));
-			System::assert_last_event(Event::Tokens(crate::Event::Reserved {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Reserved {
 				currency_id: DOT,
 				who: ALICE,
 				amount: 50,
@@ -459,7 +459,7 @@ fn named_multi_reservable_currency_reserve_work() {
 			assert_eq!(Tokens::total_balance(DOT, &ALICE), 100);
 
 			assert_ok!(Tokens::reserve_named(&RID_2, DOT, &ALICE, 50));
-			System::assert_last_event(Event::Tokens(crate::Event::Reserved {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Reserved {
 				currency_id: DOT,
 				who: ALICE,
 				amount: 50,
@@ -474,7 +474,7 @@ fn named_multi_reservable_currency_reserve_work() {
 			// ensure will not trigger Endowed event
 			assert!(System::events().iter().all(|record| !matches!(
 				record.event,
-				Event::Tokens(crate::Event::Endowed {
+				RuntimeEvent::Tokens(crate::Event::Endowed {
 					currency_id: DOT,
 					who: ALICE,
 					amount: _
@@ -494,7 +494,7 @@ fn named_multi_reservable_currency_unreserve_work() {
 			assert_eq!(Tokens::unreserve_named(&RID_1, DOT, &ALICE, 0), 0);
 
 			assert_ok!(Tokens::reserve_named(&RID_1, DOT, &ALICE, 30));
-			System::assert_last_event(Event::Tokens(crate::Event::Reserved {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Reserved {
 				currency_id: DOT,
 				who: ALICE,
 				amount: 30,
@@ -504,7 +504,7 @@ fn named_multi_reservable_currency_unreserve_work() {
 			assert_eq!(Tokens::reserved_balance_named(&RID_1, DOT, &ALICE), 30);
 
 			assert_ok!(Tokens::reserve_named(&RID_2, DOT, &ALICE, 30));
-			System::assert_last_event(Event::Tokens(crate::Event::Reserved {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Reserved {
 				currency_id: DOT,
 				who: ALICE,
 				amount: 30,
@@ -515,7 +515,7 @@ fn named_multi_reservable_currency_unreserve_work() {
 			assert_eq!(Tokens::reserved_balance_named(&RID_2, DOT, &ALICE), 30);
 
 			assert_eq!(Tokens::unreserve_named(&RID_1, DOT, &ALICE, 30), 0);
-			System::assert_last_event(Event::Tokens(crate::Event::Unreserved {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Unreserved {
 				currency_id: DOT,
 				who: ALICE,
 				amount: 30,
@@ -526,7 +526,7 @@ fn named_multi_reservable_currency_unreserve_work() {
 			assert_eq!(Tokens::reserved_balance_named(&RID_2, DOT, &ALICE), 30);
 
 			assert_eq!(Tokens::unreserve_named(&RID_2, DOT, &ALICE, 30), 0);
-			System::assert_last_event(Event::Tokens(crate::Event::Unreserved {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Unreserved {
 				currency_id: DOT,
 				who: ALICE,
 				amount: 30,
@@ -538,7 +538,7 @@ fn named_multi_reservable_currency_unreserve_work() {
 			// ensure will not trigger Endowed event
 			assert!(System::events().iter().all(|record| !matches!(
 				record.event,
-				Event::Tokens(crate::Event::Endowed {
+				RuntimeEvent::Tokens(crate::Event::Endowed {
 					currency_id: DOT,
 					who: ALICE,
 					amount: _
@@ -584,7 +584,7 @@ fn named_multi_reservable_currency_repatriate_reserved_work() {
 				Tokens::repatriate_reserved_named(&RID_1, DOT, &BOB, &ALICE, 30, BalanceStatus::Reserved),
 				Ok(0)
 			);
-			System::assert_last_event(Event::Tokens(crate::Event::ReserveRepatriated {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::ReserveRepatriated {
 				currency_id: DOT,
 				from: BOB,
 				to: ALICE,
@@ -605,7 +605,7 @@ fn named_multi_reservable_currency_repatriate_reserved_work() {
 			);
 
 			// Actual amount repatriated is 20.
-			System::assert_last_event(Event::Tokens(crate::Event::ReserveRepatriated {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::ReserveRepatriated {
 				currency_id: DOT,
 				from: BOB,
 				to: ALICE,
@@ -722,7 +722,7 @@ fn named_multi_reservable_repatriate_all_reserved_named_works() {
 			assert_eq!(Tokens::free_balance(DOT, &BOB), 100);
 			assert_eq!(Tokens::reserved_balance_named(&RID_1, DOT, &BOB), 50);
 
-			System::assert_last_event(Event::Tokens(crate::Event::ReserveRepatriated {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::ReserveRepatriated {
 				currency_id: DOT,
 				from: ALICE,
 				to: BOB,

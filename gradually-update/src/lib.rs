@@ -66,14 +66,14 @@ pub mod module {
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		/// The frequency of updating values between blocks
 		#[pallet::constant]
 		type UpdateFrequency: Get<Self::BlockNumber>;
 
 		/// The origin that can schedule an update
-		type DispatchOrigin: EnsureOrigin<Self::Origin>;
+		type DispatchOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
 		/// Weight information for extrinsics in this module.
 		type WeightInfo: WeightInfo;

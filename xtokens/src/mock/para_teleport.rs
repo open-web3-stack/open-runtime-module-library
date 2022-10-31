@@ -33,8 +33,8 @@ use orml_xcm_support::{DisabledParachainFee, IsNativeConcrete, MultiNativeAsset}
 pub type AccountId = AccountId32;
 
 impl frame_system::Config for Runtime {
-	type Origin = Origin;
-	type Call = Call;
+	type RuntimeOrigin = RuntimeOrigin;
+	type RuntimeCall = RuntimeCall;
 	type Index = u64;
 	type BlockNumber = u64;
 	type Hash = H256;
@@ -42,7 +42,7 @@ impl frame_system::Config for Runtime {
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = ConstU64<250>;
 	type BlockWeights = ();
 	type BlockLength = ();
@@ -62,7 +62,7 @@ impl frame_system::Config for Runtime {
 impl pallet_balances::Config for Runtime {
 	type MaxLocks = ConstU32<50>;
 	type Balance = Balance;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type DustRemoval = ();
 	type ExistentialDeposit = ConstU128<1>;
 	type AccountStore = System;
@@ -78,7 +78,7 @@ parameter_type_with_key! {
 }
 
 impl orml_tokens::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
 	type Amount = Amount;
 	type CurrencyId = CurrencyId;
@@ -106,7 +106,7 @@ impl parachain_info::Config for Runtime {}
 parameter_types! {
 	pub const RelayLocation: MultiLocation = MultiLocation::parent();
 	pub const RelayNetwork: NetworkId = NetworkId::Kusama;
-	pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
+	pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
 	pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
 }
 
@@ -117,11 +117,11 @@ pub type LocationToAccountId = (
 );
 
 pub type XcmOriginToCallOrigin = (
-	SovereignSignedViaLocation<LocationToAccountId, Origin>,
-	RelayChainAsNative<RelayChainOrigin, Origin>,
-	SiblingParachainAsNative<cumulus_pallet_xcm::Origin, Origin>,
-	SignedAccountId32AsNative<RelayNetwork, Origin>,
-	XcmPassthrough<Origin>,
+	SovereignSignedViaLocation<LocationToAccountId, RuntimeOrigin>,
+	RelayChainAsNative<RelayChainOrigin, RuntimeOrigin>,
+	SiblingParachainAsNative<cumulus_pallet_xcm::Origin, RuntimeOrigin>,
+	SignedAccountId32AsNative<RelayNetwork, RuntimeOrigin>,
+	XcmPassthrough<RuntimeOrigin>,
 );
 
 pub type LocalAssetTransactor = MultiTeleportCurrencyAdapter<
@@ -140,7 +140,7 @@ pub type Barrier = (TakeWeightCredit, AllowTopLevelPaidExecutionFrom<Everything>
 
 pub struct XcmConfig;
 impl Config for XcmConfig {
-	type Call = Call;
+	type RuntimeCall = RuntimeCall;
 	type XcmSender = XcmRouter;
 	type AssetTransactor = LocalAssetTransactor;
 	type OriginConverter = XcmOriginToCallOrigin;
@@ -148,7 +148,7 @@ impl Config for XcmConfig {
 	type IsTeleporter = NativeAsset;
 	type LocationInverter = LocationInverter<Ancestry>;
 	type Barrier = Barrier;
-	type Weigher = FixedWeightBounds<ConstU64<10>, Call, ConstU32<100>>;
+	type Weigher = FixedWeightBounds<ConstU64<10>, RuntimeCall, ConstU32<100>>;
 	type Trader = AllTokensAreCreatedEqualToWeight;
 	type ResponseHandler = ();
 	type AssetTrap = PolkadotXcm;
@@ -167,7 +167,7 @@ impl GetChannelInfo for ChannelInfo {
 }
 
 impl cumulus_pallet_xcmp_queue::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type ChannelInfo = ChannelInfo;
 	type VersionWrapper = ();
@@ -178,31 +178,31 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
 }
 
 impl cumulus_pallet_dmp_queue::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
 }
 
 impl cumulus_pallet_xcm::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 }
 
-pub type LocalOriginToLocation = SignedToAccountId32<Origin, AccountId, RelayNetwork>;
+pub type LocalOriginToLocation = SignedToAccountId32<RuntimeOrigin, AccountId, RelayNetwork>;
 
 impl pallet_xcm::Config for Runtime {
-	type Event = Event;
-	type SendXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
+	type RuntimeEvent = RuntimeEvent;
+	type SendXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, LocalOriginToLocation>;
 	type XcmRouter = XcmRouter;
-	type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
+	type ExecuteXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, LocalOriginToLocation>;
 	type XcmExecuteFilter = Everything;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type XcmTeleportFilter = Nothing;
 	type XcmReserveTransferFilter = Everything;
-	type Weigher = FixedWeightBounds<ConstU64<10>, Call, ConstU32<100>>;
+	type Weigher = FixedWeightBounds<ConstU64<10>, RuntimeCall, ConstU32<100>>;
 	type LocationInverter = LocationInverter<Ancestry>;
-	type Origin = Origin;
-	type Call = Call;
+	type RuntimeOrigin = RuntimeOrigin;
+	type RuntimeCall = RuntimeCall;
 	const VERSION_DISCOVERY_QUEUE_SIZE: u32 = 100;
 	type AdvertisedXcmVersion = pallet_xcm::CurrentXcmVersion;
 }
@@ -236,7 +236,7 @@ match_types! {
 }
 
 impl orml_xtokens::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
 	type CurrencyId = CurrencyId;
 	type CurrencyIdConvert = CurrencyIdConvert;
@@ -245,7 +245,7 @@ impl orml_xtokens::Config for Runtime {
 	type MultiLocationsFilter = ParentOrParachains;
 	type MinXcmFee = DisabledParachainFee;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
-	type Weigher = FixedWeightBounds<ConstU64<10>, Call, ConstU32<100>>;
+	type Weigher = FixedWeightBounds<ConstU64<10>, RuntimeCall, ConstU32<100>>;
 	type BaseXcmWeight = ConstU64<100_000_000>;
 	type LocationInverter = LocationInverter<Ancestry>;
 	type MaxAssetsForTransfer = MaxAssetsForTransfer;
@@ -253,7 +253,7 @@ impl orml_xtokens::Config for Runtime {
 }
 
 impl orml_xcm::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type SovereignOrigin = EnsureRoot<AccountId>;
 }
 
