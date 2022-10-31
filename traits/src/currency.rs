@@ -1,11 +1,11 @@
 use crate::arithmetic;
 use codec::{Codec, FullCodec, MaxEncodedLen};
 pub use frame_support::{
-	traits::{BalanceStatus, LockIdentifier},
+	traits::{BalanceStatus, DefensiveSaturating, LockIdentifier},
 	transactional,
 };
 use sp_runtime::{
-	traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize, Saturating},
+	traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize},
 	DispatchError, DispatchResult,
 };
 use sp_std::{
@@ -303,13 +303,14 @@ pub trait NamedMultiReservableCurrency<AccountId>: MultiReservableCurrency<Accou
 		let current = Self::reserved_balance_named(id, currency_id, who);
 		match current.cmp(&value) {
 			Ordering::Less => {
-				// we checked value > current
-				Self::reserve_named(id, currency_id, who, value.saturating_sub(current))
+				// we checked value > current but just to be defensive here.
+				Self::reserve_named(id, currency_id, who, value.defensive_saturating_sub(current))
 			}
 			Ordering::Equal => Ok(()),
 			Ordering::Greater => {
-				// we always have enough balance to unreserve here
-				Self::unreserve_named(id, currency_id, who, current.saturating_sub(value));
+				// we always have enough balance to unreserve here but just to be defensive
+				// here.
+				Self::unreserve_named(id, currency_id, who, current.defensive_saturating_sub(value));
 				Ok(())
 			}
 		}
@@ -585,13 +586,14 @@ pub trait NamedBasicReservableCurrency<AccountId, ReserveIdentifier>: BasicReser
 		let current = Self::reserved_balance_named(id, who);
 		match current.cmp(&value) {
 			Ordering::Less => {
-				// we checked value > current
-				Self::reserve_named(id, who, value.saturating_sub(current))
+				// we checked value > current but just to be defensive here.
+				Self::reserve_named(id, who, value.defensive_saturating_sub(current))
 			}
 			Ordering::Equal => Ok(()),
 			Ordering::Greater => {
-				// we always have enough balance to unreserve here
-				Self::unreserve_named(id, who, current.saturating_sub(value));
+				// we always have enough balance to unreserve here but just to be defensive
+				// here.
+				Self::unreserve_named(id, who, current.defensive_saturating_sub(value));
 				Ok(())
 			}
 		}
