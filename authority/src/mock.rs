@@ -28,16 +28,16 @@ parameter_types! {
 }
 
 impl frame_system::Config for Runtime {
-	type Origin = Origin;
+	type RuntimeOrigin = RuntimeOrigin;
 	type Index = u64;
 	type BlockNumber = BlockNumber;
-	type Call = Call;
+	type RuntimeCall = RuntimeCall;
 	type Hash = H256;
 	type Hashing = ::sp_runtime::traits::BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = ConstU64<250>;
 	type BlockWeights = ();
 	type BlockLength = ();
@@ -60,10 +60,10 @@ parameter_types! {
 	pub const NoPreimagePostponement: Option<u64> = Some(10);
 }
 impl pallet_scheduler::Config for Runtime {
-	type Event = Event;
-	type Origin = Origin;
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeOrigin = RuntimeOrigin;
 	type PalletsOrigin = OriginCaller;
-	type Call = Call;
+	type RuntimeCall = RuntimeCall;
 	type MaximumWeight = MaximumSchedulerWeight;
 	type ScheduleOrigin = EnsureRoot<u128>;
 	type MaxScheduledPerBlock = ();
@@ -82,8 +82,8 @@ pub enum MockAsOriginId {
 
 pub struct AuthorityConfigImpl;
 
-impl AuthorityConfig<Origin, OriginCaller, BlockNumber> for AuthorityConfigImpl {
-	fn check_schedule_dispatch(origin: Origin, _priority: Priority) -> DispatchResult {
+impl AuthorityConfig<RuntimeOrigin, OriginCaller, BlockNumber> for AuthorityConfigImpl {
+	fn check_schedule_dispatch(origin: RuntimeOrigin, _priority: Priority) -> DispatchResult {
 		let origin: Result<frame_system::RawOrigin<u128>, _> = origin.into();
 		match origin {
 			Ok(frame_system::RawOrigin::Root)
@@ -93,14 +93,14 @@ impl AuthorityConfig<Origin, OriginCaller, BlockNumber> for AuthorityConfigImpl 
 		}
 	}
 	fn check_fast_track_schedule(
-		origin: Origin,
+		origin: RuntimeOrigin,
 		_initial_origin: &OriginCaller,
 		_new_delay: BlockNumber,
 	) -> DispatchResult {
 		ensure_root(origin)?;
 		Ok(())
 	}
-	fn check_delay_schedule(origin: Origin, initial_origin: &OriginCaller) -> DispatchResult {
+	fn check_delay_schedule(origin: RuntimeOrigin, initial_origin: &OriginCaller) -> DispatchResult {
 		ensure_root(origin.clone()).or_else(|_| {
 			if origin.caller() == initial_origin {
 				Ok(())
@@ -109,7 +109,7 @@ impl AuthorityConfig<Origin, OriginCaller, BlockNumber> for AuthorityConfigImpl 
 			}
 		})
 	}
-	fn check_cancel_schedule(origin: Origin, initial_origin: &OriginCaller) -> DispatchResult {
+	fn check_cancel_schedule(origin: RuntimeOrigin, initial_origin: &OriginCaller) -> DispatchResult {
 		ensure_root(origin.clone()).or_else(|_| {
 			if origin.caller() == initial_origin {
 				Ok(())
@@ -120,18 +120,18 @@ impl AuthorityConfig<Origin, OriginCaller, BlockNumber> for AuthorityConfigImpl 
 	}
 }
 
-impl AsOriginId<Origin, OriginCaller> for MockAsOriginId {
+impl AsOriginId<RuntimeOrigin, OriginCaller> for MockAsOriginId {
 	fn into_origin(self) -> OriginCaller {
 		match self {
-			MockAsOriginId::Root => Origin::root().caller().clone(),
-			MockAsOriginId::Account1 => Origin::signed(1).caller().clone(),
-			MockAsOriginId::Account2 => Origin::signed(2).caller().clone(),
+			MockAsOriginId::Root => RuntimeOrigin::root().caller().clone(),
+			MockAsOriginId::Account1 => RuntimeOrigin::signed(1).caller().clone(),
+			MockAsOriginId::Account2 => RuntimeOrigin::signed(2).caller().clone(),
 		}
 	}
-	fn check_dispatch_from(&self, origin: Origin) -> DispatchResult {
+	fn check_dispatch_from(&self, origin: RuntimeOrigin) -> DispatchResult {
 		ensure_root(origin.clone()).or_else(|_| {
 			if let OriginCaller::Authority(ref sign) = origin.caller() {
-				if sign.origin == Box::new(Origin::root().caller().clone()) {
+				if sign.origin == Box::new(RuntimeOrigin::root().caller().clone()) {
 					return Ok(());
 				} else {
 					return Err(BadOrigin.into());
@@ -153,11 +153,11 @@ impl AsOriginId<Origin, OriginCaller> for MockAsOriginId {
 }
 
 impl Config for Runtime {
-	type Event = Event;
-	type Origin = Origin;
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeOrigin = RuntimeOrigin;
 	type PalletsOrigin = OriginCaller;
 	type Scheduler = Scheduler;
-	type Call = Call;
+	type RuntimeCall = RuntimeCall;
 	type AsOriginId = MockAsOriginId;
 	type AuthorityConfig = AuthorityConfigImpl;
 	type WeightInfo = ();

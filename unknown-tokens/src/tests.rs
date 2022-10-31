@@ -3,7 +3,7 @@
 #![cfg(test)]
 
 use super::*;
-use mock::{Event, *};
+use mock::*;
 
 use frame_support::{assert_err, assert_ok};
 
@@ -31,7 +31,7 @@ fn deposit_concrete_fungible_asset_works() {
 			UnknownTokens::concrete_fungible_balances(&MOCK_RECIPIENT, &MOCK_CONCRETE_FUNGIBLE_ID),
 			3
 		);
-		System::assert_last_event(Event::UnknownTokens(crate::Event::Deposited {
+		System::assert_last_event(RuntimeEvent::UnknownTokens(crate::Event::Deposited {
 			asset,
 			who: MOCK_RECIPIENT,
 		}));
@@ -54,7 +54,7 @@ fn deposit_abstract_fungible_asset() {
 			UnknownTokens::abstract_fungible_balances(&MOCK_RECIPIENT, &mock_abstract_fungible_id()),
 			3
 		);
-		System::assert_last_event(Event::UnknownTokens(crate::Event::Deposited {
+		System::assert_last_event(RuntimeEvent::UnknownTokens(crate::Event::Deposited {
 			asset,
 			who: MOCK_RECIPIENT,
 		}));
@@ -99,7 +99,7 @@ fn withdraw_concrete_fungible_asset_works() {
 			UnknownTokens::concrete_fungible_balances(&MOCK_RECIPIENT, &MOCK_CONCRETE_FUNGIBLE_ID),
 			0
 		);
-		System::assert_last_event(Event::UnknownTokens(crate::Event::Withdrawn {
+		System::assert_last_event(RuntimeEvent::UnknownTokens(crate::Event::Withdrawn {
 			asset: asset.clone(),
 			who: MOCK_RECIPIENT,
 		}));
@@ -123,7 +123,7 @@ fn withdraw_abstract_fungible_asset_works() {
 			UnknownTokens::abstract_fungible_balances(&MOCK_RECIPIENT, &mock_abstract_fungible_id()),
 			0
 		);
-		System::assert_last_event(Event::UnknownTokens(crate::Event::Withdrawn {
+		System::assert_last_event(RuntimeEvent::UnknownTokens(crate::Event::Withdrawn {
 			asset: asset.clone(),
 			who: MOCK_RECIPIENT,
 		}));

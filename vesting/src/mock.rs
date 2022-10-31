@@ -15,8 +15,8 @@ use crate as vesting;
 
 pub type AccountId = u128;
 impl frame_system::Config for Runtime {
-	type Origin = Origin;
-	type Call = Call;
+	type RuntimeOrigin = RuntimeOrigin;
+	type RuntimeCall = RuntimeCall;
 	type Index = u64;
 	type BlockNumber = u64;
 	type Hash = H256;
@@ -24,7 +24,7 @@ impl frame_system::Config for Runtime {
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = ConstU64<250>;
 	type BlockWeights = ();
 	type BlockLength = ();
@@ -46,7 +46,7 @@ type Balance = u64;
 impl pallet_balances::Config for Runtime {
 	type Balance = Balance;
 	type DustRemoval = ();
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type ExistentialDeposit = ConstU64<1>;
 	type AccountStore = frame_system::Pallet<Runtime>;
 	type MaxLocks = ();
@@ -56,22 +56,22 @@ impl pallet_balances::Config for Runtime {
 }
 
 pub struct EnsureAliceOrBob;
-impl EnsureOrigin<Origin> for EnsureAliceOrBob {
+impl EnsureOrigin<RuntimeOrigin> for EnsureAliceOrBob {
 	type Success = AccountId;
 
-	fn try_origin(o: Origin) -> Result<Self::Success, Origin> {
-		Into::<Result<RawOrigin<AccountId>, Origin>>::into(o).and_then(|o| match o {
+	fn try_origin(o: RuntimeOrigin) -> Result<Self::Success, RuntimeOrigin> {
+		Into::<Result<RawOrigin<AccountId>, RuntimeOrigin>>::into(o).and_then(|o| match o {
 			RawOrigin::Signed(ALICE) => Ok(ALICE),
 			RawOrigin::Signed(BOB) => Ok(BOB),
-			r => Err(Origin::from(r)),
+			r => Err(RuntimeOrigin::from(r)),
 		})
 	}
 
 	#[cfg(feature = "runtime-benchmarks")]
-	fn successful_origin() -> Origin {
+	fn successful_origin() -> RuntimeOrigin {
 		let zero_account_id = AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes())
 			.expect("infinite length input; no invalid inputs for type; qed");
-		Origin::from(RawOrigin::Signed(zero_account_id))
+		RuntimeOrigin::from(RawOrigin::Signed(zero_account_id))
 	}
 }
 
@@ -88,7 +88,7 @@ impl BlockNumberProvider for MockBlockNumberProvider {
 }
 
 impl Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Currency = PalletBalances;
 	type MinVestedTransfer = ConstU64<5>;
 	type VestedTransferOrigin = EnsureAliceOrBob;

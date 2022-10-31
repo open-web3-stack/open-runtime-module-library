@@ -34,7 +34,7 @@ pub mod module {
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		/// Additional non-standard metadata to store for each asset
 		type CustomMetadata: Parameter + Member + TypeInfo;
@@ -43,7 +43,7 @@ pub mod module {
 		type AssetId: Parameter + Member + Default + TypeInfo + MaybeSerializeDeserialize;
 
 		/// Checks that an origin has the authority to register/update an asset
-		type AuthorityOrigin: EnsureOriginWithArg<Self::Origin, Option<Self::AssetId>>;
+		type AuthorityOrigin: EnsureOriginWithArg<Self::RuntimeOrigin, Option<Self::AssetId>>;
 
 		/// A filter ran upon metadata registration that assigns an is and
 		/// potentially modifies the supplied metadata.

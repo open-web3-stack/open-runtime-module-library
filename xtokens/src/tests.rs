@@ -1023,11 +1023,12 @@ fn send_as_sovereign() {
 	ParaA::execute_with(|| {
 		use xcm::latest::OriginKind::SovereignAccount;
 
-		let call =
-			relay::Call::System(frame_system::Call::<relay::Runtime>::remark_with_event { remark: vec![1, 1, 1] });
+		let call = relay::RuntimeCall::System(frame_system::Call::<relay::Runtime>::remark_with_event {
+			remark: vec![1, 1, 1],
+		});
 		let assets: MultiAsset = (Here, 1_000_000_000_000).into();
 		assert_ok!(para::OrmlXcm::send_as_sovereign(
-			para::Origin::root(),
+			para::RuntimeOrigin::root(),
 			Box::new(Parent.into()),
 			Box::new(VersionedXcm::from(Xcm(vec![
 				WithdrawAsset(assets.clone().into()),
@@ -1048,7 +1049,7 @@ fn send_as_sovereign() {
 		assert!(relay::System::events().iter().any(|r| {
 			matches!(
 				r.event,
-				relay::Event::System(frame_system::Event::<relay::Runtime>::Remarked { sender: _, hash: _ })
+				relay::RuntimeEvent::System(frame_system::Event::<relay::Runtime>::Remarked { sender: _, hash: _ })
 			)
 		}));
 	})
@@ -1065,12 +1066,13 @@ fn send_as_sovereign_fails_if_bad_origin() {
 	ParaA::execute_with(|| {
 		use xcm::latest::OriginKind::SovereignAccount;
 
-		let call =
-			relay::Call::System(frame_system::Call::<relay::Runtime>::remark_with_event { remark: vec![1, 1, 1] });
+		let call = relay::RuntimeCall::System(frame_system::Call::<relay::Runtime>::remark_with_event {
+			remark: vec![1, 1, 1],
+		});
 		let assets: MultiAsset = (Here, 1_000_000_000_000).into();
 		assert_err!(
 			para::OrmlXcm::send_as_sovereign(
-				para::Origin::signed(ALICE),
+				para::RuntimeOrigin::signed(ALICE),
 				Box::new(Parent.into()),
 				Box::new(VersionedXcm::from(Xcm(vec![
 					WithdrawAsset(assets.clone().into()),
@@ -1178,7 +1180,7 @@ fn send_with_insufficient_fee_traps_assets() {
 		assert!(para::System::events().iter().any(|r| {
 			matches!(
 				r.event,
-				para::Event::PolkadotXcm(pallet_xcm::Event::<para::Runtime>::AssetsTrapped(_, _, _))
+				para::RuntimeEvent::PolkadotXcm(pallet_xcm::Event::<para::Runtime>::AssetsTrapped(_, _, _))
 			)
 		}));
 	})
