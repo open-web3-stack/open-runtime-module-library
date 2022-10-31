@@ -378,7 +378,7 @@ fn test_register_duplicate_location_returns_error() {
 
 		assert_ok!(AssetRegistry::register_asset(Origin::root(), metadata.clone(), None));
 		let register_asset = Call::AssetRegistry(crate::Call::<para::Runtime>::register_asset {
-			metadata: metadata.clone(),
+			metadata,
 			asset_id: None,
 		});
 		assert_noop!(
@@ -434,7 +434,7 @@ fn test_update_metadata_works() {
 			Some(new_metadata.additional.clone())
 		));
 
-		let old_location: MultiLocation = old_metadata.location.clone().unwrap().try_into().unwrap();
+		let old_location: MultiLocation = old_metadata.location.unwrap().try_into().unwrap();
 		let new_location: MultiLocation = new_metadata.location.clone().unwrap().try_into().unwrap();
 
 		// check that the old location was removed and the new one added
@@ -451,11 +451,7 @@ fn test_update_metadata_fails_with_unknown_asset() {
 
 	ParaA::execute_with(|| {
 		let old_metadata = dummy_metadata();
-		assert_ok!(AssetRegistry::register_asset(
-			Origin::root(),
-			old_metadata.clone(),
-			None
-		));
+		assert_ok!(AssetRegistry::register_asset(Origin::root(), old_metadata, None));
 
 		assert_noop!(
 			AssetRegistry::update_asset(Origin::root(), 4, None, None, None, None, None, None,),
@@ -506,7 +502,7 @@ fn test_asset_authority() {
 		let metadata = dummy_metadata();
 
 		// Assert that root can register an asset with id 1
-		assert_ok!(AssetRegistry::register_asset(Origin::root(), metadata.clone(), Some(1)));
+		assert_ok!(AssetRegistry::register_asset(Origin::root(), metadata, Some(1)));
 
 		// Assert that only Account42 can register asset with id 42
 		let metadata = AssetMetadata {
