@@ -28,8 +28,9 @@ use frame_support::{
 	log,
 	pallet_prelude::*,
 	require_transactional,
+	transactional,
 	traits::{Contains, Get},
-	transactional, Parameter,
+	Parameter,
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
 use sp_runtime::{
@@ -38,7 +39,7 @@ use sp_runtime::{
 };
 use sp_std::{prelude::*, result::Result};
 
-use xcm::prelude::*;
+use xcm::{latest::Weight, prelude::*};
 use xcm_executor::traits::{InvertLocation, WeightBounds};
 
 pub use module::*;
@@ -823,7 +824,6 @@ pub mod module {
 		fn fixed_weight_of_transfer() -> Weight {
 			(2_000_000_000 as Weight).saturating_add(T::BaseXcmWeight::get())
 		}
-
 		/// Returns weight of `transfer_multiasset` call.
 		fn weight_of_transfer_multiasset(asset: &VersionedMultiAsset, dest: &VersionedMultiLocation) -> Weight {
 			let asset: Result<MultiAsset, _> = asset.clone().try_into();

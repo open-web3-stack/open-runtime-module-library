@@ -4,7 +4,7 @@
 use super::{Meter, Weight};
 
 static mut METER: Meter = Meter {
-	used_weight: 0,
+	used_weight: Weight::zero(),
 	depth: 0,
 };
 

@@ -4,7 +4,7 @@ use super::*;
 use crate as orml_asset_registry;
 use crate::tests::para::{AdminAssetTwo, AssetRegistry, CustomMetadata, Origin, TreasuryAccount};
 use frame_support::{assert_noop, assert_ok};
-use mock::{*};
+use mock::*;
 use orml_traits::MultiCurrency;
 use polkadot_parachain::primitives::Sibling;
 
@@ -51,6 +51,36 @@ fn dummy_metadata() -> AssetMetadata<<para::Runtime as orml_asset_registry::Conf
 			fee_per_second: 1_000_000_000_000,
 		},
 	}
+}
+
+#[test]
+fn genesis_issuance_should_work() {
+	TestNet::reset();
+
+	ParaG::execute_with(|| {
+		let metadata1 = AssetMetadata {
+			decimals: 12,
+			name: "para G native token".as_bytes().to_vec(),
+			symbol: "paraG".as_bytes().to_vec(),
+			existential_deposit: 0,
+			location: None,
+			additional: CustomMetadata {
+				fee_per_second: 1_000_000_000_000,
+			},
+		};
+		let metadata2 = AssetMetadata {
+			decimals: 12,
+			name: "para G foreign token".as_bytes().to_vec(),
+			symbol: "paraF".as_bytes().to_vec(),
+			existential_deposit: 0,
+			location: None,
+			additional: CustomMetadata {
+				fee_per_second: 1_000_000_000_000,
+			},
+		};
+		assert_eq!(AssetRegistry::metadata(0).unwrap(), metadata1);
+		assert_eq!(AssetRegistry::metadata(1).unwrap(), metadata2);
+	});
 }
 
 #[test]

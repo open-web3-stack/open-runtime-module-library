@@ -1,4 +1,4 @@
-use frame_support::traits::{BalanceStatus, Get, WithdrawReasons, tokens::currency::{MultiTokenCurrency}};
+use frame_support::traits::{BalanceStatus, tokens::currency::{MultiTokenCurrency}};
 use sp_runtime::{DispatchError, DispatchResult};
 use sp_std::result;
 

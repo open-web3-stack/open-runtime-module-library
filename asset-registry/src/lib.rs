@@ -41,7 +41,7 @@ pub mod module {
 		type CustomMetadata: Parameter + Member + TypeInfo;
 
 		/// The type used as a unique asset id,
-		type AssetId: Parameter + Member + Default + TypeInfo + MaybeSerializeDeserialize + Copy;
+		type AssetId: Parameter + Member + Default + TypeInfo + MaybeSerializeDeserialize;
 
 		/// Checks that an origin has the authority to register/update an asset
 		type AuthorityOrigin: EnsureOriginWithArg<Self::Origin, Option<Self::AssetId>>;
@@ -97,21 +97,16 @@ pub mod module {
 	#[pallet::getter(fn location_to_asset_id)]
 	pub type LocationToAssetId<T: Config> = StorageMap<_, Twox64Concat, MultiLocation, T::AssetId, OptionQuery>;
 
-	/// The last processed asset id - used when assigning a sequential id.
-	// #[pallet::storage]
-	// #[pallet::getter(fn last_asset_id)]
-	// pub(crate) type LastAssetId<T: Config> = StorageValue<_, T::AssetId, ValueQuery>;
-
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
-		pub pre_register_assets: Vec<(T::AssetId, Vec<u8>)>,
+		pub assets: Vec<(T::AssetId, Vec<u8>)>,
 	}
 
 	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
 			Self {
-				pre_register_assets: vec![],
+				assets: vec![],
 			}
 		}
 	}
@@ -119,10 +114,10 @@ pub mod module {
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
-			for (asset_id, metadata_encoded) in self.pre_register_assets.iter() {
+			self.assets.iter().for_each(|(asset_id, metadata_encoded)| {
 				let metadata = AssetMetadata::decode(&mut &metadata_encoded[..]).expect("Error decoding AssetMetadata");
-				Pallet::<T>::do_register_asset(metadata, Some(*asset_id)).expect("Error registering Asset");
-			}
+				Pallet::<T>::do_register_asset(metadata, Some(asset_id.clone())).expect("Error registering Asset");
+			});
 		}
 	}
 

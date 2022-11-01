@@ -57,7 +57,7 @@ decl_test_parachain! {
 		Runtime = para::Runtime,
 		XcmpMessageHandler = para::XcmpQueue,
 		DmpMessageHandler = para::DmpQueue,
-		new_ext = para_ext(1),
+		new_ext = para_ext(1, None),
 	}
 }
 
@@ -66,7 +66,7 @@ decl_test_parachain! {
 		Runtime = para::Runtime,
 		XcmpMessageHandler = para::XcmpQueue,
 		DmpMessageHandler = para::DmpQueue,
-		new_ext = para_ext(2),
+		new_ext = para_ext(2, None),
 	}
 }
 
@@ -75,7 +75,41 @@ decl_test_parachain! {
 		Runtime = para::Runtime,
 		XcmpMessageHandler = para::XcmpQueue,
 		DmpMessageHandler = para::DmpQueue,
-		new_ext = para_ext(3),
+		new_ext = para_ext(3, None),
+	}
+}
+
+decl_test_parachain! {
+	pub struct ParaG {
+		Runtime = para::Runtime,
+		XcmpMessageHandler = para::XcmpQueue,
+		DmpMessageHandler = para::DmpQueue,
+		new_ext = para_ext(4, Some((
+			vec![(
+				0,
+				AssetMetadata::<Balance, para::CustomMetadata>::encode(&AssetMetadata {
+				decimals: 12,
+				name: "para G native token".as_bytes().to_vec(),
+				symbol: "paraG".as_bytes().to_vec(),
+				existential_deposit: 0,
+				location: None,
+				additional: para::CustomMetadata {
+					fee_per_second: 1_000_000_000_000,
+				},
+			})),
+			(
+				1,
+				AssetMetadata::<Balance, para::CustomMetadata>::encode(&AssetMetadata {
+				decimals: 12,
+				name: "para G foreign token".as_bytes().to_vec(),
+				symbol: "paraF".as_bytes().to_vec(),
+				existential_deposit: 0,
+				location: None,
+				additional: para::CustomMetadata {
+					fee_per_second: 1_000_000_000_000,
+				},
+			}))], 5
+		))),
 	}
 }
 
@@ -94,6 +128,7 @@ decl_test_network! {
 			(1, ParaA),
 			(2, ParaB),
 			(3, ParaC),
+			(4, ParaG),
 		],
 	}
 }
@@ -101,7 +136,7 @@ decl_test_network! {
 pub type ParaTokens = orml_tokens::Pallet<para::Runtime>;
 pub type ParaXTokens = orml_xtokens::Pallet<para::Runtime>;
 
-pub fn para_ext(para_id: u32) -> TestExternalities {
+pub fn para_ext(para_id: u32, asset_data: Option<(Vec<(u32, Vec<u8>)>, u32)>) -> TestExternalities {
 	use para::{Runtime, System};
 
 	let mut t = frame_system::GenesisConfig::default()
@@ -120,6 +155,12 @@ pub fn para_ext(para_id: u32) -> TestExternalities {
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();
+
+	if let Some((assets, _)) = asset_data {
+		GenesisConfig::<Runtime> { assets: assets }
+			.assimilate_storage(&mut t)
+			.unwrap();
+	}
 
 	let mut ext = TestExternalities::new(t);
 	ext.execute_with(|| System::set_block_number(1));
