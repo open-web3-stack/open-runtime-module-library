@@ -11,4 +11,4 @@ edition = "2021"
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
-platforms = "1.1"
+walkdir = "2"

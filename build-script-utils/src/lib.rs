@@ -1,5 +1,5 @@
 //! Crate with utility functions for `build.rs` scripts.
 
-mod version;
+mod license;
 
-pub use version::*;
+pub use license::*;
