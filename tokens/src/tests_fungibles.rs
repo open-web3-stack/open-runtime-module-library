@@ -5,6 +5,7 @@
 use super::*;
 use frame_support::{assert_noop, assert_ok};
 use mock::*;
+use sp_runtime::{ArithmeticError, TokenError};
 
 #[test]
 fn fungibles_inspect_trait_should_work() {
@@ -54,13 +55,119 @@ fn fungibles_unbalanced_trait_should_work() {
 		.balances(vec![(ALICE, DOT, 100)])
 		.build()
 		.execute_with(|| {
+			// set_balance
 			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 100);
 			assert_ok!(<Tokens as fungibles::Unbalanced<_>>::set_balance(DOT, &ALICE, 10));
 			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 10);
 
+			// set_total_issuance
 			assert_eq!(<Tokens as fungibles::Inspect<_>>::total_issuance(DOT), 100);
 			<Tokens as fungibles::Unbalanced<_>>::set_total_issuance(DOT, 10);
 			assert_eq!(<Tokens as fungibles::Inspect<_>>::total_issuance(DOT), 10);
+
+			// decrease_balance
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 10);
+			assert_noop!(
+				<Tokens as fungibles::Unbalanced<_>>::decrease_balance(DOT, &ALICE, 20),
+				TokenError::NoFunds
+			);
+			assert_eq!(
+				<Tokens as fungibles::Unbalanced<_>>::decrease_balance(DOT, &ALICE, 5),
+				Ok(5)
+			);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 5);
+			// new balance < ExistentialDeposits, clean dust
+			assert_eq!(
+				<Tokens as fungibles::Unbalanced<_>>::decrease_balance(DOT, &ALICE, 4),
+				Ok(5)
+			);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 0);
+			// set reserved
+			assert_ok!(<Tokens as fungibles::Unbalanced<_>>::set_balance(DOT, &ALICE, 100));
+			assert_ok!(<Tokens as MultiReservableCurrency<AccountId>>::reserve(DOT, &ALICE, 50));
+			assert_noop!(
+				<Tokens as fungibles::Unbalanced<_>>::decrease_balance(DOT, &ALICE, 60),
+				ArithmeticError::Underflow
+			);
+			assert_eq!(
+				<Tokens as fungibles::Unbalanced<_>>::decrease_balance(DOT, &ALICE, 50),
+				Ok(50)
+			);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 50);
+			assert_eq!(
+				<Tokens as MultiReservableCurrency<AccountId>>::unreserve(DOT, &ALICE, 50),
+				0
+			);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 50);
+
+			// decrease_balance_at_most
+			assert_ok!(<Tokens as fungibles::Unbalanced<_>>::set_balance(DOT, &ALICE, 10));
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 10);
+			assert_eq!(
+				<Tokens as fungibles::Unbalanced<_>>::decrease_balance_at_most(DOT, &ALICE, 20),
+				10
+			);
+			assert_ok!(<Tokens as fungibles::Unbalanced<_>>::set_balance(DOT, &ALICE, 10));
+			assert_eq!(
+				<Tokens as fungibles::Unbalanced<_>>::decrease_balance_at_most(DOT, &ALICE, 5),
+				5
+			);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 5);
+			// new balance < ExistentialDeposits, clean dust
+			assert_eq!(
+				<Tokens as fungibles::Unbalanced<_>>::decrease_balance_at_most(DOT, &ALICE, 4),
+				5
+			);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 0);
+			// set reserved
+			assert_ok!(<Tokens as fungibles::Unbalanced<_>>::set_balance(DOT, &ALICE, 100));
+			assert_ok!(<Tokens as MultiReservableCurrency<AccountId>>::reserve(DOT, &ALICE, 50));
+			assert_eq!(
+				<Tokens as fungibles::Unbalanced<_>>::decrease_balance_at_most(DOT, &ALICE, 60),
+				0
+			);
+			assert_eq!(
+				<Tokens as fungibles::Unbalanced<_>>::decrease_balance_at_most(DOT, &ALICE, 50),
+				50
+			);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 50);
+			assert_eq!(
+				<Tokens as MultiReservableCurrency<AccountId>>::unreserve(DOT, &ALICE, 50),
+				0
+			);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 50);
+
+			// increase_balance
+			assert_ok!(<Tokens as fungibles::Unbalanced<_>>::set_balance(DOT, &ALICE, 0));
+			assert_noop!(
+				<Tokens as fungibles::Unbalanced<_>>::increase_balance(DOT, &ALICE, 1),
+				TokenError::BelowMinimum
+			);
+			assert_eq!(
+				<Tokens as fungibles::Unbalanced<_>>::increase_balance(DOT, &ALICE, 2),
+				Ok(2)
+			);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 2);
+			assert_noop!(
+				<Tokens as fungibles::Unbalanced<_>>::increase_balance(DOT, &ALICE, Balance::MAX),
+				ArithmeticError::Overflow
+			);
+
+			// increase_balance_at_most
+			assert_ok!(<Tokens as fungibles::Unbalanced<_>>::set_balance(DOT, &ALICE, 0));
+			assert_eq!(
+				<Tokens as fungibles::Unbalanced<_>>::increase_balance_at_most(DOT, &ALICE, 1),
+				0
+			);
+			assert_eq!(
+				<Tokens as fungibles::Unbalanced<_>>::increase_balance_at_most(DOT, &ALICE, 2),
+				2
+			);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 2);
+			assert_eq!(
+				<Tokens as fungibles::Unbalanced<_>>::increase_balance_at_most(DOT, &ALICE, Balance::MAX),
+				Balance::MAX - 2
+			);
 		});
 }
 

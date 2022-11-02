@@ -1746,17 +1746,22 @@ impl<T: Config> fungibles::Transfer<T::AccountId> for Pallet<T> {
 impl<T: Config> fungibles::Unbalanced<T::AccountId> for Pallet<T> {
 	fn set_balance(asset_id: Self::AssetId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
 		// Balance is the same type and will not overflow
-		Self::mutate_account(who, asset_id, |account, _| {
-			account.free = amount;
+		Self::mutate_account(who, asset_id, |account, _| -> DispatchResult {
+			// fungibles::Unbalanced::decrease_balance didn't check account.reserved
+			// free = new_balance - reserved
+			account.free = amount
+				.checked_sub(&account.reserved)
+				.ok_or(ArithmeticError::Underflow)?;
 
 			Self::deposit_event(Event::BalanceSet {
 				currency_id: asset_id,
 				who: who.clone(),
-				free: amount,
+				free: account.free,
 				reserved: account.reserved,
 			});
-		});
-		Ok(())
+
+			Ok(())
+		})
 	}
 
 	fn set_total_issuance(asset_id: Self::AssetId, amount: Self::Balance) {
