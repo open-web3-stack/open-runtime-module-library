@@ -12,7 +12,7 @@ pub struct OrderedSet<T: Ord + Encode + Decode + MaxEncodedLen + Clone + Eq + Pa
 	pub BoundedVec<T, S>,
 );
 
-impl<T: Ord + Encode + Decode + MaxEncodedLen + Clone + Eq + PartialEq, S: Get<u32>> OrderedSet<T, S> {
+impl<T: Ord + Encode + Decode + MaxEncodedLen + Clone + Eq + PartialEq + fmt::Debug, S: Get<u32>> OrderedSet<T, S> {
 	/// Create a new empty set
 	pub fn new() -> Self {
 		Self(BoundedVec::default())
@@ -66,7 +66,7 @@ impl<T: Ord + Encode + Decode + MaxEncodedLen + Clone + Eq + PartialEq, S: Get<u
 	}
 }
 
-impl<T: Ord + Encode + Decode + MaxEncodedLen + Clone + Eq + PartialEq, S: Get<u32>> From<BoundedVec<T, S>>
+impl<T: Ord + Encode + Decode + MaxEncodedLen + Clone + Eq + PartialEq + fmt::Debug, S: Get<u32>> From<BoundedVec<T, S>>
 	for OrderedSet<T, S>
 {
 	fn from(v: BoundedVec<T, S>) -> Self {
@@ -92,9 +92,9 @@ mod tests {
 	use sp_runtime::RuntimeDebug;
 
 	parameter_types! {
-		#[derive(PartialEq, RuntimeDebug)]
+		#[derive(PartialEq, Eq, RuntimeDebug)]
 		pub const Eight: u32 = 8;
-		#[derive(PartialEq, RuntimeDebug)]
+		#[derive(PartialEq, Eq, RuntimeDebug)]
 		pub const Five: u32 = 5;
 	}
 

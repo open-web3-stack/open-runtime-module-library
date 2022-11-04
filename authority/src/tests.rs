@@ -13,6 +13,7 @@ use mock::{
 	authority, run_to_block, Authority, BlockNumber, ExtBuilder, MockAsOriginId, OriginCaller, Runtime, RuntimeCall,
 	RuntimeOrigin, System,
 };
+use sp_io::hashing::blake2_256;
 use sp_runtime::{traits::BadOrigin, Perbill};
 
 #[test]
@@ -57,7 +58,9 @@ fn dispatch_as_work() {
 #[test]
 fn schedule_dispatch_at_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let ensure_root_call = RuntimeCall::System(frame_system::Call::fill_block { ratio: Perbill::one() });
+		let ensure_root_call = RuntimeCall::System(frame_system::Call::fill_block {
+			ratio: Perbill::from_percent(50),
+		});
 		let call = RuntimeCall::Authority(authority::Call::dispatch_as {
 			as_origin: MockAsOriginId::Root,
 			call: Box::new(ensure_root_call),
@@ -93,7 +96,7 @@ fn schedule_dispatch_at_work() {
 		System::assert_last_event(mock::RuntimeEvent::Scheduler(
 			pallet_scheduler::Event::<Runtime>::Dispatched {
 				task: (2, 0),
-				id: Some([1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0].to_vec()),
+				id: Some(blake2_256([1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0].as_ref())),
 				result: Ok(()),
 			},
 		));
@@ -115,7 +118,7 @@ fn schedule_dispatch_at_work() {
 		System::assert_last_event(mock::RuntimeEvent::Scheduler(
 			pallet_scheduler::Event::<Runtime>::Dispatched {
 				task: (3, 0),
-				id: Some([0, 0, 1, 0, 0, 0].to_vec()),
+				id: Some(blake2_256([0, 0, 1, 0, 0, 0].as_ref())),
 				result: Ok(()),
 			},
 		));
@@ -125,7 +128,9 @@ fn schedule_dispatch_at_work() {
 #[test]
 fn schedule_dispatch_after_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let ensure_root_call = RuntimeCall::System(frame_system::Call::fill_block { ratio: Perbill::one() });
+		let ensure_root_call = RuntimeCall::System(frame_system::Call::fill_block {
+			ratio: Perbill::from_percent(50),
+		});
 		let call = RuntimeCall::Authority(authority::Call::dispatch_as {
 			as_origin: MockAsOriginId::Root,
 			call: Box::new(ensure_root_call),
@@ -161,7 +166,7 @@ fn schedule_dispatch_after_work() {
 		System::assert_last_event(mock::RuntimeEvent::Scheduler(
 			pallet_scheduler::Event::<Runtime>::Dispatched {
 				task: (2, 0),
-				id: Some([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0].to_vec()),
+				id: Some(blake2_256([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0].as_ref())),
 				result: Ok(()),
 			},
 		));
@@ -183,7 +188,7 @@ fn schedule_dispatch_after_work() {
 		System::assert_last_event(mock::RuntimeEvent::Scheduler(
 			pallet_scheduler::Event::<Runtime>::Dispatched {
 				task: (3, 0),
-				id: Some([0, 0, 1, 0, 0, 0].to_vec()),
+				id: Some(blake2_256([0, 0, 1, 0, 0, 0].as_ref())),
 				result: Ok(()),
 			},
 		));
@@ -194,7 +199,9 @@ fn schedule_dispatch_after_work() {
 fn fast_track_scheduled_dispatch_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		System::set_block_number(1);
-		let ensure_root_call = RuntimeCall::System(frame_system::Call::fill_block { ratio: Perbill::one() });
+		let ensure_root_call = RuntimeCall::System(frame_system::Call::fill_block {
+			ratio: Perbill::from_percent(50),
+		});
 		let call = RuntimeCall::Authority(authority::Call::dispatch_as {
 			as_origin: MockAsOriginId::Root,
 			call: Box::new(ensure_root_call),
@@ -271,7 +278,9 @@ fn fast_track_scheduled_dispatch_work() {
 fn delay_scheduled_dispatch_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		System::set_block_number(1);
-		let ensure_root_call = RuntimeCall::System(frame_system::Call::fill_block { ratio: Perbill::one() });
+		let ensure_root_call = RuntimeCall::System(frame_system::Call::fill_block {
+			ratio: Perbill::from_percent(50),
+		});
 		let call = RuntimeCall::Authority(authority::Call::dispatch_as {
 			as_origin: MockAsOriginId::Root,
 			call: Box::new(ensure_root_call),
@@ -347,7 +356,9 @@ fn delay_scheduled_dispatch_work() {
 #[test]
 fn cancel_scheduled_dispatch_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let ensure_root_call = RuntimeCall::System(frame_system::Call::fill_block { ratio: Perbill::one() });
+		let ensure_root_call = RuntimeCall::System(frame_system::Call::fill_block {
+			ratio: Perbill::from_percent(50),
+		});
 		let call = RuntimeCall::Authority(authority::Call::dispatch_as {
 			as_origin: MockAsOriginId::Root,
 			call: Box::new(ensure_root_call),
@@ -430,7 +441,9 @@ fn call_size_limit() {
 fn authorize_call_works() {
 	ExtBuilder::default().build().execute_with(|| {
 		run_to_block(1);
-		let ensure_root_call = RuntimeCall::System(frame_system::Call::fill_block { ratio: Perbill::one() });
+		let ensure_root_call = RuntimeCall::System(frame_system::Call::fill_block {
+			ratio: Perbill::from_percent(50),
+		});
 		let call = RuntimeCall::Authority(authority::Call::dispatch_as {
 			as_origin: MockAsOriginId::Root,
 			call: Box::new(ensure_root_call),
@@ -455,7 +468,7 @@ fn authorize_call_works() {
 			Box::new(call.clone()),
 			Some(1)
 		));
-		assert_eq!(Authority::saved_calls(&hash), Some((call.clone(), Some(1))));
+		assert_eq!(Authority::saved_calls(&hash), Some((call, Some(1))));
 		System::assert_last_event(mock::RuntimeEvent::Authority(Event::AuthorizedCall {
 			hash,
 			caller: Some(1),
@@ -467,7 +480,9 @@ fn authorize_call_works() {
 fn trigger_call_works() {
 	ExtBuilder::default().build().execute_with(|| {
 		run_to_block(1);
-		let ensure_root_call = RuntimeCall::System(frame_system::Call::fill_block { ratio: Perbill::one() });
+		let ensure_root_call = RuntimeCall::System(frame_system::Call::fill_block {
+			ratio: Perbill::from_percent(50),
+		});
 		let call = RuntimeCall::Authority(authority::Call::dispatch_as {
 			as_origin: MockAsOriginId::Root,
 			call: Box::new(ensure_root_call),
@@ -522,7 +537,7 @@ fn trigger_call_works() {
 			Authority::trigger_call(RuntimeOrigin::signed(2), hash, call_weight_bound),
 			Error::<Runtime>::TriggerCallNotPermitted
 		);
-		assert_eq!(Authority::saved_calls(&hash), Some((call.clone(), Some(1))));
+		assert_eq!(Authority::saved_calls(&hash), Some((call, Some(1))));
 
 		// caller 1 triggering the call
 		assert_ok!(Authority::trigger_call(
@@ -543,7 +558,9 @@ fn trigger_call_works() {
 fn remove_authorized_call_works() {
 	ExtBuilder::default().build().execute_with(|| {
 		run_to_block(1);
-		let ensure_root_call = RuntimeCall::System(frame_system::Call::fill_block { ratio: Perbill::one() });
+		let ensure_root_call = RuntimeCall::System(frame_system::Call::fill_block {
+			ratio: Perbill::from_percent(50),
+		});
 		let call = RuntimeCall::Authority(authority::Call::dispatch_as {
 			as_origin: MockAsOriginId::Root,
 			call: Box::new(ensure_root_call),
@@ -585,7 +602,7 @@ fn remove_authorized_call_works() {
 			Authority::remove_authorized_call(RuntimeOrigin::signed(2), hash),
 			Error::<Runtime>::CallNotAuthorized
 		);
-		assert_eq!(Authority::saved_calls(&hash), Some((call.clone(), Some(1))));
+		assert_eq!(Authority::saved_calls(&hash), Some((call, Some(1))));
 		assert_ok!(Authority::remove_authorized_call(RuntimeOrigin::signed(1), hash));
 		assert_eq!(Authority::saved_calls(&hash), None);
 	});
@@ -594,7 +611,9 @@ fn remove_authorized_call_works() {
 #[test]
 fn trigger_call_should_be_free_and_operational() {
 	ExtBuilder::default().build().execute_with(|| {
-		let call = RuntimeCall::System(frame_system::Call::fill_block { ratio: Perbill::one() });
+		let call = RuntimeCall::System(frame_system::Call::fill_block {
+			ratio: Perbill::from_percent(50),
+		});
 		let hash = <Runtime as frame_system::Config>::Hashing::hash_of(&call);
 		let call_weight_bound = call.get_dispatch_info().weight;
 		let trigger_call = RuntimeCall::Authority(authority::Call::trigger_call {
@@ -622,7 +641,49 @@ fn trigger_call_should_be_free_and_operational() {
 
 		// successfull call doesn't pay fee
 		assert_eq!(
-			trigger_call.clone().dispatch(RuntimeOrigin::signed(1)),
+			trigger_call.dispatch(RuntimeOrigin::signed(1)),
+			Ok(PostDispatchInfo {
+				actual_weight: None,
+				pays_fee: Pays::No
+			})
+		);
+	});
+}
+
+#[test]
+fn trigger_old_call_should_be_free_and_operational() {
+	ExtBuilder::default().build().execute_with(|| {
+		let call = RuntimeCall::System(frame_system::Call::fill_block {
+			ratio: Perbill::from_percent(50),
+		});
+		let hash = <Runtime as frame_system::Config>::Hashing::hash_of(&call);
+		let call_weight_bound: OldWeight = OldWeight(call.get_dispatch_info().weight.ref_time());
+		let trigger_old_call = RuntimeCall::Authority(authority::Call::trigger_old_call {
+			hash,
+			call_weight_bound,
+		});
+
+		assert_ok!(Authority::authorize_call(
+			RuntimeOrigin::root(),
+			Box::new(call),
+			Some(1)
+		));
+
+		// bad caller pays fee
+		assert_eq!(
+			trigger_old_call.clone().dispatch(RuntimeOrigin::signed(2)),
+			Err(DispatchErrorWithPostInfo {
+				post_info: PostDispatchInfo {
+					actual_weight: None,
+					pays_fee: Pays::Yes
+				},
+				error: Error::<Runtime>::TriggerCallNotPermitted.into()
+			})
+		);
+
+		// successfull call doesn't pay fee
+		assert_eq!(
+			trigger_old_call.dispatch(RuntimeOrigin::signed(1)),
 			Ok(PostDispatchInfo {
 				actual_weight: None,
 				pays_fee: Pays::No
