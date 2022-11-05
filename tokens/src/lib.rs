@@ -603,7 +603,6 @@ pub mod module {
 
 				if new_total > old_total {
 					TotalIssuance::<T>::try_mutate(currency_id, |t| -> DispatchResult {
-						// this sub can't underflow but just to be defensive here.
 						*t = t
 							.checked_add(&(new_total.defensive_saturating_sub(old_total)))
 							.ok_or(ArithmeticError::Overflow)?;
@@ -611,7 +610,6 @@ pub mod module {
 					})?;
 				} else if new_total < old_total {
 					TotalIssuance::<T>::try_mutate(currency_id, |t| -> DispatchResult {
-						// this sub can't underflow but just to be defensive here.
 						*t = t
 							.checked_sub(&(old_total.defensive_saturating_sub(new_total)))
 							.ok_or(ArithmeticError::Underflow)?;
@@ -979,7 +977,6 @@ impl<T: Config> Pallet<T> {
 		Self::try_mutate_account(who, currency_id, |account, _existed| -> DispatchResult {
 			Self::ensure_can_withdraw(currency_id, who, amount)?;
 			let previous_total = account.total();
-			// this sub can't underflow but just to be defensive here.
 			account.free = account.free.defensive_saturating_sub(amount);
 
 			let ed = T::ExistentialDeposits::get(&currency_id);
@@ -1001,7 +998,6 @@ impl<T: Config> Pallet<T> {
 			);
 
 			if change_total_issuance {
-				// this sub can't underflow but just to be defensive here.
 				TotalIssuance::<T>::mutate(currency_id, |v| *v = v.defensive_saturating_sub(amount));
 			}
 
@@ -1056,7 +1052,6 @@ impl<T: Config> Pallet<T> {
 			if change_total_issuance {
 				TotalIssuance::<T>::mutate(currency_id, |v| *v = new_total_issuance);
 			}
-			// this add can't overflow but just to be defensive here.
 			account.free = account.free.defensive_saturating_add(amount);
 
 			Self::deposit_event(Event::Deposited {
@@ -1326,7 +1321,6 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 			free_amount: Zero::zero(),
 			reserved_amount: actual,
 		});
-		// this sub can't underflow but just to be defensive here.
 		value.defensive_saturating_sub(actual)
 	}
 
@@ -1345,9 +1339,7 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 		Self::ensure_can_withdraw(currency_id, who, value)?;
 
 		Self::mutate_account(who, currency_id, |account, _| {
-			// this sub can't underflow but just to be defensive here.
 			account.free = account.free.defensive_saturating_sub(value);
-			// this add can't overflow but just to be defensive here.
 			account.reserved = account.reserved.defensive_saturating_add(value);
 
 			Self::deposit_event(Event::Reserved {
@@ -1370,9 +1362,7 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 
 		Self::mutate_account(who, currency_id, |account, _| {
 			let actual = account.reserved.min(value);
-			// this sub can't underflow but just to be defensive here.
 			account.reserved = account.reserved.defensive_saturating_sub(actual);
-			// this add can't overflow but just to be defensive here.
 			account.free = account.free.defensive_saturating_add(actual);
 
 			Self::deposit_event(Event::Unreserved {
@@ -1380,7 +1370,6 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 				who: who.clone(),
 				amount: actual,
 			});
-			// this sub can't underflow but just to be defensive here.
 			value.defensive_saturating_sub(actual)
 		})
 	}
@@ -1415,7 +1404,6 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 		let actual = from_account.reserved.min(value);
 		match status {
 			BalanceStatus::Free => {
-				// this add can't overflow but just to be defensive here.
 				Self::set_free_balance(
 					currency_id,
 					beneficiary,
@@ -1423,7 +1411,6 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 				);
 			}
 			BalanceStatus::Reserved => {
-				// this add can't overflow but just to be defensive here.
 				Self::set_reserved_balance(
 					currency_id,
 					beneficiary,
@@ -1431,7 +1418,6 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 				);
 			}
 		}
-		// this sub can't underflow but just to be defensive here.
 		Self::set_reserved_balance(
 			currency_id,
 			slashed,
@@ -1445,7 +1431,6 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 			amount: actual,
 			status,
 		});
-		// this sub can't underflow but just to be defensive here.
 		Ok(value.defensive_saturating_sub(actual))
 	}
 }
@@ -1533,7 +1518,6 @@ impl<T: Config> NamedMultiReservableCurrency<T::AccountId> for Pallet<T> {
 								reserves.remove(index);
 							}
 						}
-						// this sub can't underflow but just to be defensive here.
 						value.defensive_saturating_sub(actual)
 					}
 					Err(_) => value,
@@ -1578,7 +1562,6 @@ impl<T: Config> NamedMultiReservableCurrency<T::AccountId> for Pallet<T> {
 						free_amount: Zero::zero(),
 						reserved_amount: actual,
 					});
-					// this sub can't underflow but just to be defensive here.
 					value.defensive_saturating_sub(actual)
 				}
 				Err(_) => value,
@@ -1691,7 +1674,6 @@ impl<T: Config> NamedMultiReservableCurrency<T::AccountId> for Pallet<T> {
 						// `actual <= to_change` and `to_change <= amount` but just to be defensive
 						// here.
 						reserves[index].amount = reserves[index].amount.defensive_saturating_sub(actual);
-						// this sub can't underflow but just to be defensive here.
 						Ok(value.defensive_saturating_sub(actual))
 					}
 					Err(_) => Ok(value),
@@ -1763,7 +1745,6 @@ impl<T: Config> fungibles::Mutate<T::AccountId> for Pallet<T> {
 		amount: Self::Balance,
 	) -> Result<Self::Balance, DispatchError> {
 		let extra = Self::withdraw_consequence(who, asset_id, amount, &Self::accounts(who, asset_id)).into_result()?;
-		// this add can't overflow but just to be defensive here.
 		let actual = amount.defensive_saturating_add(extra);
 		// allow death
 		Self::do_withdraw(asset_id, who, actual, ExistenceRequirement::AllowDeath, true).map(|_| actual)
@@ -1854,7 +1835,6 @@ impl<T: Config> fungibles::MutateHold<T::AccountId> for Pallet<T> {
 		// Done on a best-effort basis.
 		Self::try_mutate_account(who, asset_id, |a, _existed| {
 			let new_free = a.free.saturating_add(amount.min(a.reserved));
-			// this sub can't underflow but just to be defensive here.
 			let actual = new_free.defensive_saturating_sub(a.free);
 			// Guaranteed to be <= amount and <= a.reserved
 			ensure!(best_effort || actual == amount, Error::<T>::BalanceTooLow);
@@ -1941,7 +1921,6 @@ where
 		}
 		TotalIssuance::<T>::mutate(GetCurrencyId::get(), |issued| {
 			*issued = issued.checked_add(&amount).unwrap_or_else(|| {
-				// this sub can't underflow but just to be defensive here.
 				amount = Self::Balance::max_value().defensive_saturating_sub(*issued);
 				Self::Balance::max_value()
 			})
@@ -1984,12 +1963,10 @@ where
 		let currency_id = GetCurrencyId::get();
 		let account = Pallet::<T>::accounts(who, currency_id);
 		let free_slashed_amount = account.free.min(value);
-		// this sub can't underflow but just to be defensive here.
 		let mut remaining_slash = value.defensive_saturating_sub(free_slashed_amount);
 
 		// slash free balance
 		if !free_slashed_amount.is_zero() {
-			// this sub can't underflow but just to be defensive here.
 			Pallet::<T>::set_free_balance(
 				currency_id,
 				who,
@@ -2000,9 +1977,7 @@ where
 		// slash reserved balance
 		if !remaining_slash.is_zero() {
 			let reserved_slashed_amount = account.reserved.min(remaining_slash);
-			// this sub can't underflow but just to be defensive here.
 			remaining_slash = remaining_slash.defensive_saturating_sub(reserved_slashed_amount);
-			// this sub can't underflow but just to be defensive here.
 			Pallet::<T>::set_reserved_balance(
 				currency_id,
 				who,
