@@ -892,7 +892,7 @@ impl<T: Config> Pallet<T> {
 			return Ok(());
 		}
 
-		<T::CurrencyHooks as CurrencyMutationHooks<T::AccountId, T::CurrencyId, T::Balance>>::OnTransfer::on_transfer(
+		<T::CurrencyHooks as CurrencyMutationHooks<T::AccountId, T::CurrencyId, T::Balance>>::TransferPreHook::on_transfer(
 			currency_id,
 			from,
 			to,
@@ -937,6 +937,12 @@ impl<T: Config> Pallet<T> {
 			Ok(())
 		})?;
 
+		<T::CurrencyHooks as CurrencyMutationHooks<T::AccountId, T::CurrencyId, T::Balance>>::TransferPostHook::on_transfer(
+			currency_id,
+			from,
+			to,
+			amount,
+		)?;
 		Self::deposit_event(Event::Transfer {
 			currency_id,
 			from: from.clone(),
@@ -1023,7 +1029,7 @@ impl<T: Config> Pallet<T> {
 			return Ok(());
 		}
 
-		<T::CurrencyHooks as CurrencyMutationHooks<T::AccountId, T::CurrencyId, T::Balance>>::OnDeposit::on_deposit(
+		<T::CurrencyHooks as CurrencyMutationHooks<T::AccountId, T::CurrencyId, T::Balance>>::DepositPreHook::on_deposit(
 			currency_id,
 			who,
 			amount,
@@ -1049,6 +1055,11 @@ impl<T: Config> Pallet<T> {
 			}
 			account.free += amount;
 
+			<T::CurrencyHooks as CurrencyMutationHooks<T::AccountId, T::CurrencyId, T::Balance>>::DepositPostHook::on_deposit(
+				currency_id,
+				who,
+				amount,
+			)?;
 			Self::deposit_event(Event::Deposited {
 				currency_id,
 				who: who.clone(),

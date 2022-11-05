@@ -697,10 +697,16 @@ pub trait CurrencyMutationHooks<AccountId, CurrencyId, Balance> {
 	type OnSlash: OnSlash<AccountId, CurrencyId, Balance>;
 
 	/// Hook to run before depositing into an account.
-	type OnDeposit: OnDeposit<AccountId, CurrencyId, Balance>;
+	type DepositPreHook: OnDeposit<AccountId, CurrencyId, Balance>;
+
+	/// Hook to run after depositing into an account.
+	type DepositPostHook: OnDeposit<AccountId, CurrencyId, Balance>;
 
 	/// Hook to run before transferring from an account to another.
-	type OnTransfer: OnTransfer<AccountId, CurrencyId, Balance>;
+	type TransferPreHook: OnTransfer<AccountId, CurrencyId, Balance>;
+
+	/// Hook to run after transferring from an account to another.
+	type TransferPostHook: OnTransfer<AccountId, CurrencyId, Balance>;
 
 	/// Handler for when an account was created
 	type OnNewTokenAccount: Happened<(AccountId, CurrencyId)>;
@@ -712,8 +718,10 @@ pub trait CurrencyMutationHooks<AccountId, CurrencyId, Balance> {
 impl<AccountId, CurrencyId, Balance> CurrencyMutationHooks<AccountId, CurrencyId, Balance> for () {
 	type OnDust = ();
 	type OnSlash = ();
-	type OnDeposit = ();
-	type OnTransfer = ();
+	type DepositPreHook = ();
+	type DepositPostHook = ();
+	type TransferPreHook = ();
+	type TransferPostHook = ();
 	type OnNewTokenAccount = ();
 	type OnKilledTokenAccount = ();
 }

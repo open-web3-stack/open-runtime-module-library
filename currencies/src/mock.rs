@@ -80,8 +80,10 @@ where
 {
 	type OnDust = orml_tokens::TransferDust<T, DustAccount>;
 	type OnSlash = ();
-	type OnDeposit = ();
-	type OnTransfer = ();
+	type DepositPreHook = ();
+	type DepositPostHook = ();
+	type TransferPreHook = ();
+	type TransferPostHook = ();
 	type OnNewTokenAccount = ();
 	type OnKilledTokenAccount = ();
 }
