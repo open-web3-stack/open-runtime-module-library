@@ -419,7 +419,7 @@ pub mod module {
 			DispatchClass::Operational,
 		))]
 		#[allow(deprecated)]
-		#[deprecated(note = "1D weight is used in this extrinsic, please migrate to `instantiate`")]
+		#[deprecated(note = "1D weight is used in this extrinsic, please migrate to `trigger_call`")]
 		pub fn trigger_old_call(
 			origin: OriginFor<T>,
 			hash: T::Hash,
