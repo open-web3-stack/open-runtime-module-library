@@ -98,17 +98,12 @@ impl orml_tokens::Config for Test {
 	type CurrencyId = u32;
 	type RuntimeEvent = RuntimeEvent;
 	type ExistentialDeposits = ExistentialDeposits;
-	type OnDust = ();
-	type OnSlash = ();
-	type OnDeposit = ();
-	type OnTransfer = ();
+	type CurrencyHooks = ();
 	type WeightInfo = ();
 	type MaxLocks = MaxLocks;
 	type DustRemovalWhitelist = MockDustRemovalWhitelist;
 	type MaxReserves = ConstU32<2>;
 	type ReserveIdentifier = ReserveIdentifier;
-	type OnNewTokenAccount = ();
-	type OnKilledTokenAccount = ();
 }
 
 pub struct MockDisputeResolver;

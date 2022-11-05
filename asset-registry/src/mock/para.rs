@@ -92,16 +92,11 @@ impl orml_tokens::Config for Runtime {
 	type CurrencyId = CurrencyId;
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
-	type OnDust = ();
-	type OnSlash = ();
-	type OnDeposit = ();
-	type OnTransfer = ();
+	type CurrencyHooks = ();
 	type ReserveIdentifier = [u8; 8];
 	type MaxReserves = ();
 	type MaxLocks = ConstU32<50>;
 	type DustRemovalWhitelist = Nothing;
-	type OnNewTokenAccount = ();
-	type OnKilledTokenAccount = ();
 }
 
 #[derive(scale_info::TypeInfo, Encode, Decode, Clone, Eq, PartialEq, Debug)]

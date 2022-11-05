@@ -55,7 +55,7 @@ fn transfer_should_work() {
 				Error::<Runtime>::ExistentialDeposit,
 			);
 			assert_ok!(Tokens::transfer(Some(ALICE).into(), CHARLIE, DOT, 2));
-			assert_eq!(TrackCreatedAccounts::accounts(), vec![(CHARLIE, DOT)]);
+			assert_eq!(TrackCreatedAccounts::<Runtime>::accounts(), vec![(CHARLIE, DOT)]);
 
 			// imply AllowDeath
 			assert!(Accounts::<Runtime>::contains_key(ALICE, DOT));
@@ -132,7 +132,7 @@ fn transfer_all_allow_death_should_work() {
 			assert!(Accounts::<Runtime>::contains_key(ALICE, DOT));
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
 			assert_ok!(Tokens::transfer_all(Some(ALICE).into(), CHARLIE, DOT, false));
-			assert_eq!(TrackCreatedAccounts::accounts(), vec![(CHARLIE, DOT)]);
+			assert_eq!(TrackCreatedAccounts::<Runtime>::accounts(), vec![(CHARLIE, DOT)]);
 			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Transfer {
 				currency_id: DOT,
 				from: ALICE,
@@ -141,7 +141,7 @@ fn transfer_all_allow_death_should_work() {
 			}));
 			assert!(!Accounts::<Runtime>::contains_key(ALICE, DOT));
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
-			assert_eq!(TrackKilledAccounts::accounts(), vec![(ALICE, DOT)]);
+			assert_eq!(TrackKilledAccounts::<Runtime>::accounts(), vec![(ALICE, DOT)]);
 
 			assert_ok!(Tokens::set_lock(ID_1, DOT, &BOB, 50));
 			assert_eq!(Tokens::accounts(&BOB, DOT).frozen, 50);
@@ -179,7 +179,7 @@ fn force_transfer_should_work() {
 				amount: 100,
 			}));
 			assert!(!Accounts::<Runtime>::contains_key(ALICE, DOT));
-			assert_eq!(TrackKilledAccounts::accounts(), vec![(ALICE, DOT)]);
+			assert_eq!(TrackKilledAccounts::<Runtime>::accounts(), vec![(ALICE, DOT)]);
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
 			assert_eq!(Tokens::free_balance(DOT, &BOB), 200);
 		});
@@ -1154,17 +1154,20 @@ fn exceeding_max_reserves_should_fail() {
 fn lifecycle_callbacks_are_activated() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(Tokens::set_balance(RawOrigin::Root.into(), ALICE, DOT, 200, 0));
-		assert_eq!(TrackCreatedAccounts::accounts(), vec![(ALICE, DOT)]);
+		assert_eq!(TrackCreatedAccounts::<Runtime>::accounts(), vec![(ALICE, DOT)]);
 
 		assert_ok!(Tokens::set_balance(RawOrigin::Root.into(), ALICE, BTC, 200, 0));
-		assert_eq!(TrackCreatedAccounts::accounts(), vec![(ALICE, DOT), (ALICE, BTC)]);
+		assert_eq!(
+			TrackCreatedAccounts::<Runtime>::accounts(),
+			vec![(ALICE, DOT), (ALICE, BTC)]
+		);
 
 		assert_ok!(Tokens::transfer_all(Some(ALICE).into(), CHARLIE, BTC, false));
 		assert_eq!(
-			TrackCreatedAccounts::accounts(),
+			TrackCreatedAccounts::<Runtime>::accounts(),
 			vec![(ALICE, DOT), (ALICE, BTC), (CHARLIE, BTC)]
 		);
-		assert_eq!(TrackKilledAccounts::accounts(), vec![(ALICE, BTC)]);
+		assert_eq!(TrackKilledAccounts::<Runtime>::accounts(), vec![(ALICE, BTC)]);
 	})
 }
 
