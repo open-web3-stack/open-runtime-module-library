@@ -12,7 +12,7 @@ pub struct OrderedSet<T: Ord + Encode + Decode + MaxEncodedLen + Clone + Eq + Pa
 	pub BoundedVec<T, S>,
 );
 
-impl<T: Ord + Encode + Decode + MaxEncodedLen + Clone + Eq + PartialEq + fmt::Debug, S: Get<u32>> OrderedSet<T, S> {
+impl<T: Ord + Encode + Decode + MaxEncodedLen + Clone + Eq + PartialEq, S: Get<u32>> OrderedSet<T, S> {
 	/// Create a new empty set
 	pub fn new() -> Self {
 		Self(BoundedVec::default())
@@ -25,7 +25,7 @@ impl<T: Ord + Encode + Decode + MaxEncodedLen + Clone + Eq + PartialEq + fmt::De
 		v.sort();
 		v.dedup();
 
-		Self::from_sorted_set(v.try_into().expect("Did not add any values"))
+		Self::from_sorted_set(v.try_into().map_err(|_| ()).expect("Did not add any values"))
 	}
 
 	/// Create a set from a `Vec`.
@@ -66,7 +66,7 @@ impl<T: Ord + Encode + Decode + MaxEncodedLen + Clone + Eq + PartialEq + fmt::De
 	}
 }
 
-impl<T: Ord + Encode + Decode + MaxEncodedLen + Clone + Eq + PartialEq + fmt::Debug, S: Get<u32>> From<BoundedVec<T, S>>
+impl<T: Ord + Encode + Decode + MaxEncodedLen + Clone + Eq + PartialEq, S: Get<u32>> From<BoundedVec<T, S>>
 	for OrderedSet<T, S>
 {
 	fn from(v: BoundedVec<T, S>) -> Self {
