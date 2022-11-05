@@ -282,7 +282,7 @@ impl<T: Config> OnSlash<T::AccountId, CurrencyId, Balance> for OnSlashHook<T> {
 }
 impl<T: Config> OnSlashHook<T> {
 	pub fn calls() -> u32 {
-		ON_SLASH_CALLS.with(|accounts| *accounts.borrow())
+		ON_SLASH_CALLS.with(|accounts| accounts.borrow().clone())
 	}
 }
 
@@ -295,7 +295,7 @@ impl<T: Config> OnDeposit<T::AccountId, CurrencyId, Balance> for OnDepositHook<T
 }
 impl<T: Config> OnDepositHook<T> {
 	pub fn calls() -> u32 {
-		ON_DEPOSIT_CALLS.with(|accounts| *accounts.borrow())
+		ON_DEPOSIT_CALLS.with(|accounts| accounts.borrow().clone())
 	}
 }
 
@@ -313,7 +313,7 @@ impl<T: Config> OnTransfer<T::AccountId, CurrencyId, Balance> for OnTransferHook
 }
 impl<T: Config> OnTransferHook<T> {
 	pub fn calls() -> u32 {
-		ON_TRANSFER_CALLS.with(|accounts| *accounts.borrow())
+		ON_TRANSFER_CALLS.with(|accounts| accounts.borrow().clone())
 	}
 }
 
@@ -357,10 +357,18 @@ construct_runtime!(
 	}
 );
 
-#[derive(Default, Debug, Clone)]
 pub struct ExtBuilder {
 	balances: Vec<(AccountId, CurrencyId, Balance)>,
 	treasury_genesis: bool,
+}
+
+impl Default for ExtBuilder {
+	fn default() -> Self {
+		Self {
+			balances: vec![],
+			treasury_genesis: false,
+		}
+	}
 }
 
 impl ExtBuilder {

@@ -84,7 +84,7 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
 			},
 			_ => None,
 		};
-		currency_id.or_else(|| AssetRegistry::location_to_asset_id(&l).map(CurrencyId::RegisteredAsset))
+		currency_id.or_else(|| AssetRegistry::location_to_asset_id(&l).map(|id| CurrencyId::RegisteredAsset(id)))
 	}
 }
 impl Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert {
@@ -208,9 +208,12 @@ pub fn para_ext(para_id: u32, asset_data: Option<(Vec<(u32, Vec<u8>)>, u32)>) ->
 	.unwrap();
 
 	if let Some((assets, last_asset_id)) = asset_data {
-		GenesisConfig::<Runtime> { assets, last_asset_id }
-			.assimilate_storage(&mut t)
-			.unwrap();
+		GenesisConfig::<Runtime> {
+			assets: assets,
+			last_asset_id: last_asset_id,
+		}
+		.assimilate_storage(&mut t)
+		.unwrap();
 	}
 
 	let mut ext = TestExternalities::new(t);
