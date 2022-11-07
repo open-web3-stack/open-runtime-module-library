@@ -8,14 +8,14 @@ use frame_support::{assert_noop, assert_ok};
 use mock::*;
 use sp_runtime::{FixedPointNumber, FixedU128, Permill};
 
-fn storage_set(key: &Vec<u8>, value: &Vec<u8>) {
+fn storage_set(key: &[u8], value: &[u8]) {
 	// let bounded_key: StorageValueBytes<Runtime> =
 	// key.to_vec().try_into().unwrap(); let bounded_value:
 	// StorageValueBytes<Runtime> = key.to_vec().try_into().unwrap();
 	frame_support::storage::unhashed::put(key, value);
 }
 
-fn storage_get(key: &Vec<u8>) -> StorageValueBytes<Runtime> {
+fn storage_get(key: &[u8]) -> StorageValueBytes<Runtime> {
 	frame_support::storage::unhashed::get::<StorageValueBytes<Runtime>>(key).unwrap_or_default()
 }
 

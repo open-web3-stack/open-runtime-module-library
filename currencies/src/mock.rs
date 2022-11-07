@@ -131,14 +131,9 @@ pub const ID_1: LockIdentifier = *b"1       ";
 pub const RID_1: ReserveIdentifier = [1u8; 8];
 pub const RID_2: ReserveIdentifier = [2u8; 8];
 
+#[derive(Default)]
 pub struct ExtBuilder {
 	balances: Vec<(AccountId, CurrencyId, Balance)>,
-}
-
-impl Default for ExtBuilder {
-	fn default() -> Self {
-		Self { balances: vec![] }
-	}
 }
 
 impl ExtBuilder {
