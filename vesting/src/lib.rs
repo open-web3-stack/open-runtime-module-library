@@ -219,7 +219,9 @@ pub mod module {
 						.iter()
 						.try_fold::<_, _, Result<BalanceOf<T>, DispatchError>>(Zero::zero(), |acc_amount, schedule| {
 							let amount = ensure_valid_vesting_schedule::<T>(schedule)?;
-							Ok(acc_amount + amount)
+							acc_amount
+								.checked_add(&amount)
+								.ok_or_else(|| ArithmeticError::Overflow.into())
 						})
 						.expect("Invalid vesting schedule");
 
@@ -366,7 +368,9 @@ impl<T: Config> Pallet<T> {
 			.iter()
 			.try_fold::<_, _, Result<BalanceOf<T>, DispatchError>>(Zero::zero(), |acc_amount, schedule| {
 				let amount = ensure_valid_vesting_schedule::<T>(schedule)?;
-				Ok(acc_amount + amount)
+				acc_amount
+					.checked_add(&amount)
+					.ok_or_else(|| ArithmeticError::Overflow.into())
 			})?;
 		ensure!(
 			T::Currency::free_balance(who) >= total_amount,

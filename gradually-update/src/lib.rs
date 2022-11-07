@@ -31,7 +31,10 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use scale_info::TypeInfo;
-use sp_runtime::{traits::SaturatedConversion, DispatchResult, RuntimeDebug};
+use sp_runtime::{
+	traits::{SaturatedConversion, Saturating},
+	DispatchResult, RuntimeDebug,
+};
 
 mod default_weight;
 mod mock;
@@ -220,7 +223,7 @@ pub mod module {
 
 impl<T: Config> Pallet<T> {
 	fn _need_update(now: T::BlockNumber) -> bool {
-		now >= Self::last_updated_at() + T::UpdateFrequency::get()
+		now >= Self::last_updated_at().saturating_add(T::UpdateFrequency::get())
 	}
 
 	fn _on_finalize(now: T::BlockNumber) {
