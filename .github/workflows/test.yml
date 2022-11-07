@@ -4,11 +4,13 @@ on:
   pull_request:
     branches:
       - master
+      - polkadot-**
     paths-ignore:
       - '**/README.md'
   push:
     branches:
       - master
+      - polkadot-**
     paths-ignore:
       - '**/README.md'
 
