@@ -5,6 +5,7 @@
 use super::*;
 use frame_support::{assert_noop, assert_ok};
 use mock::*;
+use sp_runtime::TokenError;
 
 #[test]
 fn fungibles_inspect_trait_should_work() {
@@ -62,6 +63,285 @@ fn fungibles_unbalanced_trait_should_work() {
 			<Tokens as fungibles::Unbalanced<_>>::set_total_issuance(DOT, 10);
 			assert_eq!(<Tokens as fungibles::Inspect<_>>::total_issuance(DOT), 10);
 		});
+}
+
+mod fungibles_unbalanced {
+	use super::*;
+
+	#[test]
+	fn set_balance_should_update_balance() {
+		ExtBuilder::default()
+			.balances(vec![(ALICE, DOT, 100)])
+			.build()
+			.execute_with(|| {
+				assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 100);
+				assert_ok!(<Tokens as fungibles::Unbalanced<_>>::set_balance(DOT, &ALICE, 10));
+				assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 10);
+			});
+	}
+
+	#[test]
+	fn set_total_issuance_should_update_total_issuance() {
+		ExtBuilder::default()
+			.balances(vec![(ALICE, DOT, 100)])
+			.build()
+			.execute_with(|| {
+				assert_eq!(<Tokens as fungibles::Inspect<_>>::total_issuance(DOT), 100);
+				<Tokens as fungibles::Unbalanced<_>>::set_total_issuance(DOT, 10);
+				assert_eq!(<Tokens as fungibles::Inspect<_>>::total_issuance(DOT), 10);
+			});
+	}
+
+	mod decrease_balance {
+
+		use super::*;
+
+		#[test]
+		fn should_fail_when_not_enough_funds() {
+			ExtBuilder::default()
+				.balances(vec![(ALICE, DOT, 10)])
+				.build()
+				.execute_with(|| {
+					assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 10);
+					assert_noop!(
+						<Tokens as fungibles::Unbalanced<_>>::decrease_balance(DOT, &ALICE, 20),
+						TokenError::NoFunds
+					);
+				});
+		}
+
+		#[test]
+		fn should_update_balance_when_successful() {
+			ExtBuilder::default()
+				.balances(vec![(ALICE, DOT, 10)])
+				.build()
+				.execute_with(|| {
+					assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 10);
+					assert_ok!(
+						<Tokens as fungibles::Unbalanced<_>>::decrease_balance(DOT, &ALICE, 5),
+						5
+					);
+					assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 5);
+				});
+		}
+
+		#[test]
+		fn should_remove_accounts_that_drop_below_ed() {
+			ExtBuilder::default()
+				.balances(vec![(ALICE, DOT, 5)])
+				.build()
+				.execute_with(|| {
+					assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 5);
+					assert_ok!(
+						<Tokens as fungibles::Unbalanced<_>>::decrease_balance(DOT, &ALICE, 4),
+						5
+					);
+					assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 0);
+				});
+		}
+
+		#[test]
+		fn should_fail_when_not_enough_free_funds() {
+			ExtBuilder::default()
+				.balances(vec![(ALICE, DOT, 100)])
+				.build()
+				.execute_with(|| {
+					assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 100);
+					assert_ok!(<Tokens as fungibles::MutateHold<_>>::hold(DOT, &ALICE, 50));
+					assert_noop!(
+						<Tokens as fungibles::Unbalanced<_>>::decrease_balance(DOT, &ALICE, 60),
+						ArithmeticError::Underflow
+					);
+				});
+		}
+
+		#[test]
+		fn should_update_balance_when_enough_free_funds() {
+			ExtBuilder::default()
+				.balances(vec![(ALICE, DOT, 100)])
+				.build()
+				.execute_with(|| {
+					assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 100);
+					assert_ok!(<Tokens as fungibles::MutateHold<_>>::hold(DOT, &ALICE, 50));
+					assert_ok!(
+						<Tokens as fungibles::Unbalanced<_>>::decrease_balance(DOT, &ALICE, 50),
+						50
+					);
+					assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 50);
+					assert_ok!(<Tokens as fungibles::MutateHold<_>>::release(DOT, &ALICE, 50, false));
+					assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 50);
+				});
+		}
+	}
+
+	mod decrease_balance_at_most {
+		use super::*;
+
+		#[test]
+		fn should_decrease_by_part_available_when_not_enough_for_most() {
+			ExtBuilder::default()
+				.balances(vec![(ALICE, DOT, 10)])
+				.build()
+				.execute_with(|| {
+					assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 10);
+					assert_eq!(
+						<Tokens as fungibles::Unbalanced<_>>::decrease_balance_at_most(DOT, &ALICE, 20),
+						10
+					);
+					assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 0);
+				})
+		}
+
+		#[test]
+		fn should_decrease_by_most_when_available() {
+			ExtBuilder::default()
+				.balances(vec![(ALICE, DOT, 10)])
+				.build()
+				.execute_with(|| {
+					assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 10);
+					assert_eq!(
+						<Tokens as fungibles::Unbalanced<_>>::decrease_balance_at_most(DOT, &ALICE, 5),
+						5
+					);
+					assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 5);
+				})
+		}
+
+		#[test]
+		fn should_remove_accounts_that_drop_below_ed() {
+			ExtBuilder::default()
+				.balances(vec![(ALICE, DOT, 5)])
+				.build()
+				.execute_with(|| {
+					assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 5);
+					assert_eq!(
+						<Tokens as fungibles::Unbalanced<_>>::decrease_balance_at_most(DOT, &ALICE, 4),
+						5
+					);
+					assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 0);
+				})
+		}
+
+		// Ignore while `decrease_balance_at_most` is broken
+		#[ignore]
+		#[test]
+		fn should_remove_free_when_part_is_reserved() {
+			ExtBuilder::default()
+				.balances(vec![(ALICE, DOT, 100)])
+				.build()
+				.execute_with(|| {
+					assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 100);
+					assert_ok!(<Tokens as fungibles::MutateHold<_>>::hold(DOT, &ALICE, 50));
+					assert_eq!(
+						<Tokens as fungibles::Unbalanced<_>>::decrease_balance_at_most(DOT, &ALICE, 60),
+						50
+					);
+					assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 50);
+				})
+		}
+
+		#[test]
+		fn should_remove_most_when_part_is_reserved_and_free_has_enough() {
+			ExtBuilder::default()
+				.balances(vec![(ALICE, DOT, 100)])
+				.build()
+				.execute_with(|| {
+					assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 100);
+					assert_ok!(<Tokens as fungibles::MutateHold<_>>::hold(DOT, &ALICE, 50));
+					assert_eq!(
+						<Tokens as fungibles::Unbalanced<_>>::decrease_balance_at_most(DOT, &ALICE, 50),
+						50
+					);
+					assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 50);
+					assert_ok!(<Tokens as fungibles::MutateHold<_>>::release(DOT, &ALICE, 50, false));
+					assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 50);
+				})
+		}
+	}
+
+	mod increase_balance {
+		use super::*;
+
+		#[test]
+		fn should_error_when_below_ed() {
+			ExtBuilder::default().build().execute_with(|| {
+				assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 0);
+				assert_noop!(
+					<Tokens as fungibles::Unbalanced<_>>::increase_balance(DOT, &ALICE, 1),
+					TokenError::BelowMinimum
+				);
+			})
+		}
+
+		#[test]
+		fn should_update_balance() {
+			ExtBuilder::default().build().execute_with(|| {
+				assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 0);
+				assert_ok!(
+					<Tokens as fungibles::Unbalanced<_>>::increase_balance(DOT, &ALICE, 2),
+					2
+				);
+				assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 2);
+			})
+		}
+
+		#[test]
+		fn should_error_when_overflowing_balance_type() {
+			ExtBuilder::default()
+				.balances(vec![(ALICE, DOT, 2)])
+				.build()
+				.execute_with(|| {
+					assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 2);
+					assert_noop!(
+						<Tokens as fungibles::Unbalanced<_>>::increase_balance(DOT, &ALICE, Balance::MAX),
+						ArithmeticError::Overflow
+					);
+				})
+		}
+	}
+
+	mod increase_balance_at_most {
+		use super::*;
+
+		#[test]
+		fn should_not_create_dust_account() {
+			ExtBuilder::default().build().execute_with(|| {
+				assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 0);
+				assert_eq!(
+					<Tokens as fungibles::Unbalanced<_>>::increase_balance_at_most(DOT, &ALICE, 1),
+					0
+				);
+				assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 0);
+			})
+		}
+
+		#[test]
+		fn should_update_balance() {
+			ExtBuilder::default().build().execute_with(|| {
+				assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 0);
+				assert_eq!(
+					<Tokens as fungibles::Unbalanced<_>>::increase_balance_at_most(DOT, &ALICE, 2),
+					2
+				);
+				assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 2);
+			})
+		}
+
+		#[test]
+		fn should_not_overflow() {
+			ExtBuilder::default()
+				.balances(vec![(ALICE, DOT, 2)])
+				.build()
+				.execute_with(|| {
+					assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 2);
+					assert_eq!(
+						<Tokens as fungibles::Unbalanced<_>>::increase_balance_at_most(DOT, &ALICE, Balance::MAX),
+						Balance::MAX - 2
+					);
+					assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), Balance::MAX);
+				})
+		}
+	}
 }
 
 #[test]
