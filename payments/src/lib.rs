@@ -616,7 +616,7 @@ pub mod pallet {
 				// unreserve the incentive amount and fees from the owner account
 				match payment.fee_detail {
 					Some((fee_recipient, fee_amount)) => {
-						T::Asset::unreserve(payment.asset, from, payment.incentive_amount + fee_amount);
+						T::Asset::unreserve(payment.asset, from, payment.incentive_amount.saturating_add(fee_amount));
 						// transfer fee to marketplace if operation is not cancel
 						if recipient_share != Percent::zero() {
 							T::Asset::transfer(

@@ -47,7 +47,7 @@ fn exceed_max_weight_works() {
 	new_test_ext().execute_with(|| {
 		let result: PostDispatchInfo = TestModule::expect_max_weight(RuntimeOrigin::signed(100)).unwrap();
 		// Check used weight is correct
-		assert_eq!(Some(Weight::MAX), result.actual_weight);
+		assert_eq!(Some(Weight::from_ref_time(u64::MAX)), result.actual_weight);
 	});
 }
 

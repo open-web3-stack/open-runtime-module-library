@@ -70,7 +70,7 @@ impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> Imbalance<T::Balance> for Pos
 	}
 	fn split(self, amount: T::Balance) -> (Self, Self) {
 		let first = self.0.min(amount);
-		let second = self.0 - first;
+		let second = self.0.saturating_sub(first);
 
 		mem::forget(self);
 		(Self::new(first), Self::new(second))
@@ -92,9 +92,9 @@ impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> Imbalance<T::Balance> for Pos
 		mem::forget((self, other));
 
 		if a > b {
-			SameOrOther::Same(Self::new(a - b))
+			SameOrOther::Same(Self::new(a.saturating_sub(b)))
 		} else if b > a {
-			SameOrOther::Other(NegativeImbalance::new(b - a))
+			SameOrOther::Other(NegativeImbalance::new(b.saturating_sub(a)))
 		} else {
 			SameOrOther::None
 		}
@@ -125,7 +125,7 @@ impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> Imbalance<T::Balance> for Neg
 	}
 	fn split(self, amount: T::Balance) -> (Self, Self) {
 		let first = self.0.min(amount);
-		let second = self.0 - first;
+		let second = self.0.saturating_sub(first);
 
 		mem::forget(self);
 		(Self::new(first), Self::new(second))
@@ -147,9 +147,9 @@ impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> Imbalance<T::Balance> for Neg
 		mem::forget((self, other));
 
 		if a > b {
-			SameOrOther::Same(Self::new(a - b))
+			SameOrOther::Same(Self::new(a.saturating_sub(b)))
 		} else if b > a {
-			SameOrOther::Other(PositiveImbalance::new(b - a))
+			SameOrOther::Other(PositiveImbalance::new(b.saturating_sub(a)))
 		} else {
 			SameOrOther::None
 		}

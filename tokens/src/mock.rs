@@ -308,7 +308,7 @@ impl<T: Config> OnSlash<T::AccountId, T::CurrencyId, T::Balance> for OnSlashHook
 }
 impl<T: Config> OnSlashHook<T> {
 	pub fn calls() -> u32 {
-		ON_SLASH_CALLS.with(|accounts| accounts.borrow().clone())
+		ON_SLASH_CALLS.with(|accounts| *accounts.borrow())
 	}
 }
 
@@ -425,18 +425,10 @@ construct_runtime!(
 	}
 );
 
+#[derive(Default)]
 pub struct ExtBuilder {
 	balances: Vec<(AccountId, CurrencyId, Balance)>,
 	treasury_genesis: bool,
-}
-
-impl Default for ExtBuilder {
-	fn default() -> Self {
-		Self {
-			balances: vec![],
-			treasury_genesis: false,
-		}
-	}
 }
 
 impl ExtBuilder {

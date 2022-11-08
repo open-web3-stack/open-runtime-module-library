@@ -1,6 +1,7 @@
 use crate::{Config, MomentOf, TimestampedValueOf};
 use frame_support::traits::{Get, Time};
 use orml_traits::CombineData;
+use sp_runtime::traits::Saturating;
 use sp_std::{marker, prelude::*};
 
 /// Sort by value and returns median timestamped value.
@@ -23,7 +24,7 @@ where
 		let expires_in = ExpiresIn::get();
 		let now = T::Time::now();
 
-		values.retain(|x| x.timestamp + expires_in > now);
+		values.retain(|x| x.timestamp.saturating_add(expires_in) > now);
 
 		let count = values.len() as u32;
 		let minimum_count = MinimumCount::get();
