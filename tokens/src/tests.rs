@@ -1179,24 +1179,24 @@ fn lifecycle_callbacks_are_activated() {
 #[test]
 fn deposit_hooks_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let initial_prehook_calls = DepositPreHook::<Runtime>::calls();
-		let initial_posthook_calls = DepositPostHook::<Runtime>::calls();
+		let initial_prehook_calls = PreDeposit::<Runtime>::calls();
+		let initial_posthook_calls = PostDeposit::<Runtime>::calls();
 		assert_ok!(Tokens::do_deposit(DOT, &CHARLIE, 0, false, true),);
-		assert_eq!(DepositPreHook::<Runtime>::calls(), initial_prehook_calls);
-		assert_eq!(DepositPostHook::<Runtime>::calls(), initial_posthook_calls);
+		assert_eq!(PreDeposit::<Runtime>::calls(), initial_prehook_calls);
+		assert_eq!(PostDeposit::<Runtime>::calls(), initial_posthook_calls);
 
 		assert_ok!(Tokens::do_deposit(DOT, &CHARLIE, 100, false, true),);
-		assert_eq!(DepositPreHook::<Runtime>::calls(), initial_prehook_calls + 1);
-		assert_eq!(DepositPostHook::<Runtime>::calls(), initial_posthook_calls + 1);
+		assert_eq!(PreDeposit::<Runtime>::calls(), initial_prehook_calls + 1);
+		assert_eq!(PostDeposit::<Runtime>::calls(), initial_posthook_calls + 1);
 
 		assert_noop!(
 			Tokens::do_deposit(DOT, &BOB, 1, false, true),
 			Error::<Runtime>::ExistentialDeposit
 		);
 		// The prehook is called
-		assert_eq!(DepositPreHook::<Runtime>::calls(), initial_prehook_calls + 2);
+		assert_eq!(PreDeposit::<Runtime>::calls(), initial_prehook_calls + 2);
 		// The posthook is not called
-		assert_eq!(DepositPostHook::<Runtime>::calls(), initial_posthook_calls + 1);
+		assert_eq!(PostDeposit::<Runtime>::calls(), initial_posthook_calls + 1);
 	});
 }
 
@@ -1206,8 +1206,8 @@ fn transfer_hooks_work() {
 		.balances(vec![(ALICE, DOT, 100)])
 		.build()
 		.execute_with(|| {
-			let initial_prehook_calls = TransferPreHook::<Runtime>::calls();
-			let initial_posthook_calls = TransferPostHook::<Runtime>::calls();
+			let initial_prehook_calls = PreTransfer::<Runtime>::calls();
+			let initial_posthook_calls = PostTransfer::<Runtime>::calls();
 			assert_ok!(Tokens::do_transfer(
 				DOT,
 				&ALICE,
@@ -1215,8 +1215,8 @@ fn transfer_hooks_work() {
 				0,
 				ExistenceRequirement::AllowDeath
 			),);
-			assert_eq!(TransferPreHook::<Runtime>::calls(), initial_prehook_calls);
-			assert_eq!(TransferPostHook::<Runtime>::calls(), initial_posthook_calls);
+			assert_eq!(PreTransfer::<Runtime>::calls(), initial_prehook_calls);
+			assert_eq!(PostTransfer::<Runtime>::calls(), initial_posthook_calls);
 
 			assert_ok!(Tokens::do_transfer(
 				DOT,
@@ -1225,16 +1225,16 @@ fn transfer_hooks_work() {
 				10,
 				ExistenceRequirement::AllowDeath
 			));
-			assert_eq!(TransferPreHook::<Runtime>::calls(), initial_prehook_calls + 1);
-			assert_eq!(TransferPostHook::<Runtime>::calls(), initial_posthook_calls + 1);
+			assert_eq!(PreTransfer::<Runtime>::calls(), initial_prehook_calls + 1);
+			assert_eq!(PostTransfer::<Runtime>::calls(), initial_posthook_calls + 1);
 
 			assert_noop!(
 				Tokens::do_transfer(DOT, &ALICE, &BOB, 1, ExistenceRequirement::AllowDeath),
 				Error::<Runtime>::ExistentialDeposit
 			);
 			// The prehook is called
-			assert_eq!(TransferPreHook::<Runtime>::calls(), initial_prehook_calls + 2);
+			assert_eq!(PreTransfer::<Runtime>::calls(), initial_prehook_calls + 2);
 			// The posthook is not called
-			assert_eq!(TransferPostHook::<Runtime>::calls(), initial_posthook_calls + 1);
+			assert_eq!(PostTransfer::<Runtime>::calls(), initial_posthook_calls + 1);
 		});
 }

@@ -312,34 +312,34 @@ impl<T: Config> OnSlashHook<T> {
 	}
 }
 
-pub struct DepositPreHook<T>(marker::PhantomData<T>);
-impl<T: Config> OnDeposit<T::AccountId, T::CurrencyId, T::Balance> for DepositPreHook<T> {
+pub struct PreDeposit<T>(marker::PhantomData<T>);
+impl<T: Config> OnDeposit<T::AccountId, T::CurrencyId, T::Balance> for PreDeposit<T> {
 	fn on_deposit(_currency_id: T::CurrencyId, _account_id: &T::AccountId, _amount: T::Balance) -> DispatchResult {
 		ON_DEPOSIT_PREHOOK_CALLS.with(|cell| *cell.borrow_mut() += 1);
 		Ok(())
 	}
 }
-impl<T: Config> DepositPreHook<T> {
+impl<T: Config> PreDeposit<T> {
 	pub fn calls() -> u32 {
 		ON_DEPOSIT_PREHOOK_CALLS.with(|accounts| accounts.borrow().clone())
 	}
 }
 
-pub struct DepositPostHook<T>(marker::PhantomData<T>);
-impl<T: Config> OnDeposit<T::AccountId, T::CurrencyId, T::Balance> for DepositPostHook<T> {
+pub struct PostDeposit<T>(marker::PhantomData<T>);
+impl<T: Config> OnDeposit<T::AccountId, T::CurrencyId, T::Balance> for PostDeposit<T> {
 	fn on_deposit(_currency_id: T::CurrencyId, _account_id: &T::AccountId, _amount: T::Balance) -> DispatchResult {
 		ON_DEPOSIT_POSTHOOK_CALLS.with(|cell| *cell.borrow_mut() += 1);
 		Ok(())
 	}
 }
-impl<T: Config> DepositPostHook<T> {
+impl<T: Config> PostDeposit<T> {
 	pub fn calls() -> u32 {
 		ON_DEPOSIT_POSTHOOK_CALLS.with(|accounts| accounts.borrow().clone())
 	}
 }
 
-pub struct TransferPreHook<T>(marker::PhantomData<T>);
-impl<T: Config> OnTransfer<T::AccountId, T::CurrencyId, T::Balance> for TransferPreHook<T> {
+pub struct PreTransfer<T>(marker::PhantomData<T>);
+impl<T: Config> OnTransfer<T::AccountId, T::CurrencyId, T::Balance> for PreTransfer<T> {
 	fn on_transfer(
 		_currency_id: T::CurrencyId,
 		_from: &T::AccountId,
@@ -350,14 +350,14 @@ impl<T: Config> OnTransfer<T::AccountId, T::CurrencyId, T::Balance> for Transfer
 		Ok(())
 	}
 }
-impl<T: Config> TransferPreHook<T> {
+impl<T: Config> PreTransfer<T> {
 	pub fn calls() -> u32 {
 		ON_TRANSFER_PREHOOK_CALLS.with(|accounts| accounts.borrow().clone())
 	}
 }
 
-pub struct TransferPostHook<T>(marker::PhantomData<T>);
-impl<T: Config> OnTransfer<T::AccountId, T::CurrencyId, T::Balance> for TransferPostHook<T> {
+pub struct PostTransfer<T>(marker::PhantomData<T>);
+impl<T: Config> OnTransfer<T::AccountId, T::CurrencyId, T::Balance> for PostTransfer<T> {
 	fn on_transfer(
 		_currency_id: T::CurrencyId,
 		_from: &T::AccountId,
@@ -368,7 +368,7 @@ impl<T: Config> OnTransfer<T::AccountId, T::CurrencyId, T::Balance> for Transfer
 		Ok(())
 	}
 }
-impl<T: Config> TransferPostHook<T> {
+impl<T: Config> PostTransfer<T> {
 	pub fn calls() -> u32 {
 		ON_TRANSFER_POSTHOOK_CALLS.with(|accounts| accounts.borrow().clone())
 	}
@@ -379,17 +379,17 @@ parameter_types! {
 }
 
 pub struct CurrencyHooks<T>(marker::PhantomData<T>);
-impl<T: Config> CurrencyMutationHooks<T::AccountId, T::CurrencyId, T::Balance> for CurrencyHooks<T>
+impl<T: Config> MutationHooks<T::AccountId, T::CurrencyId, T::Balance> for CurrencyHooks<T>
 where
 	T::AccountId: From<AccountId32> + Into<AccountId32>,
 	T::CurrencyId: From<u32> + Into<u32>,
 {
 	type OnDust = TransferDust<T, DustReceiver>;
 	type OnSlash = OnSlashHook<T>;
-	type DepositPreHook = DepositPreHook<T>;
-	type DepositPostHook = DepositPostHook<T>;
-	type TransferPreHook = TransferPreHook<T>;
-	type TransferPostHook = TransferPostHook<T>;
+	type PreDeposit = PreDeposit<T>;
+	type PostDeposit = PostDeposit<T>;
+	type PreTransfer = PreTransfer<T>;
+	type PostTransfer = PostTransfer<T>;
 	type OnNewTokenAccount = TrackCreatedAccounts<T>;
 	type OnKilledTokenAccount = TrackKilledAccounts<T>;
 }

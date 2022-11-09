@@ -66,7 +66,7 @@ use sp_std::{cmp, convert::Infallible, marker, prelude::*, vec::Vec};
 
 use orml_traits::{
 	arithmetic::{self, Signed},
-	currency::{CurrencyMutationHooks, OnDeposit, OnDust, OnSlash, OnTransfer, TransferAll},
+	currency::{MutationHooks, OnDeposit, OnDust, OnSlash, OnTransfer, TransferAll},
 	BalanceStatus, GetByKey, Happened, LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency,
 	MultiReservableCurrency, NamedMultiReservableCurrency,
 };
@@ -173,7 +173,7 @@ pub use module::*;
 
 #[frame_support::pallet]
 pub mod module {
-	use orml_traits::currency::CurrencyMutationHooks;
+	use orml_traits::currency::MutationHooks;
 
 	use super::*;
 
@@ -218,7 +218,7 @@ pub mod module {
 
 		/// Hooks are actions that are executed on certain events.
 		/// For example: OnDust, OnNewTokenAccount
-		type CurrencyHooks: CurrencyMutationHooks<Self::AccountId, Self::CurrencyId, Self::Balance>;
+		type CurrencyHooks: MutationHooks<Self::AccountId, Self::CurrencyId, Self::Balance>;
 
 		#[pallet::constant]
 		type MaxLocks: Get<u32>;
@@ -751,11 +751,11 @@ impl<T: Config> Pallet<T> {
 				// Ignore the result, because if it failed then there are remaining consumers,
 				// and the account storage in frame_system shouldn't be reaped.
 				let _ = frame_system::Pallet::<T>::dec_providers(who);
-				<T::CurrencyHooks as CurrencyMutationHooks<T::AccountId, T::CurrencyId, T::Balance>>::OnKilledTokenAccount::happened(&(who.clone(), currency_id));
+				<T::CurrencyHooks as MutationHooks<T::AccountId, T::CurrencyId, T::Balance>>::OnKilledTokenAccount::happened(&(who.clone(), currency_id));
 			} else if !existed && exists {
 				// if new, increase account provider
 				frame_system::Pallet::<T>::inc_providers(who);
-				<T::CurrencyHooks as CurrencyMutationHooks<T::AccountId, T::CurrencyId, T::Balance>>::OnNewTokenAccount::happened(&(who.clone(), currency_id));
+				<T::CurrencyHooks as MutationHooks<T::AccountId, T::CurrencyId, T::Balance>>::OnNewTokenAccount::happened(&(who.clone(), currency_id));
 			}
 
 			if let Some(endowed) = maybe_endowed {
@@ -769,7 +769,7 @@ impl<T: Config> Pallet<T> {
 			if let Some(dust_amount) = maybe_dust {
 				// `OnDust` maybe get/set storage `Accounts` of `who`, trigger handler here
 				// to avoid some unexpected errors.
-				<T::CurrencyHooks as CurrencyMutationHooks<T::AccountId, T::CurrencyId, T::Balance>>::OnDust::on_dust(who, currency_id, dust_amount);
+				<T::CurrencyHooks as MutationHooks<T::AccountId, T::CurrencyId, T::Balance>>::OnDust::on_dust(who, currency_id, dust_amount);
 
 				Self::deposit_event(Event::DustLost {
 					currency_id,
@@ -892,7 +892,7 @@ impl<T: Config> Pallet<T> {
 			return Ok(());
 		}
 
-		<T::CurrencyHooks as CurrencyMutationHooks<T::AccountId, T::CurrencyId, T::Balance>>::TransferPreHook::on_transfer(
+		<T::CurrencyHooks as MutationHooks<T::AccountId, T::CurrencyId, T::Balance>>::PreTransfer::on_transfer(
 			currency_id,
 			from,
 			to,
@@ -937,7 +937,7 @@ impl<T: Config> Pallet<T> {
 			Ok(())
 		})?;
 
-		<T::CurrencyHooks as CurrencyMutationHooks<T::AccountId, T::CurrencyId, T::Balance>>::TransferPostHook::on_transfer(
+		<T::CurrencyHooks as MutationHooks<T::AccountId, T::CurrencyId, T::Balance>>::PostTransfer::on_transfer(
 			currency_id,
 			from,
 			to,
@@ -1029,7 +1029,7 @@ impl<T: Config> Pallet<T> {
 			return Ok(());
 		}
 
-		<T::CurrencyHooks as CurrencyMutationHooks<T::AccountId, T::CurrencyId, T::Balance>>::DepositPreHook::on_deposit(
+		<T::CurrencyHooks as MutationHooks<T::AccountId, T::CurrencyId, T::Balance>>::PreDeposit::on_deposit(
 			currency_id,
 			who,
 			amount,
@@ -1055,7 +1055,7 @@ impl<T: Config> Pallet<T> {
 			}
 			account.free = account.free.defensive_saturating_add(amount);
 
-			<T::CurrencyHooks as CurrencyMutationHooks<T::AccountId, T::CurrencyId, T::Balance>>::DepositPostHook::on_deposit(
+			<T::CurrencyHooks as MutationHooks<T::AccountId, T::CurrencyId, T::Balance>>::PostDeposit::on_deposit(
 				currency_id,
 				who,
 				amount,
@@ -1134,7 +1134,7 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
 			return amount;
 		}
 
-		<T::CurrencyHooks as CurrencyMutationHooks<T::AccountId, T::CurrencyId, T::Balance>>::OnSlash::on_slash(
+		<T::CurrencyHooks as MutationHooks<T::AccountId, T::CurrencyId, T::Balance>>::OnSlash::on_slash(
 			currency_id,
 			who,
 			amount,
@@ -1316,7 +1316,7 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 			return value;
 		}
 
-		<T::CurrencyHooks as CurrencyMutationHooks<T::AccountId, T::CurrencyId, T::Balance>>::OnSlash::on_slash(
+		<T::CurrencyHooks as MutationHooks<T::AccountId, T::CurrencyId, T::Balance>>::OnSlash::on_slash(
 			currency_id,
 			who,
 			value,

@@ -8,7 +8,7 @@ use frame_support::{
 	traits::{ConstU32, ConstU64, Everything, Nothing},
 	PalletId,
 };
-use orml_traits::{currency::CurrencyMutationHooks, parameter_type_with_key};
+use orml_traits::{currency::MutationHooks, parameter_type_with_key};
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
@@ -74,16 +74,16 @@ parameter_types! {
 }
 
 pub struct CurrencyHooks<T>(marker::PhantomData<T>);
-impl<T: orml_tokens::Config> CurrencyMutationHooks<T::AccountId, T::CurrencyId, T::Balance> for CurrencyHooks<T>
+impl<T: orml_tokens::Config> MutationHooks<T::AccountId, T::CurrencyId, T::Balance> for CurrencyHooks<T>
 where
 	T::AccountId: From<AccountId32>,
 {
 	type OnDust = orml_tokens::TransferDust<T, DustAccount>;
 	type OnSlash = ();
-	type DepositPreHook = ();
-	type DepositPostHook = ();
-	type TransferPreHook = ();
-	type TransferPostHook = ();
+	type PreDeposit = ();
+	type PostDeposit = ();
+	type PreTransfer = ();
+	type PostTransfer = ();
 	type OnNewTokenAccount = ();
 	type OnKilledTokenAccount = ();
 }
