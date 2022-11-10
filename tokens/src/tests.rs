@@ -55,7 +55,7 @@ fn transfer_should_work() {
 				Error::<Runtime>::ExistentialDeposit,
 			);
 			assert_ok!(Tokens::transfer(Some(ALICE).into(), CHARLIE, DOT, 2));
-			assert_eq!(TrackCreatedAccounts::accounts(), vec![(CHARLIE, DOT)]);
+			assert_eq!(TrackCreatedAccounts::<Runtime>::accounts(), vec![(CHARLIE, DOT)]);
 
 			// imply AllowDeath
 			assert!(Accounts::<Runtime>::contains_key(ALICE, DOT));
@@ -132,7 +132,7 @@ fn transfer_all_allow_death_should_work() {
 			assert!(Accounts::<Runtime>::contains_key(ALICE, DOT));
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
 			assert_ok!(Tokens::transfer_all(Some(ALICE).into(), CHARLIE, DOT, false));
-			assert_eq!(TrackCreatedAccounts::accounts(), vec![(CHARLIE, DOT)]);
+			assert_eq!(TrackCreatedAccounts::<Runtime>::accounts(), vec![(CHARLIE, DOT)]);
 			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Transfer {
 				currency_id: DOT,
 				from: ALICE,
@@ -141,7 +141,7 @@ fn transfer_all_allow_death_should_work() {
 			}));
 			assert!(!Accounts::<Runtime>::contains_key(ALICE, DOT));
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
-			assert_eq!(TrackKilledAccounts::accounts(), vec![(ALICE, DOT)]);
+			assert_eq!(TrackKilledAccounts::<Runtime>::accounts(), vec![(ALICE, DOT)]);
 
 			assert_ok!(Tokens::set_lock(ID_1, DOT, &BOB, 50));
 			assert_eq!(Tokens::accounts(&BOB, DOT).frozen, 50);
@@ -179,7 +179,7 @@ fn force_transfer_should_work() {
 				amount: 100,
 			}));
 			assert!(!Accounts::<Runtime>::contains_key(ALICE, DOT));
-			assert_eq!(TrackKilledAccounts::accounts(), vec![(ALICE, DOT)]);
+			assert_eq!(TrackKilledAccounts::<Runtime>::accounts(), vec![(ALICE, DOT)]);
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
 			assert_eq!(Tokens::free_balance(DOT, &BOB), 200);
 		});
@@ -1154,17 +1154,20 @@ fn exceeding_max_reserves_should_fail() {
 fn lifecycle_callbacks_are_activated() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(Tokens::set_balance(RawOrigin::Root.into(), ALICE, DOT, 200, 0));
-		assert_eq!(TrackCreatedAccounts::accounts(), vec![(ALICE, DOT)]);
+		assert_eq!(TrackCreatedAccounts::<Runtime>::accounts(), vec![(ALICE, DOT)]);
 
 		assert_ok!(Tokens::set_balance(RawOrigin::Root.into(), ALICE, BTC, 200, 0));
-		assert_eq!(TrackCreatedAccounts::accounts(), vec![(ALICE, DOT), (ALICE, BTC)]);
+		assert_eq!(
+			TrackCreatedAccounts::<Runtime>::accounts(),
+			vec![(ALICE, DOT), (ALICE, BTC)]
+		);
 
 		assert_ok!(Tokens::transfer_all(Some(ALICE).into(), CHARLIE, BTC, false));
 		assert_eq!(
-			TrackCreatedAccounts::accounts(),
+			TrackCreatedAccounts::<Runtime>::accounts(),
 			vec![(ALICE, DOT), (ALICE, BTC), (CHARLIE, BTC)]
 		);
-		assert_eq!(TrackKilledAccounts::accounts(), vec![(ALICE, BTC)]);
+		assert_eq!(TrackKilledAccounts::<Runtime>::accounts(), vec![(ALICE, BTC)]);
 	})
 }
 
@@ -1174,31 +1177,37 @@ fn lifecycle_callbacks_are_activated() {
 // *************************************************
 
 #[test]
-fn deposit_hook_works() {
+fn deposit_hooks_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let initial_hook_calls = OnDepositHook::<Runtime>::calls();
+		let initial_prehook_calls = PreDeposit::<Runtime>::calls();
+		let initial_posthook_calls = PostDeposit::<Runtime>::calls();
 		assert_ok!(Tokens::do_deposit(DOT, &CHARLIE, 0, false, true),);
-		assert_eq!(OnDepositHook::<Runtime>::calls(), initial_hook_calls);
+		assert_eq!(PreDeposit::<Runtime>::calls(), initial_prehook_calls);
+		assert_eq!(PostDeposit::<Runtime>::calls(), initial_posthook_calls);
 
 		assert_ok!(Tokens::do_deposit(DOT, &CHARLIE, 100, false, true),);
-		assert_eq!(OnDepositHook::<Runtime>::calls(), initial_hook_calls + 1);
+		assert_eq!(PreDeposit::<Runtime>::calls(), initial_prehook_calls + 1);
+		assert_eq!(PostDeposit::<Runtime>::calls(), initial_posthook_calls + 1);
 
-		// The hook must be called even if the actual deposit ends up failing
 		assert_noop!(
 			Tokens::do_deposit(DOT, &BOB, 1, false, true),
 			Error::<Runtime>::ExistentialDeposit
 		);
-		assert_eq!(OnDepositHook::<Runtime>::calls(), initial_hook_calls + 2);
+		// The prehook is called
+		assert_eq!(PreDeposit::<Runtime>::calls(), initial_prehook_calls + 2);
+		// The posthook is not called
+		assert_eq!(PostDeposit::<Runtime>::calls(), initial_posthook_calls + 1);
 	});
 }
 
 #[test]
-fn transfer_hook_works() {
+fn transfer_hooks_work() {
 	ExtBuilder::default()
 		.balances(vec![(ALICE, DOT, 100)])
 		.build()
 		.execute_with(|| {
-			let initial_hook_calls = OnTransferHook::<Runtime>::calls();
+			let initial_prehook_calls = PreTransfer::<Runtime>::calls();
+			let initial_posthook_calls = PostTransfer::<Runtime>::calls();
 			assert_ok!(Tokens::do_transfer(
 				DOT,
 				&ALICE,
@@ -1206,7 +1215,8 @@ fn transfer_hook_works() {
 				0,
 				ExistenceRequirement::AllowDeath
 			),);
-			assert_eq!(OnTransferHook::<Runtime>::calls(), initial_hook_calls);
+			assert_eq!(PreTransfer::<Runtime>::calls(), initial_prehook_calls);
+			assert_eq!(PostTransfer::<Runtime>::calls(), initial_posthook_calls);
 
 			assert_ok!(Tokens::do_transfer(
 				DOT,
@@ -1215,13 +1225,16 @@ fn transfer_hook_works() {
 				10,
 				ExistenceRequirement::AllowDeath
 			));
-			assert_eq!(OnTransferHook::<Runtime>::calls(), initial_hook_calls + 1);
+			assert_eq!(PreTransfer::<Runtime>::calls(), initial_prehook_calls + 1);
+			assert_eq!(PostTransfer::<Runtime>::calls(), initial_posthook_calls + 1);
 
-			// The hook must be called even if the actual transfer ends up failing
 			assert_noop!(
 				Tokens::do_transfer(DOT, &ALICE, &BOB, 1, ExistenceRequirement::AllowDeath),
 				Error::<Runtime>::ExistentialDeposit
 			);
-			assert_eq!(OnTransferHook::<Runtime>::calls(), initial_hook_calls + 2);
+			// The prehook is called
+			assert_eq!(PreTransfer::<Runtime>::calls(), initial_prehook_calls + 2);
+			// The posthook is not called
+			assert_eq!(PostTransfer::<Runtime>::calls(), initial_posthook_calls + 1);
 		});
 }

@@ -1,4 +1,4 @@
-use crate::arithmetic;
+use crate::{arithmetic, Happened};
 use codec::{Codec, FullCodec, MaxEncodedLen};
 pub use frame_support::{
 	traits::{BalanceStatus, DefensiveSaturating, LockIdentifier},
@@ -689,4 +689,41 @@ impl<AccountId, CurrencyId, Balance> OnTransfer<AccountId, CurrencyId, Balance> 
 	fn on_transfer(_: CurrencyId, _: &AccountId, _: &AccountId, _: Balance) -> DispatchResult {
 		Ok(())
 	}
+}
+
+pub trait MutationHooks<AccountId, CurrencyId, Balance> {
+	/// Handler to burn or transfer account's dust
+	type OnDust: OnDust<AccountId, CurrencyId, Balance>;
+
+	/// Hook to run before slashing an account.
+	type OnSlash: OnSlash<AccountId, CurrencyId, Balance>;
+
+	/// Hook to run before depositing into an account.
+	type PreDeposit: OnDeposit<AccountId, CurrencyId, Balance>;
+
+	/// Hook to run after depositing into an account.
+	type PostDeposit: OnDeposit<AccountId, CurrencyId, Balance>;
+
+	/// Hook to run before transferring from an account to another.
+	type PreTransfer: OnTransfer<AccountId, CurrencyId, Balance>;
+
+	/// Hook to run after transferring from an account to another.
+	type PostTransfer: OnTransfer<AccountId, CurrencyId, Balance>;
+
+	/// Handler for when an account was created
+	type OnNewTokenAccount: Happened<(AccountId, CurrencyId)>;
+
+	/// Handler for when an account was created
+	type OnKilledTokenAccount: Happened<(AccountId, CurrencyId)>;
+}
+
+impl<AccountId, CurrencyId, Balance> MutationHooks<AccountId, CurrencyId, Balance> for () {
+	type OnDust = ();
+	type OnSlash = ();
+	type PreDeposit = ();
+	type PostDeposit = ();
+	type PreTransfer = ();
+	type PostTransfer = ();
+	type OnNewTokenAccount = ();
+	type OnKilledTokenAccount = ();
 }
