@@ -121,6 +121,32 @@ fn claim_rewards_should_not_create_empty_records() {
 			SharesAndWithdrawnRewards::<Runtime>::contains_key(&DOT_POOL, &ALICE),
 			false
 		);
+
+		PoolInfos::<Runtime>::mutate(DOT_POOL, |pool_info| {
+			pool_info.rewards.insert(NATIVE_COIN, (10_000, 0));
+		});
+		RewardsModule::add_share(&ALICE, &DOT_POOL, 100);
+		assert_eq!(
+			RewardsModule::pool_infos(DOT_POOL),
+			PoolInfo {
+				total_shares: 100,
+				rewards: vec![(NATIVE_COIN, (10_000, 0))].into_iter().collect()
+			}
+		);
+		assert_eq!(
+			RewardsModule::shares_and_withdrawn_rewards(DOT_POOL, ALICE),
+			(100, vec![(NATIVE_COIN, 0)].into_iter().collect())
+		);
+
+		PoolInfos::<Runtime>::remove(DOT_POOL);
+		assert_eq!(PoolInfos::<Runtime>::contains_key(DOT_POOL), false);
+
+		RewardsModule::claim_rewards(&ALICE, &DOT_POOL);
+		assert_eq!(PoolInfos::<Runtime>::contains_key(&DOT_POOL), false);
+		assert_eq!(
+			RewardsModule::shares_and_withdrawn_rewards(DOT_POOL, ALICE),
+			(100, vec![(NATIVE_COIN, 0)].into_iter().collect())
+		);
 	})
 }
 
