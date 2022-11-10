@@ -274,22 +274,24 @@ impl<T: Config> Pallet<T> {
 					return;
 				}
 
-				PoolInfos::<T>::mutate(pool, |pool_info| {
-					let total_shares = U256::from(pool_info.total_shares.to_owned().saturated_into::<u128>());
-					pool_info.rewards.iter_mut().for_each(
-						|(reward_currency, (total_reward, total_withdrawn_reward))| {
-							Self::claim_one(
-								withdrawn_rewards,
-								*reward_currency,
-								share.to_owned(),
-								total_reward.to_owned(),
-								total_shares,
-								total_withdrawn_reward,
-								who,
-								pool,
-							);
-						},
-					);
+				PoolInfos::<T>::mutate_exists(pool, |maybe_pool_info| {
+					if let Some(pool_info) = maybe_pool_info {
+						let total_shares = U256::from(pool_info.total_shares.to_owned().saturated_into::<u128>());
+						pool_info.rewards.iter_mut().for_each(
+							|(reward_currency, (total_reward, total_withdrawn_reward))| {
+								Self::claim_one(
+									withdrawn_rewards,
+									*reward_currency,
+									share.to_owned(),
+									total_reward.to_owned(),
+									total_shares,
+									total_withdrawn_reward,
+									who,
+									pool,
+								);
+							},
+						);
+					}
 				});
 			}
 		});
