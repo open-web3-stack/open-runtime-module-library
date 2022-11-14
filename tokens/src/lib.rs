@@ -1054,19 +1054,19 @@ impl<T: Config> Pallet<T> {
 				TotalIssuance::<T>::mutate(currency_id, |v| *v = new_total_issuance);
 			}
 			account.free = account.free.defensive_saturating_add(amount);
-
-			<T::CurrencyHooks as MutationHooks<T::AccountId, T::CurrencyId, T::Balance>>::PostDeposit::on_deposit(
-				currency_id,
-				who,
-				amount,
-			)?;
-			Self::deposit_event(Event::Deposited {
-				currency_id,
-				who: who.clone(),
-				amount,
-			});
 			Ok(())
-		})
+		})?;
+		<T::CurrencyHooks as MutationHooks<T::AccountId, T::CurrencyId, T::Balance>>::PostDeposit::on_deposit(
+			currency_id,
+			who,
+			amount,
+		)?;
+		Self::deposit_event(Event::Deposited {
+			currency_id,
+			who: who.clone(),
+			amount,
+		});
+		Ok(())
 	}
 }
 
