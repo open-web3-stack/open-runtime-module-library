@@ -331,9 +331,9 @@ impl<T: Config> OnDeposit<T::AccountId, T::CurrencyId, T::Balance> for PostDepos
 		ON_DEPOSIT_POSTHOOK_CALLS.with(|cell| *cell.borrow_mut() += 1);
 		let account_balance: AccountData<T::Balance> =
 			tokens::Pallet::<T>::accounts::<T::AccountId, T::CurrencyId>(account_id.clone(), currency_id);
-		ensure!(
+		assert!(
 			account_balance.free.ge(&amount),
-			DispatchError::Other("Posthook must run after the account balance is updated.")
+			"Posthook must run after the account balance is updated."
 		);
 		Ok(())
 	}
@@ -373,9 +373,9 @@ impl<T: Config> OnTransfer<T::AccountId, T::CurrencyId, T::Balance> for PostTran
 		ON_TRANSFER_POSTHOOK_CALLS.with(|cell| *cell.borrow_mut() += 1);
 		let account_balance: AccountData<T::Balance> =
 			tokens::Pallet::<T>::accounts::<T::AccountId, T::CurrencyId>(to.clone(), currency_id);
-		ensure!(
+		assert!(
 			account_balance.free.ge(&amount),
-			DispatchError::Other("Posthook must run after the account balance is updated.")
+			"Posthook must run after the account balance is updated."
 		);
 		Ok(())
 	}
