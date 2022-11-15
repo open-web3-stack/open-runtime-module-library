@@ -327,8 +327,14 @@ impl<T: Config> PreDeposit<T> {
 
 pub struct PostDeposit<T>(marker::PhantomData<T>);
 impl<T: Config> OnDeposit<T::AccountId, T::CurrencyId, T::Balance> for PostDeposit<T> {
-	fn on_deposit(_currency_id: T::CurrencyId, _account_id: &T::AccountId, _amount: T::Balance) -> DispatchResult {
+	fn on_deposit(currency_id: T::CurrencyId, account_id: &T::AccountId, amount: T::Balance) -> DispatchResult {
 		ON_DEPOSIT_POSTHOOK_CALLS.with(|cell| *cell.borrow_mut() += 1);
+		let account_balance: AccountData<T::Balance> =
+			tokens::Pallet::<T>::accounts::<T::AccountId, T::CurrencyId>(account_id.clone(), currency_id);
+		assert!(
+			account_balance.free.ge(&amount),
+			"Posthook must run after the account balance is updated."
+		);
 		Ok(())
 	}
 }
@@ -359,12 +365,18 @@ impl<T: Config> PreTransfer<T> {
 pub struct PostTransfer<T>(marker::PhantomData<T>);
 impl<T: Config> OnTransfer<T::AccountId, T::CurrencyId, T::Balance> for PostTransfer<T> {
 	fn on_transfer(
-		_currency_id: T::CurrencyId,
+		currency_id: T::CurrencyId,
 		_from: &T::AccountId,
-		_to: &T::AccountId,
-		_amount: T::Balance,
+		to: &T::AccountId,
+		amount: T::Balance,
 	) -> DispatchResult {
 		ON_TRANSFER_POSTHOOK_CALLS.with(|cell| *cell.borrow_mut() += 1);
+		let account_balance: AccountData<T::Balance> =
+			tokens::Pallet::<T>::accounts::<T::AccountId, T::CurrencyId>(to.clone(), currency_id);
+		assert!(
+			account_balance.free.ge(&amount),
+			"Posthook must run after the account balance is updated."
+		);
 		Ok(())
 	}
 }
