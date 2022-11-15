@@ -1201,6 +1201,17 @@ fn deposit_hooks_work() {
 }
 
 #[test]
+fn post_deposit_can_use_new_balance() {
+	ExtBuilder::default().build().execute_with(|| {
+		let initial_balance = Tokens::free_balance(DOT, &CHARLIE);
+		// The following will fail unless Charlie's new balance can be used by the hook,
+		// because `initial_balance + 100` is higher than Charlie's initial balance.
+		// If this fails, the posthook is called too soon.
+		assert_ok!(Tokens::do_deposit(DOT, &CHARLIE, initial_balance + 100, false, true),);
+	});
+}
+
+#[test]
 fn transfer_hooks_work() {
 	ExtBuilder::default()
 		.balances(vec![(ALICE, DOT, 100)])
@@ -1236,5 +1247,25 @@ fn transfer_hooks_work() {
 			assert_eq!(PreTransfer::<Runtime>::calls(), initial_prehook_calls + 2);
 			// The posthook is not called
 			assert_eq!(PostTransfer::<Runtime>::calls(), initial_posthook_calls + 1);
+		});
+}
+
+#[test]
+fn post_transfer_can_use_new_balance() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			let initial_balance = Tokens::free_balance(DOT, &CHARLIE);
+			// The following will fail unless Charlie's new balance can be used by the hook,
+			// because `initial_balance + 100` is higher than Charlie's initial balance.
+			// If this fails, the posthook is called too soon.
+			assert_ok!(Tokens::do_transfer(
+				DOT,
+				&ALICE,
+				&CHARLIE,
+				initial_balance + 100,
+				ExistenceRequirement::AllowDeath
+			));
 		});
 }
