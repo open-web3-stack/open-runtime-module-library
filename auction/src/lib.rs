@@ -18,7 +18,7 @@ use frame_support::pallet_prelude::*;
 use frame_system::{ensure_signed, pallet_prelude::*};
 use orml_traits::{Auction, AuctionHandler, AuctionInfo, Change};
 use sp_runtime::{
-	traits::{AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One, Zero},
+	traits::{AtLeast32BitUnsigned, Bounded, CheckedAdd, MaybeSerializeDeserialize, Member, One, Zero},
 	DispatchError, DispatchResult,
 };
 
@@ -35,7 +35,7 @@ pub mod module {
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		/// The balance type for bidding.
 		type Balance: Parameter
@@ -205,8 +205,7 @@ impl<T: Config> Auction<T::AccountId, T::BlockNumber> for Pallet<T> {
 		let auction_id =
 			<AuctionsIndex<T>>::try_mutate(|n| -> sp_std::result::Result<Self::AuctionId, DispatchError> {
 				let id = *n;
-				ensure!(id != Self::AuctionId::max_value(), Error::<T>::NoAvailableAuctionId);
-				*n += One::one();
+				*n = n.checked_add(&One::one()).ok_or(Error::<T>::NoAvailableAuctionId)?;
 				Ok(id)
 			})?;
 		Auctions::<T>::insert(auction_id, auction);

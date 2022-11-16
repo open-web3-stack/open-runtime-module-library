@@ -2,7 +2,7 @@
 
 use super::*;
 use frame_support::{assert_noop, assert_ok};
-use mock::{Event, *};
+use mock::*;
 
 #[test]
 fn should_feed_values_from_member() {
@@ -11,17 +11,20 @@ fn should_feed_values_from_member() {
 		let account_id: AccountId = 1;
 
 		assert_noop!(
-			ModuleOracle::feed_values(Origin::signed(5), vec![(50, 1000), (51, 900), (52, 800)]),
+			ModuleOracle::feed_values(RuntimeOrigin::signed(5), vec![(50, 1000), (51, 900), (52, 800)]),
 			Error::<Test, _>::NoPermission,
 		);
 
 		assert_eq!(
-			ModuleOracle::feed_values(Origin::signed(account_id), vec![(50, 1000), (51, 900), (52, 800)])
-				.unwrap()
-				.pays_fee,
+			ModuleOracle::feed_values(
+				RuntimeOrigin::signed(account_id),
+				vec![(50, 1000), (51, 900), (52, 800)]
+			)
+			.unwrap()
+			.pays_fee,
 			Pays::No
 		);
-		System::assert_last_event(Event::ModuleOracle(crate::Event::NewFeedData {
+		System::assert_last_event(RuntimeEvent::ModuleOracle(crate::Event::NewFeedData {
 			sender: 1,
 			values: vec![(50, 1000), (51, 900), (52, 800)],
 		}));
@@ -58,7 +61,7 @@ fn should_feed_values_from_root() {
 		let root_feeder: AccountId = RootOperatorAccountId::get();
 
 		assert_ok!(ModuleOracle::feed_values(
-			Origin::root(),
+			RuntimeOrigin::root(),
 			vec![(50, 1000), (51, 900), (52, 800)]
 		));
 
@@ -94,7 +97,10 @@ fn should_not_feed_values_from_root_directly() {
 		let root_feeder: AccountId = RootOperatorAccountId::get();
 
 		assert_noop!(
-			ModuleOracle::feed_values(Origin::signed(root_feeder), vec![(50, 1000), (51, 900), (52, 800)]),
+			ModuleOracle::feed_values(
+				RuntimeOrigin::signed(root_feeder),
+				vec![(50, 1000), (51, 900), (52, 800)]
+			),
 			Error::<Test, _>::NoPermission,
 		);
 	});
@@ -108,8 +114,8 @@ fn should_read_raw_values() {
 		let raw_values = ModuleOracle::read_raw_values(&key);
 		assert_eq!(raw_values, vec![]);
 
-		assert_ok!(ModuleOracle::feed_values(Origin::signed(1), vec![(key, 1000)]));
-		assert_ok!(ModuleOracle::feed_values(Origin::signed(2), vec![(key, 1200)]));
+		assert_ok!(ModuleOracle::feed_values(RuntimeOrigin::signed(1), vec![(key, 1000)]));
+		assert_ok!(ModuleOracle::feed_values(RuntimeOrigin::signed(2), vec![(key, 1200)]));
 
 		let raw_values = ModuleOracle::read_raw_values(&key);
 		assert_eq!(
@@ -133,9 +139,9 @@ fn should_combined_data() {
 	new_test_ext().execute_with(|| {
 		let key: u32 = 50;
 
-		assert_ok!(ModuleOracle::feed_values(Origin::signed(1), vec![(key, 1300)]));
-		assert_ok!(ModuleOracle::feed_values(Origin::signed(2), vec![(key, 1000)]));
-		assert_ok!(ModuleOracle::feed_values(Origin::signed(3), vec![(key, 1200)]));
+		assert_ok!(ModuleOracle::feed_values(RuntimeOrigin::signed(1), vec![(key, 1300)]));
+		assert_ok!(ModuleOracle::feed_values(RuntimeOrigin::signed(2), vec![(key, 1000)]));
+		assert_ok!(ModuleOracle::feed_values(RuntimeOrigin::signed(3), vec![(key, 1200)]));
 
 		let expected = Some(TimestampedValue {
 			value: 1200,
@@ -160,15 +166,15 @@ fn should_return_none_for_non_exist_key() {
 #[test]
 fn multiple_calls_should_fail() {
 	new_test_ext().execute_with(|| {
-		assert_ok!(ModuleOracle::feed_values(Origin::signed(1), vec![(50, 1300)]));
+		assert_ok!(ModuleOracle::feed_values(RuntimeOrigin::signed(1), vec![(50, 1300)]));
 		assert_noop!(
-			ModuleOracle::feed_values(Origin::signed(1), vec![(50, 1300)]),
+			ModuleOracle::feed_values(RuntimeOrigin::signed(1), vec![(50, 1300)]),
 			Error::<Test, _>::AlreadyFeeded,
 		);
 
 		ModuleOracle::on_finalize(1);
 
-		assert_ok!(ModuleOracle::feed_values(Origin::signed(1), vec![(50, 1300)]));
+		assert_ok!(ModuleOracle::feed_values(RuntimeOrigin::signed(1), vec![(50, 1300)]));
 	});
 }
 
@@ -181,9 +187,9 @@ fn get_all_values_should_work() {
 		assert_eq!(ModuleOracle::get_all_values(), vec![]);
 
 		// feed eur & jpy
-		assert_ok!(ModuleOracle::feed_values(Origin::signed(1), vec![(eur, 1300)]));
-		assert_ok!(ModuleOracle::feed_values(Origin::signed(2), vec![(eur, 1000)]));
-		assert_ok!(ModuleOracle::feed_values(Origin::signed(3), vec![(jpy, 9000)]));
+		assert_ok!(ModuleOracle::feed_values(RuntimeOrigin::signed(1), vec![(eur, 1300)]));
+		assert_ok!(ModuleOracle::feed_values(RuntimeOrigin::signed(2), vec![(eur, 1000)]));
+		assert_ok!(ModuleOracle::feed_values(RuntimeOrigin::signed(3), vec![(jpy, 9000)]));
 
 		// not enough eur & jpy prices
 		assert_eq!(ModuleOracle::get(&eur), None);
@@ -194,8 +200,8 @@ fn get_all_values_should_work() {
 		ModuleOracle::on_finalize(1);
 
 		// feed eur & jpy
-		assert_ok!(ModuleOracle::feed_values(Origin::signed(3), vec![(eur, 1200)]));
-		assert_ok!(ModuleOracle::feed_values(Origin::signed(1), vec![(jpy, 8000)]));
+		assert_ok!(ModuleOracle::feed_values(RuntimeOrigin::signed(3), vec![(eur, 1200)]));
+		assert_ok!(ModuleOracle::feed_values(RuntimeOrigin::signed(1), vec![(jpy, 8000)]));
 
 		// enough eur prices
 		let eur_price = Some(TimestampedValue {
@@ -210,7 +216,7 @@ fn get_all_values_should_work() {
 		assert_eq!(ModuleOracle::get_all_values(), vec![(eur, eur_price)]);
 
 		// feed jpy
-		assert_ok!(ModuleOracle::feed_values(Origin::signed(2), vec![(jpy, 7000)]));
+		assert_ok!(ModuleOracle::feed_values(RuntimeOrigin::signed(2), vec![(jpy, 7000)]));
 
 		// enough jpy prices
 		let jpy_price = Some(TimestampedValue {
@@ -229,19 +235,19 @@ fn change_member_should_work() {
 		OracleMembers::set(vec![2, 3, 4]);
 		<ModuleOracle as ChangeMembers<AccountId>>::change_members_sorted(&[4], &[1], &[2, 3, 4]);
 		assert_noop!(
-			ModuleOracle::feed_values(Origin::signed(1), vec![(50, 1000)]),
+			ModuleOracle::feed_values(RuntimeOrigin::signed(1), vec![(50, 1000)]),
 			Error::<Test, _>::NoPermission,
 		);
-		assert_ok!(ModuleOracle::feed_values(Origin::signed(2), vec![(50, 1000)]));
-		assert_ok!(ModuleOracle::feed_values(Origin::signed(4), vec![(50, 1000)]));
+		assert_ok!(ModuleOracle::feed_values(RuntimeOrigin::signed(2), vec![(50, 1000)]));
+		assert_ok!(ModuleOracle::feed_values(RuntimeOrigin::signed(4), vec![(50, 1000)]));
 	});
 }
 
 #[test]
 fn should_clear_data_for_removed_members() {
 	new_test_ext().execute_with(|| {
-		assert_ok!(ModuleOracle::feed_values(Origin::signed(1), vec![(50, 1000)]));
-		assert_ok!(ModuleOracle::feed_values(Origin::signed(2), vec![(50, 1000)]));
+		assert_ok!(ModuleOracle::feed_values(RuntimeOrigin::signed(1), vec![(50, 1000)]));
+		assert_ok!(ModuleOracle::feed_values(RuntimeOrigin::signed(2), vec![(50, 1000)]));
 
 		ModuleOracle::change_members_sorted(&[4], &[1], &[2, 3, 4]);
 
@@ -252,14 +258,14 @@ fn should_clear_data_for_removed_members() {
 #[test]
 fn values_are_updated_on_feed() {
 	new_test_ext().execute_with(|| {
-		assert_ok!(ModuleOracle::feed_values(Origin::signed(1), vec![(50, 900)]));
-		assert_ok!(ModuleOracle::feed_values(Origin::signed(2), vec![(50, 1000)]));
+		assert_ok!(ModuleOracle::feed_values(RuntimeOrigin::signed(1), vec![(50, 900)]));
+		assert_ok!(ModuleOracle::feed_values(RuntimeOrigin::signed(2), vec![(50, 1000)]));
 
 		assert_eq!(ModuleOracle::values(50), None);
 
 		// Upon the third price feed, the value is updated immediately after `combine`
 		// can produce valid result.
-		assert_ok!(ModuleOracle::feed_values(Origin::signed(3), vec![(50, 1100)]));
+		assert_ok!(ModuleOracle::feed_values(RuntimeOrigin::signed(3), vec![(50, 1100)]));
 		assert_eq!(
 			ModuleOracle::values(50),
 			Some(TimestampedValue {

@@ -36,17 +36,27 @@ pub fn with_transaction_result<R>(f: impl FnOnce() -> Result<R, DispatchError>) 
 	})
 }
 
+/// Simulate execution of the supplied function in a new storage transaction.
+/// Changes to storage performed by the supplied function are always discarded.
+pub fn simulate_execution<R>(f: impl FnOnce() -> Result<R, DispatchError>) -> Result<R, DispatchError> {
+	with_transaction(|| {
+		let res = f();
+		TransactionOutcome::Rollback(res)
+	})
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
 	use frame_support::{assert_noop, assert_ok, decl_module, decl_storage};
 	use sp_io::TestExternalities;
 	use sp_runtime::{DispatchError, DispatchResult};
+	use sp_std::result::Result;
 
 	pub trait Config: frame_system::Config {}
 
 	decl_module! {
-		pub struct Module<T: Config> for enum Call where origin: T::Origin {}
+		pub struct Module<T: Config> for enum Call where origin: T::RuntimeOrigin {}
 	}
 
 	decl_storage! {
@@ -92,6 +102,38 @@ mod tests {
 				DispatchError::Other("test")
 			);
 
+			assert_eq!(Value::get(), 0);
+			assert_eq!(Map::get("val0"), 0);
+		});
+	}
+
+	#[test]
+	fn simulate_execution_works() {
+		TestExternalities::default().execute_with(|| {
+			assert_eq!(Value::get(), 0);
+			assert_eq!(Map::get("val0"), 0);
+
+			// Roll back on `Err`.
+			assert_noop!(
+				simulate_execution(|| -> DispatchResult {
+					Value::set(99);
+					Map::insert("val0", 99);
+					Err(DispatchError::Other("test"))
+				}),
+				DispatchError::Other("test")
+			);
+			assert_eq!(Value::get(), 0);
+			assert_eq!(Map::get("val0"), 0);
+
+			// Roll back on `Ok`, but returns `Ok` result.
+			assert_ok!(
+				simulate_execution(|| -> Result<u32, DispatchError> {
+					Value::set(99);
+					Map::insert("val0", 99);
+					Ok(99)
+				}),
+				99
+			);
 			assert_eq!(Value::get(), 0);
 			assert_eq!(Map::get("val0"), 0);
 		});

@@ -22,8 +22,8 @@ pub type ReserveIdentifier = [u8; 8];
 
 pub type AccountId = AccountId32;
 impl frame_system::Config for Runtime {
-	type Origin = Origin;
-	type Call = Call;
+	type RuntimeOrigin = RuntimeOrigin;
+	type RuntimeCall = RuntimeCall;
 	type Index = u64;
 	type BlockNumber = u64;
 	type Hash = H256;
@@ -31,7 +31,7 @@ impl frame_system::Config for Runtime {
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = ConstU64<250>;
 	type BlockWeights = ();
 	type BlockLength = ();
@@ -54,7 +54,7 @@ type Balance = u128;
 impl pallet_balances::Config for Runtime {
 	type Balance = Balance;
 	type DustRemoval = ();
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type ExistentialDeposit = ConstU64<2>;
 	type AccountStore = frame_system::Pallet<Runtime>;
 	type MaxLocks = ();
@@ -74,13 +74,16 @@ parameter_types! {
 }
 
 impl orml_tokens::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
 	type Amount = i128;
 	type CurrencyId = CurrencyId;
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = orml_tokens::TransferDust<Runtime, DustAccount>;
+	type OnSlash = ();
+	type OnDeposit = ();
+	type OnTransfer = ();
 	type MaxLocks = ConstU32<100_000>;
 	type MaxReserves = ConstU32<100_000>;
 	type ReserveIdentifier = ReserveIdentifier;
@@ -145,7 +148,6 @@ impl Default for ExtBuilder {
 		}
 	}
 }
-
 impl ExtBuilder {
 	pub fn balances(mut self, balances: Vec<(AccountId, CurrencyId, Balance)>) -> Self {
 		self.balances = balances;

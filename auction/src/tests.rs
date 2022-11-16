@@ -4,7 +4,7 @@
 
 use super::*;
 use frame_support::{assert_noop, assert_ok};
-use mock::{Event, *};
+use mock::*;
 
 #[test]
 fn new_auction_should_work() {
@@ -67,8 +67,8 @@ fn bid_should_work() {
 				end: Some(5)
 			})
 		);
-		assert_ok!(AuctionModule::bid(Origin::signed(ALICE), 0, 20));
-		System::assert_last_event(Event::AuctionModule(crate::Event::Bid {
+		assert_ok!(AuctionModule::bid(RuntimeOrigin::signed(ALICE), 0, 20));
+		System::assert_last_event(RuntimeEvent::AuctionModule(crate::Event::Bid {
 			auction_id: 0,
 			bidder: ALICE,
 			amount: 20,
@@ -90,15 +90,15 @@ fn bid_should_fail() {
 		assert_ok!(AuctionModule::new_auction(10, Some(100)), 0);
 		assert_ok!(AuctionModule::new_auction(0, Some(100)), 1);
 		assert_noop!(
-			AuctionModule::bid(Origin::signed(ALICE), 0, 20),
+			AuctionModule::bid(RuntimeOrigin::signed(ALICE), 0, 20),
 			Error::<Runtime>::AuctionNotStarted
 		);
 		assert_noop!(
-			AuctionModule::bid(Origin::signed(BOB), 1, 20),
+			AuctionModule::bid(RuntimeOrigin::signed(BOB), 1, 20),
 			Error::<Runtime>::BidNotAccepted,
 		);
 		assert_noop!(
-			AuctionModule::bid(Origin::signed(ALICE), 1, 0),
+			AuctionModule::bid(RuntimeOrigin::signed(ALICE), 1, 0),
 			Error::<Runtime>::InvalidBidPrice,
 		);
 	});

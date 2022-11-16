@@ -67,7 +67,7 @@ pub mod module {
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		/// The balance type.
 		type Balance: Parameter
@@ -95,13 +95,13 @@ pub mod module {
 		type MinXcmFee: GetByKey<MultiLocation, Option<u128>>;
 
 		/// XCM executor.
-		type XcmExecutor: ExecuteXcm<Self::Call>;
+		type XcmExecutor: ExecuteXcm<Self::RuntimeCall>;
 
 		/// MultiLocation filter
 		type MultiLocationsFilter: Contains<MultiLocation>;
 
 		/// Means of measuring the weight consumed by an XCM message locally.
-		type Weigher: WeightBounds<Self::Call>;
+		type Weigher: WeightBounds<Self::RuntimeCall>;
 
 		/// Base XCM weight.
 		///
@@ -664,7 +664,7 @@ pub mod module {
 			dest: MultiLocation,
 			recipient: MultiLocation,
 			dest_weight: Weight,
-		) -> Result<Xcm<T::Call>, DispatchError> {
+		) -> Result<Xcm<T::RuntimeCall>, DispatchError> {
 			Ok(Xcm(vec![TransferReserveAsset {
 				assets: assets.clone(),
 				dest: dest.clone(),
@@ -681,7 +681,7 @@ pub mod module {
 			reserve: MultiLocation,
 			recipient: MultiLocation,
 			dest_weight: Weight,
-		) -> Result<Xcm<T::Call>, DispatchError> {
+		) -> Result<Xcm<T::RuntimeCall>, DispatchError> {
 			Ok(Xcm(vec![
 				WithdrawAsset(assets.clone()),
 				InitiateReserveWithdraw {
@@ -703,7 +703,7 @@ pub mod module {
 			recipient: MultiLocation,
 			dest_weight: Weight,
 			use_teleport: bool,
-		) -> Result<Xcm<T::Call>, DispatchError> {
+		) -> Result<Xcm<T::RuntimeCall>, DispatchError> {
 			let mut reanchored_dest = dest.clone();
 			if reserve == MultiLocation::parent() {
 				match dest {
@@ -834,7 +834,7 @@ pub mod module {
 				{
 					let mut msg = match transfer_kind {
 						SelfReserveAsset => Xcm(vec![TransferReserveAsset {
-							assets: vec![].into(),
+							assets: vec![asset].into(),
 							dest,
 							xcm: Xcm(vec![]),
 						}]),

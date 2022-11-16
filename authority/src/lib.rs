@@ -22,12 +22,13 @@
 use codec::MaxEncodedLen;
 use frame_support::{
 	dispatch::PostDispatchInfo,
+	dispatch::{DispatchClass, GetDispatchInfo, Pays},
 	pallet_prelude::*,
 	traits::{
-		schedule::{DispatchTime, Named as ScheduleNamed, Priority},
+		schedule::{v1::Named as ScheduleNamed, DispatchTime, Priority},
 		EitherOfDiverse, EnsureOrigin, Get, IsType, OriginTrait,
 	},
-	weights::{DispatchClass, GetDispatchInfo, Pays},
+	weights::OldWeight,
 };
 use frame_system::{pallet_prelude::*, EnsureRoot, EnsureSigned};
 use scale_info::TypeInfo;
@@ -127,35 +128,35 @@ pub mod module {
 	/// Origin for the authority module.
 	#[pallet::origin]
 	pub type Origin<T> = DelayedOrigin<<T as frame_system::Config>::BlockNumber, <T as Config>::PalletsOrigin>;
-	pub(crate) type CallOf<T> = <T as Config>::Call;
+	pub(crate) type CallOf<T> = <T as Config>::RuntimeCall;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		/// The overarching event type.
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		/// The outer origin type.
-		type Origin: From<DelayedOrigin<Self::BlockNumber, <Self as Config>::PalletsOrigin>>
-			+ IsType<<Self as frame_system::Config>::Origin>
+		type RuntimeOrigin: From<DelayedOrigin<Self::BlockNumber, <Self as Config>::PalletsOrigin>>
+			+ IsType<<Self as frame_system::Config>::RuntimeOrigin>
 			+ OriginTrait<PalletsOrigin = Self::PalletsOrigin>;
 
 		/// The caller origin, overarching type of all pallets origins.
-		type PalletsOrigin: Parameter + Into<<Self as frame_system::Config>::Origin>;
+		type PalletsOrigin: Parameter + Into<<Self as frame_system::Config>::RuntimeOrigin>;
 
 		/// The aggregated call type.
-		type Call: Parameter
-			+ Dispatchable<Origin = <Self as frame_system::Config>::Origin, PostInfo = PostDispatchInfo>
+		type RuntimeCall: Parameter
+			+ Dispatchable<RuntimeOrigin = <Self as frame_system::Config>::RuntimeOrigin, PostInfo = PostDispatchInfo>
 			+ GetDispatchInfo;
 
 		/// The Scheduler.
-		type Scheduler: ScheduleNamed<Self::BlockNumber, <Self as Config>::Call, Self::PalletsOrigin>;
+		type Scheduler: ScheduleNamed<Self::BlockNumber, <Self as Config>::RuntimeCall, Self::PalletsOrigin>;
 
 		/// The type represent origin that can be dispatched by other origins.
-		type AsOriginId: Parameter + AsOriginId<<Self as frame_system::Config>::Origin, Self::PalletsOrigin>;
+		type AsOriginId: Parameter + AsOriginId<<Self as frame_system::Config>::RuntimeOrigin, Self::PalletsOrigin>;
 
 		/// Additional permission config.
 		type AuthorityConfig: AuthorityConfig<
-			<Self as frame_system::Config>::Origin,
+			<Self as frame_system::Config>::RuntimeOrigin,
 			Self::PalletsOrigin,
 			Self::BlockNumber,
 		>;
@@ -277,14 +278,15 @@ pub mod module {
 				DispatchTime::After(x) => x,
 			};
 			let schedule_origin = if with_delayed_origin {
-				let origin: <T as Config>::Origin = From::from(origin);
-				let origin: <T as Config>::Origin = From::from(DelayedOrigin::<T::BlockNumber, T::PalletsOrigin> {
-					delay,
-					origin: Box::new(origin.caller().clone()),
-				});
+				let origin: <T as Config>::RuntimeOrigin = From::from(origin);
+				let origin: <T as Config>::RuntimeOrigin =
+					From::from(DelayedOrigin::<T::BlockNumber, T::PalletsOrigin> {
+						delay,
+						origin: Box::new(origin.caller().clone()),
+					});
 				origin
 			} else {
-				<T as Config>::Origin::from(origin)
+				<T as Config>::RuntimeOrigin::from(origin)
 			};
 			let pallets_origin = schedule_origin.caller().clone();
 
@@ -413,13 +415,44 @@ pub mod module {
 		}
 
 		#[pallet::weight((
+			T::WeightInfo::trigger_call().saturating_add((*call_weight_bound).into()),
+			DispatchClass::Operational,
+		))]
+		#[allow(deprecated)]
+		#[deprecated(note = "1D weight is used in this extrinsic, please migrate to `trigger_call`")]
+		pub fn trigger_old_call(
+			origin: OriginFor<T>,
+			hash: T::Hash,
+			#[pallet::compact] call_weight_bound: OldWeight,
+		) -> DispatchResultWithPostInfo {
+			let call_weight_bound: Weight = call_weight_bound.into();
+			let who = ensure_signed(origin)?;
+			SavedCalls::<T>::try_mutate_exists(hash, |maybe_call| {
+				let (call, maybe_caller) = maybe_call.take().ok_or(Error::<T>::CallNotAuthorized)?;
+				if let Some(caller) = maybe_caller {
+					ensure!(who == caller, Error::<T>::TriggerCallNotPermitted);
+				}
+				ensure!(
+					call_weight_bound.ref_time() >= call.get_dispatch_info().weight.ref_time(),
+					Error::<T>::WrongCallWeightBound
+				);
+				let result = call.dispatch(OriginFor::<T>::root());
+				Self::deposit_event(Event::TriggeredCallBy { hash, caller: who });
+				Self::deposit_event(Event::Dispatched {
+					result: result.map(|_| ()).map_err(|e| e.error),
+				});
+				Ok(Pays::No.into())
+			})
+		}
+
+		#[pallet::weight((
 			T::WeightInfo::trigger_call().saturating_add(*call_weight_bound),
 			DispatchClass::Operational,
 		))]
 		pub fn trigger_call(
 			origin: OriginFor<T>,
 			hash: T::Hash,
-			#[pallet::compact] call_weight_bound: Weight,
+			call_weight_bound: Weight,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 			SavedCalls::<T>::try_mutate_exists(hash, |maybe_call| {
@@ -428,7 +461,7 @@ pub mod module {
 					ensure!(who == caller, Error::<T>::TriggerCallNotPermitted);
 				}
 				ensure!(
-					call_weight_bound >= call.get_dispatch_info().weight,
+					call_weight_bound.all_gte(call.get_dispatch_info().weight),
 					Error::<T>::WrongCallWeightBound
 				);
 				let result = call.dispatch(OriginFor::<T>::root());
