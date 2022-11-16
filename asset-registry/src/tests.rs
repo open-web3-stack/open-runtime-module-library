@@ -118,7 +118,7 @@ fn send_self_parachain_asset_to_sibling() {
 				)
 				.into()
 			),
-			40,
+			WeightLimit::Unlimited,
 		));
 
 		assert_eq!(ParaTokens::free_balance(CurrencyId::RegisteredAsset(1), &ALICE), 500);
@@ -204,7 +204,7 @@ fn send_sibling_asset_to_non_reserve_sibling() {
 				)
 				.into()
 			),
-			40
+			WeightLimit::Unlimited
 		));
 		assert_eq!(ParaTokens::free_balance(CurrencyId::RegisteredAsset(1), &ALICE), 500);
 	});
@@ -302,7 +302,7 @@ fn test_fixed_rate_asset_trader() {
 				)
 				.into()
 			),
-			40,
+			WeightLimit::Unlimited,
 		));
 	});
 
@@ -353,7 +353,7 @@ fn test_fixed_rate_asset_trader() {
 				)
 				.into()
 			),
-			40,
+			WeightLimit::Unlimited,
 		));
 	});
 
