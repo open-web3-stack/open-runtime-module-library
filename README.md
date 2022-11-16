@@ -67,6 +67,7 @@ _In alphabetical order_
 - [Astar Network](https://github.com/AstarNetwork)
 - [Bifrost Finance](https://github.com/bifrost-finance/bifrost)
 - [Bit.Country](https://github.com/bit-country/Bit-Country-Blockchain)
+- [Centrifuge](https://github.com/centrifuge/centrifuge-chain)
 - [ChainX](https://github.com/chainx-org/ChainX)
 - [GameDAO Protocol](https://github.com/gamedaoco)
 - [HydraDX](https://github.com/galacticcouncil/hack.HydraDX-node)
