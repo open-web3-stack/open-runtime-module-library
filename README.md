@@ -69,6 +69,7 @@ _In alphabetical order_
 - [Bit.Country](https://github.com/bit-country/Bit-Country-Blockchain)
 - [Centrifuge](https://github.com/centrifuge/centrifuge-chain)
 - [ChainX](https://github.com/chainx-org/ChainX)
+- [Crust](https://github.com/crustio/crust)
 - [GameDAO Protocol](https://github.com/gamedaoco)
 - [HydraDX](https://github.com/galacticcouncil/hack.HydraDX-node)
 - [Interlay and Kintsugi](https://github.com/interlay/interbtc)
