@@ -445,39 +445,39 @@ fn test_update_metadata_fails_with_unknown_asset() {
 	});
 }
 
-// #[test]
-// fn test_existential_deposits() {
-// 	TestNet::reset();
-//
-// 	ParaA::execute_with(|| {
-// 		let metadata = AssetMetadata {
-// 			existential_deposit: 100,
-// 			..dummy_metadata()
-// 		};
-// 		assert_ok!(AssetRegistry::register_asset(RuntimeOrigin::root(), metadata, None));
-//
-// 		assert_ok!(Tokens::set_balance(
-// 			RuntimeOrigin::root(),
-// 			ALICE,
-// 			1,
-// 			1_000,
-// 			0
-// 		));
-//
-// 		// transferring at existential_deposit succeeds
-// 		assert_ok!(Tokens::transfer(
-// 			Some(ALICE).into(),
-// 			BOB,
-// 			1,
-// 			100
-// 		));
-// 		// transferring below existential_deposit fails
-// 		assert_noop!(
-// 			Tokens::transfer(Some(ALICE).into(), CHARLIE, 1, 50),
-// 			orml_tokens::Error::<para::Runtime>::ExistentialDeposit
-// 		);
-// 	});
-// }
+#[test]
+fn test_existential_deposits() {
+	TestNet::reset();
+
+	ParaA::execute_with(|| {
+		let metadata = AssetMetadata {
+			..dummy_metadata()
+		};
+		assert_ok!(AssetRegistry::register_asset(RuntimeOrigin::root(), metadata, None));
+
+		assert_ok!(Tokens::set_balance(
+			RuntimeOrigin::root(),
+			ALICE,
+			1,
+			1_000,
+			0
+		));
+
+		// transferring tokens from one account to other ED is zero
+		assert_ok!(Tokens::transfer(
+			Some(ALICE).into(),
+			BOB,
+			1,
+			100
+		));
+		// In our case we do not need to check below Ed because it is zero
+		// transferring below existential_deposit fails
+		// assert_noop!(
+		// 	Tokens::transfer(Some(ALICE).into(), CHARLIE, 1, 50),
+		// 	orml_tokens::Error::<para::Runtime>::ExistentialDeposit
+		// );
+	});
+}
 
 #[test]
 fn test_asset_authority() {
