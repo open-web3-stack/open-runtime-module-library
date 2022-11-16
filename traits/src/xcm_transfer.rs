@@ -9,7 +9,7 @@ pub trait XcmTransfer<AccountId, Balance, CurrencyId> {
 		currency_id: CurrencyId,
 		amount: Balance,
 		dest: MultiLocation,
-		dest_weight: WeightLimit,
+		dest_weight_limit: WeightLimit,
 	) -> DispatchResult;
 
 	/// Transfer `MultiAsset`
@@ -17,6 +17,6 @@ pub trait XcmTransfer<AccountId, Balance, CurrencyId> {
 		who: AccountId,
 		asset: MultiAsset,
 		dest: MultiLocation,
-		dest_weight: WeightLimit,
+		dest_weight_limit: WeightLimit,
 	) -> DispatchResult;
 }
