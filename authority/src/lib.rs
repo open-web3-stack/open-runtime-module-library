@@ -45,12 +45,22 @@ mod weights;
 pub use weights::WeightInfo;
 
 /// A delayed origin. Can only be dispatched via `dispatch_as` with a delay.
-#[derive(PartialEq, Eq, Clone, RuntimeDebug, Encode, Decode, TypeInfo, MaxEncodedLen)]
+#[derive(PartialEq, Eq, Clone, RuntimeDebug, Encode, Decode, TypeInfo)]
 pub struct DelayedOrigin<BlockNumber, PalletsOrigin> {
 	/// Number of blocks that this call have been delayed.
 	pub delay: BlockNumber,
 	/// The initial origin.
 	pub origin: Box<PalletsOrigin>,
+}
+
+impl<BlockNumber, PalletsOrigin> MaxEncodedLen for DelayedOrigin<BlockNumber, PalletsOrigin>
+where
+	BlockNumber: MaxEncodedLen,
+	PalletsOrigin: MaxEncodedLen,
+{
+	fn max_encoded_len() -> usize {
+		400
+	}
 }
 
 /// Ensure the origin have a minimum amount of delay.
