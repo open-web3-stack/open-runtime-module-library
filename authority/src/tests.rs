@@ -710,5 +710,5 @@ fn nested_delayed_origin_is_invalid() {
 	};
 
 	let encoded = orgin.encode();
-	assert!(OriginCaller::decode(&mut &encoded[..]).is_err());
+	assert!(DelayedOrigin::<u64, OriginCaller>::decode(&mut &encoded[..]).is_err());
 }
