@@ -11,6 +11,13 @@
 //! Two functionalities are provided by this module:
 //! - schedule a dispatchable
 //! - dispatch method with on behalf of other origins
+//!
+//! NOTE:
+//!
+//! In order to derive a feasible max encoded len for `DelayedOrigin`, it is
+//! assumed that there are no nested `DelayedOrigin` in `OriginCaller`.
+//! In practice, this means there should not be nested `schedule_dispatch`.
+//! Otherwise the proof size estimation may not be accurate.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 // Disable the following three lints since they originate from an external macro
