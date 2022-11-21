@@ -159,10 +159,10 @@ pub trait AuthorityConfig<Origin, PalletsOrigin, BlockNumber> {
 		new_delay: BlockNumber,
 	) -> DispatchResult;
 	/// Check if the `origin` is allow to delay a scheduled task that
-	/// initially created by `inital_origin`.
+	/// initially created by `initial_origin`.
 	fn check_delay_schedule(origin: Origin, initial_origin: &PalletsOrigin) -> DispatchResult;
 	/// Check if the `origin` is allow to cancel a scheduled task that
-	/// initially created by `inital_origin`.
+	/// initially created by `initial_origin`.
 	fn check_cancel_schedule(origin: Origin, initial_origin: &PalletsOrigin) -> DispatchResult;
 }
 
@@ -456,12 +456,12 @@ pub mod module {
 
 		#[pallet::weight(T::WeightInfo::remove_authorized_call())]
 		pub fn remove_authorized_call(origin: OriginFor<T>, hash: T::Hash) -> DispatchResult {
-			let root_or_sigend =
+			let root_or_signed =
 				EitherOfDiverse::<EnsureRoot<T::AccountId>, EnsureSigned<T::AccountId>>::ensure_origin(origin)?;
 
 			SavedCalls::<T>::try_mutate_exists(hash, |maybe_call| {
 				let (_, maybe_caller) = maybe_call.take().ok_or(Error::<T>::CallNotAuthorized)?;
-				match root_or_sigend {
+				match root_or_signed {
 					Either::Left(_) => {} // root, do nothing
 					Either::Right(who) => {
 						// signed, ensure it's the caller
