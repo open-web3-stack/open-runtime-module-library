@@ -698,17 +698,3 @@ fn origin_max_encoded_len_works() {
 	assert_eq!(DelayedOrigin::<u32, OriginCaller>::max_encoded_len(), 22);
 	assert_eq!(OriginCaller::max_encoded_len(), 27);
 }
-
-#[test]
-fn nested_delayed_origin_is_invalid() {
-	let orgin = DelayedOrigin::<u64, OriginCaller> {
-		delay: 1u64,
-		origin: Box::new(OriginCaller::Authority(DelayedOrigin::<u64, OriginCaller> {
-			delay: 1u64,
-			origin: Box::new(OriginCaller::system(frame_system::RawOrigin::Root)),
-		})),
-	};
-
-	let encoded = orgin.encode();
-	assert!(DelayedOrigin::<u64, OriginCaller>::decode(&mut &encoded[..]).is_err());
-}

@@ -46,12 +46,12 @@ mod weights;
 pub use weights::WeightInfo;
 
 /// A delayed origin. Can only be dispatched via `dispatch_as` with a delay.
-#[derive(PartialEq, Eq, Clone, RuntimeDebug, Encode, TypeInfo)]
+#[derive(PartialEq, Eq, Clone, RuntimeDebug, Encode, Decode, TypeInfo)]
 pub struct DelayedOrigin<BlockNumber, PalletsOrigin> {
 	/// Number of blocks that this call have been delayed.
-	pub delay: BlockNumber,
+	pub(crate) delay: BlockNumber,
 	/// The initial origin.
-	pub origin: Box<PalletsOrigin>,
+	pub(crate) origin: Box<PalletsOrigin>,
 }
 
 #[cfg(feature = "std")]
@@ -59,16 +59,7 @@ mod helper {
 	use std::cell::RefCell;
 
 	thread_local! {
-		static NESTED_DECODE: RefCell<bool> = RefCell::new(false);
 		static NESTED_MAX_ENCODED_LEN: RefCell<bool> = RefCell::new(false);
-	}
-
-	pub fn set_nested_decode(val: bool) {
-		NESTED_DECODE.with(|v| *v.borrow_mut() = val);
-	}
-
-	pub fn nested_decode() -> bool {
-		NESTED_DECODE.with(|v| *v.borrow())
 	}
 
 	pub fn set_nested_max_encoded_len(val: bool) {
@@ -82,18 +73,7 @@ mod helper {
 
 #[cfg(not(feature = "std"))]
 mod helper {
-	static mut NESTED_DECODE: bool = false;
 	static mut NESTED_MAX_ENCODED_LEN: bool = false;
-
-	pub fn set_nested_decode(val: bool) {
-		unsafe {
-			NESTED_DECODE = val;
-		}
-	}
-
-	pub fn nested_decode() -> bool {
-		unsafe { NESTED_DECODE }
-	}
 
 	pub fn set_nested_max_encoded_len(val: bool) {
 		unsafe {
@@ -106,22 +86,11 @@ mod helper {
 	}
 }
 
-impl<BlockNumber: Decode, PalletsOrigin: Decode> Decode for DelayedOrigin<BlockNumber, PalletsOrigin> {
-	fn decode<I: codec::Input>(input: &mut I) -> Result<Self, codec::Error> {
-		if helper::nested_decode() {
-			return Err("Nested DelayedOrigin::decode is not allowed".into());
-		}
-
-		helper::set_nested_decode(true);
-		defer!(helper::set_nested_decode(false));
-
-		Ok(DelayedOrigin {
-			delay: Decode::decode(input)?,
-			origin: Decode::decode(input)?,
-		})
-	}
-}
-
+// Manual implementation to break recursive calls of `MaxEncodedLen` as the
+// implementation of `PalletsOrigin::max_encoded_len` will also call
+// `MaxEncodedLen` on `DelayedOrigin`. This is only safe if there are no nested
+// `DelayedOrigin`. It is only possible to construct a `DelayedOrigin` via
+// `schedule_dispatch` which is a protected call only accessible via governance.
 impl<BlockNumber: MaxEncodedLen, PalletsOrigin: MaxEncodedLen> MaxEncodedLen
 	for DelayedOrigin<BlockNumber, PalletsOrigin>
 {
