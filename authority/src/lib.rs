@@ -61,6 +61,13 @@ pub struct DelayedOrigin<BlockNumber, PalletsOrigin> {
 	pub(crate) origin: Box<PalletsOrigin>,
 }
 
+#[cfg(any(feature = "std", feature = "runtime-benchmarks", test))]
+impl<BlockNumber, PalletsOrigin> DelayedOrigin<BlockNumber, PalletsOrigin> {
+	pub fn new(delay: BlockNumber, origin: Box<PalletsOrigin>) -> Self {
+		Self { delay, origin }
+	}
+}
+
 #[cfg(feature = "std")]
 mod helper {
 	use std::cell::RefCell;
