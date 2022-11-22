@@ -8,16 +8,16 @@ authors = ["Acala Developers"]
 edition = "2021"
 
 [dependencies]
+codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["max-encoded-len"] }
 scale-info = { version = "2.1.2", default-features = false, features = ["derive"] }
 serde = { version = "1.0.136", optional = true }
-codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["max-encoded-len"] }
 
-sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.31" }
-sp-io = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.31" }
-sp-std = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.31" }
-sp-core = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.31" }
 frame-support = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.31" }
 frame-system = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.31" }
+sp-core = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.31" }
+sp-io = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.31" }
+sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.31" }
+sp-std = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.31" }
 
 orml-traits = { path = "../traits", version = "0.4.1-dev", default-features = false }
 
@@ -28,14 +28,18 @@ sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-
 default = ["std"]
 std = [
 	"serde",
+
 	"codec/std",
-	"scale-info/std",
-	"sp-runtime/std",
-	"sp-io/std",
-	"sp-std/std",
-	"sp-core/std",
 	"frame-support/std",
 	"frame-system/std",
 	"orml-traits/std",
+	"scale-info/std",
+	"sp-core/std",
+	"sp-io/std",
+	"sp-runtime/std",
+	"sp-std/std",
 ]
-try-runtime = ["frame-support/try-runtime"]
+try-runtime = [
+	"frame-support/try-runtime",
+	"frame-system/try-runtime",
+]

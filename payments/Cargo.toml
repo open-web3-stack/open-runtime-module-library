@@ -10,7 +10,7 @@ description = "Allows users to post escrow payment on-chain"
 readme = "README.md"
 
 [dependencies]
-parity-scale-codec = { version = "3.1.5", default-features = false, features = ["max-encoded-len"] }
+codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false }
 log = { version = "0.4.17", default-features = false }
 scale-info = { version = "2.1.2", default-features = false, features = ["derive"] }
 
@@ -32,13 +32,17 @@ orml-tokens = { path = "../tokens", version = "0.4.1-dev", default-features = fa
 [features]
 default = ['std']
 std = [
-	'parity-scale-codec/std',
+	'codec/std',
 	'frame-support/std',
 	'frame-system/std',
 	'log/std',
+	'orml-tokens/std',
+	'orml-traits/std',
+	'scale-info/std',
 	'sp-runtime/std',
 	'sp-std/std',
-	'scale-info/std',
-	'orml-traits/std',
-	'orml-tokens/std'
+]
+try-runtime = [
+	"frame-support/try-runtime",
+	"frame-system/try-runtime",
 ]
