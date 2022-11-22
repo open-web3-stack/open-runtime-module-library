@@ -3,6 +3,7 @@
 #![cfg(test)]
 
 use super::*;
+use codec::MaxEncodedLen;
 use frame_support::{
 	assert_noop, assert_ok,
 	dispatch::DispatchErrorWithPostInfo,
@@ -690,4 +691,10 @@ fn trigger_old_call_should_be_free_and_operational() {
 			})
 		);
 	});
+}
+
+#[test]
+fn origin_max_encoded_len_works() {
+	assert_eq!(DelayedOrigin::<u32, OriginCaller>::max_encoded_len(), 22);
+	assert_eq!(OriginCaller::max_encoded_len(), 27);
 }
