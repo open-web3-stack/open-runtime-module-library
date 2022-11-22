@@ -1,6 +1,6 @@
 #![allow(unused_qualifications)]
 use crate::{pallet, AssetIdOf, BalanceOf};
-use parity_scale_codec::{Decode, Encode, HasCompact, MaxEncodedLen};
+use codec::{Decode, Encode, HasCompact, MaxEncodedLen};
 use scale_info::TypeInfo;
 use sp_runtime::{DispatchResult, Percent};
 
