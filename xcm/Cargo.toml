@@ -11,12 +11,12 @@ edition = "2021"
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false }
 scale-info = { version = "2.1.2", default-features = false, features = ["derive"] }
 
-sp-std = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.31" }
 frame-support = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.31" }
 frame-system = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.31" }
+sp-std = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.31" }
 
-xcm = { git = "https://github.com/paritytech/polkadot", default-features = false , branch = "release-v0.9.31" }
 pallet-xcm = { git = "https://github.com/paritytech/polkadot", default-features = false , branch = "release-v0.9.31" }
+xcm = { git = "https://github.com/paritytech/polkadot", default-features = false , branch = "release-v0.9.31" }
 
 [dev-dependencies]
 xcm-executor  = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.31" }
@@ -25,11 +25,15 @@ xcm-executor  = { git = "https://github.com/paritytech/polkadot", branch = "rele
 default = ["std"]
 std = [
 	"codec/std",
-	"scale-info/std",
-	"sp-std/std",
 	"frame-support/std",
 	"frame-system/std",
-	"xcm/std",
 	"pallet-xcm/std",
+	"scale-info/std",
+	"sp-std/std",
+	"xcm/std",
 ]
-try-runtime = ["frame-support/try-runtime"]
+try-runtime = [
+	"frame-support/try-runtime",
+	"frame-system/try-runtime",
+	"pallet-xcm/try-runtime",
+]
