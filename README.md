@@ -25,7 +25,6 @@ The Open Runtime Module Library (ORML) is a community maintained collection of S
 #### Tokens
 - [asset-registry](https://github.com/open-web3-stack/open-runtime-module-library/tree/master/asset-registry)
 	- Register asset / token metadata including name, decimals, and XCM MultiLocation
-	- Developed by Interlay team, received contribution by Centrifuge, used by Interlay & Centrifuge and maybe others.
 	- Partially based on the Acala’s asset-registry pallet, which includes some Acala specific code (e.g. EVM+) so not suitable for other teams.
 - [currencies](https://github.com/open-web3-stack/open-runtime-module-library/tree/master/currencies)
 	- Provide an unified interface to combine pallet-balances and orml-tokens
@@ -33,7 +32,6 @@ The Open Runtime Module Library (ORML) is a community maintained collection of S
 	- Provide a non-fungible-token implementation
 - [payments](https://github.com/open-web3-stack/open-runtime-module-library/tree/master/payments)
 	- This pallet allows users to create secure reversible payments that keep funds locked in a merchant’s account until the off-chain goods are confirmed to be received. Each payment gets assigned its own judge that can help resolve any disputes between the two parties.
-	- Contributed by Virto Network team as their Web3 grant https://github.com/open-web3-stack/open-runtime-module-library/pull/691
 - [tokens](https://github.com/open-web3-stack/open-runtime-module-library/tree/master/tokens)
 	- Implements fungible tokens pallet with compatibility with Substrate tokens abstractions
 - [vesting](https://github.com/open-web3-stack/open-runtime-module-library/tree/master/vesting)
@@ -46,7 +44,7 @@ The Open Runtime Module Library (ORML) is a community maintained collection of S
 	- Provides a way for governance body to dispatch XCM.
 - [xtokens](https://github.com/open-web3-stack/open-runtime-module-library/tree/master/xtokens)
 	- Provide crosschain token transfer functionality.
-	- Used by multiple parachains for their XCM token transfer implementation. Received contributions from various teams including Moonbeam, Interlay and Manta.
+	- Used by multiple parachains for their XCM token transfer implementation.
 
 #### Benchmarking
 - [bencher](https://github.com/open-web3-stack/open-runtime-module-library/tree/master/bencher)
