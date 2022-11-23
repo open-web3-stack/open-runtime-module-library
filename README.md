@@ -8,29 +8,55 @@ The Open Runtime Module Library (ORML) is a community maintained collection of S
 
 ## Runtime Modules Overview
 
-- [orml-auction](./auction)
-	- Auction module that implements `Auction` trait.
-- [orml-currencies](./currencies)
-	- Provide `MultiCurrency` implementation using `pallet-balances` and `orml-tokens` module.
-- [orml-gradually-update](./gradually-update)
+#### Utility
+- [auction](https://github.com/open-web3-stack/open-runtime-module-library/tree/master/auction)
+	- Implements a generalized auction interface, used by Acala for liquidation auctions.
+- [authority](https://github.com/open-web3-stack/open-runtime-module-library/tree/master/authority)
+	- Allow more advanced permission configuration such as timelock for governance actions.
+- [gradually-update](https://github.com/open-web3-stack/open-runtime-module-library/tree/master/gradually-update)
 	- Provides way to adjust numeric parameter gradually over a period of time.
-- [orml-nft](./nft)
- 	- Non-fungible-token module provides basic functions to create and manager NFT(non fungible token) such as `create_class`, `transfer`, `mint`, `burn`, `destroy_class`.
-- [orml-oracle](./oracle)
-	- Oracle module that makes off-chain data available on-chain.
-- [orml-tokens](./tokens)
-	- Fungible tokens module that implements `MultiCurrency` trait.
-- [orml-traits](./traits)
-	- Shared traits including `BasicCurrency`, `MultiCurrency`, `Auction` and more.
-- [orml-utilities](./utilities)
-	- Various utilities including `OrderSet`.
-- [orml-vesting](./vesting)
+- [oracle](https://github.com/open-web3-stack/open-runtime-module-library/tree/master/oracle)
+	- Allow offchain oracle providers to feed data to be consumed by onchain pallets.
+- [rewards](https://github.com/open-web3-stack/open-runtime-module-library/tree/master/rewards)
+	- Implements ability to calculate and distribute token staking rewards.
+- [traits](https://github.com/open-web3-stack/open-runtime-module-library/tree/master/traits)
+	- Implements various utility traits including BasicCurrency, MultiCurrency, Auction and more. Used by other ORML pallets.
+
+#### Tokens
+- [asset-registry](https://github.com/open-web3-stack/open-runtime-module-library/tree/master/asset-registry)
+	- Register asset / token metadata including name, decimals, and XCM MultiLocation
+	- Developed by Interlay team, received contribution by Centrifuge, used by Interlay & Centrifuge and maybe others.
+	- Partially based on the Acala’s asset-registry pallet, which includes some Acala specific code (e.g. EVM+) so not suitable for other teams.
+- [currencies](https://github.com/open-web3-stack/open-runtime-module-library/tree/master/currencies)
+	- Provide an unified interface to combine pallet-balances and orml-tokens
+- [nft](https://github.com/open-web3-stack/open-runtime-module-library/tree/master/nft)
+	- Provide a non-fungible-token implementation
+- [payments](https://github.com/open-web3-stack/open-runtime-module-library/tree/master/payments)
+	- This pallet allows users to create secure reversible payments that keep funds locked in a merchant’s account until the off-chain goods are confirmed to be received. Each payment gets assigned its own judge that can help resolve any disputes between the two parties.
+	- Contributed by Virto Network team as their Web3 grant https://github.com/open-web3-stack/open-runtime-module-library/pull/691
+- [tokens](https://github.com/open-web3-stack/open-runtime-module-library/tree/master/tokens)
+	- Implements fungible tokens pallet with compatibility with Substrate tokens abstractions
+- [vesting](https://github.com/open-web3-stack/open-runtime-module-library/tree/master/vesting)
 	- Provides scheduled balance locking mechanism, in a *graded vesting* way.
-- [orml-xcm-support](./xcm-support)
-	- Provides traits, types, and implementations to support XCM integration.
-- [orml-xtokens](./xtokens)
-	- Provides way to do cross-chain assets transfer.
-	- [Step-by-Step guide](https://github.com/open-web3-stack/open-runtime-module-library/wiki/xtokens) to make XCM cross-chain fungible asset transfer available on your parachain
+
+#### XCM
+- [xcm-support](https://github.com/open-web3-stack/open-runtime-module-library/tree/master/xcm-support)
+	- Provides supporting traits, types and implementations, to support cross-chain message(XCM) integration with ORML modules.
+- [xcm](https://github.com/open-web3-stack/open-runtime-module-library/tree/master/xcm)
+	- Provides a way for governance body to dispatch XCM.
+- [xtokens](https://github.com/open-web3-stack/open-runtime-module-library/tree/master/xtokens)
+	- Provide crosschain token transfer functionality.
+	- Used by multiple parachains for their XCM token transfer implementation. Received contributions from various teams including Moonbeam, Interlay and Manta.
+
+#### Benchmarking
+- [bencher](https://github.com/open-web3-stack/open-runtime-module-library/tree/master/bencher)
+	- Benchmarking tool using cargo bench for benchmarking
+- [benchmarking](https://github.com/open-web3-stack/open-runtime-module-library/tree/master/benchmarking)
+	- Fork of frame-benchmarking in Substrate to allow implement runtime specific benchmarks
+- [weight-gen](https://github.com/open-web3-stack/open-runtime-module-library/tree/master/weight-gen)
+	- Weight meter file generation
+- [weight-meter](https://github.com/open-web3-stack/open-runtime-module-library/tree/master/weight-meter)
+	- A low overhead dynamic weight meter
 
 ## Example
 
