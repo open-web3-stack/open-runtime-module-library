@@ -19,6 +19,9 @@ pub use currency::{
 	NamedBasicReservableCurrency, NamedMultiReservableCurrency,
 };
 pub use data_provider::{DataFeeder, DataProvider, DataProviderExtended};
+pub use extrinsic_restrict::{
+	CheckRestrictStatus, ExtrinsicRestrictError, ExtrinsicRestrictExecution, OnExecute, RestrictStatus,
+};
 pub use get_by_key::GetByKey;
 pub use multi_asset::ConcreteFungibleAsset;
 pub use nft::InspectExtended;
@@ -32,6 +35,7 @@ pub mod asset_registry;
 pub mod auction;
 pub mod currency;
 pub mod data_provider;
+pub mod extrinsic_restrict;
 pub mod get_by_key;
 pub mod location;
 pub mod multi_asset;

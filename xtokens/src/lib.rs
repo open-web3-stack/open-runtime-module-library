@@ -44,7 +44,7 @@ use xcm_executor::traits::{InvertLocation, WeightBounds};
 pub use module::*;
 use orml_traits::{
 	location::{Parse, Reserve},
-	GetByKey, XcmTransfer,
+	ExtrinsicRestrictExecution, GetByKey, XcmTransfer,
 };
 
 mod mock;
@@ -63,6 +63,15 @@ use TransferKind::*;
 #[frame_support::pallet]
 pub mod module {
 	use super::*;
+
+	pub enum ExtrinsicRestrictTypes<AccountId, CurrencyId, Balance> {
+		Transfer(AccountId, CurrencyId, Balance),
+		TransferMultiAsset(AccountId, MultiAsset),
+		TransferWithFee(AccountId, CurrencyId, Balance),
+		TransferMultiassetWithFee(AccountId, MultiAsset),
+		TransferMulticurrencies(AccountId, Vec<(CurrencyId, Balance)>),
+		TransferMultiassets(AccountId, MultiAssets),
+	}
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -119,6 +128,10 @@ pub mod module {
 		/// The way to retreave the reserve of a MultiAsset. This can be
 		/// configured to accept absolute or relative paths for self tokens
 		type ReserveProvider: Reserve;
+
+		type ExtrinsicRestrictExecution: ExtrinsicRestrictExecution<
+			ExtrinsicRestrictTypes<Self::AccountId, Self::CurrencyId, Self::Balance>,
+		>;
 	}
 
 	#[pallet::event]
@@ -208,8 +221,13 @@ pub mod module {
 			dest_weight_limit: WeightLimit,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
+
 			let dest: MultiLocation = (*dest).try_into().map_err(|()| Error::<T>::BadVersion)?;
-			Self::do_transfer(who, currency_id, amount, dest, dest_weight_limit)
+
+			T::ExtrinsicRestrictExecution::restrict_execute(
+				&ExtrinsicRestrictTypes::Transfer(who.clone(), currency_id.clone(), amount),
+				|| -> DispatchResult { Self::do_transfer(who, currency_id, amount, dest, dest_weight_limit) },
+			)
 		}
 
 		/// Transfer `MultiAsset`.
@@ -234,7 +252,11 @@ pub mod module {
 			let who = ensure_signed(origin)?;
 			let asset: MultiAsset = (*asset).try_into().map_err(|()| Error::<T>::BadVersion)?;
 			let dest: MultiLocation = (*dest).try_into().map_err(|()| Error::<T>::BadVersion)?;
-			Self::do_transfer_multiasset(who, asset, dest, dest_weight_limit)
+
+			T::ExtrinsicRestrictExecution::restrict_execute(
+				&ExtrinsicRestrictTypes::TransferMultiAsset(who.clone(), asset.clone()),
+				|| -> DispatchResult { Self::do_transfer_multiasset(who, asset, dest, dest_weight_limit) },
+			)
 		}
 
 		/// Transfer native currencies specifying the fee and amount as
@@ -270,7 +292,12 @@ pub mod module {
 			let who = ensure_signed(origin)?;
 			let dest: MultiLocation = (*dest).try_into().map_err(|()| Error::<T>::BadVersion)?;
 
-			Self::do_transfer_with_fee(who, currency_id, amount, fee, dest, dest_weight_limit)
+			T::ExtrinsicRestrictExecution::restrict_execute(
+				&ExtrinsicRestrictTypes::TransferWithFee(who.clone(), currency_id.clone(), amount),
+				|| -> DispatchResult {
+					Self::do_transfer_with_fee(who, currency_id, amount, fee, dest, dest_weight_limit)
+				},
+			)
 		}
 
 		/// Transfer `MultiAsset` specifying the fee and amount as separate.
@@ -307,7 +334,12 @@ pub mod module {
 			let fee: MultiAsset = (*fee).try_into().map_err(|()| Error::<T>::BadVersion)?;
 			let dest: MultiLocation = (*dest).try_into().map_err(|()| Error::<T>::BadVersion)?;
 
-			Self::do_transfer_multiasset_with_fee(who, asset, fee, dest, dest_weight_limit)
+			T::ExtrinsicRestrictExecution::restrict_execute(
+				&ExtrinsicRestrictTypes::TransferMultiassetWithFee(who.clone(), asset.clone()),
+				|| -> DispatchResult {
+					Self::do_transfer_multiasset_with_fee(who, asset, fee, dest, dest_weight_limit)
+				},
+			)
 		}
 
 		/// Transfer several currencies specifying the item to be used as fee
@@ -336,7 +368,12 @@ pub mod module {
 			let who = ensure_signed(origin)?;
 			let dest: MultiLocation = (*dest).try_into().map_err(|()| Error::<T>::BadVersion)?;
 
-			Self::do_transfer_multicurrencies(who, currencies, fee_item, dest, dest_weight_limit)
+			T::ExtrinsicRestrictExecution::restrict_execute(
+				&ExtrinsicRestrictTypes::TransferMulticurrencies(who.clone(), currencies.clone()),
+				|| -> DispatchResult {
+					Self::do_transfer_multicurrencies(who, currencies, fee_item, dest, dest_weight_limit)
+				},
+			)
 		}
 
 		/// Transfer several `MultiAsset` specifying the item to be used as fee
@@ -369,7 +406,12 @@ pub mod module {
 			// We first grab the fee
 			let fee: &MultiAsset = assets.get(fee_item as usize).ok_or(Error::<T>::AssetIndexNonExistent)?;
 
-			Self::do_transfer_multiassets(who, assets.clone(), fee.clone(), dest, dest_weight_limit)
+			T::ExtrinsicRestrictExecution::restrict_execute(
+				&ExtrinsicRestrictTypes::TransferMultiassets(who.clone(), assets.clone()),
+				|| -> DispatchResult {
+					Self::do_transfer_multiassets(who, assets.clone(), fee.clone(), dest, dest_weight_limit)
+				},
+			)
 		}
 	}
 
