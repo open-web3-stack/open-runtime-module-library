@@ -60,6 +60,57 @@ enum TransferKind {
 }
 use TransferKind::*;
 
+enum RateLimiterError {
+	NotDefined,
+	ExceedLimit,
+}
+
+pub trait RateLimiter {
+	type RateLimiterId;
+	fn is_allowed(id: Self::RateLimiterId, key: impl Encode, value: u128) -> Result<(), RateLimiterError>;
+	fn record(id: Self::RateLimiterId, key: impl Encode, value: u128);
+}
+
+// defined in runtime
+enum RateLimiterId {
+	XtokensTransfer,
+}
+
+// RateLimiter pallet
+
+mod rate_limiter {
+
+	enum RateLimit {
+		PerBlock {
+			blocks: u32,
+			limit: u32,
+		},
+		PerSeconds {
+			seconds: u32,
+			limit: u32,
+		},
+		TokenBucket {
+			blocks: u32, // add `increment` limits per `blocks`
+			max: u32,    // max limits
+			increment: u32,
+		},
+		Unlimited,
+		NotAllowed,
+	}
+
+	enum KeyFilter {
+		Match(Vec<u8>),
+		StartsWith(Vec<u8>),
+		EndsWith(Vec<u8>),
+	}
+
+	// calls
+	fn set_limit(id: RateLimiterId, limit: RateLimit) {}
+	fn add_whitelist(id: RateLimiterId, whitelist: KeyFilter) {}
+	fn remove_whitelist(id: RateLimiterId, whitelist: KeyFilter) {}
+	fn reset_whitelist(id: RateLimiterId, whitelists: Vec<KeyFilter>) {}
+}
+
 #[frame_support::pallet]
 pub mod module {
 	use super::*;
@@ -119,6 +170,10 @@ pub mod module {
 		/// The way to retreave the reserve of a MultiAsset. This can be
 		/// configured to accept absolute or relative paths for self tokens
 		type ReserveProvider: Reserve;
+
+		type RateLimiter: RateLimiter;
+		type RateLimiterIdAsset: Get<<Self::RateLimiter as RateLimiter>::RateLimiterId>;
+		type RateLimiterIdUser: Get<<Self::RateLimiter as RateLimiter>::RateLimiterId>;
 	}
 
 	#[pallet::event]
@@ -177,6 +232,8 @@ pub mod module {
 		NotSupportedMultiLocation,
 		/// MinXcmFee not registered for certain reserve location
 		MinXcmFeeNotDefined,
+
+		RateLimited,
 	}
 
 	#[pallet::hooks]
@@ -527,6 +584,24 @@ pub mod module {
 						Error::<T>::DistinctReserveForAssetAndFee
 					);
 				}
+
+				// per asset check
+				let amount = match asset.fun {
+					Fungibility::Fungible(amount) => amount,
+					Fungibility::NonFungible(_) => 1,
+				};
+				ensure!(
+					T::RateLimiter::is_allowed(T::RateLimiterIdAsset::get(), asset.id, amount),
+					Error::<T>::RateLimited
+				);
+				T::RateLimiter::record(T::RateLimiterIdAsset::get(), asset.id, amount);
+
+				// per sender check
+				ensure!(
+					T::RateLimiter::is_allowed(T::RateLimiterIdUser::get(), who, amount),
+					Error::<T>::RateLimited
+				);
+				T::RateLimiter::record(T::RateLimiterIdUser::get(), asset.id, amount);
 			}
 
 			let fee_reserve = T::ReserveProvider::reserve(&fee);
