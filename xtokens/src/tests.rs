@@ -1723,3 +1723,114 @@ fn send_with_insufficient_weight_limit() {
 		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &BOB), 0);
 	});
 }
+
+#[test]
+fn send_relay_chain_asset_to_relay_chain_at_rate_limit() {
+	TestNet::reset();
+
+	Relay::execute_with(|| {
+		let _ = RelayBalances::deposit_creating(&para_a_account(), 4000);
+		assert_eq!(RelayBalances::free_balance(&para_a_account()), 4000);
+		assert_eq!(RelayBalances::free_balance(&ALICE), 1000);
+		assert_eq!(RelayBalances::free_balance(&BOB), 0);
+	});
+
+	ParaA::execute_with(|| {
+		use crate::tests::para::R_ACCUMULATION;
+
+		assert_ok!(ParaTokens::deposit(CurrencyId::R, &CHARLIE, 3000));
+		assert_eq!(ParaTokens::free_balance(CurrencyId::R, &ALICE), 1000);
+		assert_eq!(ParaTokens::free_balance(CurrencyId::R, &CHARLIE), 3000);
+		assert_eq!(R_ACCUMULATION.with(|v| *v.borrow()), 0);
+
+		// Rate limiter allowed CHARLIE's transfer, and reward accumulation
+		assert_ok!(ParaXTokens::transfer(
+			Some(CHARLIE).into(),
+			CurrencyId::R,
+			1800,
+			Box::new(
+				MultiLocation::new(
+					1,
+					X1(Junction::AccountId32 {
+						network: NetworkId::Any,
+						id: CHARLIE.into(),
+					})
+				)
+				.into()
+			),
+			WeightLimit::Unlimited
+		));
+		assert_eq!(ParaTokens::free_balance(CurrencyId::R, &CHARLIE), 1200);
+		assert_eq!(R_ACCUMULATION.with(|v| *v.borrow()), 1800);
+
+		// Rate limiter refused CHARLIE's transfer, because the amount will exceed the
+		// limit
+		assert_noop!(
+			ParaXTokens::transfer(
+				Some(CHARLIE).into(),
+				CurrencyId::R,
+				201,
+				Box::new(
+					MultiLocation::new(
+						1,
+						X1(Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: CHARLIE.into(),
+						})
+					)
+					.into()
+				),
+				WeightLimit::Unlimited
+			),
+			Error::<para::Runtime>::RateLimited
+		);
+		assert_eq!(ParaTokens::free_balance(CurrencyId::R, &CHARLIE), 1200);
+		assert_eq!(R_ACCUMULATION.with(|v| *v.borrow()), 1800);
+
+		// ALICE will bypass the rate limiter, and won't reward accumulation
+		assert_ok!(ParaXTokens::transfer(
+			Some(ALICE).into(),
+			CurrencyId::R,
+			201,
+			Box::new(
+				MultiLocation::new(
+					1,
+					X1(Junction::AccountId32 {
+						network: NetworkId::Any,
+						id: ALICE.into(),
+					})
+				)
+				.into()
+			),
+			WeightLimit::Unlimited
+		));
+		assert_eq!(ParaTokens::free_balance(CurrencyId::R, &ALICE), 799);
+		assert_eq!(R_ACCUMULATION.with(|v| *v.borrow()), 1800);
+
+		// Rate limiter allowed CHARLIE's transfer, and reward accumulation
+		assert_ok!(ParaXTokens::transfer(
+			Some(CHARLIE).into(),
+			CurrencyId::R,
+			200,
+			Box::new(
+				MultiLocation::new(
+					1,
+					X1(Junction::AccountId32 {
+						network: NetworkId::Any,
+						id: CHARLIE.into(),
+					})
+				)
+				.into()
+			),
+			WeightLimit::Unlimited
+		));
+		assert_eq!(ParaTokens::free_balance(CurrencyId::R, &CHARLIE), 1000);
+		assert_eq!(R_ACCUMULATION.with(|v| *v.borrow()), 2000);
+	});
+
+	Relay::execute_with(|| {
+		assert_eq!(RelayBalances::free_balance(&para_a_account()), 1799);
+		assert_eq!(RelayBalances::free_balance(&ALICE), 1161);
+		assert_eq!(RelayBalances::free_balance(&CHARLIE), 1920);
+	});
+}

@@ -2,6 +2,7 @@
 
 use codec::{Decode, Encode};
 use impl_trait_for_tuples::impl_for_tuples;
+use scale_info::TypeInfo;
 use sp_runtime::{DispatchResult, RuntimeDebug};
 use sp_std::{
 	cmp::{Eq, PartialEq},
@@ -23,8 +24,8 @@ pub use get_by_key::GetByKey;
 pub use multi_asset::ConcreteFungibleAsset;
 pub use nft::InspectExtended;
 pub use price::{DefaultPriceProvider, PriceProvider};
+pub use rate_limit::{RateLimiter, RateLimiterError};
 pub use rewards::RewardHandler;
-use scale_info::TypeInfo;
 pub use xcm_transfer::XcmTransfer;
 
 pub mod arithmetic;
@@ -37,6 +38,7 @@ pub mod location;
 pub mod multi_asset;
 pub mod nft;
 pub mod price;
+pub mod rate_limit;
 pub mod rewards;
 pub mod xcm_transfer;
 

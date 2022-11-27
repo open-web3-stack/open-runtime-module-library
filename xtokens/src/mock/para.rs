@@ -1,8 +1,9 @@
-use super::{Amount, Balance, CurrencyId, CurrencyIdConvert, ParachainXcmRouter};
+use super::{Amount, Balance, CurrencyId, CurrencyIdConvert, ParachainXcmRouter, RateLimiter, CHARLIE};
 use crate as orml_xtokens;
 
+use codec::Encode;
 use frame_support::{
-	construct_runtime, match_types, parameter_types,
+	construct_runtime, ensure, match_types, parameter_types,
 	traits::{ConstU128, ConstU32, ConstU64, Everything, Get, Nothing},
 	weights::constants::WEIGHT_PER_SECOND,
 };
@@ -13,6 +14,7 @@ use sp_runtime::{
 	traits::{Convert, IdentityLookup},
 	AccountId32,
 };
+use sp_std::cell::RefCell;
 
 use cumulus_primitives_core::{ChannelStatus, GetChannelInfo, ParaId};
 use pallet_xcm::XcmPassthrough;
@@ -26,7 +28,7 @@ use xcm_builder::{
 use xcm_executor::{Config, XcmExecutor};
 
 use crate::mock::AllTokensAreCreatedEqualToWeight;
-use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
+use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key, RateLimiterError};
 use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
 
 pub type AccountId = AccountId32;
@@ -239,6 +241,50 @@ parameter_type_with_key! {
 	};
 }
 
+thread_local! {
+	pub static R_ACCUMULATION: RefCell<u128> = RefCell::new(0);
+}
+
+pub struct MockRateLimiter;
+impl RateLimiter for MockRateLimiter {
+	type RateLimiterId = u8;
+
+	fn bypass_limit(_: Self::RateLimiterId, key: impl Encode) -> bool {
+		let encoded_charlie = CHARLIE.encode();
+		let encoded_key: Vec<u8> = key.encode();
+		encoded_key != encoded_charlie
+	}
+
+	fn is_allowed(_: Self::RateLimiterId, limit_key: impl Encode, value: u128) -> Result<(), RateLimiterError> {
+		let encoded_limit_key = limit_key.encode();
+		let r_multi_location: MultiLocation = CurrencyIdConvert::convert(CurrencyId::R).unwrap();
+		let r_asset_id = AssetId::Concrete(r_multi_location);
+		let encoded_r_asset_id = r_asset_id.encode();
+
+		if encoded_limit_key == encoded_r_asset_id {
+			let accumulation = R_ACCUMULATION.with(|v| *v.borrow());
+			ensure!((accumulation + value) <= 2000, RateLimiterError::ExceedLimit);
+		}
+
+		Ok(())
+	}
+
+	fn record(_: Self::RateLimiterId, limit_key: impl Encode, value: u128) {
+		let encoded_limit_key = limit_key.encode();
+		let r_multi_location: MultiLocation = CurrencyIdConvert::convert(CurrencyId::R).unwrap();
+		let r_asset_id = AssetId::Concrete(r_multi_location);
+		let encoded_r_asset_id = r_asset_id.encode();
+
+		if encoded_limit_key == encoded_r_asset_id {
+			R_ACCUMULATION.with(|v| *v.borrow_mut() += value);
+		}
+	}
+}
+
+parameter_types! {
+	pub const XtokensRateLimiterId: u8 = 0;
+}
+
 impl orml_xtokens::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
@@ -254,6 +300,8 @@ impl orml_xtokens::Config for Runtime {
 	type LocationInverter = LocationInverter<Ancestry>;
 	type MaxAssetsForTransfer = MaxAssetsForTransfer;
 	type ReserveProvider = AbsoluteReserveProvider;
+	type RateLimiter = MockRateLimiter;
+	type RateLimiterId = XtokensRateLimiterId;
 }
 
 impl orml_xcm::Config for Runtime {
