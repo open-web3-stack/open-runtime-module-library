@@ -24,11 +24,11 @@ use scale_info::TypeInfo;
 use sp_runtime::traits::{MaybeSerializeDeserialize, SaturatedConversion, Zero};
 use sp_std::{prelude::*, vec::Vec};
 
-//pub use module::*;
+pub use module::*;
 // pub use weights::WeightInfo;
 
-// mod mock;
-// mod tests;
+mod mock;
+mod tests;
 // pub mod weights;
 
 #[frame_support::pallet]
@@ -36,7 +36,7 @@ pub mod module {
 	use super::*;
 
 	#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
-	pub enum RateLimit {
+	pub enum RateLimitRule {
 		PerBlocks {
 			blocks_count: u64,
 			quota: u128,
@@ -52,12 +52,6 @@ pub mod module {
 		},
 		Unlimited,
 		NotAllowed,
-	}
-
-	impl Default for RateLimit {
-		fn default() -> Self {
-			RateLimit::Unlimited
-		}
 	}
 
 	#[derive(PartialOrd, Ord, PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
@@ -87,20 +81,19 @@ pub mod module {
 
 	#[pallet::error]
 	pub enum Error<T> {
+		InvalidRateLimitRule,
 		FilterExisted,
 		FilterNotExisted,
 		MaxFilterExceeded,
-		DecodeKeyFailed,
-		InvalidRateLimit,
 	}
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event<T: Config> {
-		LimiRateUpdated {
+		LimiRateRuleUpdated {
 			rate_limiter_id: T::RateLimiterId,
 			key: Vec<u8>,
-			update: Option<RateLimit>,
+			update: Option<RateLimitRule>,
 		},
 		WhitelistFilterAdded {
 			rate_limiter_id: T::RateLimiterId,
@@ -114,9 +107,9 @@ pub mod module {
 	}
 
 	#[pallet::storage]
-	#[pallet::getter(fn rate_limits)]
-	pub type RateLimits<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, T::RateLimiterId, Twox64Concat, Vec<u8>, RateLimit, OptionQuery>;
+	#[pallet::getter(fn rate_limit_rules)]
+	pub type RateLimitRules<T: Config> =
+		StorageDoubleMap<_, Twox64Concat, T::RateLimiterId, Twox64Concat, Vec<u8>, RateLimitRule, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn rate_limit_quota)]
@@ -139,36 +132,39 @@ pub mod module {
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight(10000)]
 		#[transactional]
-		pub fn update_rate_limit(
+		pub fn update_rate_limit_rule(
 			origin: OriginFor<T>,
 			rate_limiter_id: T::RateLimiterId,
 			key: Vec<u8>,
-			update: Option<RateLimit>,
+			update: Option<RateLimitRule>,
 		) -> DispatchResult {
 			T::GovernanceOrigin::ensure_origin(origin)?;
 
-			RateLimits::<T>::try_mutate_exists(&rate_limiter_id, key.clone(), |maybe_limit| -> DispatchResult {
+			RateLimitRules::<T>::try_mutate_exists(&rate_limiter_id, key.clone(), |maybe_limit| -> DispatchResult {
 				*maybe_limit = update.clone();
 
-				if let Some(rate_limit) = maybe_limit {
-					match rate_limit {
-						RateLimit::PerBlocks { blocks_count, quota } => {
+				if let Some(rule) = maybe_limit {
+					match rule {
+						RateLimitRule::PerBlocks { blocks_count, quota } => {
 							ensure!(
 								!blocks_count.is_zero() && !quota.is_zero(),
-								Error::<T>::InvalidRateLimit
+								Error::<T>::InvalidRateLimitRule
 							);
 						}
-						RateLimit::PerSeconds { secs_count, quota } => {
-							ensure!(!secs_count.is_zero() && !quota.is_zero(), Error::<T>::InvalidRateLimit);
+						RateLimitRule::PerSeconds { secs_count, quota } => {
+							ensure!(
+								!secs_count.is_zero() && !quota.is_zero(),
+								Error::<T>::InvalidRateLimitRule
+							);
 						}
-						RateLimit::TokenBucket {
+						RateLimitRule::TokenBucket {
 							blocks_count,
 							quota_increment,
 							max_quota,
 						} => {
 							ensure!(
 								!blocks_count.is_zero() && !quota_increment.is_zero() && !max_quota.is_zero(),
-								Error::<T>::InvalidRateLimit
+								Error::<T>::InvalidRateLimitRule
 							);
 						}
 						_ => {}
@@ -178,7 +174,7 @@ pub mod module {
 				// always reset RateLimitQuota.
 				RateLimitQuota::<T>::remove(&rate_limiter_id, &key);
 
-				Self::deposit_event(Event::LimiRateUpdated {
+				Self::deposit_event(Event::LimiRateRuleUpdated {
 					rate_limiter_id,
 					key,
 					update,
@@ -186,22 +182,6 @@ pub mod module {
 
 				Ok(())
 			})
-		}
-
-		#[pallet::weight(10000)]
-		#[transactional]
-		pub fn set_rate_limit_quota(
-			origin: OriginFor<T>,
-			rate_limiter_id: T::RateLimiterId,
-			key: Vec<u8>,
-			last_update: u64,
-			amount: u128,
-		) -> DispatchResult {
-			T::GovernanceOrigin::ensure_origin(origin)?;
-
-			RateLimitQuota::<T>::insert(rate_limiter_id, key, (last_update, amount));
-
-			Ok(())
 		}
 
 		#[pallet::weight(10000)]
@@ -268,14 +248,14 @@ pub mod module {
 	}
 
 	impl<T: Config> Pallet<T> {
-		pub fn get_remainer_quota_after_update(
-			rate_limit: RateLimit,
+		pub fn access_remainer_quota_after_update(
+			rate_limit_rule: RateLimitRule,
 			limiter_id: &T::RateLimiterId,
 			encoded_key: &Vec<u8>,
 		) -> u128 {
 			RateLimitQuota::<T>::mutate(limiter_id, encoded_key, |(last_updated, remainer_quota)| -> u128 {
-				match rate_limit {
-					RateLimit::PerBlocks { blocks_count, quota } => {
+				match rate_limit_rule {
+					RateLimitRule::PerBlocks { blocks_count, quota } => {
 						let now: u64 = frame_system::Pallet::<T>::block_number().saturated_into();
 						let interval: u64 = now.saturating_sub(*last_updated);
 						if interval >= blocks_count {
@@ -284,7 +264,7 @@ pub mod module {
 						}
 					}
 
-					RateLimit::PerSeconds { secs_count, quota } => {
+					RateLimitRule::PerSeconds { secs_count, quota } => {
 						let now: u64 = T::UnixTime::now().as_secs();
 						let interval: u64 = now.saturating_sub(*last_updated);
 						if interval >= secs_count {
@@ -293,7 +273,7 @@ pub mod module {
 						}
 					}
 
-					RateLimit::TokenBucket {
+					RateLimitRule::TokenBucket {
 						blocks_count,
 						quota_increment,
 						max_quota,
@@ -354,15 +334,16 @@ pub mod module {
 		fn is_allowed(limiter_id: Self::RateLimiterId, key: impl Encode, value: u128) -> Result<(), RateLimiterError> {
 			let encoded_key: Vec<u8> = key.encode();
 
-			let allowed = match RateLimits::<T>::get(&limiter_id, &encoded_key) {
-				Some(rate_limit @ RateLimit::PerBlocks { .. })
-				| Some(rate_limit @ RateLimit::PerSeconds { .. })
-				| Some(rate_limit @ RateLimit::TokenBucket { .. }) => {
-					let remainer_quota = Self::get_remainer_quota_after_update(rate_limit, &limiter_id, &encoded_key);
+			let allowed = match RateLimitRules::<T>::get(&limiter_id, &encoded_key) {
+				Some(rate_limit_rule @ RateLimitRule::PerBlocks { .. })
+				| Some(rate_limit_rule @ RateLimitRule::PerSeconds { .. })
+				| Some(rate_limit_rule @ RateLimitRule::TokenBucket { .. }) => {
+					let remainer_quota =
+						Self::access_remainer_quota_after_update(rate_limit_rule, &limiter_id, &encoded_key);
 					value <= remainer_quota
 				}
-				Some(RateLimit::Unlimited) => false,
-				Some(RateLimit::NotAllowed) => true,
+				Some(RateLimitRule::Unlimited) => true,
+				Some(RateLimitRule::NotAllowed) => false,
 				None => {
 					// if not defined limit for key, allow it.
 					true
@@ -376,10 +357,10 @@ pub mod module {
 		fn record(limiter_id: Self::RateLimiterId, key: impl Encode, value: u128) {
 			let encoded_key: Vec<u8> = key.encode();
 
-			match RateLimits::<T>::get(&limiter_id, &encoded_key) {
-				Some(RateLimit::PerBlocks { .. })
-				| Some(RateLimit::PerSeconds { .. })
-				| Some(RateLimit::TokenBucket { .. }) => {
+			match RateLimitRules::<T>::get(&limiter_id, &encoded_key) {
+				Some(RateLimitRule::PerBlocks { .. })
+				| Some(RateLimitRule::PerSeconds { .. })
+				| Some(RateLimitRule::TokenBucket { .. }) => {
 					// consume remainer quota only in these situation.
 					RateLimitQuota::<T>::mutate(&limiter_id, &encoded_key, |(_, remainer_quota)| {
 						*remainer_quota = (*remainer_quota).saturating_sub(value);
