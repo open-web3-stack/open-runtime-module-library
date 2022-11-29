@@ -26,9 +26,9 @@ fn update_rate_limit_rule_work() {
 			DOT.encode(),
 			Some(RateLimitRule::NotAllowed),
 		));
-		System::assert_last_event(RuntimeEvent::RateLimit(crate::Event::LimiRateRuleUpdated {
+		System::assert_last_event(RuntimeEvent::RateLimit(crate::Event::RateLimitRuleUpdated {
 			rate_limiter_id: 0,
-			key: DOT.encode(),
+			encoded_key: DOT.encode(),
 			update: Some(RateLimitRule::NotAllowed),
 		}));
 		assert_eq!(
@@ -87,9 +87,9 @@ fn update_rate_limit_rule_work() {
 				max_quota: 10000,
 			}),
 		));
-		System::assert_last_event(RuntimeEvent::RateLimit(crate::Event::LimiRateRuleUpdated {
+		System::assert_last_event(RuntimeEvent::RateLimit(crate::Event::RateLimitRuleUpdated {
 			rate_limiter_id: 0,
-			key: DOT.encode(),
+			encoded_key: DOT.encode(),
 			update: Some(RateLimitRule::TokenBucket {
 				blocks_count: 100,
 				quota_increment: 1000,
