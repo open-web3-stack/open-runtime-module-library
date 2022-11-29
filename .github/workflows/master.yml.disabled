@@ -13,12 +13,9 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Install toolchain
-      uses: actions-rs/toolchain@v1
+      uses: dtolnay/rust-toolchain@nightly
       with:
-        profile: minimal
         toolchain: nightly-2022-08-05
-        override: true
-        default: true
     - name: Install cargo-unleash
       run: cargo install cargo-unleash --git https://github.com/xlc/cargo-unleash.git # https://github.com/paritytech/cargo-unleash/pull/38
     - name: Prepare
