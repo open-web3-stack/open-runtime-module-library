@@ -67,6 +67,7 @@ impl Config for Runtime {
 	type RateLimiterId = RateLimiterId;
 	type MaxWhitelistFilterCount = ConstU32<3>;
 	type UnixTime = Timestamp;
+	type WeightInfo = ();
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;

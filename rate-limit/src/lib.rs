@@ -19,15 +19,15 @@ use frame_support::{pallet_prelude::*, traits::UnixTime, transactional, BoundedV
 use frame_system::pallet_prelude::*;
 use orml_traits::{RateLimiter, RateLimiterError};
 use scale_info::TypeInfo;
-use sp_runtime::traits::{MaybeSerializeDeserialize, SaturatedConversion, Zero};
+use sp_runtime::traits::{SaturatedConversion, Zero};
 use sp_std::{prelude::*, vec::Vec};
 
 pub use module::*;
-// pub use weights::WeightInfo;
+pub use weights::WeightInfo;
 
 mod mock;
 mod tests;
-// pub mod weights;
+pub mod weights;
 
 #[frame_support::pallet]
 pub mod module {
@@ -76,7 +76,7 @@ pub mod module {
 		/// Origin represented Governance.
 		type GovernanceOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
-		type RateLimiterId: Parameter + Member + Copy + MaybeSerializeDeserialize + Ord + TypeInfo;
+		type RateLimiterId: Parameter + Member + Copy + TypeInfo;
 
 		/// The maximum number of KeyFilter configured to a RateLimiterId.
 		#[pallet::constant]
@@ -85,8 +85,8 @@ pub mod module {
 		/// Time used for calculate quota.
 		type UnixTime: UnixTime;
 
-		// /// Weight information for the extrinsics in this module.
-		// type WeightInfo: WeightInfo;
+		/// Weight information for the extrinsics in this module.
+		type WeightInfo: WeightInfo;
 	}
 
 	#[pallet::error]
@@ -162,7 +162,7 @@ pub mod module {
 		/// - `encoded key`: the encoded key to limit.
 		/// - `update`: the RateLimitRule to config, None will remove current
 		///   config.
-		#[pallet::weight(10000)]
+		#[pallet::weight(T::WeightInfo::update_rate_limit_rule())]
 		#[transactional]
 		pub fn update_rate_limit_rule(
 			origin: OriginFor<T>,
@@ -227,7 +227,7 @@ pub mod module {
 		/// Parameters:
 		/// - `rate_limiter_id`: rate limiter id.
 		/// - `key_filter`: filter rule to add.
-		#[pallet::weight(10000)]
+		#[pallet::weight(T::WeightInfo::add_whitelist())]
 		#[transactional]
 		pub fn add_whitelist(
 			origin: OriginFor<T>,
@@ -257,7 +257,7 @@ pub mod module {
 		/// Parameters:
 		/// - `rate_limiter_id`: rate limiter id.
 		/// - `key_filter`: filter rule to remove.
-		#[pallet::weight(10000)]
+		#[pallet::weight(T::WeightInfo::remove_whitelist())]
 		#[transactional]
 		pub fn remove_whitelist(
 			origin: OriginFor<T>,
@@ -285,7 +285,7 @@ pub mod module {
 		/// Parameters:
 		/// - `rate_limiter_id`: rate limiter id.
 		/// - `new_list`: the filter rule list to reset.
-		#[pallet::weight(10000)]
+		#[pallet::weight(T::WeightInfo::reset_whitelist())]
 		#[transactional]
 		pub fn reset_whitelist(
 			origin: OriginFor<T>,

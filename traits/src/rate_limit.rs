@@ -1,6 +1,6 @@
 use codec::Encode;
 use frame_support::{Parameter, RuntimeDebug};
-use sp_runtime::traits::{MaybeSerializeDeserialize, Member};
+use sp_runtime::traits::Member;
 
 #[derive(PartialEq, Eq, RuntimeDebug)]
 pub enum RateLimiterError {
@@ -11,7 +11,7 @@ pub enum RateLimiterError {
 /// Rate Limiter
 pub trait RateLimiter {
 	/// The type for the rate limiter.
-	type RateLimiterId: Parameter + Member + Copy + MaybeSerializeDeserialize + Ord;
+	type RateLimiterId: Parameter + Member + Copy;
 
 	/// Check whether the rate limiter of can be bypassed according to the
 	/// `key`.
