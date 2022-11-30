@@ -249,7 +249,7 @@ pub struct MockRateLimiter;
 impl RateLimiter for MockRateLimiter {
 	type RateLimiterId = u8;
 
-	fn bypass_limit(_: Self::RateLimiterId, key: impl Encode) -> bool {
+	fn is_whitelist(_: Self::RateLimiterId, key: impl Encode) -> bool {
 		let encoded_charlie = CHARLIE.encode();
 		let encoded_key: Vec<u8> = key.encode();
 		encoded_key != encoded_charlie

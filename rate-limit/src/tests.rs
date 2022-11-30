@@ -112,52 +112,64 @@ fn update_rate_limit_rule_work() {
 fn add_whitelist_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
-			RateLimit::add_whitelist(RuntimeOrigin::signed(ALICE), 0, KeyFilter::Match(ALICE.encode())),
+			RateLimit::add_whitelist(
+				RuntimeOrigin::signed(ALICE),
+				0,
+				KeyFilter::Match(ALICE.encode().try_into().unwrap()),
+			),
 			BadOrigin
 		);
 
-		assert_eq!(RateLimit::bypass_limit_whitelist(0), vec![]);
+		assert_eq!(RateLimit::limit_whitelist(0).0, vec![]);
 		assert_ok!(RateLimit::add_whitelist(
 			RuntimeOrigin::root(),
 			0,
-			KeyFilter::Match(ALICE.encode())
+			KeyFilter::Match(ALICE.encode().try_into().unwrap()),
 		));
 		System::assert_last_event(RuntimeEvent::RateLimit(crate::Event::WhitelistFilterAdded {
 			rate_limiter_id: 0,
 		}));
 		assert_eq!(
-			RateLimit::bypass_limit_whitelist(0),
-			vec![KeyFilter::Match(ALICE.encode())]
+			RateLimit::limit_whitelist(0).0,
+			vec![KeyFilter::Match(ALICE.encode().try_into().unwrap())]
 		);
 
 		// add already existed.
 		assert_noop!(
-			RateLimit::add_whitelist(RuntimeOrigin::root(), 0, KeyFilter::Match(ALICE.encode())),
+			RateLimit::add_whitelist(
+				RuntimeOrigin::root(),
+				0,
+				KeyFilter::Match(ALICE.encode().try_into().unwrap())
+			),
 			Error::<Runtime>::FilterExisted
 		);
 
 		assert_ok!(RateLimit::add_whitelist(
 			RuntimeOrigin::root(),
 			0,
-			KeyFilter::Match(BOB.encode())
+			KeyFilter::Match(BOB.encode().try_into().unwrap())
 		));
 		assert_ok!(RateLimit::add_whitelist(
 			RuntimeOrigin::root(),
 			0,
-			KeyFilter::Match(CHARLIE.encode())
+			KeyFilter::Match(CHARLIE.encode().try_into().unwrap())
 		));
 		assert_eq!(
-			RateLimit::bypass_limit_whitelist(0),
+			RateLimit::limit_whitelist(0).0,
 			vec![
-				KeyFilter::Match(ALICE.encode()),
-				KeyFilter::Match(BOB.encode()),
-				KeyFilter::Match(CHARLIE.encode())
+				KeyFilter::Match(ALICE.encode().try_into().unwrap()),
+				KeyFilter::Match(BOB.encode().try_into().unwrap()),
+				KeyFilter::Match(CHARLIE.encode().try_into().unwrap())
 			]
 		);
 
 		// exceed filters limit
 		assert_noop!(
-			RateLimit::add_whitelist(RuntimeOrigin::root(), 0, KeyFilter::Match(DAVE.encode())),
+			RateLimit::add_whitelist(
+				RuntimeOrigin::root(),
+				0,
+				KeyFilter::Match(DAVE.encode().try_into().unwrap())
+			),
 			Error::<Runtime>::MaxFilterExceeded
 		);
 	});
@@ -169,39 +181,50 @@ fn remove_whitelist_work() {
 		assert_ok!(RateLimit::add_whitelist(
 			RuntimeOrigin::root(),
 			0,
-			KeyFilter::Match(ALICE.encode())
+			KeyFilter::Match(ALICE.encode().try_into().unwrap())
 		));
 		assert_ok!(RateLimit::add_whitelist(
 			RuntimeOrigin::root(),
 			0,
-			KeyFilter::Match(BOB.encode())
+			KeyFilter::Match(BOB.encode().try_into().unwrap())
 		));
 		assert_eq!(
-			RateLimit::bypass_limit_whitelist(0),
-			vec![KeyFilter::Match(ALICE.encode()), KeyFilter::Match(BOB.encode())]
+			RateLimit::limit_whitelist(0).0,
+			vec![
+				KeyFilter::Match(ALICE.encode().try_into().unwrap()),
+				KeyFilter::Match(BOB.encode().try_into().unwrap())
+			]
 		);
 
 		assert_noop!(
-			RateLimit::remove_whitelist(RuntimeOrigin::signed(ALICE), 0, KeyFilter::StartsWith(ALICE.encode())),
+			RateLimit::remove_whitelist(
+				RuntimeOrigin::signed(ALICE),
+				0,
+				KeyFilter::StartsWith(ALICE.encode().try_into().unwrap())
+			),
 			BadOrigin
 		);
 
 		assert_noop!(
-			RateLimit::remove_whitelist(RuntimeOrigin::root(), 0, KeyFilter::StartsWith(ALICE.encode())),
-			Error::<Runtime>::FilterExisted
+			RateLimit::remove_whitelist(
+				RuntimeOrigin::root(),
+				0,
+				KeyFilter::StartsWith(ALICE.encode().try_into().unwrap())
+			),
+			Error::<Runtime>::FilterNotExisted
 		);
 
 		assert_ok!(RateLimit::remove_whitelist(
 			RuntimeOrigin::root(),
 			0,
-			KeyFilter::Match(ALICE.encode())
+			KeyFilter::Match(ALICE.encode().try_into().unwrap())
 		));
 		System::assert_last_event(RuntimeEvent::RateLimit(crate::Event::WhitelistFilterRemoved {
 			rate_limiter_id: 0,
 		}));
 		assert_eq!(
-			RateLimit::bypass_limit_whitelist(0),
-			vec![KeyFilter::Match(BOB.encode())]
+			RateLimit::limit_whitelist(0).0,
+			vec![KeyFilter::Match(BOB.encode().try_into().unwrap())]
 		);
 	});
 }
@@ -213,7 +236,7 @@ fn reset_whitelist_work() {
 			RateLimit::reset_whitelist(
 				RuntimeOrigin::signed(ALICE),
 				0,
-				vec![KeyFilter::StartsWith(ALICE.encode())],
+				vec![KeyFilter::StartsWith(ALICE.encode().try_into().unwrap())],
 			),
 			BadOrigin
 		);
@@ -224,101 +247,106 @@ fn reset_whitelist_work() {
 				RuntimeOrigin::root(),
 				0,
 				vec![
-					KeyFilter::StartsWith(ALICE.encode()),
-					KeyFilter::StartsWith(DAVE.encode()),
-					KeyFilter::StartsWith(CHARLIE.encode()),
-					KeyFilter::StartsWith(DAVE.encode())
+					KeyFilter::StartsWith(ALICE.encode().try_into().unwrap()),
+					KeyFilter::StartsWith(DAVE.encode().try_into().unwrap()),
+					KeyFilter::StartsWith(CHARLIE.encode().try_into().unwrap()),
+					KeyFilter::StartsWith(DAVE.encode().try_into().unwrap())
 				],
 			),
 			Error::<Runtime>::MaxFilterExceeded
 		);
 
-		assert_eq!(RateLimit::bypass_limit_whitelist(0), vec![]);
-		assert_ok!(RateLimit::reset_whitelist(
-			RuntimeOrigin::root(),
-			0,
-			vec![KeyFilter::Match(ALICE.encode()), KeyFilter::Match(BOB.encode())]
-		));
-		System::assert_last_event(RuntimeEvent::RateLimit(crate::Event::WhitelistFilterReset {
-			rate_limiter_id: 0,
-		}));
-		assert_eq!(
-			RateLimit::bypass_limit_whitelist(0),
-			vec![KeyFilter::Match(ALICE.encode()), KeyFilter::Match(BOB.encode())]
-		);
-
-		// will sort KeyFilter list before insert.
+		assert_eq!(RateLimit::limit_whitelist(0).0, vec![]);
 		assert_ok!(RateLimit::reset_whitelist(
 			RuntimeOrigin::root(),
 			0,
 			vec![
-				KeyFilter::Match(CHARLIE.encode()),
-				KeyFilter::Match(BOB.encode()),
-				KeyFilter::Match(ALICE.encode())
+				KeyFilter::Match(ALICE.encode().try_into().unwrap()),
+				KeyFilter::Match(BOB.encode().try_into().unwrap())
 			]
 		));
 		System::assert_last_event(RuntimeEvent::RateLimit(crate::Event::WhitelistFilterReset {
 			rate_limiter_id: 0,
 		}));
 		assert_eq!(
-			RateLimit::bypass_limit_whitelist(0),
+			RateLimit::limit_whitelist(0).0,
 			vec![
-				KeyFilter::Match(ALICE.encode()),
-				KeyFilter::Match(BOB.encode()),
-				KeyFilter::Match(CHARLIE.encode())
+				KeyFilter::Match(ALICE.encode().try_into().unwrap()),
+				KeyFilter::Match(BOB.encode().try_into().unwrap())
+			]
+		);
+
+		// will sort and dedup KeyFilter list before insert.
+		assert_ok!(RateLimit::reset_whitelist(
+			RuntimeOrigin::root(),
+			0,
+			vec![
+				KeyFilter::Match(BOB.encode().try_into().unwrap()),
+				KeyFilter::Match(ALICE.encode().try_into().unwrap()),
+				KeyFilter::Match(ALICE.encode().try_into().unwrap()),
+			]
+		));
+		System::assert_last_event(RuntimeEvent::RateLimit(crate::Event::WhitelistFilterReset {
+			rate_limiter_id: 0,
+		}));
+		assert_eq!(
+			RateLimit::limit_whitelist(0).0,
+			vec![
+				KeyFilter::Match(ALICE.encode().try_into().unwrap()),
+				KeyFilter::Match(BOB.encode().try_into().unwrap()),
 			]
 		);
 
 		// clear
 		assert_ok!(RateLimit::reset_whitelist(RuntimeOrigin::root(), 0, vec![]));
-		assert_eq!(RateLimit::bypass_limit_whitelist(0), vec![]);
+		assert_eq!(RateLimit::limit_whitelist(0).0, vec![]);
 	});
 }
 
 #[test]
-fn bypass_limit_work() {
+fn is_whitelist_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_eq!(RateLimit::bypass_limit(0, BOB), false);
-		assert_eq!(RateLimit::bypass_limit(1, BOB), false);
-		assert_eq!(RateLimit::bypass_limit(0, TREASURY_ACCOUNT), false);
+		assert_eq!(RateLimit::is_whitelist(0, BOB), false);
+		assert_eq!(RateLimit::is_whitelist(1, BOB), false);
+		assert_eq!(RateLimit::is_whitelist(0, TREASURY_ACCOUNT), false);
 
 		assert_ok!(RateLimit::reset_whitelist(
 			RuntimeOrigin::root(),
 			0,
-			vec![KeyFilter::Match(BOB.encode())]
+			vec![KeyFilter::Match(BOB.encode().try_into().unwrap())]
 		));
-		assert_eq!(RateLimit::bypass_limit(0, BOB), true);
-		assert_eq!(RateLimit::bypass_limit(1, BOB), false);
-		assert_eq!(RateLimit::bypass_limit(0, TREASURY_ACCOUNT), false);
+		assert_eq!(RateLimit::is_whitelist(0, BOB), true);
+		assert_eq!(RateLimit::is_whitelist(1, BOB), false);
+		assert_eq!(RateLimit::is_whitelist(0, TREASURY_ACCOUNT), false);
 
 		assert_ok!(RateLimit::reset_whitelist(
 			RuntimeOrigin::root(),
 			0,
-			vec![KeyFilter::StartsWith(vec![1, 1, 1, 1])]
+			vec![KeyFilter::StartsWith(vec![1, 1, 1, 1].try_into().unwrap())]
 		));
-		assert_eq!(RateLimit::bypass_limit(0, BOB), true);
-		assert_eq!(RateLimit::bypass_limit(0, TREASURY_ACCOUNT), true);
+		assert_eq!(RateLimit::is_whitelist(0, BOB), true);
+		assert_eq!(RateLimit::is_whitelist(0, TREASURY_ACCOUNT), true);
 
 		assert_ok!(RateLimit::reset_whitelist(
 			RuntimeOrigin::root(),
 			0,
-			vec![KeyFilter::StartsWith(vec![1, 1, 1, 1, 1])]
+			vec![KeyFilter::StartsWith(vec![1, 1, 1, 1, 1].try_into().unwrap())]
 		));
-		assert_eq!(RateLimit::bypass_limit(0, BOB), true);
-		assert_eq!(RateLimit::bypass_limit(0, TREASURY_ACCOUNT), false);
-		assert_eq!(RateLimit::bypass_limit(0, CHARLIE), false);
+		assert_eq!(RateLimit::is_whitelist(0, BOB), true);
+		assert_eq!(RateLimit::is_whitelist(0, TREASURY_ACCOUNT), false);
+		assert_eq!(RateLimit::is_whitelist(0, CHARLIE), false);
 
 		assert_ok!(RateLimit::reset_whitelist(
 			RuntimeOrigin::root(),
 			0,
 			vec![
-				KeyFilter::StartsWith(vec![1, 1, 1, 1, 1]),
-				KeyFilter::EndsWith(vec![2, 2, 2, 2])
+				KeyFilter::StartsWith(vec![1, 1, 1, 1, 1].try_into().unwrap()),
+				KeyFilter::EndsWith(vec![2, 2, 2, 2].try_into().unwrap())
 			]
 		));
-		assert_eq!(RateLimit::bypass_limit(0, BOB), true);
-		assert_eq!(RateLimit::bypass_limit(0, TREASURY_ACCOUNT), true);
-		assert_eq!(RateLimit::bypass_limit(0, CHARLIE), true);
+		assert_eq!(RateLimit::is_whitelist(0, BOB), true);
+		assert_eq!(RateLimit::is_whitelist(0, TREASURY_ACCOUNT), true);
+		assert_eq!(RateLimit::is_whitelist(0, CHARLIE), true);
 	});
 }
 

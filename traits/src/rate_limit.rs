@@ -15,7 +15,7 @@ pub trait RateLimiter {
 
 	/// Check whether the rate limiter of can be bypassed according to the
 	/// `key`.
-	fn bypass_limit(limiter_id: Self::RateLimiterId, key: impl Encode) -> bool;
+	fn is_whitelist(limiter_id: Self::RateLimiterId, key: impl Encode) -> bool;
 
 	/// Check whether the `value` can be passed the limit of `limit_key`.
 	fn is_allowed(limiter_id: Self::RateLimiterId, limit_key: impl Encode, value: u128)
@@ -28,7 +28,7 @@ pub trait RateLimiter {
 impl RateLimiter for () {
 	type RateLimiterId = ();
 
-	fn bypass_limit(_: Self::RateLimiterId, _: impl Encode) -> bool {
+	fn is_whitelist(_: Self::RateLimiterId, _: impl Encode) -> bool {
 		true
 	}
 

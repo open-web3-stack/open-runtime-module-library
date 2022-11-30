@@ -20,6 +20,7 @@ sp-runtime = { git = "https://github.com/paritytech/substrate", default-features
 sp-std = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.32" }
 
 orml-traits = { path = "../traits", version = "0.4.1-dev", default-features = false }
+orml-utilities = { path = "../utilities", version = "0.4.1-dev", default-features = false }
 
 [dev-dependencies]
 pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.32" }
@@ -38,6 +39,7 @@ std = [
 	"sp-runtime/std",
 	"sp-std/std",
 	"orml-traits/std",
+	"orml-utilities/std",
 ]
 runtime-benchmarks = [
 	"frame-support/runtime-benchmarks",

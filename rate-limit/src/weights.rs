@@ -44,21 +44,21 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().reads(1))
 			.saturating_add(RocksDbWeight::get().writes(2))
 	}
-	// Storage: RateLimit BypassLimitWhitelist (r:1 w:1)
+	// Storage: RateLimit LimitWhitelist (r:1 w:1)
 	fn add_whitelist() -> Weight {
 		// Minimum execution time: 25_000 nanoseconds.
 		Weight::from_ref_time(27_000_000)
 			.saturating_add(RocksDbWeight::get().reads(1))
 			.saturating_add(RocksDbWeight::get().writes(1))
 	}
-	// Storage: RateLimit BypassLimitWhitelist (r:1 w:1)
+	// Storage: RateLimit LimitWhitelist (r:1 w:1)
 	fn remove_whitelist() -> Weight {
 		// Minimum execution time: 26_000 nanoseconds.
 		Weight::from_ref_time(27_000_000)
 			.saturating_add(RocksDbWeight::get().reads(1))
 			.saturating_add(RocksDbWeight::get().writes(1))
 	}
-	// Storage: RateLimit BypassLimitWhitelist (r:0 w:1)
+	// Storage: RateLimit LimitWhitelist (r:0 w:1)
 	fn reset_whitelist() -> Weight {
 		// Minimum execution time: 22_000 nanoseconds.
 		Weight::from_ref_time(22_000_000)

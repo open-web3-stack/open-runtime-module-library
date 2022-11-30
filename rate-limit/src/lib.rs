@@ -15,9 +15,11 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 
+use codec::MaxEncodedLen;
 use frame_support::{pallet_prelude::*, traits::UnixTime, transactional, BoundedVec};
 use frame_system::pallet_prelude::*;
 use orml_traits::{RateLimiter, RateLimiterError};
+use orml_utilities::OrderedSet;
 use scale_info::TypeInfo;
 use sp_runtime::traits::{SaturatedConversion, Zero};
 use sp_std::{prelude::*, vec::Vec};
@@ -58,15 +60,18 @@ pub mod module {
 		NotAllowed,
 	}
 
+	/// The maximum length of KeyFilter inner key.
+	pub const MAX_FILTER_KEY_LENGTH: u32 = 256;
+
 	/// Match rules to fitler key is in bypass whitelist.
-	#[derive(PartialOrd, Ord, PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+	#[derive(PartialOrd, Ord, PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 	pub enum KeyFilter {
 		/// If the encoded key is equal to the vec, the key is in whitelist.
-		Match(Vec<u8>),
+		Match(BoundedVec<u8, ConstU32<MAX_FILTER_KEY_LENGTH>>),
 		/// If the encoded key starts with the vec, the key is in whitelist.
-		StartsWith(Vec<u8>),
+		StartsWith(BoundedVec<u8, ConstU32<MAX_FILTER_KEY_LENGTH>>),
 		/// If the encoded key ends with the vec, the key is in whitelist.
-		EndsWith(Vec<u8>),
+		EndsWith(BoundedVec<u8, ConstU32<MAX_FILTER_KEY_LENGTH>>),
 	}
 
 	#[pallet::config]
@@ -125,7 +130,7 @@ pub mod module {
 	#[pallet::storage]
 	#[pallet::getter(fn rate_limit_rules)]
 	pub type RateLimitRules<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, T::RateLimiterId, Twox64Concat, Vec<u8>, RateLimitRule, OptionQuery>;
+		StorageDoubleMap<_, Twox64Concat, T::RateLimiterId, Blake2_128Concat, Vec<u8>, RateLimitRule, OptionQuery>;
 
 	/// The quota for specific RateLimiterId and encoded key.
 	///
@@ -134,15 +139,15 @@ pub mod module {
 	#[pallet::storage]
 	#[pallet::getter(fn rate_limit_quota)]
 	pub type RateLimitQuota<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, T::RateLimiterId, Twox64Concat, Vec<u8>, (u64, u128), ValueQuery>;
+		StorageDoubleMap<_, Twox64Concat, T::RateLimiterId, Blake2_128Concat, Vec<u8>, (u64, u128), ValueQuery>;
 
 	/// The rules to filter if key is in whitelist for specific RateLimiterId.
 	///
-	/// BypassLimitWhitelist: map RateLimiterId => Vec<KeyFilter>
+	/// LimitWhitelist: map RateLimiterId => Vec<KeyFilter>
 	#[pallet::storage]
-	#[pallet::getter(fn bypass_limit_whitelist)]
-	pub type BypassLimitWhitelist<T: Config> =
-		StorageMap<_, Twox64Concat, T::RateLimiterId, BoundedVec<KeyFilter, T::MaxWhitelistFilterCount>, ValueQuery>;
+	#[pallet::getter(fn limit_whitelist)]
+	pub type LimitWhitelist<T: Config> =
+		StorageMap<_, Twox64Concat, T::RateLimiterId, OrderedSet<KeyFilter, T::MaxWhitelistFilterCount>, ValueQuery>;
 
 	#[pallet::pallet]
 	#[pallet::without_storage_info]
@@ -172,52 +177,49 @@ pub mod module {
 		) -> DispatchResult {
 			T::GovernanceOrigin::ensure_origin(origin)?;
 
-			RateLimitRules::<T>::try_mutate_exists(
-				&rate_limiter_id,
-				encoded_key.clone(),
-				|maybe_limit| -> DispatchResult {
-					*maybe_limit = update.clone();
+			RateLimitRules::<T>::try_mutate_exists(&rate_limiter_id, &encoded_key, |maybe_limit| -> DispatchResult {
+				*maybe_limit = update.clone();
 
-					if let Some(rule) = maybe_limit {
-						match rule {
-							RateLimitRule::PerBlocks { blocks_count, quota } => {
-								ensure!(
-									!blocks_count.is_zero() && !quota.is_zero(),
-									Error::<T>::InvalidRateLimitRule
-								);
-							}
-							RateLimitRule::PerSeconds { secs_count, quota } => {
-								ensure!(
-									!secs_count.is_zero() && !quota.is_zero(),
-									Error::<T>::InvalidRateLimitRule
-								);
-							}
-							RateLimitRule::TokenBucket {
-								blocks_count,
-								quota_increment,
-								max_quota,
-							} => {
-								ensure!(
-									!blocks_count.is_zero() && !quota_increment.is_zero() && !max_quota.is_zero(),
-									Error::<T>::InvalidRateLimitRule
-								);
-							}
-							_ => {}
+				if let Some(rule) = maybe_limit {
+					match rule {
+						RateLimitRule::PerBlocks { blocks_count, quota } => {
+							ensure!(
+								!blocks_count.is_zero() && !quota.is_zero(),
+								Error::<T>::InvalidRateLimitRule
+							);
 						}
+						RateLimitRule::PerSeconds { secs_count, quota } => {
+							ensure!(
+								!secs_count.is_zero() && !quota.is_zero(),
+								Error::<T>::InvalidRateLimitRule
+							);
+						}
+						RateLimitRule::TokenBucket {
+							blocks_count,
+							quota_increment,
+							max_quota,
+						} => {
+							ensure!(
+								!blocks_count.is_zero() && !quota_increment.is_zero() && !max_quota.is_zero(),
+								Error::<T>::InvalidRateLimitRule
+							);
+						}
+						RateLimitRule::Unlimited => {}
+						RateLimitRule::NotAllowed => {}
 					}
+				}
 
-					// always reset RateLimitQuota.
-					RateLimitQuota::<T>::remove(&rate_limiter_id, &encoded_key);
+				// always reset RateLimitQuota.
+				RateLimitQuota::<T>::remove(&rate_limiter_id, &encoded_key);
 
-					Self::deposit_event(Event::RateLimitRuleUpdated {
-						rate_limiter_id,
-						encoded_key,
-						update,
-					});
+				Self::deposit_event(Event::RateLimitRuleUpdated {
+					rate_limiter_id,
+					encoded_key: encoded_key.clone(),
+					update,
+				});
 
-					Ok(())
-				},
-			)
+				Ok(())
+			})
 		}
 
 		/// Add whitelist filter rule.
@@ -236,14 +238,10 @@ pub mod module {
 		) -> DispatchResult {
 			T::GovernanceOrigin::ensure_origin(origin)?;
 
-			BypassLimitWhitelist::<T>::try_mutate(rate_limiter_id, |whitelist| -> DispatchResult {
-				let location = whitelist
-					.binary_search(&key_filter)
-					.err()
-					.ok_or(Error::<T>::FilterExisted)?;
-				whitelist
-					.try_insert(location, key_filter)
-					.map_err(|_| Error::<T>::MaxFilterExceeded)?;
+			LimitWhitelist::<T>::try_mutate(rate_limiter_id, |whitelist| -> DispatchResult {
+				ensure!(!whitelist.contains(&key_filter), Error::<T>::FilterExisted);
+				let inserted = whitelist.insert(key_filter);
+				ensure!(inserted, Error::<T>::MaxFilterExceeded);
 
 				Self::deposit_event(Event::WhitelistFilterAdded { rate_limiter_id });
 				Ok(())
@@ -266,12 +264,9 @@ pub mod module {
 		) -> DispatchResult {
 			T::GovernanceOrigin::ensure_origin(origin)?;
 
-			BypassLimitWhitelist::<T>::try_mutate(rate_limiter_id, |whitelist| -> DispatchResult {
-				let location = whitelist
-					.binary_search(&key_filter)
-					.ok()
-					.ok_or(Error::<T>::FilterExisted)?;
-				whitelist.remove(location);
+			LimitWhitelist::<T>::try_mutate(rate_limiter_id, |whitelist| -> DispatchResult {
+				ensure!(whitelist.contains(&key_filter), Error::<T>::FilterNotExisted);
+				whitelist.remove(&key_filter);
 
 				Self::deposit_event(Event::WhitelistFilterRemoved { rate_limiter_id });
 				Ok(())
@@ -294,10 +289,10 @@ pub mod module {
 		) -> DispatchResult {
 			T::GovernanceOrigin::ensure_origin(origin)?;
 
-			let mut whitelist: BoundedVec<KeyFilter, T::MaxWhitelistFilterCount> =
+			let whitelist: BoundedVec<KeyFilter, T::MaxWhitelistFilterCount> =
 				BoundedVec::try_from(new_list).map_err(|_| Error::<T>::MaxFilterExceeded)?;
-			whitelist.sort();
-			BypassLimitWhitelist::<T>::insert(rate_limiter_id, whitelist);
+			let ordered_set: OrderedSet<KeyFilter, T::MaxWhitelistFilterCount> = whitelist.into();
+			LimitWhitelist::<T>::insert(rate_limiter_id, ordered_set);
 
 			Self::deposit_event(Event::WhitelistFilterReset { rate_limiter_id });
 			Ok(())
@@ -364,13 +359,13 @@ pub mod module {
 	impl<T: Config> RateLimiter for Pallet<T> {
 		type RateLimiterId = T::RateLimiterId;
 
-		fn bypass_limit(limiter_id: Self::RateLimiterId, key: impl Encode) -> bool {
+		fn is_whitelist(limiter_id: Self::RateLimiterId, key: impl Encode) -> bool {
 			let encode_key: Vec<u8> = key.encode();
 
-			for key_filter in BypassLimitWhitelist::<T>::get(limiter_id) {
+			for key_filter in LimitWhitelist::<T>::get(limiter_id).0 {
 				match key_filter {
-					KeyFilter::Match(vec) => {
-						if encode_key == vec {
+					KeyFilter::Match(bounded_vec) => {
+						if encode_key == bounded_vec.into_inner() {
 							return true;
 						}
 					}

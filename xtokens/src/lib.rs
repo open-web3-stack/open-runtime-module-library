@@ -32,20 +32,19 @@ use frame_support::{
 	Parameter,
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
+use orml_traits::{
+	location::{Parse, Reserve},
+	GetByKey, RateLimiter, XcmTransfer,
+};
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, Convert, MaybeSerializeDeserialize, Member, Zero},
 	DispatchError,
 };
 use sp_std::{prelude::*, result::Result};
-
 use xcm::{latest::Weight, prelude::*};
 use xcm_executor::traits::{InvertLocation, WeightBounds};
 
 pub use module::*;
-use orml_traits::{
-	location::{Parse, Reserve},
-	GetByKey, RateLimiter, XcmTransfer,
-};
 
 mod mock;
 mod tests;
@@ -546,7 +545,7 @@ pub mod module {
 				let rate_limiter_id = T::RateLimiterId::get();
 
 				// check if the asset transfer from `who` can bypass the rate limiter.
-				if !T::RateLimiter::bypass_limit(rate_limiter_id, who.clone()) {
+				if !T::RateLimiter::is_whitelist(rate_limiter_id, &who) {
 					// ensure the asset transfer be allowed by the rate limiter.
 					T::RateLimiter::is_allowed(rate_limiter_id, asset.id.clone(), amount)
 						.map_err(|_| Error::<T>::RateLimited)?;
