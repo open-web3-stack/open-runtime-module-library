@@ -24,6 +24,8 @@
 #![allow(clippy::boxed_local)]
 #![allow(clippy::too_many_arguments)]
 
+mod weights;
+
 use frame_support::{
 	log,
 	pallet_prelude::*,
@@ -42,6 +44,8 @@ use xcm::{latest::Weight, prelude::*};
 use xcm_executor::traits::{InvertLocation, WeightBounds};
 
 pub use module::*;
+pub use weights::WeightInfo;
+
 use orml_traits::{
 	location::{Parse, Reserve},
 	GetByKey, XcmTransfer,
@@ -49,6 +53,30 @@ use orml_traits::{
 
 mod mock;
 mod tests;
+
+/// Getter to get minimum xcm fees for target destination. This is used when the
+/// fee asset is neither the destination nor the origin chain.
+pub trait GetMinimumXcmFee {
+	fn get(key: &MultiLocation) -> Option<u128>;
+}
+
+// allow users to use a custom GetByKey
+impl<T> GetMinimumXcmFee for T
+where
+	T: GetByKey<MultiLocation, Option<u128>>,
+{
+	fn get(key: &MultiLocation) -> Option<u128> {
+		T::get(key)
+	}
+}
+
+// allow users to fetch the fee from storage by passing the pallet instance for
+// the MinXcmFee config.
+impl<T: module::Config> GetMinimumXcmFee for Pallet<T> {
+	fn get(key: &MultiLocation) -> Option<u128> {
+		module::MinimumExecutionFee::<T>::get(key)
+	}
+}
 
 enum TransferKind {
 	/// Transfer self reserve asset.
@@ -90,8 +118,11 @@ pub mod module {
 		#[pallet::constant]
 		type SelfLocation: Get<MultiLocation>;
 
-		/// Minimum xcm execution fee paid on destination chain.
-		type MinXcmFee: GetByKey<MultiLocation, Option<u128>>;
+		/// Minimum xcm execution fee paid on destination chain. Either set this
+		/// to something that implements `GetByKey<MultiLocation,
+		/// Option<u128>>`, or pass in the XTokens instance to fetch it from
+		/// storage.
+		type MinXcmFee: GetMinimumXcmFee;
 
 		/// XCM executor.
 		type XcmExecutor: ExecuteXcm<Self::RuntimeCall>;
@@ -119,6 +150,9 @@ pub mod module {
 		/// The way to retreave the reserve of a MultiAsset. This can be
 		/// configured to accept absolute or relative paths for self tokens
 		type ReserveProvider: Reserve;
+
+		/// Weight information for extrinsics in this module.
+		type WeightInfo: WeightInfo;
 	}
 
 	#[pallet::event]
@@ -131,6 +165,8 @@ pub mod module {
 			fee: MultiAsset,
 			dest: MultiLocation,
 		},
+		/// Updated the minimum execution fee.
+		SetMinimumExecutionFee { location: MultiLocation, fee: Option<u128> },
 	}
 
 	#[pallet::error]
@@ -184,6 +220,10 @@ pub mod module {
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
+
+	/// Minimum xcm execution fee paid on destination chain.
+	#[pallet::storage]
+	pub type MinimumExecutionFee<T: Config> = StorageMap<_, Twox64Concat, MultiLocation, u128, OptionQuery>;
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
@@ -370,6 +410,24 @@ pub mod module {
 			let fee: &MultiAsset = assets.get(fee_item as usize).ok_or(Error::<T>::AssetIndexNonExistent)?;
 
 			Self::do_transfer_multiassets(who, assets.clone(), fee.clone(), dest, dest_weight_limit)
+		}
+
+		#[pallet::weight(T::WeightInfo::set_minimum_execution_fee())]
+		pub fn set_minimum_execution_fee(
+			origin: OriginFor<T>,
+			location: Box<MultiLocation>,
+			fee: Option<u128>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			MinimumExecutionFee::<T>::set(&*location, fee);
+
+			Self::deposit_event(Event::<T>::SetMinimumExecutionFee {
+				location: *location,
+				fee,
+			});
+
+			Ok(())
 		}
 	}
 
