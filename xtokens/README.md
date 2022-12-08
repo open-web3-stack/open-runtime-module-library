@@ -41,7 +41,7 @@ Integration tests could be done manually after integrating `xtokens` into a runt
 
 Notice, in the case of parachain A transfer parachain B token to parachain B, and use relay chain token as fee. Because fee asset is relaychain token, and non fee asset is parachain B token, this is two different chain. We call chain of fee asset as `fee_reserve`, and chain of non fee asset as `non_fee_reserve`. And in this case `fee_reserve` location is also refer to destination parachain.
 
-The current implementation sends two XCM from a sender parachain. First XCM is sent to the fee reserve chain which will also route the XCM message to the destination parachain. Second XCM directly sent to destination parachain. 
+The current implementation sends two XCM from a sender parachain. First XCM is sent to the fee reserve chain which will also route the XCM message to the destination parachain. Second XCM directly sent to destination parachain.
 
 The fee amount in fee asset is split into two parts:
 1. Fee asset sent to fee reserve chain = fee_amount - min_xcm_fee

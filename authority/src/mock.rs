@@ -158,6 +158,8 @@ impl AsOriginId<RuntimeOrigin, OriginCaller> for MockAsOriginId {
 	}
 }
 
+impl pallet_root_testing::Config for Runtime {}
+
 impl Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type RuntimeOrigin = RuntimeOrigin;
@@ -182,6 +184,7 @@ frame_support::construct_runtime!(
 		Authority: authority::{Pallet, Call, Origin<T>, Event<T>},
 		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
 		Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>},
+		RootTesting: pallet_root_testing::{Pallet, Call, Storage},
 	}
 );
 
