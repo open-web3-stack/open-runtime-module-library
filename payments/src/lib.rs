@@ -280,6 +280,7 @@ pub mod pallet {
 		/// the option to add a remark, this remark can then be used to run
 		/// custom logic and trigger alternate payment flows. the specified
 		/// amount.
+		#[pallet::call_index(0)]
 		#[pallet::weight(T::WeightInfo::pay(T::MaxRemarkLength::get()))]
 		pub fn pay(
 			origin: OriginFor<T>,
@@ -314,6 +315,7 @@ pub mod pallet {
 
 		/// Release any created payment, this will transfer the reserved amount
 		/// from the creator of the payment to the assigned recipient
+		#[pallet::call_index(1)]
 		#[pallet::weight(T::WeightInfo::release())]
 		pub fn release(origin: OriginFor<T>, to: T::AccountId) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
@@ -332,6 +334,7 @@ pub mod pallet {
 		/// Cancel a payment in created state, this will release the reserved
 		/// back to creator of the payment. This extrinsic can only be called by
 		/// the recipient of the payment
+		#[pallet::call_index(2)]
 		#[pallet::weight(T::WeightInfo::cancel())]
 		pub fn cancel(origin: OriginFor<T>, creator: T::AccountId) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
@@ -354,6 +357,7 @@ pub mod pallet {
 		/// recipient of the payment.
 		/// This extrinsic allows the assigned judge to
 		/// cancel/release/partial_release the payment.
+		#[pallet::call_index(3)]
 		#[pallet::weight(T::WeightInfo::resolve_payment())]
 		pub fn resolve_payment(
 			origin: OriginFor<T>,
@@ -389,6 +393,7 @@ pub mod pallet {
 		/// Allow the creator of a payment to initiate a refund that will return
 		/// the funds after a configured amount of time that the reveiver has to
 		/// react and opose the request
+		#[pallet::call_index(4)]
 		#[pallet::weight(T::WeightInfo::request_refund())]
 		pub fn request_refund(origin: OriginFor<T>, recipient: T::AccountId) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
@@ -436,6 +441,7 @@ pub mod pallet {
 		/// payment creator This does not cancel the request, instead sends the
 		/// payment to a NeedsReview state The assigned resolver account can
 		/// then change the state of the payment after review.
+		#[pallet::call_index(5)]
 		#[pallet::weight(T::WeightInfo::dispute_refund())]
 		pub fn dispute_refund(origin: OriginFor<T>, creator: T::AccountId) -> DispatchResultWithPostInfo {
 			use PaymentState::*;
@@ -482,6 +488,7 @@ pub mod pallet {
 		// using the `accept_and_pay` extrinsic.  The payment will be in
 		// PaymentRequested State and can only be modified by the `accept_and_pay`
 		// extrinsic.
+		#[pallet::call_index(6)]
 		#[pallet::weight(T::WeightInfo::request_payment())]
 		pub fn request_payment(
 			origin: OriginFor<T>,
@@ -510,6 +517,7 @@ pub mod pallet {
 		// This extrinsic allows the sender to fulfill a payment request created by a
 		// recipient. The amount will be transferred to the recipient and payment
 		// removed from storage
+		#[pallet::call_index(7)]
 		#[pallet::weight(T::WeightInfo::accept_and_pay())]
 		pub fn accept_and_pay(origin: OriginFor<T>, to: T::AccountId) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;

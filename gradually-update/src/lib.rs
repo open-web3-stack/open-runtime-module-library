@@ -162,6 +162,7 @@ pub mod module {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		/// Add gradually_update to adjust numeric parameter.
+		#[pallet::call_index(0)]
 		#[pallet::weight(T::WeightInfo::gradually_update())]
 		pub fn gradually_update(origin: OriginFor<T>, update: GraduallyUpdateOf<T>) -> DispatchResult {
 			T::DispatchOrigin::try_origin(origin).map(|_| ()).or_else(ensure_root)?;
@@ -202,6 +203,7 @@ pub mod module {
 		}
 
 		/// Cancel gradually_update to adjust numeric parameter.
+		#[pallet::call_index(1)]
 		#[pallet::weight(T::WeightInfo::cancel_gradually_update())]
 		pub fn cancel_gradually_update(origin: OriginFor<T>, key: StorageKeyBytes<T>) -> DispatchResult {
 			T::DispatchOrigin::try_origin(origin).map(|_| ()).or_else(ensure_root)?;
