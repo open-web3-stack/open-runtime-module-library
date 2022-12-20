@@ -33,9 +33,9 @@ sp-std = { git = "https://github.com/paritytech/substrate", default-features = f
 cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", default-features = false , branch = "draft-polkadot-v0.9.36" }
 
 # polkadot
-pallet-xcm = { git = "https://github.com/paritytech/polkadot", default-features = false , branch = "release-v0.9.33" }
-xcm = { git = "https://github.com/paritytech/polkadot", default-features = false , branch = "release-v0.9.33" }
-xcm-executor = { git = "https://github.com/paritytech/polkadot", default-features = false , branch = "release-v0.9.33" }
+pallet-xcm = { git = "https://github.com/paritytech/polkadot", default-features = false , branch = "release-v0.9.36" }
+xcm = { git = "https://github.com/paritytech/polkadot", default-features = false , branch = "release-v0.9.36" }
+xcm-executor = { git = "https://github.com/paritytech/polkadot", default-features = false , branch = "release-v0.9.36" }
 
 # orml
 orml-traits = { path = "../traits", default-features = false}
@@ -54,10 +54,10 @@ cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", branc
 parachain-info = { git = "https://github.com/paritytech/cumulus", branch = "draft-polkadot-v0.9.36" }
 
 # polkadot
-polkadot-parachain = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.33" }
-polkadot-runtime-parachains = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.33" }
-xcm-builder = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.33" }
-xcm-simulator = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.33" }
+polkadot-parachain = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.36" }
+polkadot-runtime-parachains = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.36" }
+xcm-builder = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.36" }
+xcm-simulator = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.36" }
 
 # orml
 orml-tokens = { path = "../tokens" }
