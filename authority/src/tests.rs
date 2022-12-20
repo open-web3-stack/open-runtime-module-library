@@ -20,7 +20,8 @@ use sp_runtime::{traits::BadOrigin, Perbill};
 #[test]
 fn dispatch_as_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let ensure_root_call = RuntimeCall::RootTesting(pallet_root_testing::Call::fill_block { ratio: Perbill::one() });
+		let ensure_root_call =
+			RuntimeCall::RootTesting(pallet_root_testing::Call::fill_block { ratio: Perbill::one() });
 		let ensure_signed_call = RuntimeCall::System(frame_system::Call::remark { remark: vec![] });
 		assert_ok!(Authority::dispatch_as(
 			RuntimeOrigin::root(),
