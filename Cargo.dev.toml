@@ -84,11 +84,11 @@ sp-tracing = { git = "https://github.com/paritytech//substrate", rev = "cb4f2491
 sp-maybe-compressed-blob = { git = "https://github.com/paritytech//substrate", rev = "cb4f2491b00af7d7817f3a54209c26b20faa1f51" }
 
 [patch.'https://github.com/paritytech/cumulus']
-cumulus-primitives-core = { git = "https://github.com/paritytech//cumulus", rev = "391a5d89880283dfd49b0be95dd214274d28de4d" }
-cumulus-pallet-dmp-queue = { git = "https://github.com/paritytech//cumulus", rev = "391a5d89880283dfd49b0be95dd214274d28de4d" }
-cumulus-pallet-xcmp-queue = { git = "https://github.com/paritytech//cumulus", rev = "391a5d89880283dfd49b0be95dd214274d28de4d" }
-cumulus-pallet-xcm = { git = "https://github.com/paritytech//cumulus", rev = "391a5d89880283dfd49b0be95dd214274d28de4d" }
-parachain-info = { git = "https://github.com/paritytech//cumulus", rev = "391a5d89880283dfd49b0be95dd214274d28de4d" }
+cumulus-primitives-core = { git = "https://github.com/paritytech//cumulus", rev = "d936c9f47fdb2aba41afb9e98a911ae311109ff0" }
+cumulus-pallet-dmp-queue = { git = "https://github.com/paritytech//cumulus", rev = "d936c9f47fdb2aba41afb9e98a911ae311109ff0" }
+cumulus-pallet-xcmp-queue = { git = "https://github.com/paritytech//cumulus", rev = "d936c9f47fdb2aba41afb9e98a911ae311109ff0" }
+cumulus-pallet-xcm = { git = "https://github.com/paritytech//cumulus", rev = "d936c9f47fdb2aba41afb9e98a911ae311109ff0" }
+parachain-info = { git = "https://github.com/paritytech//cumulus", rev = "d936c9f47fdb2aba41afb9e98a911ae311109ff0" }
 
 [patch.'https://github.com/paritytech/polkadot']
 pallet-xcm = { git = "https://github.com/paritytech//polkadot", rev = "dc25abc712e42b9b51d87ad1168e453a42b5f0bc" }
