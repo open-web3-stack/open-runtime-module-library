@@ -5,7 +5,7 @@
 use super::*;
 use frame_support::{
 	construct_runtime, parameter_types,
-	traits::{ChangeMembers, ContainsLengthBound, Everything, GenesisBuild, SaturatingCurrencyToVote, SortedMembers},
+	traits::{ConstU128, ConstU64, ChangeMembers, ContainsLengthBound, Everything, GenesisBuild, SaturatingCurrencyToVote, SortedMembers},
 	PalletId,
 };
 use orml_traits::parameter_type_with_key;
@@ -34,17 +34,12 @@ pub const TREASURY_ACCOUNT: AccountId = AccountId32::new([4u8; 32]);
 pub const ID_1: LockIdentifier = *b"1       ";
 pub const ID_2: LockIdentifier = *b"2       ";
 pub const ID_3: LockIdentifier = *b"3       ";
+pub const RID_1: ReserveIdentifier = [1u8; 8];
+pub const RID_2: ReserveIdentifier = [2u8; 8];
 
 use crate as tokens;
 
-parameter_types! {
-	pub const BlockHashCount: u64 = 250;
-}
-
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = Everything;
-	type BlockWeights = ();
-	type BlockLength = ();
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeCall = RuntimeCall;
 	type Index = u64;
@@ -55,17 +50,20 @@ impl frame_system::Config for Runtime {
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
 	type RuntimeEvent = RuntimeEvent;
-	type BlockHashCount = BlockHashCount;
-	type DbWeight = ();
+	type BlockHashCount = ConstU64<250>;
+	type BlockWeights = ();
+	type BlockLength = ();
 	type Version = ();
 	type PalletInfo = PalletInfo;
 	type AccountData = ();
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
+	type DbWeight = ();
+	type BaseCallFilter = Everything;
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
 	type OnSetCode = ();
-	type MaxConsumers = frame_support::traits::ConstU32<16>;
+	type MaxConsumers = ConstU32<16>;
 }
 
 thread_local! {
@@ -113,9 +111,10 @@ parameter_types! {
 	pub const MaxApprovals: u32 = 100;
 }
 
+pub type MockCurrencyAdapter = CurrencyAdapter<Runtime, GetTokenId>;
 impl pallet_treasury::Config for Runtime {
 	type PalletId = TreasuryPalletId;
-	type Currency = CurrencyAdapter<Runtime, GetTokenId>;
+	type Currency = MockCurrencyAdapter;
 	type ApproveOrigin = frame_system::EnsureRoot<AccountId>;
 	type RejectOrigin = frame_system::EnsureRoot<AccountId>;
 	type RuntimeEvent = RuntimeEvent;
@@ -182,34 +181,25 @@ impl ChangeMembers<AccountId> for TestChangeMembers {
 
 parameter_types! {
 	pub const ElectionsPhragmenPalletId: LockIdentifier = *b"phrelect";
-	pub const CandidacyBond: u64 = 3;
-	pub const VotingBond: u64 = 2;
-	pub const DesiredMembers: u32 = 2;
-	pub const DesiredRunnersUp: u32 = 2;
-	pub const TermDuration: u64 = 5;
-	pub const VotingBondBase: u64 = 2;
-	pub const VotingBondFactor: u64 = 0;
-	pub const MaxCandidates: u32 = 5;
-	pub const MaxVoters: u32 = 5;
 }
 
 impl pallet_elections_phragmen::Config for Runtime {
-	type Currency = CurrencyAdapter<Runtime, GetTokenId>;
 	type PalletId = ElectionsPhragmenPalletId;
 	type RuntimeEvent = RuntimeEvent;
+	type Currency = MockCurrencyAdapter;
+	type CurrencyToVote = SaturatingCurrencyToVote;
 	type ChangeMembers = TestChangeMembers;
 	type InitializeMembers = ();
-	type CurrencyToVote = SaturatingCurrencyToVote;
-	type CandidacyBond = CandidacyBond;
-	type VotingBondBase = VotingBondBase;
-	type VotingBondFactor = VotingBondFactor;
+	type CandidacyBond = ConstU128<3>;
+	type VotingBondBase = ConstU128<2>;
+	type VotingBondFactor = ConstU128<0>;
+	type TermDuration = ConstU64<5>;
+	type DesiredMembers = ConstU32<2>;
+	type DesiredRunnersUp = ConstU32<2>;
+	type MaxCandidates = ConstU32<5>;
+	type MaxVoters = ConstU32<5>;
 	type LoserCandidate = ();
 	type KickedMember = ();
-	type DesiredMembers = DesiredMembers;
-	type DesiredRunnersUp = DesiredRunnersUp;
-	type TermDuration = TermDuration;
-	type MaxCandidates =MaxCandidates;
-	type MaxVoters = MaxVoters;
 	type WeightInfo = ();
 }
 
@@ -327,7 +317,6 @@ impl<T: Config> OnTransferHook<T> {
 
 parameter_types! {
 	pub DustReceiver: AccountId = PalletId(*b"orml/dst").into_account_truncating();
-	pub MaxLocks: u32 = 2;
 }
 
 impl Config for Runtime {
@@ -343,7 +332,7 @@ impl Config for Runtime {
 	type OnTransfer = OnTransferHook<Runtime>;
 	type OnNewTokenAccount = TrackCreatedAccounts;
 	type OnKilledTokenAccount = TrackKilledAccounts;
-	type MaxLocks = MaxLocks;
+	type MaxLocks = ConstU32<2>;
 	type MaxReserves = ConstU32<2>;
 	type ReserveIdentifier = ReserveIdentifier;
 	type DustRemovalWhitelist = MockDustRemovalWhitelist;
@@ -411,6 +400,9 @@ impl ExtBuilder {
 			.assimilate_storage(&mut t)
 			.unwrap();
 		}
+
+		TrackCreatedAccounts::reset();
+		TrackKilledAccounts::reset();
 
 		let mut ext = sp_io::TestExternalities::new(t);
 		ext.execute_with(|| System::set_block_number(1));

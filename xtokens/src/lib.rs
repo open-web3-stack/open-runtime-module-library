@@ -47,8 +47,9 @@ use orml_traits::{
 	GetByKey, XcmTransfer,
 };
 
-mod mock;
-mod tests;
+// To test xtokens use the origin impl from github, and also change the genesis in mock
+// mod mock;
+// mod tests;
 
 enum TransferKind {
 	/// Transfer self reserve asset.

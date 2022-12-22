@@ -47,7 +47,7 @@ use frame_support::{
 	traits::{
 		tokens::{fungible, fungibles, DepositConsequence, WithdrawConsequence},
 		BalanceStatus as Status, Contains, Currency as PalletCurrency, DefensiveSaturating, ExistenceRequirement, Get, Imbalance,
-		LockableCurrency as PalletLockableCurrency, ReservableCurrency as PalletReservableCurrency, SignedImbalance,
+		LockableCurrency as PalletLockableCurrency, NamedReservableCurrency as PalletNamedReservableCurrency, ReservableCurrency as PalletReservableCurrency, SignedImbalance,
 		WithdrawReasons, tokens::currency::{MultiTokenCurrency, MultiTokenLockableCurrency}
 	},
 	transactional, BoundedVec,
@@ -2430,7 +2430,7 @@ where
 
 		Pallet::<T>::deposit_event(Event::TotalIssuanceSet {
 			currency_id,
-			amount: Self::total_issuance(),
+			amount: Self::total_issuance(currency_id),
 		});
 		Self::PositiveImbalance::new(currency_id, amount)
 	}
@@ -2449,7 +2449,7 @@ where
 
 		Pallet::<T>::deposit_event(Event::TotalIssuanceSet {
 			currency_id,
-			amount: Self::total_issuance(),
+			amount: Self::total_issuance(currency_id),
 		});
 		Self::NegativeImbalance::new(currency_id, amount)
 	}

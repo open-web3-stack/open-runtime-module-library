@@ -5,7 +5,7 @@
 use super::*;
 use frame_support::{
 	construct_runtime, parameter_types,
-	traits::{ConstU32, ConstU64, Everything, Nothing},
+	traits::{ConstU128, ConstU32, ConstU64, Everything, Nothing},
 	PalletId,
 };
 use orml_traits::parameter_type_with_key;
@@ -55,7 +55,7 @@ impl pallet_balances::Config for Runtime {
 	type Balance = Balance;
 	type DustRemoval = ();
 	type RuntimeEvent = RuntimeEvent;
-	type ExistentialDeposit = ConstU64<2>;
+	type ExistentialDeposit = ConstU128<2>;
 	type AccountStore = frame_system::Pallet<Runtime>;
 	type MaxLocks = ();
 	type MaxReserves = ConstU32<2>;
@@ -92,8 +92,8 @@ impl orml_tokens::Config for Runtime {
 	type OnKilledTokenAccount = ();
 }
 
-pub const NATIVE_CURRENCY_ID: CurrencyId = 1;
-pub const X_TOKEN_ID: CurrencyId = 2;
+pub const NATIVE_CURRENCY_ID: CurrencyId = 99;
+pub const X_TOKEN_ID: CurrencyId = 0;
 
 parameter_types! {
 	pub const GetNativeCurrencyId: CurrencyId = NATIVE_CURRENCY_ID;
@@ -181,7 +181,12 @@ impl ExtBuilder {
 		.unwrap();
 
 		orml_tokens::GenesisConfig::<Runtime> {
-			tokens_endowment: self.tokens_endowment,
+			tokens_endowment: self
+				.balances
+				.clone()
+				.into_iter()
+				.filter(|(_, currency_id, _)| *currency_id != NATIVE_CURRENCY_ID)
+				.collect::<Vec<_>>(),
 			created_tokens_for_staking: self.created_tokens_for_staking,
 		}
 		.assimilate_storage(&mut t)
