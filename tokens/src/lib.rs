@@ -1751,7 +1751,7 @@ impl<T: Config> fungibles::Inspect<T::AccountId> for Pallet<T> {
 	}
 
 	fn asset_exists(_asset: Self::AssetId) -> bool {
-		true
+		false
 	}
 }
 

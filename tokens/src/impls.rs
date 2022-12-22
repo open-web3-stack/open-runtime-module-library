@@ -69,7 +69,7 @@ where
 	}
 
 	fn asset_exists(_asset: Self::AssetId) -> bool {
-		true
+		false
 	}
 }
 
