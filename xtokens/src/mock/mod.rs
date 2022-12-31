@@ -194,6 +194,8 @@ pub fn para_ext(para_id: u32) -> TestExternalities {
 	orml_tokens::GenesisConfig::<Runtime> {
 		tokens_endowment: vec![(ALICE, CurrencyId::R, 1_000)],
 		created_tokens_for_staking: vec![(ALICE, CurrencyId::R, 1_000)],
+		// Use the following when testing xtokens with origin orml
+		// balances: vec![(ALICE, CurrencyId::R, 1_000)],
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();

@@ -2,9 +2,9 @@
 
 use super::*;
 use crate as orml_asset_registry;
-use crate::tests::para::{AdminAssetTwo, AssetRegistry, CustomMetadata, Origin, TreasuryAccount};
+use crate::tests::para::{AdminAssetTwo, AssetRegistry, CustomMetadata, RuntimeOrigin, Tokens, TreasuryAccount};
 use frame_support::{assert_noop, assert_ok};
-use mock::*;
+use mock::{para::RuntimeCall, *};
 use orml_traits::MultiCurrency;
 use polkadot_parachain::primitives::Sibling;
 
@@ -91,12 +91,12 @@ fn send_self_parachain_asset_to_sibling() {
 	let mut metadata = dummy_metadata();
 
 	ParaB::execute_with(|| {
-		AssetRegistry::register_asset(Origin::root(), metadata.clone(), None).unwrap();
+		AssetRegistry::register_asset(RuntimeOrigin::root(), metadata.clone(), None).unwrap();
 	});
 
 	ParaA::execute_with(|| {
 		metadata.location = Some(MultiLocation::new(0, X1(GeneralKey(vec![0].try_into().unwrap()))).into());
-		AssetRegistry::register_asset(Origin::root(), metadata, None).unwrap();
+		AssetRegistry::register_asset(RuntimeOrigin::root(), metadata, None).unwrap();
 
 		assert_ok!(ParaTokens::deposit(1, &ALICE, 1_000));
 
@@ -117,7 +117,7 @@ fn send_self_parachain_asset_to_sibling() {
 				)
 				.into()
 			),
-			40,
+			WeightLimit::Unlimited,
 		));
 
 		assert_eq!(ParaTokens::free_balance(1, &ALICE), 500);
@@ -139,7 +139,7 @@ fn send_sibling_asset_to_non_reserve_sibling() {
 
 	ParaA::execute_with(|| {
 		AssetRegistry::register_asset(
-			Origin::root(),
+			RuntimeOrigin::root(),
 			AssetMetadata {
 				location: Some(MultiLocation::new(1, X2(Parachain(2), GeneralKey(vec![0].try_into().unwrap()))).into()),
 				..dummy_metadata()
@@ -152,7 +152,7 @@ fn send_sibling_asset_to_non_reserve_sibling() {
 
 	ParaB::execute_with(|| {
 		AssetRegistry::register_asset(
-			Origin::root(),
+			RuntimeOrigin::root(),
 			AssetMetadata {
 				location: Some(MultiLocation::new(0, X1(GeneralKey(vec![0].try_into().unwrap()))).into()),
 				..dummy_metadata()
@@ -165,7 +165,7 @@ fn send_sibling_asset_to_non_reserve_sibling() {
 
 	ParaC::execute_with(|| {
 		AssetRegistry::register_asset(
-			Origin::root(),
+			RuntimeOrigin::root(),
 			AssetMetadata {
 				location: Some(MultiLocation::new(1, X2(Parachain(2), GeneralKey(vec![0].try_into().unwrap()))).into()),
 				..dummy_metadata()
@@ -193,7 +193,7 @@ fn send_sibling_asset_to_non_reserve_sibling() {
 				)
 				.into()
 			),
-			40
+			WeightLimit::Unlimited
 		));
 		assert_eq!(ParaTokens::free_balance(1, &ALICE), 500);
 	});
@@ -223,8 +223,8 @@ fn test_sequential_id_normal_behavior() {
 			location: Some(MultiLocation::new(1, X2(Parachain(1), GeneralKey(vec![1].try_into().unwrap()))).into()),
 			..dummy_metadata()
 		};
-		AssetRegistry::register_asset(Origin::root(), metadata1.clone(), None).unwrap();
-		AssetRegistry::register_asset(Origin::root(), metadata2.clone(), None).unwrap();
+		AssetRegistry::register_asset(RuntimeOrigin::root(), metadata1.clone(), None).unwrap();
+		AssetRegistry::register_asset(RuntimeOrigin::root(), metadata2.clone(), None).unwrap();
 
 		assert_eq!(AssetRegistry::metadata(1).unwrap(), metadata1);
 		assert_eq!(AssetRegistry::metadata(2).unwrap(), metadata2);
@@ -236,13 +236,17 @@ fn test_sequential_id_with_invalid_id_returns_error() {
 	TestNet::reset();
 
 	ParaA::execute_with(|| {
-		assert_ok!(AssetRegistry::register_asset(Origin::root(), dummy_metadata(), Some(1)));
+		assert_ok!(AssetRegistry::register_asset(
+			RuntimeOrigin::root(),
+			dummy_metadata(),
+			Some(1)
+		));
 		assert_noop!(
-			AssetRegistry::register_asset(Origin::root(), dummy_metadata(), Some(1)),
+			AssetRegistry::register_asset(RuntimeOrigin::root(), dummy_metadata(), Some(1)),
 			Error::<para::Runtime>::ConflictingAssetId
 		);
 		assert_noop!(
-			AssetRegistry::register_asset(Origin::root(), dummy_metadata(), Some(5)),
+			AssetRegistry::register_asset(RuntimeOrigin::root(), dummy_metadata(), Some(5)),
 			Error::<para::Runtime>::InvalidAssetId
 		);
 	});
@@ -256,7 +260,7 @@ fn test_fixed_rate_asset_trader() {
 	let metadata = dummy_metadata();
 
 	ParaB::execute_with(|| {
-		AssetRegistry::register_asset(Origin::root(), metadata.clone(), None).unwrap();
+		AssetRegistry::register_asset(RuntimeOrigin::root(), metadata.clone(), None).unwrap();
 	});
 
 	ParaA::execute_with(|| {
@@ -264,7 +268,7 @@ fn test_fixed_rate_asset_trader() {
 			location: Some(MultiLocation::new(0, X1(GeneralKey(vec![0].try_into().unwrap()))).into()),
 			..metadata.clone()
 		};
-		AssetRegistry::register_asset(Origin::root(), para_a_metadata, None).unwrap();
+		AssetRegistry::register_asset(RuntimeOrigin::root(), para_a_metadata, None).unwrap();
 
 		assert_ok!(ParaTokens::deposit(1, &ALICE, 1_000));
 
@@ -285,7 +289,7 @@ fn test_fixed_rate_asset_trader() {
 				)
 				.into()
 			),
-			40,
+			WeightLimit::Unlimited,
 		));
 	});
 
@@ -298,7 +302,7 @@ fn test_fixed_rate_asset_trader() {
 
 		// now double the fee rate
 		AssetRegistry::update_asset(
-			Origin::root(),
+			RuntimeOrigin::root(),
 			1,
 			None,
 			None,
@@ -330,7 +334,7 @@ fn test_fixed_rate_asset_trader() {
 				)
 				.into()
 			),
-			40,
+			WeightLimit::Unlimited,
 		));
 	});
 
@@ -357,7 +361,7 @@ fn test_register_duplicate_location_returns_error() {
 	ParaA::execute_with(|| {
 		let metadata = dummy_metadata();
 
-		assert_ok!(AssetRegistry::register_asset(Origin::root(), metadata.clone(), None));
+		assert_ok!(AssetRegistry::register_asset(RuntimeOrigin::root(), metadata.clone(), None));
 		assert_noop!(
 			AssetRegistry::do_register_asset_without_asset_processor(metadata.clone(), 2),
 			Error::<para::Runtime>::ConflictingLocation
@@ -370,7 +374,11 @@ fn test_register_duplicate_asset_id_returns_error() {
 	TestNet::reset();
 
 	ParaA::execute_with(|| {
-		assert_ok!(AssetRegistry::register_asset(Origin::root(), dummy_metadata(), Some(1)));
+		assert_ok!(AssetRegistry::register_asset(
+			RuntimeOrigin::root(),
+			dummy_metadata(),
+			Some(1)
+		));
 		assert_noop!(
 			AssetRegistry::do_register_asset_without_asset_processor(dummy_metadata(), 1),
 			Error::<para::Runtime>::ConflictingAssetId
@@ -385,7 +393,7 @@ fn test_update_metadata_works() {
 	ParaA::execute_with(|| {
 		let old_metadata = dummy_metadata();
 		assert_ok!(AssetRegistry::register_asset(
-			Origin::root(),
+			RuntimeOrigin::root(),
 			old_metadata.clone(),
 			None
 		));
@@ -401,7 +409,7 @@ fn test_update_metadata_works() {
 			},
 		};
 		assert_ok!(AssetRegistry::update_asset(
-			Origin::root(),
+			RuntimeOrigin::root(),
 			1,
 			Some(new_metadata.decimals),
 			Some(new_metadata.name.clone()),
@@ -411,7 +419,7 @@ fn test_update_metadata_works() {
 			Some(new_metadata.additional.clone())
 		));
 
-		let old_location: MultiLocation = old_metadata.location.clone().unwrap().try_into().unwrap();
+		let old_location: MultiLocation = old_metadata.location.unwrap().try_into().unwrap();
 		let new_location: MultiLocation = new_metadata.location.clone().unwrap().try_into().unwrap();
 
 		// check that the old location was removed and the new one added
@@ -428,16 +436,46 @@ fn test_update_metadata_fails_with_unknown_asset() {
 
 	ParaA::execute_with(|| {
 		let old_metadata = dummy_metadata();
-		assert_ok!(AssetRegistry::register_asset(
-			Origin::root(),
-			old_metadata.clone(),
-			None
-		));
+		assert_ok!(AssetRegistry::register_asset(RuntimeOrigin::root(), old_metadata, None));
 
 		assert_noop!(
-			AssetRegistry::update_asset(Origin::root(), 4, None, None, None, None, None, None,),
+			AssetRegistry::update_asset(RuntimeOrigin::root(), 4, None, None, None, None, None, None,),
 			Error::<para::Runtime>::AssetNotFound
 		);
+	});
+}
+
+#[test]
+fn test_existential_deposits() {
+	TestNet::reset();
+
+	ParaA::execute_with(|| {
+		let metadata = AssetMetadata {
+			..dummy_metadata()
+		};
+		assert_ok!(AssetRegistry::register_asset(RuntimeOrigin::root(), metadata, None));
+
+		assert_ok!(Tokens::set_balance(
+			RuntimeOrigin::root(),
+			ALICE,
+			1,
+			1_000,
+			0
+		));
+
+		// transferring tokens from one account to other ED is zero
+		assert_ok!(Tokens::transfer(
+			Some(ALICE).into(),
+			BOB,
+			1,
+			100
+		));
+		// In our case we do not need to check below Ed because it is zero
+		// transferring below existential_deposit fails
+		// assert_noop!(
+		// 	Tokens::transfer(Some(ALICE).into(), CHARLIE, 1, 50),
+		// 	orml_tokens::Error::<para::Runtime>::ExistentialDeposit
+		// );
 	});
 }
 
@@ -449,7 +487,7 @@ fn test_asset_authority() {
 		let metadata = dummy_metadata();
 
 		// Assert that root can register an asset with id 1
-		assert_ok!(AssetRegistry::register_asset(Origin::root(), metadata.clone(), Some(1)));
+		assert_ok!(AssetRegistry::register_asset(RuntimeOrigin::root(), metadata, Some(1)));
 
 		// Assert that only Account42 can register asset with id 42
 		let metadata = AssetMetadata {
@@ -459,12 +497,12 @@ fn test_asset_authority() {
 
 		// It fails when signed with root...
 		assert_noop!(
-			AssetRegistry::register_asset(Origin::root(), metadata.clone(), Some(2)),
+			AssetRegistry::register_asset(RuntimeOrigin::root(), metadata.clone(), Some(2)),
 			BadOrigin
 		);
 		// It works when signed with the right account
 		assert_ok!(AssetRegistry::register_asset(
-			Origin::signed(AdminAssetTwo::get()),
+			RuntimeOrigin::signed(AdminAssetTwo::get()),
 			metadata,
 			Some(2)
 		));

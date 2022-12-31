@@ -1,7 +1,7 @@
 // wrapping these imbalances in a private module is necessary to ensure absolute
 // privacy of the inner member.
 use crate::{Config, TotalIssuance};
-use frame_support::traits::{Get, Imbalance, SameOrOther, TryDrop};
+use frame_support::traits::{DefensiveSaturating, Get, Imbalance, SameOrOther, TryDrop};
 use sp_runtime::traits::{Saturating, Zero};
 use sp_std::{marker, mem, result};
 
@@ -70,7 +70,7 @@ impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> Imbalance<T::Balance> for Pos
 	}
 	fn split(self, amount: T::Balance) -> (Self, Self) {
 		let first = self.0.min(amount);
-		let second = self.0 - first;
+		let second = self.0.defensive_saturating_sub(first);
 
 		mem::forget(self);
 		(Self::new(first), Self::new(second))
@@ -92,9 +92,9 @@ impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> Imbalance<T::Balance> for Pos
 		mem::forget((self, other));
 
 		if a > b {
-			SameOrOther::Same(Self::new(a - b))
+			SameOrOther::Same(Self::new(a.defensive_saturating_sub(b)))
 		} else if b > a {
-			SameOrOther::Other(NegativeImbalance::new(b - a))
+			SameOrOther::Other(NegativeImbalance::new(b.defensive_saturating_sub(a)))
 		} else {
 			SameOrOther::None
 		}
@@ -125,7 +125,7 @@ impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> Imbalance<T::Balance> for Neg
 	}
 	fn split(self, amount: T::Balance) -> (Self, Self) {
 		let first = self.0.min(amount);
-		let second = self.0 - first;
+		let second = self.0.defensive_saturating_sub(first);
 
 		mem::forget(self);
 		(Self::new(first), Self::new(second))
@@ -147,9 +147,9 @@ impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> Imbalance<T::Balance> for Neg
 		mem::forget((self, other));
 
 		if a > b {
-			SameOrOther::Same(Self::new(a - b))
+			SameOrOther::Same(Self::new(a.defensive_saturating_sub(b)))
 		} else if b > a {
-			SameOrOther::Other(PositiveImbalance::new(b - a))
+			SameOrOther::Other(PositiveImbalance::new(b.defensive_saturating_sub(a)))
 		} else {
 			SameOrOther::None
 		}

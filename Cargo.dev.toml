@@ -32,6 +32,7 @@ split-debuginfo = "unpacked"
 
 [patch.'https://github.com/paritytech/substrate']
 pallet-authorship = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
+sp-weights = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
 pallet-bags-list = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
 pallet-transaction-payment-rpc-runtime-api = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
 pallet-transaction-payment-rpc = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }

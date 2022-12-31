@@ -12,6 +12,7 @@ pub mod relay;
 
 pub const ALICE: AccountId32 = AccountId32::new([0u8; 32]);
 pub const BOB: AccountId32 = AccountId32::new([1u8; 32]);
+pub const CHARLIE: AccountId32 = AccountId32::new([2u8; 32]);
 
 pub type CurrencyId = u32;
 
@@ -29,6 +30,7 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
 		if l == MultiLocation::parent() {
 			return Some(0);
 		}
+
 		if let Some(asset_id) = AssetRegistry::location_to_asset_id(&l) {
 			return Some(asset_id);
 		}

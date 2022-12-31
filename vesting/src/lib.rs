@@ -124,7 +124,7 @@ pub mod module {
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		type Currency: LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
 
@@ -133,7 +133,7 @@ pub mod module {
 		type MinVestedTransfer: Get<BalanceOf<Self>>;
 
 		/// Required origin for vested transfer.
-		type VestedTransferOrigin: EnsureOrigin<Self::Origin, Success = Self::AccountId>;
+		type VestedTransferOrigin: EnsureOrigin<Self::RuntimeOrigin, Success = Self::AccountId>;
 
 		/// Weight information for extrinsics in this module.
 		type WeightInfo: WeightInfo;
@@ -220,7 +220,9 @@ pub mod module {
 						.iter()
 						.try_fold::<_, _, Result<BalanceOf<T>, DispatchError>>(Zero::zero(), |acc_amount, schedule| {
 							let amount = ensure_valid_vesting_schedule::<T>(schedule)?;
-							Ok(acc_amount + amount)
+							acc_amount
+								.checked_add(&amount)
+								.ok_or_else(|| ArithmeticError::Overflow.into())
 						})
 						.expect("Invalid vesting schedule");
 
@@ -368,7 +370,9 @@ impl<T: Config> Pallet<T> {
 			.iter()
 			.try_fold::<_, _, Result<BalanceOf<T>, DispatchError>>(Zero::zero(), |acc_amount, schedule| {
 				let amount = ensure_valid_vesting_schedule::<T>(schedule)?;
-				Ok(acc_amount + amount)
+				acc_amount
+					.checked_add(&amount)
+					.ok_or_else(|| ArithmeticError::Overflow.into())
 			})?;
 		ensure!(
 			T::Currency::free_balance(who) >= total_amount,
