@@ -19,6 +19,7 @@ pub mod test_module {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		#[pallet::call_index(0)]
 		#[pallet::weight(50_000)]
 		#[orml_weight_meter::start]
 		pub fn expect_100(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
@@ -29,6 +30,7 @@ pub mod test_module {
 			Ok(Some(orml_weight_meter::used_weight()).into())
 		}
 
+		#[pallet::call_index(1)]
 		#[pallet::weight(50_000)]
 		#[orml_weight_meter::start]
 		pub fn expect_500(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
@@ -43,6 +45,7 @@ pub mod test_module {
 			Ok(Some(orml_weight_meter::used_weight()).into())
 		}
 
+		#[pallet::call_index(2)]
 		#[pallet::weight(50_000)]
 		#[orml_weight_meter::start]
 		pub fn expect_max_weight(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
@@ -54,6 +57,7 @@ pub mod test_module {
 			Ok(Some(orml_weight_meter::used_weight()).into())
 		}
 
+		#[pallet::call_index(3)]
 		#[pallet::weight(50_000)]
 		#[orml_weight_meter::start]
 		pub fn expect_100_or_200(origin: OriginFor<T>, branch: bool) -> DispatchResultWithPostInfo {
@@ -68,6 +72,7 @@ pub mod test_module {
 			Ok(Some(orml_weight_meter::used_weight()).into())
 		}
 
+		#[pallet::call_index(4)]
 		#[pallet::weight(50_000)]
 		#[orml_weight_meter::start]
 		pub fn nested_inner_methods(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
@@ -78,6 +83,7 @@ pub mod test_module {
 			Ok(Some(orml_weight_meter::used_weight()).into())
 		}
 
+		#[pallet::call_index(5)]
 		#[pallet::weight(50_000)]
 		#[orml_weight_meter::start]
 		pub fn nested_extrinsic(origin: OriginFor<T>) -> DispatchResultWithPostInfo {

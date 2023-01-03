@@ -462,6 +462,7 @@ pub mod module {
 		/// - `dest`: The recipient of the transfer.
 		/// - `currency_id`: currency type.
 		/// - `amount`: free balance amount to tranfer.
+		#[pallet::call_index(0)]
 		#[pallet::weight(T::WeightInfo::transfer())]
 		pub fn transfer(
 			origin: OriginFor<T>,
@@ -493,6 +494,7 @@ pub mod module {
 		///   the sender account to be killed (false), or transfer everything
 		///   except at least the existential deposit, which will guarantee to
 		///   keep the sender account alive (true).
+		#[pallet::call_index(1)]
 		#[pallet::weight(T::WeightInfo::transfer_all())]
 		pub fn transfer_all(
 			origin: OriginFor<T>,
@@ -519,6 +521,7 @@ pub mod module {
 		/// - `dest`: The recipient of the transfer.
 		/// - `currency_id`: currency type.
 		/// - `amount`: free balance amount to tranfer.
+		#[pallet::call_index(2)]
 		#[pallet::weight(T::WeightInfo::transfer_keep_alive())]
 		pub fn transfer_keep_alive(
 			origin: OriginFor<T>,
@@ -541,6 +544,7 @@ pub mod module {
 		/// - `dest`: The recipient of the transfer.
 		/// - `currency_id`: currency type.
 		/// - `amount`: free balance amount to tranfer.
+		#[pallet::call_index(3)]
 		#[pallet::weight(T::WeightInfo::force_transfer())]
 		pub fn force_transfer(
 			origin: OriginFor<T>,
@@ -563,6 +567,7 @@ pub mod module {
 		/// existential deposit, it will reap the `AccountInfo`.
 		///
 		/// The dispatch origin for this call is `root`.
+		#[pallet::call_index(4)]
 		#[pallet::weight(T::WeightInfo::set_balance())]
 		pub fn set_balance(
 			origin: OriginFor<T>,

@@ -50,6 +50,7 @@ pub mod module {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		/// Send an XCM message as parachain sovereign.
+		#[pallet::call_index(0)]
 		#[pallet::weight(100_000_000)]
 		pub fn send_as_sovereign(
 			origin: OriginFor<T>,
