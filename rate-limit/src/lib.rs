@@ -167,6 +167,7 @@ pub mod module {
 		/// - `encoded key`: the encoded key to limit.
 		/// - `update`: the RateLimitRule to config, None will remove current
 		///   config.
+		#[pallet::call_index(0)]
 		#[pallet::weight(T::WeightInfo::update_rate_limit_rule())]
 		#[transactional]
 		pub fn update_rate_limit_rule(
@@ -229,6 +230,7 @@ pub mod module {
 		/// Parameters:
 		/// - `rate_limiter_id`: rate limiter id.
 		/// - `key_filter`: filter rule to add.
+		#[pallet::call_index(1)]
 		#[pallet::weight(T::WeightInfo::add_whitelist())]
 		#[transactional]
 		pub fn add_whitelist(
@@ -255,6 +257,7 @@ pub mod module {
 		/// Parameters:
 		/// - `rate_limiter_id`: rate limiter id.
 		/// - `key_filter`: filter rule to remove.
+		#[pallet::call_index(2)]
 		#[pallet::weight(T::WeightInfo::remove_whitelist())]
 		#[transactional]
 		pub fn remove_whitelist(
@@ -280,6 +283,7 @@ pub mod module {
 		/// Parameters:
 		/// - `rate_limiter_id`: rate limiter id.
 		/// - `new_list`: the filter rule list to reset.
+		#[pallet::call_index(3)]
 		#[pallet::weight(T::WeightInfo::reset_whitelist())]
 		#[transactional]
 		pub fn reset_whitelist(
