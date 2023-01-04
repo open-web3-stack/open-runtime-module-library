@@ -140,6 +140,7 @@ pub mod module {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		#[pallet::call_index(0)]
 		#[pallet::weight(T::WeightInfo::register_asset())]
 		pub fn register_asset(
 			origin: OriginFor<T>,
@@ -151,6 +152,7 @@ pub mod module {
 			Self::do_register_asset(metadata, asset_id)
 		}
 
+		#[pallet::call_index(1)]
 		#[pallet::weight(T::WeightInfo::update_asset())]
 		pub fn update_asset(
 			origin: OriginFor<T>,

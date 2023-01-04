@@ -38,6 +38,7 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		#[pallet::call_index(0)]
 		#[pallet::weight(0)]
 		#[orml_weight_meter::start(ModuleWeights::<T>::set_value())]
 		pub fn set_value(origin: OriginFor<T>, n: u32) -> DispatchResultWithPostInfo {
@@ -49,6 +50,7 @@ pub mod pallet {
 			Ok(Some(orml_weight_meter::used_weight()).into())
 		}
 
+		#[pallet::call_index(1)]
 		#[pallet::weight(0)]
 		pub fn dummy(origin: OriginFor<T>, _n: u32) -> DispatchResult {
 			let _sender = frame_system::ensure_none(origin)?;

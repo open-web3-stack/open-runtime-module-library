@@ -155,6 +155,7 @@ pub mod module {
 		/// Feed the external value.
 		///
 		/// Require authorized operator.
+		#[pallet::call_index(0)]
 		#[pallet::weight(T::WeightInfo::feed_values(values.len() as u32))]
 		pub fn feed_values(
 			origin: OriginFor<T>,

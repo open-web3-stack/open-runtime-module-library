@@ -307,6 +307,7 @@ pub mod module {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		/// Dispatch a dispatchable on behalf of other origin
+		#[pallet::call_index(0)]
 		#[pallet::weight({
 			let info = call.get_dispatch_info();
 			(T::WeightInfo::dispatch_as().saturating_add(info.weight), info.class)
@@ -324,6 +325,7 @@ pub mod module {
 
 		/// Schedule a dispatchable to be dispatched at later block.
 		/// This is the only way to dispatch a call with `DelayedOrigin`.
+		#[pallet::call_index(1)]
 		#[pallet::weight(T::WeightInfo::schedule_dispatch_without_delay())]
 		pub fn schedule_dispatch(
 			origin: OriginFor<T>,
@@ -375,6 +377,7 @@ pub mod module {
 		}
 
 		/// Fast track a scheduled dispatchable.
+		#[pallet::call_index(2)]
 		#[pallet::weight(T::WeightInfo::fast_track_scheduled_dispatch())]
 		pub fn fast_track_scheduled_dispatch(
 			origin: OriginFor<T>,
@@ -405,6 +408,7 @@ pub mod module {
 		}
 
 		/// Delay a scheduled dispatchable.
+		#[pallet::call_index(3)]
 		#[pallet::weight(T::WeightInfo::delay_scheduled_dispatch())]
 		pub fn delay_scheduled_dispatch(
 			origin: OriginFor<T>,
@@ -432,6 +436,7 @@ pub mod module {
 		}
 
 		/// Cancel a scheduled dispatchable.
+		#[pallet::call_index(4)]
 		#[pallet::weight(T::WeightInfo::cancel_scheduled_dispatch())]
 		pub fn cancel_scheduled_dispatch(
 			origin: OriginFor<T>,
@@ -448,6 +453,7 @@ pub mod module {
 			Ok(())
 		}
 
+		#[pallet::call_index(5)]
 		#[pallet::weight(T::WeightInfo::authorize_call())]
 		pub fn authorize_call(
 			origin: OriginFor<T>,
@@ -461,6 +467,7 @@ pub mod module {
 			Ok(())
 		}
 
+		#[pallet::call_index(6)]
 		#[pallet::weight(T::WeightInfo::remove_authorized_call())]
 		pub fn remove_authorized_call(origin: OriginFor<T>, hash: T::Hash) -> DispatchResult {
 			let root_or_signed =
@@ -481,6 +488,7 @@ pub mod module {
 			})
 		}
 
+		#[pallet::call_index(7)]
 		#[pallet::weight((
 			T::WeightInfo::trigger_call().saturating_add((*call_weight_bound).into()),
 			DispatchClass::Operational,
@@ -512,6 +520,7 @@ pub mod module {
 			})
 		}
 
+		#[pallet::call_index(8)]
 		#[pallet::weight((
 			T::WeightInfo::trigger_call().saturating_add(*call_weight_bound),
 			DispatchClass::Operational,

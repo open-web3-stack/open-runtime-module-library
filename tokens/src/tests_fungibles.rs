@@ -87,7 +87,7 @@ fn fungibles_unbalanced_trait_should_work() {
 			assert_ok!(<Tokens as MultiReservableCurrency<AccountId>>::reserve(DOT, &ALICE, 50));
 			assert_noop!(
 				<Tokens as fungibles::Unbalanced<_>>::decrease_balance(DOT, &ALICE, 60),
-				ArithmeticError::Underflow
+				TokenError::NoFunds
 			);
 			assert_eq!(
 				<Tokens as fungibles::Unbalanced<_>>::decrease_balance(DOT, &ALICE, 50),
@@ -124,11 +124,7 @@ fn fungibles_unbalanced_trait_should_work() {
 			assert_ok!(<Tokens as MultiReservableCurrency<AccountId>>::reserve(DOT, &ALICE, 50));
 			assert_eq!(
 				<Tokens as fungibles::Unbalanced<_>>::decrease_balance_at_most(DOT, &ALICE, 60),
-				0
-			);
-			assert_eq!(
-				<Tokens as fungibles::Unbalanced<_>>::decrease_balance_at_most(DOT, &ALICE, 50),
-				50
+				50,
 			);
 			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 50);
 			assert_eq!(

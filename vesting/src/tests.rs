@@ -88,6 +88,45 @@ fn vested_transfer_works() {
 }
 
 #[test]
+fn self_vesting() {
+	ExtBuilder::build().execute_with(|| {
+		System::set_block_number(1);
+
+		let schedule = VestingSchedule {
+			start: 0u64,
+			period: 10u64,
+			period_count: 1u32,
+			per_period: ALICE_BALANCE,
+		};
+
+		let bad_schedule = VestingSchedule {
+			start: 0u64,
+			period: 10u64,
+			period_count: 1u32,
+			per_period: 10 * ALICE_BALANCE,
+		};
+
+		assert_noop!(
+			Vesting::vested_transfer(RuntimeOrigin::signed(ALICE), ALICE, bad_schedule),
+			crate::Error::<Runtime>::InsufficientBalanceToLock
+		);
+
+		assert_ok!(Vesting::vested_transfer(
+			RuntimeOrigin::signed(ALICE),
+			ALICE,
+			schedule.clone()
+		));
+
+		assert_eq!(Vesting::vesting_schedules(&ALICE), vec![schedule.clone()]);
+		System::assert_last_event(RuntimeEvent::Vesting(crate::Event::VestingScheduleAdded {
+			from: ALICE,
+			to: ALICE,
+			vesting_schedule: schedule,
+		}));
+	});
+}
+
+#[test]
 fn add_new_vesting_schedule_merges_with_current_locked_balance_and_until() {
 	ExtBuilder::build().execute_with(|| {
 		let schedule = VestingSchedule {
