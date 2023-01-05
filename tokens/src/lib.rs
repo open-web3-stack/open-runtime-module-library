@@ -1750,8 +1750,8 @@ impl<T: Config> fungibles::Inspect<T::AccountId> for Pallet<T> {
 		Self::withdraw_consequence(who, asset_id, amount, &Self::accounts(who, asset_id))
 	}
 
-	fn asset_exists(_asset: Self::AssetId) -> bool {
-		false
+	fn asset_exists(asset: Self::AssetId) -> bool {
+		TotalIssuance::<T>::contains_key(asset)
 	}
 }
 

@@ -68,8 +68,12 @@ where
 		}
 	}
 
-	fn asset_exists(_asset: Self::AssetId) -> bool {
-		false
+	fn asset_exists(asset: Self::AssetId) -> bool {
+		if TestKey::contains(&asset) {
+			true
+		} else {
+			B::asset_exists(asset)
+		}
 	}
 }
 
