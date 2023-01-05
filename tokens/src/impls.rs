@@ -67,6 +67,10 @@ where
 			B::can_withdraw(asset, who, amount)
 		}
 	}
+
+	fn asset_exists(_asset: Self::AssetId) -> bool {
+		false
+	}
 }
 
 impl<AccountId, TestKey, A, B> fungibles::Transfer<AccountId> for Combiner<AccountId, TestKey, A, B>

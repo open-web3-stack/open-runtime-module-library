@@ -79,6 +79,8 @@ impl pallet_scheduler::Config for Runtime {
 	type Preimages = Preimage;
 }
 
+impl pallet_root_testing::Config for Runtime {}
+
 #[derive(Clone, Encode, Decode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
 pub enum MockAsOriginId {
 	Root,
@@ -182,6 +184,7 @@ frame_support::construct_runtime!(
 		Authority: authority::{Pallet, Call, Origin<T>, Event<T>},
 		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
 		Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>},
+		RootTesting: pallet_root_testing::{Pallet, Call},
 	}
 );
 

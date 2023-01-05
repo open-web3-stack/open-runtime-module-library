@@ -1,5 +1,5 @@
 use crate::module::*;
-use frame_support::{log, pallet_prelude::*, weights::constants::WEIGHT_PER_SECOND};
+use frame_support::{log, pallet_prelude::*, weights::constants::WEIGHT_REF_TIME_PER_SECOND};
 use orml_traits::{
 	asset_registry::{
 		AssetMetadata, AssetProcessor, FixedConversionRateProvider, Inspect, Mutate, WeightToFeeConverter,
@@ -55,7 +55,7 @@ pub struct FixedRateAssetRegistryTrader<P: FixedConversionRateProvider>(PhantomD
 impl<P: FixedConversionRateProvider> WeightToFeeConverter for FixedRateAssetRegistryTrader<P> {
 	fn convert_weight_to_fee(location: &MultiLocation, weight: Weight) -> Option<u128> {
 		let fee_per_second = P::get_fee_per_second(location)?;
-		let weight_ratio = FixedU128::saturating_from_rational(weight.ref_time(), WEIGHT_PER_SECOND.ref_time() as u128);
+		let weight_ratio = FixedU128::saturating_from_rational(weight.ref_time(), WEIGHT_REF_TIME_PER_SECOND);
 		let amount = weight_ratio.saturating_mul_int(fee_per_second);
 		Some(amount)
 	}

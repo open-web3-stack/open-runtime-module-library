@@ -1749,6 +1749,10 @@ impl<T: Config> fungibles::Inspect<T::AccountId> for Pallet<T> {
 	) -> WithdrawConsequence<Self::Balance> {
 		Self::withdraw_consequence(who, asset_id, amount, &Self::accounts(who, asset_id))
 	}
+
+	fn asset_exists(_asset: Self::AssetId) -> bool {
+		false
+	}
 }
 
 impl<T: Config> fungibles::Mutate<T::AccountId> for Pallet<T> {
