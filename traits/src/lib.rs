@@ -8,8 +8,6 @@ use sp_std::{
 	prelude::Vec,
 };
 
-#[cfg(feature = "std")]
-use serde::{Deserialize, Serialize};
 pub use asset_registry::{FixedConversionRateProvider, WeightToFeeConverter};
 pub use auction::{Auction, AuctionHandler, AuctionInfo, OnNewBidResult};
 pub use currency::{
@@ -24,6 +22,8 @@ pub use nft::InspectExtended;
 pub use price::{DefaultPriceProvider, PriceProvider};
 pub use rewards::RewardHandler;
 use scale_info::TypeInfo;
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
 pub use xcm_transfer::XcmTransfer;
 
 pub mod arithmetic;
