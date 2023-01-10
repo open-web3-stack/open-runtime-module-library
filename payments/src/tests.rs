@@ -1,9 +1,10 @@
 use crate::{
 	mock::*,
 	types::{PaymentDetail, PaymentState},
+	weights::WeightInfo,
 	Payment as PaymentStore, PaymentHandler, ScheduledTask, ScheduledTasks, Task,
 };
-use frame_support::{assert_noop, assert_ok, storage::with_transaction};
+use frame_support::{assert_noop, assert_ok, storage::with_transaction, traits::OnIdle, weights::Weight};
 use orml_traits::MultiCurrency;
 use sp_runtime::{Percent, TransactionOutcome};
 
@@ -1396,5 +1397,54 @@ fn test_automatic_refund_works_for_multiple_payments() {
 
 		assert_eq!(Tokens::free_balance(CURRENCY_ID, &PAYMENT_CREATOR_TWO), 100);
 		assert_eq!(Tokens::free_balance(CURRENCY_ID, &PAYMENT_RECIPENT_TWO), 0);
+	});
+}
+
+#[test]
+fn on_idle_works() {
+	new_test_ext().execute_with(|| {
+		assert_eq!(
+			Payment::on_idle(System::block_number(), Weight::MAX),
+			<()>::remove_task()
+		);
+
+		let payment_amount = 20;
+		let expected_cancel_block = CANCEL_BLOCK_BUFFER + 1;
+
+		assert_ok!(Payment::pay(
+			RuntimeOrigin::signed(PAYMENT_CREATOR),
+			PAYMENT_RECIPENT,
+			CURRENCY_ID,
+			payment_amount,
+			None
+		));
+
+		// creator requests a refund
+		assert_ok!(Payment::request_refund(
+			RuntimeOrigin::signed(PAYMENT_CREATOR),
+			PAYMENT_RECIPENT
+		));
+		// ensure the request is added to the refund queue
+		let scheduled_tasks_list = ScheduledTasks::<Test>::get();
+		assert_eq!(scheduled_tasks_list.len(), 1);
+		assert_eq!(
+			scheduled_tasks_list.get(&(PAYMENT_CREATOR, PAYMENT_RECIPENT)).unwrap(),
+			&ScheduledTask {
+				task: Task::Cancel,
+				when: expected_cancel_block
+			}
+		);
+
+		assert_eq!(run_n_blocks(CANCEL_BLOCK_BUFFER - 1), 600);
+		assert_eq!(
+			Payment::on_idle(System::block_number(), Weight::MAX),
+			<()>::remove_task()
+		);
+
+		assert_eq!(run_n_blocks(1), 601);
+		assert_eq!(
+			Payment::on_idle(System::block_number(), Weight::MAX),
+			<()>::remove_task() + <()>::cancel()
+		);
 	});
 }
