@@ -214,16 +214,17 @@ pub mod pallet {
 		/// Hook that execute when there is leftover space in a block
 		/// This function will look for any pending scheduled tasks that can
 		/// be executed and will process them.
-		fn on_idle(now: T::BlockNumber, mut remaining_weight: Weight) -> Weight {
+		fn on_idle(now: T::BlockNumber, remaining_weight: Weight) -> Weight {
 			const MAX_TASKS_TO_PROCESS: usize = 5;
-			// reduce the weight used to read the task list
-			remaining_weight = remaining_weight.saturating_sub(T::WeightInfo::remove_task());
+			// used to read the task list
+			let mut used_weight = T::WeightInfo::remove_task();
 			let cancel_weight = T::WeightInfo::cancel();
 
 			// calculate count of tasks that can be processed with remaining weight
 			let possible_task_count: usize = remaining_weight
-				.ref_time()
+				.saturating_sub(used_weight)
 				.saturating_div(cancel_weight.ref_time())
+				.ref_time()
 				.try_into()
 				.unwrap_or(MAX_TASKS_TO_PROCESS);
 
@@ -239,9 +240,9 @@ pub mod pallet {
 				// order by oldest task to process
 				task_list.sort_by(|(_, t), (_, x)| x.when.cmp(&t.when));
 
-				while !task_list.is_empty() && remaining_weight.all_gte(cancel_weight) {
+				while !task_list.is_empty() && used_weight.all_lte(remaining_weight) {
 					if let Some((account_pair, _)) = task_list.pop() {
-						remaining_weight = remaining_weight.saturating_sub(cancel_weight);
+						used_weight = used_weight.saturating_add(cancel_weight);
 						// remove the task form the tasks storage
 						tasks.remove(&account_pair);
 
@@ -268,7 +269,7 @@ pub mod pallet {
 					}
 				}
 			});
-			remaining_weight
+			used_weight
 		}
 	}
 
