@@ -109,12 +109,12 @@ pub mod module {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
 		fn on_initialize(now: T::BlockNumber) -> Weight {
-			T::WeightInfo::on_finalize(AuctionEndTime::<T>::iter_prefix(&now).count() as u32)
+			T::WeightInfo::on_finalize(AuctionEndTime::<T>::iter_prefix(now).count() as u32)
 		}
 
 		fn on_finalize(now: T::BlockNumber) {
-			for (auction_id, _) in AuctionEndTime::<T>::drain_prefix(&now) {
-				if let Some(auction) = Auctions::<T>::take(&auction_id) {
+			for (auction_id, _) in AuctionEndTime::<T>::drain_prefix(now) {
+				if let Some(auction) = Auctions::<T>::take(auction_id) {
 					T::Handler::on_auction_ended(auction_id, auction.bid);
 				}
 			}
@@ -151,10 +151,10 @@ pub mod module {
 				match bid_result.auction_end_change {
 					Change::NewValue(new_end) => {
 						if let Some(old_end_block) = auction.end {
-							AuctionEndTime::<T>::remove(&old_end_block, id);
+							AuctionEndTime::<T>::remove(old_end_block, id);
 						}
 						if let Some(new_end_block) = new_end {
-							AuctionEndTime::<T>::insert(&new_end_block, id, ());
+							AuctionEndTime::<T>::insert(new_end_block, id, ());
 						}
 						auction.end = new_end;
 					}
@@ -189,10 +189,10 @@ impl<T: Config> Auction<T::AccountId, T::BlockNumber> for Pallet<T> {
 	) -> DispatchResult {
 		let auction = Auctions::<T>::get(id).ok_or(Error::<T>::AuctionNotExist)?;
 		if let Some(old_end) = auction.end {
-			AuctionEndTime::<T>::remove(&old_end, id);
+			AuctionEndTime::<T>::remove(old_end, id);
 		}
 		if let Some(new_end) = info.end {
-			AuctionEndTime::<T>::insert(&new_end, id, ());
+			AuctionEndTime::<T>::insert(new_end, id, ());
 		}
 		Auctions::<T>::insert(id, info);
 		Ok(())
@@ -211,14 +211,14 @@ impl<T: Config> Auction<T::AccountId, T::BlockNumber> for Pallet<T> {
 			})?;
 		Auctions::<T>::insert(auction_id, auction);
 		if let Some(end_block) = end {
-			AuctionEndTime::<T>::insert(&end_block, auction_id, ());
+			AuctionEndTime::<T>::insert(end_block, auction_id, ());
 		}
 
 		Ok(auction_id)
 	}
 
 	fn remove_auction(id: Self::AuctionId) {
-		if let Some(auction) = Auctions::<T>::take(&id) {
+		if let Some(auction) = Auctions::<T>::take(id) {
 			if let Some(end_block) = auction.end {
 				AuctionEndTime::<T>::remove(end_block, id);
 			}

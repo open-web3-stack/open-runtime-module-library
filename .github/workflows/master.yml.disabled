@@ -15,7 +15,7 @@ jobs:
     - name: Install toolchain
       uses: dtolnay/rust-toolchain@nightly
       with:
-        toolchain: nightly-2022-08-05
+        toolchain: nightly-2022-10-30
     - name: Install cargo-unleash
       run: cargo install cargo-unleash --git https://github.com/xlc/cargo-unleash.git # https://github.com/paritytech/cargo-unleash/pull/38
     - name: Prepare
