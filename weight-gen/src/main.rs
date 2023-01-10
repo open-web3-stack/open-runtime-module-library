@@ -162,7 +162,7 @@ fn main() {
 	// Use empty header if a header path is not given.
 	let header = {
 		if let Some(path) = matches.get_one::<String>("header") {
-			::std::fs::read_to_string(&path).expect("Header file not found")
+			::std::fs::read_to_string(path).expect("Header file not found")
 		} else {
 			String::from("")
 		}
@@ -175,7 +175,7 @@ fn main() {
 	// Use default template if template path is not given.
 	let template = {
 		if let Some(path) = matches.get_one::<String>("template") {
-			::std::fs::read_to_string(&path).expect("Template file not found")
+			::std::fs::read_to_string(path).expect("Template file not found")
 		} else {
 			String::from(DEFAULT_TEMPLATE)
 		}
@@ -183,7 +183,7 @@ fn main() {
 
 	// Write benchmark to file or print to terminal if output path is not given.
 	if let Some(path) = matches.get_one::<String>("output") {
-		let mut output_file = ::std::fs::File::create(&path).expect("Could not create output file");
+		let mut output_file = ::std::fs::File::create(path).expect("Could not create output file");
 
 		handlebars
 			.render_template_to_write(&template, &hbs_data, &mut output_file)

@@ -428,7 +428,7 @@ fn build_project(project: &Path, default_rustflags: &str, cargo_cmd: CargoComman
 	);
 
 	build_cmd
-		.args(&["rustc", "--target=wasm32-unknown-unknown"])
+		.args(["rustc", "--target=wasm32-unknown-unknown"])
 		.arg(format!("--manifest-path={}", manifest_path.display()))
 		.env("RUSTFLAGS", rustflags)
 		// Unset the `CARGO_TARGET_DIR` to prevent a cargo deadlock (cargo locks a target dir exclusive).

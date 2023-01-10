@@ -245,7 +245,7 @@ pub mod module {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::call_index(0)]
-		#[pallet::weight(T::WeightInfo::claim((<T as Config>::MaxVestingSchedules::get() / 2) as u32))]
+		#[pallet::weight(T::WeightInfo::claim(<T as Config>::MaxVestingSchedules::get() / 2))]
 		pub fn claim(origin: OriginFor<T>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let locked_amount = Self::do_claim(&who);
@@ -301,7 +301,7 @@ pub mod module {
 		}
 
 		#[pallet::call_index(3)]
-		#[pallet::weight(T::WeightInfo::claim((<T as Config>::MaxVestingSchedules::get() / 2) as u32))]
+		#[pallet::weight(T::WeightInfo::claim(<T as Config>::MaxVestingSchedules::get() / 2))]
 		pub fn claim_for(origin: OriginFor<T>, dest: <T::Lookup as StaticLookup>::Source) -> DispatchResult {
 			let _ = ensure_signed(origin)?;
 			let who = T::Lookup::lookup(dest)?;
