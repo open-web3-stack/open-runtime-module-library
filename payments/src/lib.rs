@@ -216,7 +216,7 @@ pub mod pallet {
 		/// be executed and will process them.
 		fn on_idle(now: T::BlockNumber, remaining_weight: Weight) -> Weight {
 			const MAX_TASKS_TO_PROCESS: usize = 5;
-			// reduce the weight used to read the task list
+			// used to read the task list
 			let mut used_weight = T::WeightInfo::remove_task();
 			let cancel_weight = T::WeightInfo::cancel();
 
