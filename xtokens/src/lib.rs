@@ -953,6 +953,17 @@ pub mod module {
 		) -> DispatchResult {
 			Self::do_transfer_multiasset(who, asset, dest, dest_weight_limit)
 		}
+
+		#[require_transactional]
+		fn transfer_multiasset_with_fee(
+			who: T::AccountId,
+			asset: MultiAsset,
+			fee: MultiAsset,
+			dest: MultiLocation,
+			dest_weight_limit: WeightLimit,
+		) -> DispatchResult {
+			Self::do_transfer_multiasset_with_fee(who, asset, fee, dest, dest_weight_limit)
+		}
 	}
 }
 
