@@ -19,4 +19,13 @@ pub trait XcmTransfer<AccountId, Balance, CurrencyId> {
 		dest: MultiLocation,
 		dest_weight_limit: WeightLimit,
 	) -> DispatchResult;
+
+	/// Transfer `MultiAssetWithFee`
+	fn transfer_multiasset_with_fee(
+		who: AccountId,
+		asset: MultiAsset,
+		fee: MultiAsset,
+		dest: MultiLocation,
+		dest_weight_limit: WeightLimit,
+	) -> DispatchResult;
 }
