@@ -1180,6 +1180,14 @@ macro_rules! impl_benchmark_test_suite {
 											$crate::str::from_utf8(benchmark_name)
 												.expect("benchmark name is always a valid string!"),
 										);
+									},
+									$crate::BenchmarkError::Weightless => {
+										// This is considered a success condition.
+										$crate::log::error!(
+											"WARNING: benchmark error weightless skipped - {}",
+											$crate::str::from_utf8(benchmark_name)
+												.expect("benchmark name is always a valid string!"),
+										);
 									}
 								}
 							},
@@ -1310,6 +1318,14 @@ macro_rules! add_benchmark {
 				Err($crate::BenchmarkError::Skip) => {
 					$crate::log::error!(
 						"WARNING: benchmark error skipped - {}",
+						$crate::str::from_utf8(benchmark)
+							.expect("benchmark name is always a valid string!")
+					);
+					None
+				},
+				Err($crate::BenchmarkError::Weightless) => {
+					$crate::log::error!(
+						"WARNING: benchmark weightless skipped - {}",
 						$crate::str::from_utf8(benchmark)
 							.expect("benchmark name is always a valid string!")
 					);
