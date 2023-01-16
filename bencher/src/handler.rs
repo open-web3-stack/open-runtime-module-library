@@ -3,7 +3,7 @@ use crate::{
 	BenchResult,
 };
 use codec::Decode;
-use frame_benchmarking::frame_support::traits::StorageInfo;
+use frame_support::traits::StorageInfo;
 use linregress::{FormulaRegressionBuilder, RegressionDataBuilder};
 use serde::{Deserialize, Serialize};
 use sp_core::hexdisplay::HexDisplay;
@@ -66,14 +66,13 @@ pub fn handle(output: Vec<u8>, storage_infos: Vec<StorageInfo>) {
 
 			comments.sort();
 
+			let intercepted_value = model.parameters()[0] as u64;
+
 			println!(
 				"{} {:<40} {:>20} storage: {:<20}",
 				green_bold("Bench"),
 				cyan(&name),
-				green_bold(&format!(
-					"{:?}",
-					Duration::from_nanos(model.parameters.intercept_value as u64)
-				)),
+				green_bold(&format!("{:?}", Duration::from_nanos(intercepted_value))),
 				green_bold(&format!(
 					"[r: {}, w: {}]",
 					&total_reads.to_string(),
@@ -83,7 +82,7 @@ pub fn handle(output: Vec<u8>, storage_infos: Vec<StorageInfo>) {
 
 			BenchData {
 				name,
-				weight: model.parameters.intercept_value as u64 * 1_000,
+				weight: intercepted_value * 1_000,
 				reads: total_reads,
 				writes: total_writes,
 				comments,

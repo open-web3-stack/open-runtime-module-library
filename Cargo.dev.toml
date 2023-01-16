@@ -4,6 +4,7 @@ members = [
 	"auction",
 	"authority",
 	"bencher",
+	"bencher/test",
 	"benchmarking",
 	"currencies",
 	"gradually-update",
@@ -25,6 +26,8 @@ members = [
 	"weight-meter",
 	"payments"
 ]
+
+exclude = ["bencher/test"]
 
 resolver = "2"
 
