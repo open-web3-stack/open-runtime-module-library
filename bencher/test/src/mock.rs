@@ -16,7 +16,7 @@ pub type Header = sp_runtime::generic::Header<BlockNumber, BlakeTwo256>;
 
 pub type SignedExtra = (frame_system::CheckWeight<Runtime>,);
 
-pub type UncheckedExtrinsic = sp_runtime::generic::UncheckedExtrinsic<Address, Call, Signature, SignedExtra>;
+pub type UncheckedExtrinsic = sp_runtime::generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 
 pub type Block = sp_runtime::generic::Block<Header, UncheckedExtrinsic>;
 

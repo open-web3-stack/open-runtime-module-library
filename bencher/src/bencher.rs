@@ -40,8 +40,8 @@ impl Bencher {
 	pub fn before_run(&self) {
 		#[cfg(not(feature = "std"))]
 		{
-			frame_benchmarking::benchmarking::commit_db();
-			frame_benchmarking::benchmarking::wipe_db();
+			crate::bench::commit_db();
+			crate::bench::wipe_db();
 		}
 	}
 
@@ -56,8 +56,8 @@ impl Bencher {
 	{
 		#[cfg(not(feature = "std"))]
 		{
-			frame_benchmarking::benchmarking::commit_db();
-			frame_benchmarking::benchmarking::reset_read_write_count();
+			crate::bench::commit_db();
+			crate::bench::reset_read_write_count();
 			crate::bench::start_timer();
 		}
 
@@ -68,7 +68,7 @@ impl Bencher {
 			let elapsed = crate::bench::end_timer().saturating_sub(crate::bench::redundant_time());
 			self.current.elapses.push(elapsed);
 
-			frame_benchmarking::benchmarking::commit_db();
+			crate::bench::commit_db();
 
 			// changed keys
 			self.current.keys = crate::bench::read_written_keys();

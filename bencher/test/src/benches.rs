@@ -42,10 +42,4 @@ fn whitelist(b: &mut Bencher) {
 	});
 }
 
-benches!(
-	whitelist,
-	set_value,
-	set_foo,
-	remove_all_bar,
-	remove_all_bar_with_limit
-);
+benches!(whitelist, set_value, set_foo, remove_all_bar, remove_all_bar_with_limit);

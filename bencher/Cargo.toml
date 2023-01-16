@@ -10,15 +10,15 @@ edition = "2021"
 [dependencies]
 paste = "1.0.7"
 build-helper = { version = "0.1.1", optional = true }
-cargo_metadata = { version = "0.14.1", optional = true }
+cargo_metadata = { version = "0.15.2", optional = true }
 tempfile = { version = "3.2.0", optional = true }
 toml = { version = "0.5.8", optional = true }
 walkdir = { version = "2.3.1", optional = true }
 ansi_term = { version = "0.12.1", optional = true }
 wasm-gc-api = { version = "0.1.11", optional = true }
 rand = {version = "0.8.3", optional = true }
-linregress = { version = "0.4.4", optional = true }
-parking_lot = { version = "0.12.0", optional = true }
+linregress = { version = "0.5.0", optional = true }
+parking_lot = { version = "0.12.1", optional = true }
 thiserror = { version = "1.0", optional = true }
 serde = { version = "1.0.136", optional = true, features = ['derive'] }
 serde_json = {version = "1.0.68", optional = true }
@@ -35,7 +35,7 @@ sc-executor = { git = "https://github.com/paritytech/substrate", default-feature
 sc-executor-common = { git = "https://github.com/paritytech/substrate", optional = true , branch = "polkadot-v0.9.36" }
 sc-client-db = { git = "https://github.com/paritytech/substrate", default-features = false, features = ["rocksdb"], optional = true , branch = "polkadot-v0.9.36" }
 sp-maybe-compressed-blob = { git = "https://github.com/paritytech/substrate", default-features = false, optional = true , branch = "polkadot-v0.9.36" }
-frame-benchmarking = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.36" }
+frame-support = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.36" }
 sp-externalities = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.36" }
 sp-storage = { git = "https://github.com/paritytech/substrate", default-features = false, optional = true , branch = "polkadot-v0.9.36" }
 
@@ -67,7 +67,7 @@ std = [
     "sc-executor-common",
     "sc-client-db",
     "sp-maybe-compressed-blob",
-    "frame-benchmarking/std",
+    "frame-support/std",
     "sp-externalities/std",
     "sp-storage/std",
 ]
