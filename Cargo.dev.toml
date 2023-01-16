@@ -12,6 +12,8 @@ members = [
 	"oracle/rpc",
 	"oracle/rpc/runtime-api",
 	"tokens",
+	"tokens/rpc",
+	"tokens/rpc/runtime-api",
 	"traits",
 	"utilities",
 	"vesting",
