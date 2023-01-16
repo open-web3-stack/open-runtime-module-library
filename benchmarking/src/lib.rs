@@ -1329,7 +1329,10 @@ macro_rules! add_benchmark {
 						$crate::str::from_utf8(benchmark)
 							.expect("benchmark name is always a valid string!")
 					);
-					None
+					Some(vec![$crate::BenchmarkResult {
+						components: selected_components.clone(),
+						.. Default::default()
+					}])
 				}
 			};
 
