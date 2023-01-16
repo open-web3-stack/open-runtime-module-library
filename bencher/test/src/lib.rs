@@ -42,7 +42,7 @@ pub mod pallet {
 		#[pallet::weight(0)]
 		#[orml_weight_meter::start(ModuleWeights::<T>::set_value().ref_time())]
 		pub fn set_value(origin: OriginFor<T>, n: u32) -> DispatchResultWithPostInfo {
-			let _sender = frame_system::ensure_signed(origin)?;
+			frame_system::ensure_signed(origin)?;
 			Value::<T>::get();
 			Value::<T>::put(n);
 			Value::<T>::put(n + 1);
@@ -53,7 +53,7 @@ pub mod pallet {
 		#[pallet::call_index(1)]
 		#[pallet::weight(0)]
 		pub fn dummy(origin: OriginFor<T>, _n: u32) -> DispatchResult {
-			let _sender = frame_system::ensure_none(origin)?;
+			frame_system::ensure_none(origin)?;
 			Foo::<T>::put(1);
 			Ok(())
 		}
