@@ -44,9 +44,11 @@ dev-check: Cargo.toml check
 
 dev-check-tests: Cargo.toml
 	cargo check --tests --all
+	cargo check --tests --features=bench --package=orml-weight-meter --package=orml-bencher-test
 
 dev-test: Cargo.toml
-	cargo test --all --features runtime-benchmarks
+	cargo test --all --features=runtime-benchmarks
+	cargo test --features=bench --package=orml-weight-meter --package=orml-bencher-test
 
 # run benchmarks via Acala node
 benchmark-all:

@@ -924,10 +924,8 @@ pub mod module {
 		fn get_reserve_location(assets: &MultiAssets, fee_item: &u32) -> Option<MultiLocation> {
 			let reserve_idx = if assets.len() == 1 {
 				0
-			} else if *fee_item == 0 {
-				1
 			} else {
-				0
+				(*fee_item == 0) as usize
 			};
 			let asset = assets.get(reserve_idx);
 			asset.and_then(T::ReserveProvider::reserve)
@@ -954,6 +952,17 @@ pub mod module {
 			dest_weight_limit: WeightLimit,
 		) -> DispatchResult {
 			Self::do_transfer_multiasset(who, asset, dest, dest_weight_limit)
+		}
+
+		#[require_transactional]
+		fn transfer_multiasset_with_fee(
+			who: T::AccountId,
+			asset: MultiAsset,
+			fee: MultiAsset,
+			dest: MultiLocation,
+			dest_weight_limit: WeightLimit,
+		) -> DispatchResult {
+			Self::do_transfer_multiasset_with_fee(who, asset, fee, dest, dest_weight_limit)
 		}
 	}
 }

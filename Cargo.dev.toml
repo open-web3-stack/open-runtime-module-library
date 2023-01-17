@@ -4,6 +4,7 @@ members = [
 	"auction",
 	"authority",
 	"bencher",
+	"bencher/test",
 	"benchmarking",
 	"currencies",
 	"gradually-update",
@@ -11,6 +12,8 @@ members = [
 	"oracle/rpc",
 	"oracle/rpc/runtime-api",
 	"tokens",
+	"tokens/rpc",
+	"tokens/rpc/runtime-api",
 	"traits",
 	"utilities",
 	"vesting",
@@ -25,6 +28,8 @@ members = [
 	"weight-meter",
 	"payments"
 ]
+
+exclude = ["bencher/test"]
 
 resolver = "2"
 

@@ -1,15 +1,12 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::{Decode, Encode};
+use codec::{Decode, Encode, MaxEncodedLen};
 use impl_trait_for_tuples::impl_for_tuples;
 use sp_runtime::{DispatchResult, RuntimeDebug};
 use sp_std::{
 	cmp::{Eq, PartialEq},
 	prelude::Vec,
 };
-
-#[cfg(feature = "std")]
-use serde::{Deserialize, Serialize};
 
 pub use asset_registry::{FixedConversionRateProvider, WeightToFeeConverter};
 pub use auction::{Auction, AuctionHandler, AuctionInfo, OnNewBidResult};
@@ -25,6 +22,8 @@ pub use nft::InspectExtended;
 pub use price::{DefaultPriceProvider, PriceProvider};
 pub use rewards::RewardHandler;
 use scale_info::TypeInfo;
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
 pub use xcm_transfer::XcmTransfer;
 
 pub mod arithmetic;
@@ -58,7 +57,7 @@ pub trait CombineData<Key, TimestampedValue> {
 }
 
 /// Indicate if should change a value
-#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub enum Change<Value> {
 	/// No change.
 	NoChange,

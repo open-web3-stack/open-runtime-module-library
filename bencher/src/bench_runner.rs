@@ -2,18 +2,14 @@ use super::{
 	bench_ext::BenchExt,
 	tracker::{BenchTracker, BenchTrackerExt},
 };
-use frame_benchmarking::frame_support::sp_runtime::traits::Block;
+use frame_support::sp_runtime::traits::Block;
 use sc_executor::{WasmExecutionMethod, WasmExecutor, WasmtimeInstantiationStrategy};
 use sc_executor_common::runtime_blob::RuntimeBlob;
 use sp_externalities::Extensions;
 use sp_state_machine::{Ext, OverlayedChanges, StorageTransactionCache};
 use sp_std::sync::Arc;
 
-type ComposeHostFunctions = (
-	sp_io::SubstrateHostFunctions,
-	frame_benchmarking::benchmarking::HostFunctions,
-	super::bench::HostFunctions,
-);
+type ComposeHostFunctions = (sp_io::SubstrateHostFunctions, super::bench::HostFunctions);
 
 /// Run benches
 pub fn run<B: Block>(wasm_code: Vec<u8>) -> std::result::Result<Vec<u8>, sc_executor_common::error::Error> {

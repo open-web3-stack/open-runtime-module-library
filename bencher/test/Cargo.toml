@@ -32,18 +32,15 @@ std = [
     "serde",
     "scale-info/std",
     "codec/std",
-    "orml-bencher/std",
     "frame-support/std",
     "frame-system/std",
     "sp-runtime/std",
-    "sp-std/std",
     "sp-core/std",
+    "sp-std/std",
+    "orml-bencher/std",
     "orml-weight-meter/std",
 ]
 bench = [
     "orml-bencher/bench",
     "orml-weight-meter/bench",
-    "frame-support/runtime-benchmarks",
-	"sp-runtime/runtime-benchmarks",
-	"frame-system/runtime-benchmarks",
 ]
