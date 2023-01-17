@@ -104,6 +104,7 @@ _In alphabetical order_
 - [Manta Network](https://github.com/Manta-Network)
 - [Mangata Finance](https://github.com/mangata-finance)
 - [Minterest](https://github.com/minterest-finance/minterest-chain-node)
+- [Moonbeam](https://github.com/PureStake/moonbeam/)
 - [OAK](https://github.com/OAK-Foundation/OAK-blockchain)
 - [Parallel Finance](https://github.com/parallel-finance/)
 - [PolkaFoundry Network](https://github.com/PolkaFoundry)
