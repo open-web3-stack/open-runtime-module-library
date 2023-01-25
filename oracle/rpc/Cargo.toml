@@ -12,8 +12,8 @@ jsonrpsee = { version = "0.16.2", features = ["client", "server", "macros"] }
 tracing = { version = "0.1.29" }
 tracing-core = { version = "0.1.28" }
 
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36" }
-sp-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36" }
-sp-blockchain = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36" }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37" }
+sp-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37" }
+sp-blockchain = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37" }
 
 orml-oracle-rpc-runtime-api = { path = "runtime-api", version = "0.4.1-dev" }
