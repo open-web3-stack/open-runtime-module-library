@@ -343,6 +343,18 @@ pub mod module {
 			currency_id: T::CurrencyId,
 			who: T::AccountId,
 		},
+		/// Some free balance was locked.
+		Locked {
+			currency_id: T::CurrencyId,
+			who: T::AccountId,
+			amount: T::Balance,
+		},
+		/// Some locked balance was freed.
+		Unlocked {
+			currency_id: T::CurrencyId,
+			who: T::AccountId,
+			amount: T::Balance,
+		},
 	}
 
 	/// The total issuance of a token type.
@@ -843,12 +855,18 @@ impl<T: Config> Pallet<T> {
 		who: &T::AccountId,
 		locks: &[BalanceLock<T::Balance>],
 	) -> DispatchResult {
+		// track lock delta
+		let mut total_frozen_prev = Zero::zero();
+		let mut total_frozen_after = Zero::zero();
+
 		// update account data
 		Self::mutate_account(who, currency_id, |account, _| {
+			total_frozen_prev = account.frozen;
 			account.frozen = Zero::zero();
 			for lock in locks.iter() {
 				account.frozen = account.frozen.max(lock.amount);
 			}
+			total_frozen_after = account.frozen;
 		});
 
 		// update locks
@@ -875,6 +893,22 @@ impl<T: Config> Pallet<T> {
 					);
 				}
 			}
+		}
+
+		if total_frozen_prev < total_frozen_after {
+			let amount = total_frozen_after.saturating_sub(total_frozen_prev);
+			Self::deposit_event(Event::Locked {
+				currency_id,
+				who: who.clone(),
+				amount,
+			});
+		} else if total_frozen_prev > total_frozen_after {
+			let amount = total_frozen_prev.saturating_sub(total_frozen_after);
+			Self::deposit_event(Event::Unlocked {
+				currency_id,
+				who: who.clone(),
+				amount,
+			});
 		}
 
 		Ok(())
