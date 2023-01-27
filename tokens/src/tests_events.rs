@@ -6,7 +6,7 @@ use super::*;
 use frame_support::assert_ok;
 use mock::*;
 
-fn events() -> Vec<Event> {
+fn events() -> Vec<RuntimeEvent> {
 	let evt = System::events().into_iter().map(|evt| evt.event).collect::<Vec<_>>();
 	System::reset_events();
 	evt
@@ -316,7 +316,7 @@ fn pallet_change_locks_events() {
 
 		// Locks: [10/DOT]
 		assert_ok!(Tokens::set_lock(ID_1, DOT, &ALICE, 10));
-		assert!(events().contains(&Event::Tokens(crate::Event::Locked {
+		assert!(events().contains(&RuntimeEvent::Tokens(crate::Event::Locked {
 			currency_id: DOT,
 			who: ALICE,
 			amount: 10
@@ -324,7 +324,7 @@ fn pallet_change_locks_events() {
 
 		// Locks: [15/DOT]
 		assert_ok!(Tokens::set_lock(ID_1, DOT, &ALICE, 15));
-		assert!(events().contains(&Event::Tokens(crate::Event::Locked {
+		assert!(events().contains(&RuntimeEvent::Tokens(crate::Event::Locked {
 			currency_id: DOT,
 			who: ALICE,
 			amount: 5
@@ -332,7 +332,7 @@ fn pallet_change_locks_events() {
 
 		// Locks: [15/DOT, 20/BTC]
 		assert_ok!(Tokens::set_lock(ID_1, BTC, &ALICE, 20));
-		assert!(events().contains(&Event::Tokens(crate::Event::Locked {
+		assert!(events().contains(&RuntimeEvent::Tokens(crate::Event::Locked {
 			currency_id: BTC,
 			who: ALICE,
 			amount: 20
@@ -342,8 +342,8 @@ fn pallet_change_locks_events() {
 		assert_ok!(Tokens::set_lock(ID_2, DOT, &ALICE, 10));
 		for event in events() {
 			match event {
-				Event::Tokens(crate::Event::Locked { .. }) => assert!(false, "unexpected lock event"),
-				Event::Tokens(crate::Event::Unlocked { .. }) => assert!(false, "unexpected unlock event"),
+				RuntimeEvent::Tokens(crate::Event::Locked { .. }) => assert!(false, "unexpected lock event"),
+				RuntimeEvent::Tokens(crate::Event::Unlocked { .. }) => assert!(false, "unexpected unlock event"),
 				_ => continue,
 			}
 		}
@@ -352,8 +352,8 @@ fn pallet_change_locks_events() {
 		assert_ok!(Tokens::set_lock(ID_2, DOT, &ALICE, 12));
 		for event in events() {
 			match event {
-				Event::Tokens(crate::Event::Locked { .. }) => assert!(false, "unexpected lock event"),
-				Event::Tokens(crate::Event::Unlocked { .. }) => assert!(false, "unexpected unlock event"),
+				RuntimeEvent::Tokens(crate::Event::Locked { .. }) => assert!(false, "unexpected lock event"),
+				RuntimeEvent::Tokens(crate::Event::Unlocked { .. }) => assert!(false, "unexpected unlock event"),
 				_ => continue,
 			}
 		}
@@ -362,15 +362,15 @@ fn pallet_change_locks_events() {
 		assert_ok!(Tokens::set_lock(ID_2, DOT, &ALICE, 10));
 		for event in events() {
 			match event {
-				Event::Tokens(crate::Event::Locked { .. }) => assert!(false, "unexpected lock event"),
-				Event::Tokens(crate::Event::Unlocked { .. }) => assert!(false, "unexpected unlock event"),
+				RuntimeEvent::Tokens(crate::Event::Locked { .. }) => assert!(false, "unexpected lock event"),
+				RuntimeEvent::Tokens(crate::Event::Unlocked { .. }) => assert!(false, "unexpected unlock event"),
 				_ => continue,
 			}
 		}
 
 		// Locks: [15/DOT, 20/BTC, 20/DOT]
 		assert_ok!(Tokens::set_lock(ID_2, DOT, &ALICE, 20));
-		assert!(events().contains(&Event::Tokens(crate::Event::Locked {
+		assert!(events().contains(&RuntimeEvent::Tokens(crate::Event::Locked {
 			currency_id: DOT,
 			who: ALICE,
 			amount: 5
@@ -378,7 +378,7 @@ fn pallet_change_locks_events() {
 
 		// Locks: [15/DOT, 20/BTC, 16/DOT]
 		assert_ok!(Tokens::set_lock(ID_2, DOT, &ALICE, 16));
-		assert!(events().contains(&Event::Tokens(crate::Event::Unlocked {
+		assert!(events().contains(&RuntimeEvent::Tokens(crate::Event::Unlocked {
 			currency_id: DOT,
 			who: ALICE,
 			amount: 4
@@ -386,7 +386,7 @@ fn pallet_change_locks_events() {
 
 		// Locks: [15/DOT, 12/BTC, 16/DOT]
 		assert_ok!(Tokens::set_lock(ID_1, BTC, &ALICE, 12));
-		assert!(events().contains(&Event::Tokens(crate::Event::Unlocked {
+		assert!(events().contains(&RuntimeEvent::Tokens(crate::Event::Unlocked {
 			currency_id: BTC,
 			who: ALICE,
 			amount: 8
@@ -394,7 +394,7 @@ fn pallet_change_locks_events() {
 
 		// Locks: [15/DOT, 12/BTC]
 		assert_ok!(Tokens::remove_lock(ID_2, DOT, &ALICE));
-		assert!(events().contains(&Event::Tokens(crate::Event::Unlocked {
+		assert!(events().contains(&RuntimeEvent::Tokens(crate::Event::Unlocked {
 			currency_id: DOT,
 			who: ALICE,
 			amount: 1
