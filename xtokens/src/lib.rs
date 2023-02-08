@@ -16,6 +16,14 @@
 //!
 //! - `transfer`: Transfer local assets with given `CurrencyId` and `Amount`.
 //! - `transfer_multiasset`: Transfer `MultiAsset` assets.
+//! - `transfer_with_fee`: Transfer native currencies specifying the fee and
+//!   amount as separate.
+//! - `transfer_multiasset_with_fee`: Transfer `MultiAsset` specifying the fee
+//!   and amount as separate.
+//! - `transfer_multicurrencies`: Transfer several currencies specifying the
+//!   item to be used as fee.
+//! - `transfer_multiassets`: Transfer several `MultiAsset` specifying the item
+//!   to be used as fee.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::from_over_into)]
@@ -145,7 +153,6 @@ pub mod module {
 		NotCrossChainTransferableCurrency,
 		/// The message's weight could not be determined.
 		UnweighableMessage,
-		// TODO: expand into XcmExecutionFailed(XcmError) after https://github.com/paritytech/substrate/pull/10242 done
 		/// XCM execution failed.
 		XcmExecutionFailed,
 		/// Could not re-anchor the assets to declare the fees for the
