@@ -10,7 +10,7 @@ use frame_support::traits::{EnsureOrigin, EnsureOriginWithArg};
 use frame_support::{
 	construct_runtime, match_types, ord_parameter_types, parameter_types,
 	traits::{ConstU128, ConstU32, ConstU64, Everything, Nothing},
-	weights::constants::WEIGHT_PER_SECOND,
+	weights::constants::WEIGHT_REF_TIME_PER_SECOND,
 	PalletId,
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
@@ -92,16 +92,11 @@ impl orml_tokens::Config for Runtime {
 	type CurrencyId = CurrencyId;
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
-	type OnDust = ();
-	type OnSlash = ();
-	type OnDeposit = ();
-	type OnTransfer = ();
+	type CurrencyHooks = ();
 	type ReserveIdentifier = [u8; 8];
 	type MaxReserves = ();
 	type MaxLocks = ConstU32<50>;
 	type DustRemovalWhitelist = Nothing;
-	type OnNewTokenAccount = ();
-	type OnKilledTokenAccount = ();
 }
 
 #[derive(scale_info::TypeInfo, Encode, Decode, Clone, Eq, PartialEq, Debug)]
@@ -174,8 +169,8 @@ impl orml_asset_registry::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ReservedXcmpWeight: Weight = WEIGHT_PER_SECOND.ref_time() / 4;
-	pub const ReservedDmpWeight: Weight = WEIGHT_PER_SECOND.ref_time() / 4;
+	pub const ReservedXcmpWeight: Weight = WEIGHT_REF_TIME_PER_SECOND / 4;
+	pub const ReservedDmpWeight: Weight = WEIGHT_REF_TIME_PER_SECOND / 4;
 }
 
 impl parachain_info::Config for Runtime {}

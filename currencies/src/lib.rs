@@ -126,6 +126,7 @@ pub mod module {
 		///
 		/// The dispatch origin for this call must be `Signed` by the
 		/// transactor.
+		#[pallet::call_index(0)]
 		#[pallet::weight(T::WeightInfo::transfer_non_native_currency())]
 		pub fn transfer(
 			origin: OriginFor<T>,
@@ -142,6 +143,7 @@ pub mod module {
 		///
 		/// The dispatch origin for this call must be `Signed` by the
 		/// transactor.
+		#[pallet::call_index(1)]
 		#[pallet::weight(T::WeightInfo::transfer_native_currency())]
 		pub fn transfer_native_currency(
 			origin: OriginFor<T>,
@@ -156,6 +158,7 @@ pub mod module {
 		/// update amount of account `who` under `currency_id`.
 		///
 		/// The dispatch origin of this call must be _Root_.
+		#[pallet::call_index(2)]
 		#[pallet::weight(T::WeightInfo::update_balance_non_native_currency())]
 		pub fn update_balance(
 			origin: OriginFor<T>,

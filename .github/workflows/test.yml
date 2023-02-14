@@ -4,11 +4,13 @@ on:
   pull_request:
     branches:
       - master
+      - polkadot-**
     paths-ignore:
       - '**/README.md'
   push:
     branches:
       - master
+      - polkadot-**
     paths-ignore:
       - '**/README.md'
 
@@ -30,14 +32,11 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Install toolchain
-      uses: actions-rs/toolchain@v1
+      uses: dtolnay/rust-toolchain@nightly
       with:
-        profile: minimal
-        toolchain: nightly-2022-08-05
+        toolchain: nightly-2022-10-30
         components: rustfmt
         target: wasm32-unknown-unknown
-        override: true
-        default: true
     - name: Install Wasm toolchain
       run: rustup target add wasm32-unknown-unknown
     - name: Check format

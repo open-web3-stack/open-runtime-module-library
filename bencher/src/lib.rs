@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 #[doc(hidden)]
-pub extern crate frame_benchmarking;
+pub extern crate frame_support;
 #[doc(hidden)]
 pub extern crate paste;
 #[doc(hidden)]

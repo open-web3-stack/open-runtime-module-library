@@ -155,6 +155,7 @@ pub mod module {
 		/// Feed the external value.
 		///
 		/// Require authorized operator.
+		#[pallet::call_index(0)]
 		#[pallet::weight(T::WeightInfo::feed_values(values.len() as u32))]
 		pub fn feed_values(
 			origin: OriginFor<T>,
@@ -214,7 +215,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 				value: value.clone(),
 				timestamp: now,
 			};
-			RawValues::<T, I>::insert(&who, &key, timestamped);
+			RawValues::<T, I>::insert(&who, key, timestamped);
 
 			// Update `Values` storage if `combined` yielded result.
 			if let Some(combined) = Self::combined(key) {

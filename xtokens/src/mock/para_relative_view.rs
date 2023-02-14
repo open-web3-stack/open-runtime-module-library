@@ -4,7 +4,7 @@ use crate as orml_xtokens;
 use frame_support::{
 	construct_runtime, match_types, parameter_types,
 	traits::{ConstU128, ConstU32, ConstU64, Everything, Nothing},
-	weights::constants::WEIGHT_PER_SECOND,
+	weights::constants::WEIGHT_REF_TIME_PER_SECOND,
 };
 use frame_system::EnsureRoot;
 use sp_core::H256;
@@ -86,21 +86,16 @@ impl orml_tokens::Config for Runtime {
 	type CurrencyId = CurrencyId;
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
-	type OnDust = ();
-	type OnSlash = ();
-	type OnDeposit = ();
-	type OnTransfer = ();
+	type CurrencyHooks = ();
 	type MaxLocks = ConstU32<50>;
 	type MaxReserves = ConstU32<50>;
 	type ReserveIdentifier = [u8; 8];
 	type DustRemovalWhitelist = Everything;
-	type OnNewTokenAccount = ();
-	type OnKilledTokenAccount = ();
 }
 
 parameter_types! {
-	pub const ReservedXcmpWeight: Weight = WEIGHT_PER_SECOND.ref_time() / 4;
-	pub const ReservedDmpWeight: Weight = WEIGHT_PER_SECOND.ref_time() / 4;
+	pub const ReservedXcmpWeight: Weight = WEIGHT_REF_TIME_PER_SECOND / 4;
+	pub const ReservedDmpWeight: Weight = WEIGHT_REF_TIME_PER_SECOND / 4;
 }
 
 impl parachain_info::Config for Runtime {}

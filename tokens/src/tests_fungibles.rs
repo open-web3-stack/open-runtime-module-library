@@ -22,6 +22,9 @@ fn fungibles_inspect_trait_should_work() {
 			);
 			assert_ok!(<Tokens as fungibles::Inspect<_>>::can_deposit(DOT, &ALICE, 1, false).into_result());
 			assert_ok!(<Tokens as fungibles::Inspect<_>>::can_withdraw(DOT, &ALICE, 1).into_result());
+
+			assert!(<Tokens as fungibles::Inspect<_>>::asset_exists(DOT));
+			assert!(!<Tokens as fungibles::Inspect<_>>::asset_exists(BTC));
 		});
 }
 
@@ -87,7 +90,7 @@ fn fungibles_unbalanced_trait_should_work() {
 			assert_ok!(<Tokens as MultiReservableCurrency<AccountId>>::reserve(DOT, &ALICE, 50));
 			assert_noop!(
 				<Tokens as fungibles::Unbalanced<_>>::decrease_balance(DOT, &ALICE, 60),
-				ArithmeticError::Underflow
+				TokenError::NoFunds
 			);
 			assert_eq!(
 				<Tokens as fungibles::Unbalanced<_>>::decrease_balance(DOT, &ALICE, 50),
@@ -124,11 +127,7 @@ fn fungibles_unbalanced_trait_should_work() {
 			assert_ok!(<Tokens as MultiReservableCurrency<AccountId>>::reserve(DOT, &ALICE, 50));
 			assert_eq!(
 				<Tokens as fungibles::Unbalanced<_>>::decrease_balance_at_most(DOT, &ALICE, 60),
-				0
-			);
-			assert_eq!(
-				<Tokens as fungibles::Unbalanced<_>>::decrease_balance_at_most(DOT, &ALICE, 50),
-				50
+				50,
 			);
 			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 50);
 			assert_eq!(
@@ -287,7 +286,7 @@ fn fungibles_inspect_convert_should_work() {
 	>;
 
 	ExtBuilder::default()
-		.balances(vec![(ALICE, DOT, 100), (BOB, DOT, 100)])
+		.balances(vec![(ALICE, DOT, 100), (BOB, DOT, 100), (BOB, BTC, 100)])
 		.build()
 		.execute_with(|| {
 			assert_eq!(
@@ -298,6 +297,10 @@ fn fungibles_inspect_convert_should_work() {
 				<RebaseTokens as fungibles::Inspect<AccountId>>::total_issuance(DOT),
 				20000
 			);
+
+			assert!(<Tokens as fungibles::Inspect<_>>::asset_exists(DOT));
+			assert!(<Tokens as fungibles::Inspect<_>>::asset_exists(BTC));
+			assert!(!<Tokens as fungibles::Inspect<_>>::asset_exists(ETH));
 		});
 }
 

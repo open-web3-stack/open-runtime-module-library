@@ -11,6 +11,13 @@
 //! Two functionalities are provided by this module:
 //! - schedule a dispatchable
 //! - dispatch method with on behalf of other origins
+//!
+//! NOTE:
+//!
+//! In order to derive a feasible max encoded len for `DelayedOrigin`, it is
+//! assumed that there are no nested `DelayedOrigin` in `OriginCaller`.
+//! In practice, this means there should not be nested `schedule_dispatch`.
+//! Otherwise the proof size estimation may not be accurate.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 // Disable the following three lints since they originate from an external macro
@@ -32,6 +39,7 @@ use frame_support::{
 };
 use frame_system::{pallet_prelude::*, EnsureRoot, EnsureSigned};
 use scale_info::TypeInfo;
+use sp_core::defer;
 use sp_runtime::{
 	traits::{CheckedSub, Dispatchable, Hash, Saturating},
 	ArithmeticError, DispatchError, DispatchResult, Either, RuntimeDebug,
@@ -45,12 +53,71 @@ mod weights;
 pub use weights::WeightInfo;
 
 /// A delayed origin. Can only be dispatched via `dispatch_as` with a delay.
-#[derive(PartialEq, Eq, Clone, RuntimeDebug, Encode, Decode, TypeInfo, MaxEncodedLen)]
+#[derive(PartialEq, Eq, Clone, RuntimeDebug, Encode, Decode, TypeInfo)]
 pub struct DelayedOrigin<BlockNumber, PalletsOrigin> {
 	/// Number of blocks that this call have been delayed.
-	pub delay: BlockNumber,
+	pub(crate) delay: BlockNumber,
 	/// The initial origin.
-	pub origin: Box<PalletsOrigin>,
+	pub(crate) origin: Box<PalletsOrigin>,
+}
+
+#[cfg(any(feature = "std", feature = "runtime-benchmarks", test))]
+impl<BlockNumber, PalletsOrigin> DelayedOrigin<BlockNumber, PalletsOrigin> {
+	pub fn new(delay: BlockNumber, origin: Box<PalletsOrigin>) -> Self {
+		Self { delay, origin }
+	}
+}
+
+#[cfg(feature = "std")]
+mod helper {
+	use std::cell::RefCell;
+
+	thread_local! {
+		static NESTED_MAX_ENCODED_LEN: RefCell<bool> = RefCell::new(false);
+	}
+
+	pub fn set_nested_max_encoded_len(val: bool) {
+		NESTED_MAX_ENCODED_LEN.with(|v| *v.borrow_mut() = val);
+	}
+
+	pub fn nested_max_encoded_len() -> bool {
+		NESTED_MAX_ENCODED_LEN.with(|v| *v.borrow())
+	}
+}
+
+#[cfg(not(feature = "std"))]
+mod helper {
+	static mut NESTED_MAX_ENCODED_LEN: bool = false;
+
+	pub fn set_nested_max_encoded_len(val: bool) {
+		unsafe {
+			NESTED_MAX_ENCODED_LEN = val;
+		}
+	}
+
+	pub fn nested_max_encoded_len() -> bool {
+		unsafe { NESTED_MAX_ENCODED_LEN }
+	}
+}
+
+// Manual implementation to break recursive calls of `MaxEncodedLen` as the
+// implementation of `PalletsOrigin::max_encoded_len` will also call
+// `MaxEncodedLen` on `DelayedOrigin`. This is only safe if there are no nested
+// `DelayedOrigin`. It is only possible to construct a `DelayedOrigin` via
+// `schedule_dispatch` which is a protected call only accessible via governance.
+impl<BlockNumber: MaxEncodedLen, PalletsOrigin: MaxEncodedLen> MaxEncodedLen
+	for DelayedOrigin<BlockNumber, PalletsOrigin>
+{
+	fn max_encoded_len() -> usize {
+		if helper::nested_max_encoded_len() {
+			return 0;
+		}
+
+		helper::set_nested_max_encoded_len(true);
+		defer!(helper::set_nested_max_encoded_len(false));
+
+		BlockNumber::max_encoded_len() + PalletsOrigin::max_encoded_len()
+	}
 }
 
 /// Ensure the origin have a minimum amount of delay.
@@ -99,10 +166,10 @@ pub trait AuthorityConfig<Origin, PalletsOrigin, BlockNumber> {
 		new_delay: BlockNumber,
 	) -> DispatchResult;
 	/// Check if the `origin` is allow to delay a scheduled task that
-	/// initially created by `inital_origin`.
+	/// initially created by `initial_origin`.
 	fn check_delay_schedule(origin: Origin, initial_origin: &PalletsOrigin) -> DispatchResult;
 	/// Check if the `origin` is allow to cancel a scheduled task that
-	/// initially created by `inital_origin`.
+	/// initially created by `initial_origin`.
 	fn check_cancel_schedule(origin: Origin, initial_origin: &PalletsOrigin) -> DispatchResult;
 }
 
@@ -240,6 +307,7 @@ pub mod module {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		/// Dispatch a dispatchable on behalf of other origin
+		#[pallet::call_index(0)]
 		#[pallet::weight({
 			let info = call.get_dispatch_info();
 			(T::WeightInfo::dispatch_as().saturating_add(info.weight), info.class)
@@ -257,6 +325,7 @@ pub mod module {
 
 		/// Schedule a dispatchable to be dispatched at later block.
 		/// This is the only way to dispatch a call with `DelayedOrigin`.
+		#[pallet::call_index(1)]
 		#[pallet::weight(T::WeightInfo::schedule_dispatch_without_delay())]
 		pub fn schedule_dispatch(
 			origin: OriginFor<T>,
@@ -308,6 +377,7 @@ pub mod module {
 		}
 
 		/// Fast track a scheduled dispatchable.
+		#[pallet::call_index(2)]
 		#[pallet::weight(T::WeightInfo::fast_track_scheduled_dispatch())]
 		pub fn fast_track_scheduled_dispatch(
 			origin: OriginFor<T>,
@@ -338,6 +408,7 @@ pub mod module {
 		}
 
 		/// Delay a scheduled dispatchable.
+		#[pallet::call_index(3)]
 		#[pallet::weight(T::WeightInfo::delay_scheduled_dispatch())]
 		pub fn delay_scheduled_dispatch(
 			origin: OriginFor<T>,
@@ -365,6 +436,7 @@ pub mod module {
 		}
 
 		/// Cancel a scheduled dispatchable.
+		#[pallet::call_index(4)]
 		#[pallet::weight(T::WeightInfo::cancel_scheduled_dispatch())]
 		pub fn cancel_scheduled_dispatch(
 			origin: OriginFor<T>,
@@ -381,6 +453,7 @@ pub mod module {
 			Ok(())
 		}
 
+		#[pallet::call_index(5)]
 		#[pallet::weight(T::WeightInfo::authorize_call())]
 		pub fn authorize_call(
 			origin: OriginFor<T>,
@@ -394,14 +467,15 @@ pub mod module {
 			Ok(())
 		}
 
+		#[pallet::call_index(6)]
 		#[pallet::weight(T::WeightInfo::remove_authorized_call())]
 		pub fn remove_authorized_call(origin: OriginFor<T>, hash: T::Hash) -> DispatchResult {
-			let root_or_sigend =
+			let root_or_signed =
 				EitherOfDiverse::<EnsureRoot<T::AccountId>, EnsureSigned<T::AccountId>>::ensure_origin(origin)?;
 
 			SavedCalls::<T>::try_mutate_exists(hash, |maybe_call| {
 				let (_, maybe_caller) = maybe_call.take().ok_or(Error::<T>::CallNotAuthorized)?;
-				match root_or_sigend {
+				match root_or_signed {
 					Either::Left(_) => {} // root, do nothing
 					Either::Right(who) => {
 						// signed, ensure it's the caller
@@ -414,6 +488,7 @@ pub mod module {
 			})
 		}
 
+		#[pallet::call_index(7)]
 		#[pallet::weight((
 			T::WeightInfo::trigger_call().saturating_add((*call_weight_bound).into()),
 			DispatchClass::Operational,
@@ -445,6 +520,7 @@ pub mod module {
 			})
 		}
 
+		#[pallet::call_index(8)]
 		#[pallet::weight((
 			T::WeightInfo::trigger_call().saturating_add(*call_weight_bound),
 			DispatchClass::Operational,

@@ -13,16 +13,16 @@ impl<T: frame_system::Config> ModuleWeights<T> {
 	{{#each benchmarks as |benchmark|}}
 	// Storage access info
 	//
-	{{#each benchmark.comments as |c|}}
-	// {{c}}
+	{{#each benchmark.comments as |comment|}}
+	// {{comment}}
 	{{/each}}
 	pub fn {{benchmark.name~}} () -> Weight {
-		({{underscore benchmark.weight}} as Weight)
+		Weight::from_ref_time({{underscore benchmark.weight}})
 			{{#if (ne benchmark.reads 0)}}
-			.saturating_add(T::DbWeight::get().reads({{benchmark.reads}} as Weight))
+			.saturating_add(T::DbWeight::get().reads({{benchmark.reads}}))
 			{{/if}}
 			{{#if (ne benchmark.writes 0)}}
-			.saturating_add(T::DbWeight::get().writes({{benchmark.writes}} as Weight))
+			.saturating_add(T::DbWeight::get().writes({{benchmark.writes}}))
 			{{/if}}
 	}
 	{{/each}}

@@ -361,7 +361,15 @@ fn test_register_duplicate_location_returns_error() {
 	ParaA::execute_with(|| {
 		let metadata = dummy_metadata();
 
-		assert_ok!(AssetRegistry::register_asset(RuntimeOrigin::root(), metadata.clone(), None));
+		assert_ok!(AssetRegistry::register_asset(
+			RuntimeOrigin::root(),
+			metadata.clone(),
+			None
+		));
+		let register_asset = RuntimeCall::AssetRegistry(crate::Call::<para::Runtime>::register_asset {
+			metadata: metadata.clone(),
+			asset_id: None,
+		});
 		assert_noop!(
 			AssetRegistry::do_register_asset_without_asset_processor(metadata.clone(), 2),
 			Error::<para::Runtime>::ConflictingLocation

@@ -15,16 +15,16 @@ required-features = ["bench"]
 serde = { version = "1.0.136", optional = true }
 scale-info = { version = "2.1.2", default-features = false, features = ["derive"] }
 codec = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"], default-features = false }
-frame-support = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.31" }
-frame-system = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.31" }
-sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.31" }
-sp-core = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.31" }
-sp-std = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.31" }
+frame-support = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.36" }
+frame-system = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.36" }
+sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.36" }
+sp-core = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.36" }
+sp-std = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.36" }
 orml-bencher = { path = "..", default-features = false }
 orml-weight-meter = { path = "../../weight-meter", default-features = false }
 
 [dev-dependencies]
-sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.31" }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36" }
 
 [features]
 default = ["std"]
@@ -32,18 +32,15 @@ std = [
     "serde",
     "scale-info/std",
     "codec/std",
-    "orml-bencher/std",
     "frame-support/std",
     "frame-system/std",
     "sp-runtime/std",
-    "sp-std/std",
     "sp-core/std",
+    "sp-std/std",
+    "orml-bencher/std",
     "orml-weight-meter/std",
 ]
 bench = [
     "orml-bencher/bench",
     "orml-weight-meter/bench",
-    "frame-support/runtime-benchmarks",
-	"sp-runtime/runtime-benchmarks",
-	"frame-system/runtime-benchmarks",
 ]
