@@ -952,13 +952,25 @@ pub mod module {
 		}
 
 		#[require_transactional]
-		fn transfer_multi_asset(
+		fn transfer_multiasset(
 			who: T::AccountId,
 			asset: MultiAsset,
 			dest: MultiLocation,
 			dest_weight_limit: WeightLimit,
 		) -> DispatchResult {
 			Self::do_transfer_multiasset(who, asset, dest, dest_weight_limit)
+		}
+
+		#[require_transactional]
+		fn transfer_with_fee(
+			who: T::AccountId,
+			currency_id: T::CurrencyId,
+			amount: T::Balance,
+			fee: T::Balance,
+			dest: MultiLocation,
+			dest_weight_limit: WeightLimit,
+		) -> DispatchResult {
+			Self::do_transfer_with_fee(who, currency_id, amount, fee, dest, dest_weight_limit)
 		}
 
 		#[require_transactional]
@@ -970,6 +982,28 @@ pub mod module {
 			dest_weight_limit: WeightLimit,
 		) -> DispatchResult {
 			Self::do_transfer_multiasset_with_fee(who, asset, fee, dest, dest_weight_limit)
+		}
+
+		#[require_transactional]
+		fn transfer_multicurrencies(
+			who: T::AccountId,
+			currencies: Vec<(T::CurrencyId, T::Balance)>,
+			fee_item: u32,
+			dest: MultiLocation,
+			dest_weight_limit: WeightLimit,
+		) -> DispatchResult {
+			Self::do_transfer_multicurrencies(who, currencies, fee_item, dest, dest_weight_limit)
+		}
+
+		#[require_transactional]
+		fn transfer_multiassets(
+			who: T::AccountId,
+			assets: MultiAssets,
+			fee: MultiAsset,
+			dest: MultiLocation,
+			dest_weight_limit: WeightLimit,
+		) -> DispatchResult {
+			Self::do_transfer_multiassets(who, assets, fee, dest, dest_weight_limit)
 		}
 	}
 }
