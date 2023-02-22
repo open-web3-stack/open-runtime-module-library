@@ -10,8 +10,8 @@ use frame_support::{assert_err, assert_ok};
 const MOCK_RECIPIENT: MultiLocation = MultiLocation::parent();
 const MOCK_CONCRETE_FUNGIBLE_ID: MultiLocation = MultiLocation::parent();
 
-fn mock_abstract_fungible_id() -> Vec<u8> {
-	vec![1]
+fn mock_abstract_fungible_id() -> [u8; 32] {
+	[1; 32]
 }
 
 fn concrete_fungible(amount: u128) -> MultiAsset {
@@ -51,7 +51,7 @@ fn deposit_abstract_fungible_asset() {
 		let asset = abstract_fungible(3);
 		assert_ok!(UnknownTokens::deposit(&asset, &MOCK_RECIPIENT));
 		assert_eq!(
-			UnknownTokens::abstract_fungible_balances(&MOCK_RECIPIENT, &mock_abstract_fungible_id()),
+			UnknownTokens::abstract_fungible_balances(&MOCK_RECIPIENT, &mock_abstract_fungible_id().to_vec()),
 			3
 		);
 		System::assert_last_event(RuntimeEvent::UnknownTokens(crate::Event::Deposited {
@@ -66,7 +66,7 @@ fn deposit_abstract_fungible_asset() {
 			Error::<Runtime>::BalanceOverflow
 		);
 		assert_eq!(
-			UnknownTokens::abstract_fungible_balances(&MOCK_RECIPIENT, &mock_abstract_fungible_id()),
+			UnknownTokens::abstract_fungible_balances(&MOCK_RECIPIENT, &mock_abstract_fungible_id().to_vec()),
 			3
 		);
 	});
@@ -115,12 +115,12 @@ fn withdraw_concrete_fungible_asset_works() {
 #[test]
 fn withdraw_abstract_fungible_asset_works() {
 	ExtBuilder.build().execute_with(|| {
-		AbstractFungibleBalances::<Runtime>::insert(&MOCK_RECIPIENT, &mock_abstract_fungible_id(), 3);
+		AbstractFungibleBalances::<Runtime>::insert(&MOCK_RECIPIENT, &mock_abstract_fungible_id().to_vec(), 3);
 
 		let asset = abstract_fungible(3);
 		assert_ok!(UnknownTokens::withdraw(&asset, &MOCK_RECIPIENT));
 		assert_eq!(
-			UnknownTokens::abstract_fungible_balances(&MOCK_RECIPIENT, &mock_abstract_fungible_id()),
+			UnknownTokens::abstract_fungible_balances(&MOCK_RECIPIENT, &mock_abstract_fungible_id().to_vec()),
 			0
 		);
 		System::assert_last_event(RuntimeEvent::UnknownTokens(crate::Event::Withdrawn {
