@@ -684,7 +684,7 @@ pub mod module {
 				dest: dest.clone(),
 				xcm: Xcm(vec![
 					Self::buy_execution(fee, &dest, dest_weight_limit)?,
-					Self::deposit_asset(recipient),
+					Self::deposit_asset(recipient, assets.len() as u32),
 				]),
 			}]))
 		}
@@ -703,7 +703,7 @@ pub mod module {
 					reserve: reserve.clone(),
 					xcm: Xcm(vec![
 						Self::buy_execution(fee, &reserve, dest_weight_limit)?,
-						Self::deposit_asset(recipient),
+						Self::deposit_asset(recipient, assets.len() as u32),
 					]),
 				},
 			]))
@@ -731,6 +731,7 @@ pub mod module {
 				}
 			}
 
+			let max_assets = assets.len() as u32;
 			if !use_teleport {
 				Ok(Xcm(vec![
 					WithdrawAsset(assets.clone()),
@@ -740,11 +741,11 @@ pub mod module {
 						xcm: Xcm(vec![
 							Self::buy_execution(half(&fee), &reserve, dest_weight_limit.clone())?,
 							DepositReserveAsset {
-								assets: All.into(),
+								assets: AllCounted(max_assets).into(),
 								dest: reanchored_dest,
 								xcm: Xcm(vec![
 									Self::buy_execution(half(&fee), &dest, dest_weight_limit)?,
-									Self::deposit_asset(recipient),
+									Self::deposit_asset(recipient, max_assets),
 								]),
 							},
 						]),
@@ -763,7 +764,7 @@ pub mod module {
 								dest: reanchored_dest,
 								xcm: Xcm(vec![
 									Self::buy_execution(half(&fee), &dest, dest_weight_limit)?,
-									Self::deposit_asset(recipient),
+									Self::deposit_asset(recipient, max_assets),
 								]),
 							},
 						]),
@@ -772,9 +773,9 @@ pub mod module {
 			}
 		}
 
-		fn deposit_asset(recipient: MultiLocation) -> Instruction<()> {
+		fn deposit_asset(recipient: MultiLocation, max_assets: u32) -> Instruction<()> {
 			DepositAsset {
-				assets: All.into(),
+				assets: AllCounted(max_assets).into(),
 				beneficiary: recipient,
 			}
 		}
