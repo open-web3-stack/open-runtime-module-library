@@ -83,7 +83,7 @@ impl<T: Config> UnknownAsset for Pallet<T> {
 			MultiAsset {
 				fun: Fungible(amount),
 				id: Abstract(key),
-			} => AbstractFungibleBalances::<T>::try_mutate(to, key, |b| -> DispatchResult {
+			} => AbstractFungibleBalances::<T>::try_mutate(to, key.to_vec(), |b| -> DispatchResult {
 				*b = b.checked_add(*amount).ok_or(Error::<T>::BalanceOverflow)?;
 				Ok(())
 			}),
@@ -110,7 +110,7 @@ impl<T: Config> UnknownAsset for Pallet<T> {
 			MultiAsset {
 				fun: Fungible(amount),
 				id: Abstract(key),
-			} => AbstractFungibleBalances::<T>::try_mutate(from, key, |b| -> DispatchResult {
+			} => AbstractFungibleBalances::<T>::try_mutate(from, key.to_vec(), |b| -> DispatchResult {
 				*b = b.checked_sub(*amount).ok_or(Error::<T>::BalanceTooLow)?;
 				Ok(())
 			}),

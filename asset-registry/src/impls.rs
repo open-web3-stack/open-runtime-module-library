@@ -104,7 +104,7 @@ impl<W: WeightToFeeConverter, R: TakeRevenue> WeightTrader for AssetRegistryTrad
 					continue;
 				}
 
-				if let Some(fee_increase) = W::convert_weight_to_fee(location, Weight::from_ref_time(weight)) {
+				if let Some(fee_increase) = W::convert_weight_to_fee(location, weight) {
 					if fee_increase == 0 {
 						// if the fee is set very low it could lead to zero fees, in which case
 						// constructing the fee asset item to subtract from payment would fail.
@@ -120,9 +120,7 @@ impl<W: WeightToFeeConverter, R: TakeRevenue> WeightTrader for AssetRegistryTrad
 
 						self.bought_weight = Some(BoughtWeight {
 							amount: existing_fee.checked_add(fee_increase).ok_or(XcmError::Overflow)?,
-							weight: existing_weight
-								.checked_add(&Weight::from_ref_time(weight))
-								.ok_or(XcmError::Overflow)?,
+							weight: existing_weight.checked_add(&weight).ok_or(XcmError::Overflow)?,
 							asset_location: location.clone(),
 						});
 						return Ok(unused);
@@ -138,7 +136,7 @@ impl<W: WeightToFeeConverter, R: TakeRevenue> WeightTrader for AssetRegistryTrad
 
 		match self.bought_weight {
 			Some(ref mut bought) => {
-				let new_weight = bought.weight.saturating_sub(Weight::from_ref_time(weight));
+				let new_weight = bought.weight.saturating_sub(weight);
 				let new_amount = W::convert_weight_to_fee(&bought.asset_location, new_weight)?;
 				let refunded_amount = bought.amount.saturating_sub(new_amount);
 

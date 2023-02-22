@@ -41,13 +41,13 @@ use frame_support::{
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
 use sp_runtime::{
-	traits::{AtLeast32BitUnsigned, Convert, MaybeSerializeDeserialize, Member, Zero},
+	traits::{AtLeast32BitUnsigned, Bounded, Convert, MaybeSerializeDeserialize, Member, Zero},
 	DispatchError,
 };
 use sp_std::{prelude::*, result::Result};
 
 use xcm::{latest::Weight, prelude::*};
-use xcm_executor::traits::{InvertLocation, WeightBounds};
+use xcm_executor::traits::WeightBounds;
 
 pub use module::*;
 use orml_traits::{
@@ -117,8 +117,8 @@ pub mod module {
 		#[pallet::constant]
 		type BaseXcmWeight: Get<Weight>;
 
-		/// Means of inverting a location.
-		type LocationInverter: InvertLocation;
+		/// This chain's Universal Location.
+		type UniversalLocation: Get<InteriorMultiLocation>;
 
 		/// The maximum number of distinct assets allowed to be transferred in a
 		/// single helper extrinsic.
@@ -572,9 +572,9 @@ pub mod module {
 				let mut override_recipient = T::SelfLocation::get();
 				if override_recipient == MultiLocation::here() {
 					let dest_chain_part = dest.chain_part().ok_or(Error::<T>::InvalidDest)?;
-					let ancestry = T::LocationInverter::ancestry();
+					let ancestry = T::UniversalLocation::get();
 					let _ = override_recipient
-						.reanchor(&dest_chain_part, &ancestry)
+						.reanchor(&dest_chain_part, ancestry)
 						.map_err(|_| Error::<T>::CannotReanchor);
 				}
 
@@ -659,8 +659,10 @@ pub mod module {
 				)?,
 			};
 
+			let hash = msg.using_encoded(sp_io::hashing::blake2_256);
+
 			let weight = T::Weigher::weight(&mut msg).map_err(|()| Error::<T>::UnweighableMessage)?;
-			T::XcmExecutor::execute_xcm_in_credit(origin_location, msg, weight, weight)
+			T::XcmExecutor::execute_xcm_in_credit(origin_location, msg, hash, weight, weight)
 				.ensure_complete()
 				.map_err(|error| {
 					log::error!("Failed execute transfer message with {:?}", error);
@@ -682,7 +684,7 @@ pub mod module {
 				dest: dest.clone(),
 				xcm: Xcm(vec![
 					Self::buy_execution(fee, &dest, dest_weight_limit)?,
-					Self::deposit_asset(recipient, assets.len() as u32),
+					Self::deposit_asset(recipient),
 				]),
 			}]))
 		}
@@ -701,7 +703,7 @@ pub mod module {
 					reserve: reserve.clone(),
 					xcm: Xcm(vec![
 						Self::buy_execution(fee, &reserve, dest_weight_limit)?,
-						Self::deposit_asset(recipient, assets.len() as u32),
+						Self::deposit_asset(recipient),
 					]),
 				},
 			]))
@@ -739,11 +741,10 @@ pub mod module {
 							Self::buy_execution(half(&fee), &reserve, dest_weight_limit.clone())?,
 							DepositReserveAsset {
 								assets: All.into(),
-								max_assets: assets.len() as u32,
 								dest: reanchored_dest,
 								xcm: Xcm(vec![
 									Self::buy_execution(half(&fee), &dest, dest_weight_limit)?,
-									Self::deposit_asset(recipient, assets.len() as u32),
+									Self::deposit_asset(recipient),
 								]),
 							},
 						]),
@@ -762,7 +763,7 @@ pub mod module {
 								dest: reanchored_dest,
 								xcm: Xcm(vec![
 									Self::buy_execution(half(&fee), &dest, dest_weight_limit)?,
-									Self::deposit_asset(recipient, assets.len() as u32),
+									Self::deposit_asset(recipient),
 								]),
 							},
 						]),
@@ -771,10 +772,9 @@ pub mod module {
 			}
 		}
 
-		fn deposit_asset(recipient: MultiLocation, max_assets: u32) -> Instruction<()> {
+		fn deposit_asset(recipient: MultiLocation) -> Instruction<()> {
 			DepositAsset {
 				assets: All.into(),
-				max_assets,
 				beneficiary: recipient,
 			}
 		}
@@ -784,10 +784,8 @@ pub mod module {
 			at: &MultiLocation,
 			weight_limit: WeightLimit,
 		) -> Result<Instruction<()>, DispatchError> {
-			let ancestry = T::LocationInverter::ancestry();
-			let fees = asset
-				.reanchored(at, &ancestry)
-				.map_err(|_| Error::<T>::CannotReanchor)?;
+			let ancestry = T::UniversalLocation::get();
+			let fees = asset.reanchored(at, ancestry).map_err(|_| Error::<T>::CannotReanchor)?;
 
 			Ok(BuyExecution { fees, weight_limit })
 		}
@@ -859,7 +857,7 @@ pub mod module {
 						.map_or(Weight::max_value(), |w| T::BaseXcmWeight::get().saturating_add(w));
 				}
 			}
-			0
+			Weight::zero()
 		}
 
 		/// Returns weight of `transfer` call.
@@ -868,7 +866,7 @@ pub mod module {
 				let asset = (location, amount.into()).into();
 				Self::weight_of_transfer_multiasset(&asset, dest)
 			} else {
-				0
+				Weight::zero()
 			}
 		}
 
@@ -884,7 +882,7 @@ pub mod module {
 					let asset: MultiAsset = (location.clone(), (*amount).into()).into();
 					assets.push(asset);
 				} else {
-					return 0;
+					return Weight::zero();
 				}
 			}
 
@@ -922,7 +920,7 @@ pub mod module {
 						.map_or(Weight::max_value(), |w| T::BaseXcmWeight::get().saturating_add(w));
 				}
 			}
-			0
+			Weight::zero()
 		}
 
 		/// Get reserve location by `assets` and `fee_item`. the `assets`
