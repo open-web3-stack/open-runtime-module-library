@@ -14,7 +14,7 @@ use sp_runtime::{
 	DispatchResult,
 };
 use sp_std::prelude::*;
-use xcm::{v3::prelude::*, VersionedMultiLocation};
+use xcm::{latest::prelude::*, VersionedMultiLocation};
 
 pub use impls::*;
 pub use module::*;
