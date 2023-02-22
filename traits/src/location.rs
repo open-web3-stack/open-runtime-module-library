@@ -78,15 +78,12 @@ impl Reserve for RelativeReserveProvider {
 }
 
 pub trait RelativeLocations {
-	fn sibling_parachain_general_key(para_id: u32, general_key: BoundedVec<u8, ConstU32<32>>) -> Option<MultiLocation>;
+	fn sibling_parachain_general_key(para_id: u32, general_key: BoundedVec<u8, ConstU32<32>>) -> MultiLocation;
 }
 
 impl RelativeLocations for MultiLocation {
-	fn sibling_parachain_general_key(para_id: u32, general_key: BoundedVec<u8, ConstU32<32>>) -> Option<MultiLocation> {
-		if let Some(general_key) = Junction::try_from(general_key).ok() {
-			return Some(MultiLocation::new(1, X2(Parachain(para_id), general_key)));
-		}
-		None
+	fn sibling_parachain_general_key(para_id: u32, general_key: BoundedVec<u8, ConstU32<32>>) -> MultiLocation {
+		return MultiLocation::new(1, X2(Parachain(para_id), general_key.as_bounded_slice().into()));
 	}
 }
 
