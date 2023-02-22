@@ -9,12 +9,15 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 
-use frame_support::dispatch::{DispatchError, DispatchResult};
+use frame_support::{
+	dispatch::{DispatchError, DispatchResult},
+	traits::ContainsPair,
+};
 use sp_runtime::traits::{CheckedConversion, Convert};
 use sp_std::{marker::PhantomData, prelude::*};
 
 use xcm::latest::prelude::*;
-use xcm_executor::traits::{FilterAssetLocation, MatchesFungible};
+use xcm_executor::traits::MatchesFungible;
 
 use orml_traits::{location::Reserve, GetByKey};
 
@@ -42,10 +45,10 @@ where
 	}
 }
 
-/// A `FilterAssetLocation` implementation. Filters multi native assets whose
+/// A `ContainsPair` implementation. Filters multi native assets whose
 /// reserve is same with `origin`.
 pub struct MultiNativeAsset<ReserveProvider>(PhantomData<ReserveProvider>);
-impl<ReserveProvider> FilterAssetLocation for MultiNativeAsset<ReserveProvider>
+impl<ReserveProvider> ContainsPair<MultiAsset, MultiLocation> for MultiNativeAsset<ReserveProvider>
 where
 	ReserveProvider: Reserve,
 {
