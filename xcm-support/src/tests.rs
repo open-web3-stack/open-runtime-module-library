@@ -82,7 +82,9 @@ fn is_native_concrete_does_not_matches_non_native_currencies() {
 			fun: Fungible(100),
 			id: Concrete(MultiLocation::new(
 				1,
-				X1(GeneralKey(b"TokenB".to_vec().try_into().unwrap()))
+				X1(Junction::from(
+					sp_runtime::BoundedVec::try_from(b"TokenB".to_vec()).unwrap()
+				))
 			)),
 		})
 		.is_none()
