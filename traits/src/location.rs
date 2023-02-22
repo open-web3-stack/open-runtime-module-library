@@ -139,14 +139,14 @@ mod tests {
 		assert_eq!(
 			AbsoluteReserveProvider::reserve(&concrete_fungible(MultiLocation::new(
 				0,
-				X1(GeneralKey(b"DOT".to_vec().try_into().unwrap()))
+				X1(Junction::from(BoundedVec::try_from(b"DOT".to_vec()).unwrap()))
 			))),
 			None
 		);
 		assert_eq!(
 			RelativeReserveProvider::reserve(&concrete_fungible(MultiLocation::new(
 				0,
-				X1(GeneralKey(b"DOT".to_vec().try_into().unwrap()))
+				X1(Junction::from(BoundedVec::try_from(b"DOT".to_vec()).unwrap()))
 			))),
 			Some(MultiLocation::here())
 		);
