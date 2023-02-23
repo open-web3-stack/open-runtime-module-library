@@ -662,7 +662,9 @@ fn sending_sibling_asset_to_reserve_sibling_with_relay_fee_works() {
 	});
 
 	let fee_amount: u128 = 200;
-	let weight: u128 = 50;
+	// TODO: set the weight limit to 40 until this issue is addressed:
+	// https://github.com/paritytech/polkadot/issues/6770
+	let weight: u128 = 40;
 	let dest_weight: u128 = 40;
 
 	ParaA::execute_with(|| {
@@ -681,7 +683,7 @@ fn sending_sibling_asset_to_reserve_sibling_with_relay_fee_works() {
 				)
 					.into()
 			),
-			WeightLimit::Limited(weight as u64),
+			WeightLimit::Limited((weight as u64).into()),
 		));
 		assert_eq!(550, ParaTokens::free_balance(CurrencyId::C, &ALICE));
 		assert_eq!(1000 - fee_amount, ParaTokens::free_balance(CurrencyId::R, &ALICE));
@@ -722,7 +724,9 @@ fn sending_sibling_asset_to_reserve_sibling_with_relay_fee_works_with_relative_s
 	});
 
 	let fee_amount: u128 = 200;
-	let weight: u128 = 50;
+	// TODO: set the weight limit to 40 until this issue is addressed:
+	// https://github.com/paritytech/polkadot/issues/6770
+	let weight: u128 = 40;
 	let dest_weight: u128 = 40;
 
 	ParaD::execute_with(|| {
@@ -741,7 +745,7 @@ fn sending_sibling_asset_to_reserve_sibling_with_relay_fee_works_with_relative_s
 				)
 					.into()
 			),
-			WeightLimit::Limited(weight as u64),
+			WeightLimit::Limited((weight as u64).into()),
 		));
 		assert_eq!(550, ParaRelativeTokens::free_balance(CurrencyId::C, &ALICE));
 		assert_eq!(
@@ -785,7 +789,9 @@ fn sending_sibling_asset_to_reserve_sibling_with_relay_fee_not_enough() {
 	});
 
 	let fee_amount: u128 = 159;
-	let weight: u128 = 50;
+	// TODO: set the weight limit to 40 until this issue is addressed:
+	// https://github.com/paritytech/polkadot/issues/6770
+	let weight: u128 = 40;
 	let dest_weight: u128 = 40;
 
 	ParaA::execute_with(|| {
@@ -804,7 +810,7 @@ fn sending_sibling_asset_to_reserve_sibling_with_relay_fee_not_enough() {
 				)
 					.into()
 			),
-			WeightLimit::Limited(weight as u64),
+			WeightLimit::Limited((weight as u64).into()),
 		));
 		assert_eq!(550, ParaTokens::free_balance(CurrencyId::C, &ALICE));
 		assert_eq!(1000 - fee_amount, ParaTokens::free_balance(CurrencyId::R, &ALICE));
@@ -935,10 +941,11 @@ fn transfer_no_reserve_assets_fails() {
 	TestNet::reset();
 
 	ParaA::execute_with(|| {
+		let asset_id: AssetId = X1(Junction::from(BoundedVec::try_from(b"B".to_vec()).unwrap())).into();
 		assert_noop!(
 			ParaXTokens::transfer_multiasset(
 				Some(ALICE).into(),
-				Box::new((X1(GeneralKey(b"B".to_vec().try_into().unwrap())).into(), 100).into()),
+				Box::new((asset_id, 100).into()),
 				Box::new(
 					(
 						Parent,
@@ -1026,7 +1033,7 @@ fn send_as_sovereign() {
 		let call = relay::RuntimeCall::System(frame_system::Call::<relay::Runtime>::remark_with_event {
 			remark: vec![1, 1, 1],
 		});
-		let assets: MultiAsset = (Here, 1_000_000_000_000).into();
+		let assets: MultiAsset = (Here, 1_000_000_000_000u128).into();
 		assert_ok!(para::OrmlXcm::send_as_sovereign(
 			para::RuntimeOrigin::root(),
 			Box::new(Parent.into()),
@@ -1034,11 +1041,11 @@ fn send_as_sovereign() {
 				WithdrawAsset(assets.clone().into()),
 				BuyExecution {
 					fees: assets,
-					weight_limit: Limited(2_000_000_000)
+					weight_limit: Limited(2_000_000_000.into())
 				},
 				Instruction::Transact {
-					origin_type: SovereignAccount,
-					require_weight_at_most: 1_000_000_000,
+					origin_kind: SovereignAccount,
+					require_weight_at_most: 1_000_000_000.into(),
 					call: call.encode().into(),
 				}
 			])))
@@ -1069,7 +1076,7 @@ fn send_as_sovereign_fails_if_bad_origin() {
 		let call = relay::RuntimeCall::System(frame_system::Call::<relay::Runtime>::remark_with_event {
 			remark: vec![1, 1, 1],
 		});
-		let assets: MultiAsset = (Here, 1_000_000_000_000).into();
+		let assets: MultiAsset = (Here, 1_000_000_000_000u128).into();
 		assert_err!(
 			para::OrmlXcm::send_as_sovereign(
 				para::RuntimeOrigin::signed(ALICE),
@@ -1078,11 +1085,11 @@ fn send_as_sovereign_fails_if_bad_origin() {
 					WithdrawAsset(assets.clone().into()),
 					BuyExecution {
 						fees: assets,
-						weight_limit: Limited(10_000_000)
+						weight_limit: Limited(10_000_000.into())
 					},
 					Instruction::Transact {
-						origin_type: SovereignAccount,
-						require_weight_at_most: 1_000_000_000,
+						origin_kind: SovereignAccount,
+						require_weight_at_most: 1_000_000_000.into(),
 						call: call.encode().into(),
 					}
 				])))
@@ -1675,7 +1682,7 @@ fn send_with_sufficient_weight_limit() {
 				)
 				.into()
 			),
-			WeightLimit::Limited(40),
+			WeightLimit::Limited(40.into()),
 		));
 
 		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &ALICE), 500);
@@ -1711,7 +1718,7 @@ fn send_with_insufficient_weight_limit() {
 				)
 				.into()
 			),
-			WeightLimit::Limited(1),
+			WeightLimit::Limited(1.into()),
 		));
 
 		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &ALICE), 500);

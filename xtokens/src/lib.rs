@@ -644,7 +644,6 @@ pub mod module {
 				Some(recipient) => recipient,
 				None => recipient,
 			};
-
 			let mut msg = match transfer_kind {
 				SelfReserveAsset => Self::transfer_self_reserve_asset(assets, fee, dest, recipient, dest_weight_limit)?,
 				ToReserve => Self::transfer_to_reserve(assets, fee, dest, recipient, dest_weight_limit)?,
@@ -658,7 +657,6 @@ pub mod module {
 					use_teleport,
 				)?,
 			};
-
 			let hash = msg.using_encoded(sp_io::hashing::blake2_256);
 
 			let weight = T::Weigher::weight(&mut msg).map_err(|()| Error::<T>::UnweighableMessage)?;
