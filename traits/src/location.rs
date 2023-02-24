@@ -1,5 +1,4 @@
 use sp_core::{bounded::BoundedVec, ConstU32};
-use sp_std::prelude::*;
 use xcm::latest::prelude::*;
 
 pub trait Parse {
@@ -28,7 +27,7 @@ impl Parse for MultiLocation {
 	}
 
 	fn non_chain_part(&self) -> Option<MultiLocation> {
-		let mut junctions = self.interior().clone();
+		let mut junctions = *self.interior();
 		while is_chain_junction(junctions.first()) {
 			let _ = junctions.take_first();
 		}

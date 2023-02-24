@@ -425,7 +425,7 @@ pub mod module {
 				Error::<T>::NotSupportedMultiLocation
 			);
 
-			let asset = (location.clone(), amount.into()).into();
+			let asset = (location, amount.into()).into();
 			let fee_asset: MultiAsset = (location, fee.into()).into();
 
 			// Push contains saturated addition, so we should be able to use it safely
@@ -548,11 +548,11 @@ pub mod module {
 				// like `NonReserve` or `SelfReserve` with relay-chain fee is not support.
 				ensure!(non_fee_reserve == dest.chain_part(), Error::<T>::InvalidAsset);
 
-				let reserve_location = non_fee_reserve.clone().ok_or(Error::<T>::AssetHasNoReserve)?;
+				let reserve_location = non_fee_reserve.ok_or(Error::<T>::AssetHasNoReserve)?;
 				let min_xcm_fee = T::MinXcmFee::get(&reserve_location).ok_or(Error::<T>::MinXcmFeeNotDefined)?;
 
 				// min xcm fee should less than user fee
-				let fee_to_dest: MultiAsset = (fee.id.clone(), min_xcm_fee).into();
+				let fee_to_dest: MultiAsset = (fee.id, min_xcm_fee).into();
 				ensure!(fee_to_dest < fee, Error::<T>::FeeNotEnough);
 
 				let mut assets_to_dest = MultiAssets::new();
@@ -583,7 +583,7 @@ pub mod module {
 				// teleport. But as current there's only one case which is Parachain send back
 				// asset to Statemine/t, So we set `use_teleport` to always `true` in this case.
 				Self::execute_and_send_reserve_kind_xcm(
-					origin_location.clone(),
+					origin_location,
 					assets_to_fee_reserve,
 					asset_to_fee_reserve,
 					fee_reserve,
@@ -679,7 +679,7 @@ pub mod module {
 		) -> Result<Xcm<T::RuntimeCall>, DispatchError> {
 			Ok(Xcm(vec![TransferReserveAsset {
 				assets: assets.clone(),
-				dest: dest.clone(),
+				dest,
 				xcm: Xcm(vec![
 					Self::buy_execution(fee, &dest, dest_weight_limit)?,
 					Self::deposit_asset(recipient, assets.len() as u32),
@@ -698,7 +698,7 @@ pub mod module {
 				WithdrawAsset(assets.clone()),
 				InitiateReserveWithdraw {
 					assets: All.into(),
-					reserve: reserve.clone(),
+					reserve,
 					xcm: Xcm(vec![
 						Self::buy_execution(fee, &reserve, dest_weight_limit)?,
 						Self::deposit_asset(recipient, assets.len() as u32),
@@ -716,7 +716,7 @@ pub mod module {
 			dest_weight_limit: WeightLimit,
 			use_teleport: bool,
 		) -> Result<Xcm<T::RuntimeCall>, DispatchError> {
-			let mut reanchored_dest = dest.clone();
+			let mut reanchored_dest = dest;
 			if reserve == MultiLocation::parent() {
 				match dest {
 					MultiLocation {
@@ -732,10 +732,10 @@ pub mod module {
 			let max_assets = assets.len() as u32;
 			if !use_teleport {
 				Ok(Xcm(vec![
-					WithdrawAsset(assets.clone()),
+					WithdrawAsset(assets),
 					InitiateReserveWithdraw {
 						assets: All.into(),
-						reserve: reserve.clone(),
+						reserve,
 						xcm: Xcm(vec![
 							Self::buy_execution(half(&fee), &reserve, dest_weight_limit.clone())?,
 							DepositReserveAsset {
@@ -751,10 +751,10 @@ pub mod module {
 				]))
 			} else {
 				Ok(Xcm(vec![
-					WithdrawAsset(assets.clone()),
+					WithdrawAsset(assets),
 					InitiateReserveWithdraw {
 						assets: All.into(),
-						reserve: reserve.clone(),
+						reserve,
 						xcm: Xcm(vec![
 							Self::buy_execution(half(&fee), &reserve, dest_weight_limit.clone())?,
 							InitiateTeleport {
@@ -878,7 +878,7 @@ pub mod module {
 			let mut assets: Vec<MultiAsset> = Vec::new();
 			for (currency_id, amount) in currencies {
 				if let Some(location) = T::CurrencyIdConvert::convert(currency_id.clone()) {
-					let asset: MultiAsset = (location.clone(), (*amount).into()).into();
+					let asset: MultiAsset = (location, (*amount).into()).into();
 					assets.push(asset);
 				} else {
 					return Weight::zero();
@@ -986,7 +986,7 @@ fn half(asset: &MultiAsset) -> MultiAsset {
 		.expect("div 2 can't overflow; qed");
 	MultiAsset {
 		fun: Fungible(half_amount),
-		id: asset.id.clone(),
+		id: asset.id,
 	}
 }
 
@@ -994,6 +994,6 @@ fn subtract_fee(asset: &MultiAsset, amount: u128) -> MultiAsset {
 	let final_amount = fungible_amount(asset).checked_sub(amount).expect("fee too low; qed");
 	MultiAsset {
 		fun: Fungible(final_amount),
-		id: asset.id.clone(),
+		id: asset.id,
 	}
 }

@@ -14,7 +14,7 @@ use frame_support::{
 	traits::ContainsPair,
 };
 use sp_runtime::traits::{CheckedConversion, Convert};
-use sp_std::{marker::PhantomData, prelude::*};
+use sp_std::marker::PhantomData;
 
 use xcm::latest::prelude::*;
 use xcm_executor::traits::MatchesFungible;
@@ -37,7 +37,7 @@ where
 {
 	fn matches_fungible(a: &MultiAsset) -> Option<Amount> {
 		if let (Fungible(ref amount), Concrete(ref location)) = (&a.fun, &a.id) {
-			if CurrencyIdConvert::convert(location.clone()).is_some() {
+			if CurrencyIdConvert::convert(*location).is_some() {
 				return CheckedConversion::checked_from(*amount);
 			}
 		}

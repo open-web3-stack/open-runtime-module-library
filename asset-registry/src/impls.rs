@@ -112,7 +112,7 @@ impl<W: WeightToFeeConverter, R: TakeRevenue> WeightTrader for AssetRegistryTrad
 						return Ok(payment);
 					}
 
-					if let Ok(unused) = payment.clone().checked_sub((asset.clone(), fee_increase).into()) {
+					if let Ok(unused) = payment.clone().checked_sub((*asset, fee_increase).into()) {
 						let (existing_weight, existing_fee) = match self.bought_weight {
 							Some(ref x) => (x.weight, x.amount),
 							None => (Weight::zero(), 0),
@@ -121,7 +121,7 @@ impl<W: WeightToFeeConverter, R: TakeRevenue> WeightTrader for AssetRegistryTrad
 						self.bought_weight = Some(BoughtWeight {
 							amount: existing_fee.checked_add(fee_increase).ok_or(XcmError::Overflow)?,
 							weight: existing_weight.checked_add(&weight).ok_or(XcmError::Overflow)?,
-							asset_location: location.clone(),
+							asset_location: *location,
 						});
 						return Ok(unused);
 					}
@@ -143,7 +143,7 @@ impl<W: WeightToFeeConverter, R: TakeRevenue> WeightTrader for AssetRegistryTrad
 				bought.weight = new_weight;
 				bought.amount = new_amount;
 
-				Some((AssetId::Concrete(bought.asset_location.clone()), refunded_amount).into())
+				Some((AssetId::Concrete(bought.asset_location), refunded_amount).into())
 			}
 			None => None, // nothing to refund
 		}
@@ -153,7 +153,7 @@ impl<W: WeightToFeeConverter, R: TakeRevenue> WeightTrader for AssetRegistryTrad
 impl<W: WeightToFeeConverter, R: TakeRevenue> Drop for AssetRegistryTrader<W, R> {
 	fn drop(&mut self) {
 		if let Some(ref bought) = self.bought_weight {
-			R::take_revenue((AssetId::Concrete(bought.asset_location.clone()), bought.amount).into());
+			R::take_revenue((AssetId::Concrete(bought.asset_location), bought.amount).into());
 		}
 	}
 }

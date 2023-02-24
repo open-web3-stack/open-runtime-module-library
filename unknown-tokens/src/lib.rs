@@ -92,7 +92,7 @@ impl<T: Config> UnknownAsset for Pallet<T> {
 
 		Self::deposit_event(Event::Deposited {
 			asset: asset.clone(),
-			who: to.clone(),
+			who: *to,
 		});
 
 		Ok(())
@@ -119,7 +119,7 @@ impl<T: Config> UnknownAsset for Pallet<T> {
 
 		Self::deposit_event(Event::Withdrawn {
 			asset: asset.clone(),
-			who: from.clone(),
+			who: *from,
 		});
 
 		Ok(())
