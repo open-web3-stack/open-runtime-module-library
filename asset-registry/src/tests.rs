@@ -14,6 +14,10 @@ use sp_runtime::{
 };
 use xcm_simulator::TestExt;
 
+type OldMultiLocation = xcm::v2::MultiLocation;
+type OldJunctions = xcm::v2::Junctions;
+type OldJunction = xcm::v2::Junction;
+
 fn treasury_account() -> AccountId32 {
 	TreasuryAccount::get()
 }
@@ -567,4 +571,16 @@ fn test_asset_authority() {
 			Some(2)
 		));
 	});
+}
+
+#[test]
+fn test_v2_to_v3_incompatible_multilocation() {
+	// Assert that V2 and V3 Multilocation both are encoded differently
+	assert!(
+		OldMultiLocation::new(
+			0,
+			OldJunctions::X1(OldJunction::GeneralKey(vec![0].try_into().unwrap()))
+		)
+		.encode() != MultiLocation::new(0, X1(Junction::from(BoundedVec::try_from(vec![0]).unwrap()))).encode()
+	);
 }
