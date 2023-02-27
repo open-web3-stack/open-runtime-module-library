@@ -86,6 +86,7 @@ sp-version = { git = "https://github.com/paritytech//substrate", rev = "18bb7c7c
 sp-wasm-interface = { git = "https://github.com/paritytech//substrate", rev = "18bb7c7c841b101c19a8d1881b893ae8e37de460" }
 sp-tracing = { git = "https://github.com/paritytech//substrate", rev = "18bb7c7c841b101c19a8d1881b893ae8e37de460" }
 sp-maybe-compressed-blob = { git = "https://github.com/paritytech//substrate", rev = "18bb7c7c841b101c19a8d1881b893ae8e37de460" }
+sp-weights = { git = "https://github.com/paritytech//substrate", rev = "18bb7c7c841b101c19a8d1881b893ae8e37de460" }
 
 [patch.'https://github.com/paritytech/cumulus']
 cumulus-primitives-core = { git = "https://github.com/paritytech//cumulus", rev = "1b2003d48f753be96471c5f96c4a2307592db49f" }
