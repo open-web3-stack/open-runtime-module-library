@@ -15,11 +15,9 @@ pub mod v2 {
 			let storage_prefix = LocationToAssetId::<T>::storage_prefix();
 
 			weight.saturating_accrue(T::DbWeight::get().reads(1));
-			let old_data = storage_key_iter::<xcm::v2::MultiLocation, T::AssetId, Blake2_128Concat>(
-				&module_prefix,
-				storage_prefix,
-			)
-			.drain();
+			let old_data =
+				storage_key_iter::<xcm::v2::MultiLocation, T::AssetId, Blake2_128Concat>(module_prefix, storage_prefix)
+					.drain();
 
 			for (old_key, value) in old_data {
 				weight.saturating_accrue(T::DbWeight::get().writes(1));
