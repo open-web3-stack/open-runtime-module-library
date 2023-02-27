@@ -597,6 +597,9 @@ fn from_unversioned_to_v2_storage() {
 		let module_prefix = b"AssetRegistry";
 		let storage_prefix = b"LocationToAssetId";
 
+		// StorageVersion is 0 before migration
+		assert_eq!(StorageVersion::get::<Pallet<para::Runtime>>(), 0);
+
 		// V2 storage key
 		let old_key = xcm::v2::MultiLocation::new(
 			0,
@@ -622,6 +625,9 @@ fn from_unversioned_to_v2_storage() {
 
 		// Run StorageKey migration
 		crate::migrations::v2::migrate::<para::Runtime>();
+
+		// StorageVersion is 2 after migration
+		assert_eq!(StorageVersion::get::<Pallet<para::Runtime>>(), 2);
 
 		// Assert the StorageKey exists and has been migrated to xcm::v3
 		assert_eq!(AssetRegistry::location_to_asset_id(new_key), Some(asset_id));
