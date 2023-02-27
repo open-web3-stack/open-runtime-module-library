@@ -3,7 +3,11 @@
 use super::*;
 use crate as orml_asset_registry;
 use crate::tests::para::{AdminAssetTwo, AssetRegistry, CustomMetadata, RuntimeOrigin, Tokens, TreasuryAccount};
-use frame_support::{assert_noop, assert_ok};
+use frame_support::{
+	assert_noop, assert_ok,
+	storage::migration::{get_storage_value, put_storage_value},
+	StorageHasher,
+};
 use mock::{para::RuntimeCall, *};
 use orml_traits::MultiCurrency;
 use polkadot_parachain::primitives::Sibling;
@@ -583,4 +587,51 @@ fn test_v2_to_v3_incompatible_multilocation() {
 		)
 		.encode() != MultiLocation::new(0, X1(Junction::from(BoundedVec::try_from(vec![0]).unwrap()))).encode()
 	);
+}
+
+#[test]
+fn from_unversioned_to_v2_storage() {
+	TestNet::reset();
+
+	ParaA::execute_with(|| {
+		let module_prefix = b"AssetRegistry";
+		let storage_prefix = b"LocationToAssetId";
+
+		// V2 storage key
+		let old_key = xcm::v2::MultiLocation::new(
+			0,
+			xcm::v2::Junctions::X1(xcm::v2::Junction::GeneralKey(vec![0].try_into().unwrap())),
+		)
+		.encode();
+
+		let asset_id: para::ParaAssetId = 5u32;
+
+		// Store raw xcm::v2 data
+		put_storage_value(
+			module_prefix,
+			storage_prefix,
+			&Blake2_128Concat::hash(&old_key),
+			asset_id,
+		);
+
+		// V3 storage key
+		let new_key = MultiLocation::new(0, X1(Junction::from(BoundedVec::try_from(vec![0]).unwrap())));
+
+		// Assert new StorageKey still does not exist
+		assert_eq!(AssetRegistry::location_to_asset_id(new_key), None);
+
+		// Run StorageKey migration
+		crate::migrations::v2::migrate::<para::Runtime>();
+
+		// Assert the StorageKey exists and has been migrated to xcm::v3
+		assert_eq!(AssetRegistry::location_to_asset_id(new_key), Some(asset_id));
+
+		// Assert the old key does not exist anymore
+		assert!(get_storage_value::<para::ParaAssetId>(
+			module_prefix,
+			storage_prefix,
+			&Blake2_128Concat::hash(&old_key),
+		)
+		.is_none());
+	});
 }

@@ -132,10 +132,12 @@ impl EnsureOriginWithArg<RuntimeOrigin, Option<u32>> for AssetAuthority {
 	}
 }
 
+pub type ParaAssetId = u32;
+
 impl orml_asset_registry::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
-	type AssetId = u32;
+	type AssetId = ParaAssetId;
 	type AuthorityOrigin = AssetAuthority;
 	type CustomMetadata = CustomMetadata;
 	type AssetProcessor = orml_asset_registry::SequentialId<Runtime>;
