@@ -639,5 +639,8 @@ fn from_unversioned_to_v2_storage() {
 			&Blake2_128Concat::hash(&old_key),
 		)
 		.is_none());
+
+		// Assert further calls are no-op
+		assert_eq!(crate::migrations::v2::migrate::<para::Runtime>(), Weight::zero());
 	});
 }
