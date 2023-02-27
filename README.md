@@ -88,6 +88,7 @@ ORML is part of the bigger `Open-Web3-Stack` initiative, that is currently under
 _In alphabetical order_
 
 - [Acala Network](https://github.com/AcalaNetwork/Acala)
+- [Ajuna Network](https://github.com/ajuna-network/Ajuna)
 - [Astar Network](https://github.com/AstarNetwork)
 - [Bifrost Finance](https://github.com/bifrost-finance/bifrost)
 - [Bit.Country](https://github.com/bit-country/Bit-Country-Blockchain)
