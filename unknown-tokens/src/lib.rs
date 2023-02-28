@@ -12,6 +12,9 @@ pub use module::*;
 mod mock;
 mod tests;
 
+mod migrations;
+pub use migrations::Migration;
+
 #[frame_support::pallet]
 pub mod module {
 	use super::*;
@@ -40,8 +43,11 @@ pub mod module {
 		UnhandledAsset,
 	}
 
+	const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
+
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
+	#[pallet::storage_version(STORAGE_VERSION)]
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
