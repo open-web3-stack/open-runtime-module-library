@@ -6,6 +6,7 @@ use crate::tests::para::{AdminAssetTwo, AssetRegistry, CustomMetadata, RuntimeOr
 use frame_support::{
 	assert_noop, assert_ok,
 	storage::migration::{get_storage_value, put_storage_value},
+	traits::OnRuntimeUpgrade,
 	StorageHasher,
 };
 use mock::{para::RuntimeCall, *};
@@ -624,7 +625,7 @@ fn from_unversioned_to_v2_storage() {
 		assert_eq!(AssetRegistry::location_to_asset_id(new_key), None);
 
 		// Run StorageKey migration
-		crate::migrations::v2::migrate::<para::Runtime>();
+		crate::Migration::<para::Runtime>::on_runtime_upgrade();
 
 		// StorageVersion is 2 after migration
 		assert_eq!(StorageVersion::get::<Pallet<para::Runtime>>(), 2);
@@ -641,6 +642,6 @@ fn from_unversioned_to_v2_storage() {
 		.is_none());
 
 		// Assert further calls are no-op
-		assert_eq!(crate::migrations::v2::migrate::<para::Runtime>(), Weight::zero());
+		assert_eq!(crate::Migration::<para::Runtime>::on_runtime_upgrade(), Weight::zero());
 	});
 }

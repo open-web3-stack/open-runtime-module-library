@@ -28,7 +28,8 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-pub mod migrations;
+mod migrations;
+pub use migrations::Migration;
 
 #[frame_support::pallet]
 pub mod module {
