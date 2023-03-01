@@ -14,7 +14,7 @@ use sp_runtime::{
 	DispatchResult,
 };
 use sp_std::prelude::*;
-use xcm::{v2::prelude::*, VersionedMultiLocation};
+use xcm::{v3::prelude::*, VersionedMultiLocation};
 
 pub use impls::*;
 pub use module::*;
@@ -27,6 +27,9 @@ mod weights;
 mod mock;
 #[cfg(test)]
 mod tests;
+
+mod migrations;
+pub use migrations::Migration;
 
 #[frame_support::pallet]
 pub mod module {
@@ -130,8 +133,11 @@ pub mod module {
 		}
 	}
 
+	const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
+
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
+	#[pallet::storage_version(STORAGE_VERSION)]
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 

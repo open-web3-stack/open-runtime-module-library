@@ -61,8 +61,8 @@ pub mod module {
 			let dest = MultiLocation::try_from(*dest).map_err(|()| Error::<T>::BadVersion)?;
 			let message: Xcm<()> = (*message).try_into().map_err(|()| Error::<T>::BadVersion)?;
 
-			pallet_xcm::Pallet::<T>::send_xcm(Here, dest.clone(), message.clone()).map_err(|e| match e {
-				SendError::CannotReachDestination(..) => Error::<T>::Unreachable,
+			pallet_xcm::Pallet::<T>::send_xcm(Here, dest, message.clone()).map_err(|e| match e {
+				SendError::Unroutable => Error::<T>::Unreachable,
 				_ => Error::<T>::SendFailure,
 			})?;
 			Self::deposit_event(Event::Sent { to: dest, message });
