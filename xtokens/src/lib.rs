@@ -52,6 +52,7 @@ use xcm_executor::traits::{InvertLocation, WeightBounds};
 pub use module::*;
 use orml_traits::{
 	location::{Parse, Reserve},
+	xcm_transfer::Transferred,
 	GetByKey, XcmTransfer,
 };
 
@@ -217,7 +218,7 @@ pub mod module {
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let dest: MultiLocation = (*dest).try_into().map_err(|()| Error::<T>::BadVersion)?;
-			Self::do_transfer(who, currency_id, amount, dest, dest_weight_limit)
+			Self::do_transfer(who, currency_id, amount, dest, dest_weight_limit).map(|_| ())
 		}
 
 		/// Transfer `MultiAsset`.
@@ -243,7 +244,7 @@ pub mod module {
 			let who = ensure_signed(origin)?;
 			let asset: MultiAsset = (*asset).try_into().map_err(|()| Error::<T>::BadVersion)?;
 			let dest: MultiLocation = (*dest).try_into().map_err(|()| Error::<T>::BadVersion)?;
-			Self::do_transfer_multiasset(who, asset, dest, dest_weight_limit)
+			Self::do_transfer_multiasset(who, asset, dest, dest_weight_limit).map(|_| ())
 		}
 
 		/// Transfer native currencies specifying the fee and amount as
@@ -280,7 +281,7 @@ pub mod module {
 			let who = ensure_signed(origin)?;
 			let dest: MultiLocation = (*dest).try_into().map_err(|()| Error::<T>::BadVersion)?;
 
-			Self::do_transfer_with_fee(who, currency_id, amount, fee, dest, dest_weight_limit)
+			Self::do_transfer_with_fee(who, currency_id, amount, fee, dest, dest_weight_limit).map(|_| ())
 		}
 
 		/// Transfer `MultiAsset` specifying the fee and amount as separate.
@@ -318,7 +319,7 @@ pub mod module {
 			let fee: MultiAsset = (*fee).try_into().map_err(|()| Error::<T>::BadVersion)?;
 			let dest: MultiLocation = (*dest).try_into().map_err(|()| Error::<T>::BadVersion)?;
 
-			Self::do_transfer_multiasset_with_fee(who, asset, fee, dest, dest_weight_limit)
+			Self::do_transfer_multiasset_with_fee(who, asset, fee, dest, dest_weight_limit).map(|_| ())
 		}
 
 		/// Transfer several currencies specifying the item to be used as fee
@@ -348,7 +349,7 @@ pub mod module {
 			let who = ensure_signed(origin)?;
 			let dest: MultiLocation = (*dest).try_into().map_err(|()| Error::<T>::BadVersion)?;
 
-			Self::do_transfer_multicurrencies(who, currencies, fee_item, dest, dest_weight_limit)
+			Self::do_transfer_multicurrencies(who, currencies, fee_item, dest, dest_weight_limit).map(|_| ())
 		}
 
 		/// Transfer several `MultiAsset` specifying the item to be used as fee
@@ -382,7 +383,7 @@ pub mod module {
 			// We first grab the fee
 			let fee: &MultiAsset = assets.get(fee_item as usize).ok_or(Error::<T>::AssetIndexNonExistent)?;
 
-			Self::do_transfer_multiassets(who, assets.clone(), fee.clone(), dest, dest_weight_limit)
+			Self::do_transfer_multiassets(who, assets.clone(), fee.clone(), dest, dest_weight_limit).map(|_| ())
 		}
 	}
 
@@ -393,7 +394,7 @@ pub mod module {
 			amount: T::Balance,
 			dest: MultiLocation,
 			dest_weight_limit: WeightLimit,
-		) -> DispatchResult {
+		) -> Result<Transferred<T::AccountId>, DispatchError> {
 			let location: MultiLocation =
 				T::CurrencyIdConvert::convert(currency_id).ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
 
@@ -414,7 +415,7 @@ pub mod module {
 			fee: T::Balance,
 			dest: MultiLocation,
 			dest_weight_limit: WeightLimit,
-		) -> DispatchResult {
+		) -> Result<Transferred<T::AccountId>, DispatchError> {
 			let location: MultiLocation =
 				T::CurrencyIdConvert::convert(currency_id).ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
 
@@ -441,7 +442,7 @@ pub mod module {
 			asset: MultiAsset,
 			dest: MultiLocation,
 			dest_weight_limit: WeightLimit,
-		) -> DispatchResult {
+		) -> Result<Transferred<T::AccountId>, DispatchError> {
 			Self::do_transfer_multiassets(who, vec![asset.clone()].into(), asset, dest, dest_weight_limit)
 		}
 
@@ -451,15 +452,13 @@ pub mod module {
 			fee: MultiAsset,
 			dest: MultiLocation,
 			dest_weight_limit: WeightLimit,
-		) -> DispatchResult {
+		) -> Result<Transferred<T::AccountId>, DispatchError> {
 			// Push contains saturated addition, so we should be able to use it safely
 			let mut assets = MultiAssets::new();
 			assets.push(asset);
 			assets.push(fee.clone());
 
-			Self::do_transfer_multiassets(who, assets, fee, dest, dest_weight_limit)?;
-
-			Ok(())
+			Self::do_transfer_multiassets(who, assets, fee, dest, dest_weight_limit)
 		}
 
 		fn do_transfer_multicurrencies(
@@ -468,7 +467,7 @@ pub mod module {
 			fee_item: u32,
 			dest: MultiLocation,
 			dest_weight_limit: WeightLimit,
-		) -> DispatchResult {
+		) -> Result<Transferred<T::AccountId>, DispatchError> {
 			ensure!(
 				currencies.len() <= T::MaxAssetsForTransfer::get(),
 				Error::<T>::TooManyAssetsBeingSent
@@ -510,7 +509,7 @@ pub mod module {
 			fee: MultiAsset,
 			dest: MultiLocation,
 			dest_weight_limit: WeightLimit,
-		) -> DispatchResult {
+		) -> Result<Transferred<T::AccountId>, DispatchError> {
 			ensure!(
 				assets.len() <= T::MaxAssetsForTransfer::get(),
 				Error::<T>::TooManyAssetsBeingSent
@@ -618,13 +617,18 @@ pub mod module {
 			}
 
 			Self::deposit_event(Event::<T>::TransferredMultiAssets {
+				sender: who.clone(),
+				assets: assets.clone(),
+				fee: fee.clone(),
+				dest: dest.clone(),
+			});
+
+			Ok(Transferred {
 				sender: who,
 				assets,
 				fee,
 				dest,
-			});
-
-			Ok(())
+			})
 		}
 
 		/// Execute and send xcm with given assets and fee to dest chain or
@@ -947,7 +951,7 @@ pub mod module {
 			amount: T::Balance,
 			dest: MultiLocation,
 			dest_weight_limit: WeightLimit,
-		) -> DispatchResult {
+		) -> Result<Transferred<T::AccountId>, DispatchError> {
 			Self::do_transfer(who, currency_id, amount, dest, dest_weight_limit)
 		}
 
@@ -957,7 +961,7 @@ pub mod module {
 			asset: MultiAsset,
 			dest: MultiLocation,
 			dest_weight_limit: WeightLimit,
-		) -> DispatchResult {
+		) -> Result<Transferred<T::AccountId>, DispatchError> {
 			Self::do_transfer_multiasset(who, asset, dest, dest_weight_limit)
 		}
 
@@ -969,7 +973,7 @@ pub mod module {
 			fee: T::Balance,
 			dest: MultiLocation,
 			dest_weight_limit: WeightLimit,
-		) -> DispatchResult {
+		) -> Result<Transferred<T::AccountId>, DispatchError> {
 			Self::do_transfer_with_fee(who, currency_id, amount, fee, dest, dest_weight_limit)
 		}
 
@@ -980,7 +984,7 @@ pub mod module {
 			fee: MultiAsset,
 			dest: MultiLocation,
 			dest_weight_limit: WeightLimit,
-		) -> DispatchResult {
+		) -> Result<Transferred<T::AccountId>, DispatchError> {
 			Self::do_transfer_multiasset_with_fee(who, asset, fee, dest, dest_weight_limit)
 		}
 
@@ -991,7 +995,7 @@ pub mod module {
 			fee_item: u32,
 			dest: MultiLocation,
 			dest_weight_limit: WeightLimit,
-		) -> DispatchResult {
+		) -> Result<Transferred<T::AccountId>, DispatchError> {
 			Self::do_transfer_multicurrencies(who, currencies, fee_item, dest, dest_weight_limit)
 		}
 
@@ -1002,7 +1006,7 @@ pub mod module {
 			fee: MultiAsset,
 			dest: MultiLocation,
 			dest_weight_limit: WeightLimit,
-		) -> DispatchResult {
+		) -> Result<Transferred<T::AccountId>, DispatchError> {
 			Self::do_transfer_multiassets(who, assets, fee, dest, dest_weight_limit)
 		}
 	}

@@ -1,5 +1,12 @@
-use frame_support::dispatch::DispatchResult;
+use frame_support::dispatch::DispatchError;
 use xcm::latest::prelude::*;
+
+pub struct Transferred<AccountId> {
+	pub sender: AccountId,
+	pub assets: MultiAssets,
+	pub fee: MultiAsset,
+	pub dest: MultiLocation,
+}
 
 /// Abstraction over cross-chain token transfers.
 pub trait XcmTransfer<AccountId, Balance, CurrencyId> {
@@ -10,7 +17,7 @@ pub trait XcmTransfer<AccountId, Balance, CurrencyId> {
 		amount: Balance,
 		dest: MultiLocation,
 		dest_weight_limit: WeightLimit,
-	) -> DispatchResult;
+	) -> Result<Transferred<AccountId>, DispatchError>;
 
 	/// Transfer `MultiAsset` assets.
 	fn transfer_multiasset(
@@ -18,7 +25,7 @@ pub trait XcmTransfer<AccountId, Balance, CurrencyId> {
 		asset: MultiAsset,
 		dest: MultiLocation,
 		dest_weight_limit: WeightLimit,
-	) -> DispatchResult;
+	) -> Result<Transferred<AccountId>, DispatchError>;
 
 	/// Transfer native currencies specifying the fee and amount as separate.
 	fn transfer_with_fee(
@@ -28,7 +35,7 @@ pub trait XcmTransfer<AccountId, Balance, CurrencyId> {
 		fee: Balance,
 		dest: MultiLocation,
 		dest_weight_limit: WeightLimit,
-	) -> DispatchResult;
+	) -> Result<Transferred<AccountId>, DispatchError>;
 
 	/// Transfer `MultiAsset` specifying the fee and amount as separate.
 	fn transfer_multiasset_with_fee(
@@ -37,7 +44,7 @@ pub trait XcmTransfer<AccountId, Balance, CurrencyId> {
 		fee: MultiAsset,
 		dest: MultiLocation,
 		dest_weight_limit: WeightLimit,
-	) -> DispatchResult;
+	) -> Result<Transferred<AccountId>, DispatchError>;
 
 	/// Transfer several currencies specifying the item to be used as fee.
 	fn transfer_multicurrencies(
@@ -46,7 +53,7 @@ pub trait XcmTransfer<AccountId, Balance, CurrencyId> {
 		fee_item: u32,
 		dest: MultiLocation,
 		dest_weight_limit: WeightLimit,
-	) -> DispatchResult;
+	) -> Result<Transferred<AccountId>, DispatchError>;
 
 	/// Transfer several `MultiAsset` specifying the item to be used as fee.
 	fn transfer_multiassets(
@@ -55,5 +62,5 @@ pub trait XcmTransfer<AccountId, Balance, CurrencyId> {
 		fee: MultiAsset,
 		dest: MultiLocation,
 		dest_weight_limit: WeightLimit,
-	) -> DispatchResult;
+	) -> Result<Transferred<AccountId>, DispatchError>;
 }
