@@ -9,7 +9,7 @@ use frame_system::EnsureRoot;
 use polkadot_runtime_parachains::{configuration, origin, shared, ump};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, AccountId32};
-use xcm::latest::prelude::*;
+use xcm::v3::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, ChildParachainAsNative, ChildParachainConvertsVia,
 	CurrencyAdapter as XcmCurrencyAdapter, FixedWeightBounds, IsConcrete, SignedAccountId32AsNative,

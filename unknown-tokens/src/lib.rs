@@ -3,7 +3,7 @@
 
 use frame_support::pallet_prelude::*;
 use sp_std::vec::Vec;
-use xcm::latest::prelude::*;
+use xcm::v3::prelude::*;
 
 use orml_xcm_support::UnknownAsset;
 

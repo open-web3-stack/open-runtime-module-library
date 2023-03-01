@@ -1,5 +1,5 @@
 use sp_core::{bounded::BoundedVec, ConstU32};
-use xcm::latest::prelude::*;
+use xcm::v3::prelude::*;
 
 use crate::location::RelativeLocations;
 

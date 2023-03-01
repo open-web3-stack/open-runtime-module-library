@@ -12,7 +12,7 @@ use sp_runtime::{
 	ArithmeticError, FixedU128,
 };
 use sp_std::prelude::*;
-use xcm::latest::{prelude::*, Weight as XcmWeight};
+use xcm::v3::{prelude::*, Weight as XcmWeight};
 use xcm::VersionedMultiLocation;
 use xcm_builder::TakeRevenue;
 use xcm_executor::{traits::WeightTrader, Assets};

@@ -17,7 +17,7 @@ use sp_runtime::{
 use cumulus_primitives_core::{ChannelStatus, GetChannelInfo, ParaId};
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
-use xcm::latest::{prelude::*, Weight};
+use xcm::v3::{prelude::*, Weight};
 use xcm_builder::{
 	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin, FixedWeightBounds, NativeAsset,
 	ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,

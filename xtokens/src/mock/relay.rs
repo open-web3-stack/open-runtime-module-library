@@ -10,7 +10,7 @@ use sp_runtime::{testing::Header, traits::IdentityLookup, AccountId32};
 use crate::Weight;
 use cumulus_primitives_core::ParaId;
 use polkadot_runtime_parachains::{configuration, origin, shared, ump};
-use xcm::latest::prelude::*;
+use xcm::v3::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, ChildParachainAsNative, ChildParachainConvertsVia,
 	CurrencyAdapter as XcmCurrencyAdapter, FixedWeightBounds, IsConcrete, SignedAccountId32AsNative,

@@ -1,5 +1,5 @@
 use frame_support::dispatch::DispatchResult;
-use xcm::latest::prelude::*;
+use xcm::v3::prelude::*;
 
 /// Abstraction over cross-chain token transfers.
 pub trait XcmTransfer<AccountId, Balance, CurrencyId> {
