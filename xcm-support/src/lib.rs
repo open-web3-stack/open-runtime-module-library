@@ -16,7 +16,7 @@ use frame_support::{
 use sp_runtime::traits::{CheckedConversion, Convert};
 use sp_std::marker::PhantomData;
 
-use xcm::latest::prelude::*;
+use xcm::v3::prelude::*;
 use xcm_executor::traits::MatchesFungible;
 
 use orml_traits::{location::Reserve, GetByKey};

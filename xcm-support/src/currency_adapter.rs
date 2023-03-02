@@ -12,7 +12,7 @@ use sp_std::{
 	result,
 };
 
-use xcm::latest::{prelude::*, Error as XcmError, MultiAsset, MultiLocation, Result};
+use xcm::v3::{prelude::*, Error as XcmError, MultiAsset, MultiLocation, Result};
 use xcm_executor::{
 	traits::{Convert as MoreConvert, MatchesFungible, TransactAsset},
 	Assets,

@@ -8,6 +8,7 @@ use mock::*;
 use orml_traits::{ConcreteFungibleAsset, MultiCurrency};
 use polkadot_parachain::primitives::Sibling;
 use sp_runtime::{traits::AccountIdConversion, AccountId32};
+use xcm::{v3::OriginKind::SovereignAccount, VersionedXcm};
 use xcm_simulator::TestExt;
 
 fn para_a_account() -> AccountId32 {
@@ -1028,8 +1029,6 @@ fn send_as_sovereign() {
 	});
 
 	ParaA::execute_with(|| {
-		use xcm::latest::OriginKind::SovereignAccount;
-
 		let call = relay::RuntimeCall::System(frame_system::Call::<relay::Runtime>::remark_with_event {
 			remark: vec![1, 1, 1],
 		});
@@ -1071,8 +1070,6 @@ fn send_as_sovereign_fails_if_bad_origin() {
 	});
 
 	ParaA::execute_with(|| {
-		use xcm::latest::OriginKind::SovereignAccount;
-
 		let call = relay::RuntimeCall::System(frame_system::Call::<relay::Runtime>::remark_with_event {
 			remark: vec![1, 1, 1],
 		});

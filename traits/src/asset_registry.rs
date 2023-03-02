@@ -1,7 +1,7 @@
 use frame_support::pallet_prelude::*;
 use sp_runtime::DispatchResult;
 use sp_std::vec::Vec;
-use xcm::latest::prelude::*;
+use xcm::v3::prelude::*;
 use xcm::VersionedMultiLocation;
 
 pub trait WeightToFeeConverter {
