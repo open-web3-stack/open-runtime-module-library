@@ -663,9 +663,7 @@ fn sending_sibling_asset_to_reserve_sibling_with_relay_fee_works() {
 	});
 
 	let fee_amount: u128 = 200;
-	// TODO: set the weight limit to 40 until this issue is addressed:
-	// https://github.com/paritytech/polkadot/issues/6770
-	let weight: u128 = 40;
+	let weight: u128 = 50;
 	let dest_weight: u128 = 40;
 
 	ParaA::execute_with(|| {
@@ -725,9 +723,7 @@ fn sending_sibling_asset_to_reserve_sibling_with_relay_fee_works_with_relative_s
 	});
 
 	let fee_amount: u128 = 200;
-	// TODO: set the weight limit to 40 until this issue is addressed:
-	// https://github.com/paritytech/polkadot/issues/6770
-	let weight: u128 = 40;
+	let weight: u128 = 50;
 	let dest_weight: u128 = 40;
 
 	ParaD::execute_with(|| {
@@ -790,9 +786,7 @@ fn sending_sibling_asset_to_reserve_sibling_with_relay_fee_not_enough() {
 	});
 
 	let fee_amount: u128 = 159;
-	// TODO: set the weight limit to 40 until this issue is addressed:
-	// https://github.com/paritytech/polkadot/issues/6770
-	let weight: u128 = 40;
+	let weight: u128 = 50;
 	let dest_weight: u128 = 40;
 
 	ParaA::execute_with(|| {
