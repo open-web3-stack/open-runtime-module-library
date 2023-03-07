@@ -1,4 +1,5 @@
 use frame_support::dispatch::DispatchError;
+use sp_std::vec::Vec;
 use xcm::latest::prelude::*;
 
 pub struct Transferred<AccountId> {
