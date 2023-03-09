@@ -19,7 +19,7 @@ sp-std = { git = "https://github.com/paritytech/substrate", default-features = f
 
 orml-traits = { path = "../traits", version = "0.4.1-dev", default-features = false }
 mangata-types = { git="https://github.com/mangata-finance/substrate", branch = "mangata-dev", default-features = false, version = '0.1.0' }
-frame-benchmarking = {  git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.31", default-features = false, optional = true }
+frame-benchmarking = {  git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36", default-features = false, optional = true }
 
 [dev-dependencies]
 pallet-elections-phragmen = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36" }
