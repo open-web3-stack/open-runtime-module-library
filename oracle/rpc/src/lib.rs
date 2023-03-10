@@ -8,7 +8,7 @@ use jsonrpsee::{
 };
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
-use sp_runtime::{generic::BlockId, traits::Block as BlockT};
+use sp_runtime::traits::Block as BlockT;
 
 pub use orml_oracle_rpc_runtime_api::OracleApi as OracleRuntimeApi;
 
@@ -67,9 +67,9 @@ where
 		at: Option<<Block as BlockT>::Hash>,
 	) -> RpcResult<Option<Value>> {
 		let api = self.client.runtime_api();
-		let at = BlockId::hash(at.unwrap_or_else(|| self.client.info().best_hash));
+		let at = at.unwrap_or_else(|| self.client.info().best_hash);
 
-		api.get_value(&at, provider_id, key).map_err(|e| {
+		api.get_value(at, provider_id, key).map_err(|e| {
 			CallError::Custom(ErrorObject::owned(
 				Error::RuntimeError.into(),
 				"Unable to get value.",
@@ -85,9 +85,9 @@ where
 		at: Option<<Block as BlockT>::Hash>,
 	) -> RpcResult<Vec<(Key, Option<Value>)>> {
 		let api = self.client.runtime_api();
-		let at = BlockId::hash(at.unwrap_or_else(|| self.client.info().best_hash));
+		let at = at.unwrap_or_else(|| self.client.info().best_hash);
 
-		api.get_all_values(&at, provider_id).map_err(|e| {
+		api.get_all_values(at, provider_id).map_err(|e| {
 			CallError::Custom(ErrorObject::owned(
 				Error::RuntimeError.into(),
 				"Unable to get all values.",
