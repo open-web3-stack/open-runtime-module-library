@@ -623,7 +623,7 @@ pub mod module {
 				sender: who.clone(),
 				assets: assets.clone(),
 				fee: fee.clone(),
-				dest: dest.clone(),
+				dest,
 			});
 
 			Ok(Transferred {
