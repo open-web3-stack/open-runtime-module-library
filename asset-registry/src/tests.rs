@@ -601,28 +601,71 @@ fn from_unversioned_to_v2_storage() {
 		// StorageVersion is 0 before migration
 		assert_eq!(StorageVersion::get::<Pallet<para::Runtime>>(), 0);
 
-		// V2 storage key
-		let old_key = xcm::v2::MultiLocation::new(
+		// V2 storage
+		let old_multilocation_0 = xcm::v2::MultiLocation::new(
 			0,
 			xcm::v2::Junctions::X1(xcm::v2::Junction::GeneralKey(vec![0].try_into().unwrap())),
-		)
-		.encode();
+		);
+		let old_multilocation_1 = xcm::v2::MultiLocation::new(
+			1,
+			xcm::v2::Junctions::X2(
+				xcm::v2::Junction::Parachain(2096),
+				xcm::v2::Junction::GeneralKey(vec![0, 0, 0, 0, 0, 0, 0, 0, 0].try_into().unwrap()),
+			),
+		);
+		let old_multilocation_2 = xcm::v2::MultiLocation::new(
+			1,
+			xcm::v2::Junctions::X2(
+				xcm::v2::Junction::Parachain(2096),
+				xcm::v2::Junction::GeneralKey(vec![1, 1].try_into().unwrap()),
+			),
+		);
 
-		let asset_id: para::ParaAssetId = 5u32;
+		let asset_id_0: para::ParaAssetId = 5u32;
+		let asset_id_1: para::ParaAssetId = 6u32;
+		let asset_id_2: para::ParaAssetId = 7u32;
 
 		// Store raw xcm::v2 data
 		put_storage_value(
 			module_prefix,
 			storage_prefix,
-			&Blake2_128Concat::hash(&old_key),
-			asset_id,
+			&Twox64Concat::hash(&old_multilocation_0.encode()),
+			asset_id_0,
+		);
+		put_storage_value(
+			module_prefix,
+			storage_prefix,
+			&Twox64Concat::hash(&old_multilocation_1.encode()),
+			asset_id_1,
+		);
+		put_storage_value(
+			module_prefix,
+			storage_prefix,
+			&Twox64Concat::hash(&old_multilocation_2.encode()),
+			asset_id_2,
 		);
 
 		// V3 storage key
-		let new_key = MultiLocation::new(0, X1(Junction::from(BoundedVec::try_from(vec![0]).unwrap())));
+		let new_multilocation_0 = MultiLocation::new(0, X1(Junction::from(BoundedVec::try_from(vec![0]).unwrap())));
+		let new_multilocation_1 = MultiLocation::new(
+			1,
+			X2(
+				Parachain(2096),
+				Junction::from(BoundedVec::try_from(vec![0, 0, 0, 0, 0, 0, 0, 0, 0]).unwrap()),
+			),
+		);
+		let new_multilocation_2 = MultiLocation::new(
+			1,
+			X2(
+				Parachain(2096),
+				Junction::from(BoundedVec::try_from(vec![1, 1]).unwrap()),
+			),
+		);
 
 		// Assert new StorageKey still does not exist
-		assert_eq!(AssetRegistry::location_to_asset_id(new_key), None);
+		assert_eq!(AssetRegistry::location_to_asset_id(new_multilocation_0), None);
+		assert_eq!(AssetRegistry::location_to_asset_id(new_multilocation_1), None);
+		assert_eq!(AssetRegistry::location_to_asset_id(new_multilocation_2), None);
 
 		// Run StorageKey migration
 		crate::Migration::<para::Runtime>::on_runtime_upgrade();
@@ -631,13 +674,36 @@ fn from_unversioned_to_v2_storage() {
 		assert_eq!(StorageVersion::get::<Pallet<para::Runtime>>(), 2);
 
 		// Assert the StorageKey exists and has been migrated to xcm::v3
-		assert_eq!(AssetRegistry::location_to_asset_id(new_key), Some(asset_id));
+		assert_eq!(
+			AssetRegistry::location_to_asset_id(new_multilocation_0),
+			Some(asset_id_0)
+		);
+		assert_eq!(
+			AssetRegistry::location_to_asset_id(new_multilocation_1),
+			Some(asset_id_1)
+		);
+		assert_eq!(
+			AssetRegistry::location_to_asset_id(new_multilocation_2),
+			Some(asset_id_2)
+		);
 
 		// Assert the old key does not exist anymore
 		assert!(get_storage_value::<para::ParaAssetId>(
 			module_prefix,
 			storage_prefix,
-			&Blake2_128Concat::hash(&old_key),
+			&Twox64Concat::hash(&old_multilocation_0.encode()),
+		)
+		.is_none());
+		assert!(get_storage_value::<para::ParaAssetId>(
+			module_prefix,
+			storage_prefix,
+			&Twox64Concat::hash(&old_multilocation_1.encode()),
+		)
+		.is_none());
+		assert!(get_storage_value::<para::ParaAssetId>(
+			module_prefix,
+			storage_prefix,
+			&Twox64Concat::hash(&old_multilocation_2.encode()),
 		)
 		.is_none());
 
