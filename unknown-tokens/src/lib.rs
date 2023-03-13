@@ -3,7 +3,7 @@
 
 use frame_support::pallet_prelude::*;
 use sp_std::vec::Vec;
-use xcm::latest::prelude::*;
+use xcm::v3::prelude::*;
 
 use orml_xcm_support::UnknownAsset;
 
@@ -11,6 +11,9 @@ pub use module::*;
 
 mod mock;
 mod tests;
+
+mod migrations;
+pub use migrations::Migration;
 
 #[frame_support::pallet]
 pub mod module {
@@ -40,8 +43,11 @@ pub mod module {
 		UnhandledAsset,
 	}
 
+	const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
+
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
+	#[pallet::storage_version(STORAGE_VERSION)]
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
@@ -83,7 +89,7 @@ impl<T: Config> UnknownAsset for Pallet<T> {
 			MultiAsset {
 				fun: Fungible(amount),
 				id: Abstract(key),
-			} => AbstractFungibleBalances::<T>::try_mutate(to, key, |b| -> DispatchResult {
+			} => AbstractFungibleBalances::<T>::try_mutate(to, key.to_vec(), |b| -> DispatchResult {
 				*b = b.checked_add(*amount).ok_or(Error::<T>::BalanceOverflow)?;
 				Ok(())
 			}),
@@ -92,7 +98,7 @@ impl<T: Config> UnknownAsset for Pallet<T> {
 
 		Self::deposit_event(Event::Deposited {
 			asset: asset.clone(),
-			who: to.clone(),
+			who: *to,
 		});
 
 		Ok(())
@@ -110,7 +116,7 @@ impl<T: Config> UnknownAsset for Pallet<T> {
 			MultiAsset {
 				fun: Fungible(amount),
 				id: Abstract(key),
-			} => AbstractFungibleBalances::<T>::try_mutate(from, key, |b| -> DispatchResult {
+			} => AbstractFungibleBalances::<T>::try_mutate(from, key.to_vec(), |b| -> DispatchResult {
 				*b = b.checked_sub(*amount).ok_or(Error::<T>::BalanceTooLow)?;
 				Ok(())
 			}),
@@ -119,7 +125,7 @@ impl<T: Config> UnknownAsset for Pallet<T> {
 
 		Self::deposit_event(Event::Withdrawn {
 			asset: asset.clone(),
-			who: from.clone(),
+			who: *from,
 		});
 
 		Ok(())

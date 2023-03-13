@@ -1,6 +1,5 @@
-use sp_runtime::{traits::ConstU32, WeakBoundedVec};
-use sp_std::prelude::*;
-use xcm::latest::prelude::*;
+use sp_core::{bounded::BoundedVec, ConstU32};
+use xcm::v3::prelude::*;
 
 pub trait Parse {
 	/// Returns the "chain" location part. It could be parent, sibling
@@ -28,7 +27,7 @@ impl Parse for MultiLocation {
 	}
 
 	fn non_chain_part(&self) -> Option<MultiLocation> {
-		let mut junctions = self.interior().clone();
+		let mut junctions = *self.interior();
 		while is_chain_junction(junctions.first()) {
 			let _ = junctions.take_first();
 		}
@@ -78,12 +77,12 @@ impl Reserve for RelativeReserveProvider {
 }
 
 pub trait RelativeLocations {
-	fn sibling_parachain_general_key(para_id: u32, general_key: WeakBoundedVec<u8, ConstU32<32>>) -> MultiLocation;
+	fn sibling_parachain_general_key(para_id: u32, general_key: BoundedVec<u8, ConstU32<32>>) -> MultiLocation;
 }
 
 impl RelativeLocations for MultiLocation {
-	fn sibling_parachain_general_key(para_id: u32, general_key: WeakBoundedVec<u8, ConstU32<32>>) -> MultiLocation {
-		MultiLocation::new(1, X2(Parachain(para_id), GeneralKey(general_key)))
+	fn sibling_parachain_general_key(para_id: u32, general_key: BoundedVec<u8, ConstU32<32>>) -> MultiLocation {
+		return MultiLocation::new(1, X2(Parachain(para_id), general_key.as_bounded_slice().into()));
 	}
 }
 
@@ -139,14 +138,14 @@ mod tests {
 		assert_eq!(
 			AbsoluteReserveProvider::reserve(&concrete_fungible(MultiLocation::new(
 				0,
-				X1(GeneralKey(b"DOT".to_vec().try_into().unwrap()))
+				X1(Junction::from(BoundedVec::try_from(b"DOT".to_vec()).unwrap()))
 			))),
 			None
 		);
 		assert_eq!(
 			RelativeReserveProvider::reserve(&concrete_fungible(MultiLocation::new(
 				0,
-				X1(GeneralKey(b"DOT".to_vec().try_into().unwrap()))
+				X1(Junction::from(BoundedVec::try_from(b"DOT".to_vec()).unwrap()))
 			))),
 			Some(MultiLocation::here())
 		);

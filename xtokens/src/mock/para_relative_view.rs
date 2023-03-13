@@ -11,17 +11,17 @@ use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
 	traits::{Convert, IdentityLookup},
-	AccountId32,
+	AccountId32, BoundedVec,
 };
 
 use cumulus_primitives_core::{ChannelStatus, GetChannelInfo, ParaId};
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
-use xcm::latest::{prelude::*, Weight};
+use xcm::v3::{prelude::*, Weight};
 use xcm_builder::{
-	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin, FixedWeightBounds, LocationInverter,
-	ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
-	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
+	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin, FixedWeightBounds, ParentIsPreset,
+	RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
+	SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 };
 use xcm_executor::{Config, XcmExecutor};
 
@@ -94,8 +94,8 @@ impl orml_tokens::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ReservedXcmpWeight: Weight = WEIGHT_REF_TIME_PER_SECOND / 4;
-	pub const ReservedDmpWeight: Weight = WEIGHT_REF_TIME_PER_SECOND / 4;
+	pub const ReservedXcmpWeight: Weight = Weight::from_ref_time(WEIGHT_REF_TIME_PER_SECOND.saturating_div(4));
+	pub const ReservedDmpWeight: Weight = Weight::from_ref_time(WEIGHT_REF_TIME_PER_SECOND.saturating_div(4));
 }
 
 impl parachain_info::Config for Runtime {}
@@ -104,7 +104,8 @@ parameter_types! {
 	pub const RelayLocation: MultiLocation = MultiLocation::parent();
 	pub const RelayNetwork: NetworkId = NetworkId::Kusama;
 	pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
-	pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
+	pub UniversalLocation: InteriorMultiLocation =
+		X2(GlobalConsensus(RelayNetwork::get()), Parachain(ParachainInfo::parachain_id().into()));
 }
 
 pub type LocationToAccountId = (
@@ -135,6 +136,13 @@ pub type LocalAssetTransactor = MultiCurrencyAdapter<
 pub type XcmRouter = ParachainXcmRouter<ParachainInfo>;
 pub type Barrier = (TakeWeightCredit, AllowTopLevelPaidExecutionFrom<Everything>);
 
+parameter_types! {
+	pub const UnitWeightCost: Weight = Weight::from_parts(10, 10);
+	pub const BaseXcmWeight: Weight = Weight::from_parts(100_000_000, 100_000_000);
+	pub const MaxInstructions: u32 = 100;
+	pub const MaxAssetsIntoHolding: u32 = 64;
+}
+
 pub struct XcmConfig;
 impl Config for XcmConfig {
 	type RuntimeCall = RuntimeCall;
@@ -143,14 +151,23 @@ impl Config for XcmConfig {
 	type OriginConverter = XcmOriginToCallOrigin;
 	type IsReserve = MultiNativeAsset<AbsoluteReserveProvider>;
 	type IsTeleporter = ();
-	type LocationInverter = LocationInverter<Ancestry>;
+	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
-	type Weigher = FixedWeightBounds<ConstU64<10>, RuntimeCall, ConstU32<100>>;
+	type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
 	type Trader = AllTokensAreCreatedEqualToWeight;
 	type ResponseHandler = ();
 	type AssetTrap = PolkadotXcm;
 	type AssetClaims = PolkadotXcm;
 	type SubscriptionService = PolkadotXcm;
+	type AssetLocker = PolkadotXcm;
+	type AssetExchanger = ();
+	type PalletInstancesInfo = ();
+	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;
+	type FeeManager = ();
+	type MessageExporter = ();
+	type UniversalAliases = Nothing;
+	type CallDispatcher = RuntimeCall;
+	type SafeCallFilter = Everything;
 }
 
 pub struct ChannelInfo;
@@ -172,6 +189,7 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
 	type ControllerOrigin = EnsureRoot<AccountId>;
 	type ControllerOriginConverter = XcmOriginToCallOrigin;
 	type WeightInfo = ();
+	type PriceForSiblingDelivery = ();
 }
 
 impl cumulus_pallet_dmp_queue::Config for Runtime {
@@ -187,6 +205,11 @@ impl cumulus_pallet_xcm::Config for Runtime {
 
 pub type LocalOriginToLocation = SignedToAccountId32<RuntimeOrigin, AccountId, RelayNetwork>;
 
+#[cfg(feature = "runtime-benchmarks")]
+parameter_types! {
+	pub ReachableDest: Option<MultiLocation> = Some(Parent.into());
+}
+
 impl pallet_xcm::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type SendXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, LocalOriginToLocation>;
@@ -196,19 +219,27 @@ impl pallet_xcm::Config for Runtime {
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type XcmTeleportFilter = Nothing;
 	type XcmReserveTransferFilter = Everything;
-	type Weigher = FixedWeightBounds<ConstU64<10>, RuntimeCall, ConstU32<100>>;
-	type LocationInverter = LocationInverter<Ancestry>;
+	type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
+	type UniversalLocation = UniversalLocation;
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeCall = RuntimeCall;
 	const VERSION_DISCOVERY_QUEUE_SIZE: u32 = 100;
 	type AdvertisedXcmVersion = pallet_xcm::CurrentXcmVersion;
+	type Currency = Balances;
+	type CurrencyMatcher = ();
+	type TrustedLockers = ();
+	type SovereignAccountOf = ();
+	type MaxLockers = ConstU32<8>;
+	type WeightInfo = pallet_xcm::TestWeightInfo;
+	#[cfg(feature = "runtime-benchmarks")]
+	type ReachableDest = ReachableDest;
 }
 
 pub struct AccountIdToMultiLocation;
 impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 	fn convert(account: AccountId) -> MultiLocation {
 		X1(Junction::AccountId32 {
-			network: NetworkId::Any,
+			network: None,
 			id: account.into(),
 		})
 		.into()
@@ -220,25 +251,74 @@ impl Convert<CurrencyId, Option<MultiLocation>> for RelativeCurrencyIdConvert {
 	fn convert(id: CurrencyId) -> Option<MultiLocation> {
 		match id {
 			CurrencyId::R => Some(Parent.into()),
-			CurrencyId::A => Some((Parent, Parachain(1), GeneralKey(b"A".to_vec().try_into().unwrap())).into()),
-			CurrencyId::A1 => Some((Parent, Parachain(1), GeneralKey(b"A1".to_vec().try_into().unwrap())).into()),
-			CurrencyId::B => Some((Parent, Parachain(2), GeneralKey(b"B".to_vec().try_into().unwrap())).into()),
-			CurrencyId::B1 => Some((Parent, Parachain(2), GeneralKey(b"B1".to_vec().try_into().unwrap())).into()),
-			CurrencyId::B2 => Some((Parent, Parachain(2), GeneralKey(b"B2".to_vec().try_into().unwrap())).into()),
-			CurrencyId::C => Some((Parent, Parachain(3), GeneralKey(b"C".to_vec().try_into().unwrap())).into()),
-			CurrencyId::D => Some(GeneralKey(b"D".to_vec().try_into().unwrap()).into()),
+			CurrencyId::A => Some(
+				(
+					Parent,
+					Parachain(1),
+					Junction::from(BoundedVec::try_from(b"A".to_vec()).unwrap()),
+				)
+					.into(),
+			),
+			CurrencyId::A1 => Some(
+				(
+					Parent,
+					Parachain(1),
+					Junction::from(BoundedVec::try_from(b"A1".to_vec()).unwrap()),
+				)
+					.into(),
+			),
+			CurrencyId::B => Some(
+				(
+					Parent,
+					Parachain(2),
+					Junction::from(BoundedVec::try_from(b"B".to_vec()).unwrap()),
+				)
+					.into(),
+			),
+			CurrencyId::B1 => Some(
+				(
+					Parent,
+					Parachain(2),
+					Junction::from(BoundedVec::try_from(b"B1".to_vec()).unwrap()),
+				)
+					.into(),
+			),
+			CurrencyId::B2 => Some(
+				(
+					Parent,
+					Parachain(2),
+					Junction::from(BoundedVec::try_from(b"B2".to_vec()).unwrap()),
+				)
+					.into(),
+			),
+			CurrencyId::C => Some(
+				(
+					Parent,
+					Parachain(3),
+					Junction::from(BoundedVec::try_from(b"C".to_vec()).unwrap()),
+				)
+					.into(),
+			),
+			CurrencyId::D => Some(Junction::from(BoundedVec::try_from(b"D".to_vec()).unwrap()).into()),
 		}
 	}
 }
 impl Convert<MultiLocation, Option<CurrencyId>> for RelativeCurrencyIdConvert {
 	fn convert(l: MultiLocation) -> Option<CurrencyId> {
-		let a: Vec<u8> = "A".into();
-		let a1: Vec<u8> = "A1".into();
-		let b: Vec<u8> = "B".into();
-		let b1: Vec<u8> = "B1".into();
-		let b2: Vec<u8> = "B2".into();
-		let c: Vec<u8> = "C".into();
-		let d: Vec<u8> = "D".into();
+		let mut a: Vec<u8> = "A".into();
+		a.resize(32, 0);
+		let mut a1: Vec<u8> = "A1".into();
+		a1.resize(32, 0);
+		let mut b: Vec<u8> = "B".into();
+		b.resize(32, 0);
+		let mut b1: Vec<u8> = "B1".into();
+		b1.resize(32, 0);
+		let mut b2: Vec<u8> = "B2".into();
+		b2.resize(32, 0);
+		let mut c: Vec<u8> = "C".into();
+		c.resize(32, 0);
+		let mut d: Vec<u8> = "D".into();
+		d.resize(32, 0);
 
 		let self_para_id: u32 = ParachainInfo::parachain_id().into();
 		if l == MultiLocation::parent() {
@@ -246,23 +326,25 @@ impl Convert<MultiLocation, Option<CurrencyId>> for RelativeCurrencyIdConvert {
 		}
 		match l {
 			MultiLocation { parents, interior } if parents == 1 => match interior {
-				X2(Parachain(1), GeneralKey(k)) if k == a => Some(CurrencyId::A),
-				X2(Parachain(1), GeneralKey(k)) if k == a1 => Some(CurrencyId::A1),
-				X2(Parachain(2), GeneralKey(k)) if k == b => Some(CurrencyId::B),
-				X2(Parachain(2), GeneralKey(k)) if k == b1 => Some(CurrencyId::B1),
-				X2(Parachain(2), GeneralKey(k)) if k == b2 => Some(CurrencyId::B2),
-				X2(Parachain(3), GeneralKey(k)) if k == c => Some(CurrencyId::C),
-				X2(Parachain(para_id), GeneralKey(k)) if k == d && para_id == self_para_id => Some(CurrencyId::D),
+				X2(Parachain(1), GeneralKey { data, .. }) if data.to_vec() == a => Some(CurrencyId::A),
+				X2(Parachain(1), GeneralKey { data, .. }) if data.to_vec() == a1 => Some(CurrencyId::A1),
+				X2(Parachain(2), GeneralKey { data, .. }) if data.to_vec() == b => Some(CurrencyId::B),
+				X2(Parachain(2), GeneralKey { data, .. }) if data.to_vec() == b1 => Some(CurrencyId::B1),
+				X2(Parachain(2), GeneralKey { data, .. }) if data.to_vec() == b2 => Some(CurrencyId::B2),
+				X2(Parachain(3), GeneralKey { data, .. }) if data.to_vec() == c => Some(CurrencyId::C),
+				X2(Parachain(para_id), GeneralKey { data, .. }) if data.to_vec() == d && para_id == self_para_id => {
+					Some(CurrencyId::D)
+				}
 				_ => None,
 			},
 			MultiLocation { parents, interior } if parents == 0 => match interior {
-				X1(GeneralKey(k)) if k == a => Some(CurrencyId::A),
-				X1(GeneralKey(k)) if k == b => Some(CurrencyId::B),
-				X1(GeneralKey(k)) if k == a1 => Some(CurrencyId::A1),
-				X1(GeneralKey(k)) if k == b1 => Some(CurrencyId::B1),
-				X1(GeneralKey(k)) if k == b2 => Some(CurrencyId::B2),
-				X1(GeneralKey(k)) if k == c => Some(CurrencyId::C),
-				X1(GeneralKey(k)) if k == d => Some(CurrencyId::D),
+				X1(GeneralKey { data, .. }) if data.to_vec() == a => Some(CurrencyId::A),
+				X1(GeneralKey { data, .. }) if data.to_vec() == b => Some(CurrencyId::B),
+				X1(GeneralKey { data, .. }) if data.to_vec() == a1 => Some(CurrencyId::A1),
+				X1(GeneralKey { data, .. }) if data.to_vec() == b1 => Some(CurrencyId::B1),
+				X1(GeneralKey { data, .. }) if data.to_vec() == b2 => Some(CurrencyId::B2),
+				X1(GeneralKey { data, .. }) if data.to_vec() == c => Some(CurrencyId::C),
+				X1(GeneralKey { data, .. }) if data.to_vec() == d => Some(CurrencyId::D),
 				_ => None,
 			},
 			_ => None,
@@ -321,9 +403,9 @@ impl orml_xtokens::Config for Runtime {
 	type MultiLocationsFilter = ParentOrParachains;
 	type MinXcmFee = ParachainMinFee;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
-	type Weigher = FixedWeightBounds<ConstU64<10>, RuntimeCall, ConstU32<100>>;
-	type BaseXcmWeight = ConstU64<100_000_000>;
-	type LocationInverter = LocationInverter<Ancestry>;
+	type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
+	type BaseXcmWeight = BaseXcmWeight;
+	type UniversalLocation = UniversalLocation;
 	type MaxAssetsForTransfer = MaxAssetsForTransfer;
 	type ReserveProvider = RelativeReserveProvider;
 }

@@ -3,7 +3,12 @@
 use super::*;
 use crate as orml_asset_registry;
 use crate::tests::para::{AdminAssetTwo, AssetRegistry, CustomMetadata, RuntimeOrigin, Tokens, TreasuryAccount};
-use frame_support::{assert_noop, assert_ok};
+use frame_support::{
+	assert_noop, assert_ok,
+	storage::migration::{get_storage_value, put_storage_value},
+	traits::OnRuntimeUpgrade,
+	StorageHasher,
+};
 use mock::{para::RuntimeCall, *};
 use orml_traits::MultiCurrency;
 use polkadot_parachain::primitives::Sibling;
@@ -13,6 +18,10 @@ use sp_runtime::{
 	AccountId32,
 };
 use xcm_simulator::TestExt;
+
+type OldMultiLocation = xcm::v2::MultiLocation;
+type OldJunctions = xcm::v2::Junctions;
+type OldJunction = xcm::v2::Junction;
 
 fn treasury_account() -> AccountId32 {
 	TreasuryAccount::get()
@@ -46,7 +55,13 @@ fn dummy_metadata() -> AssetMetadata<<para::Runtime as orml_asset_registry::Conf
 		name: "para A native token".as_bytes().to_vec(),
 		symbol: "paraA".as_bytes().to_vec(),
 		existential_deposit: 0,
-		location: Some(MultiLocation::new(1, X2(Parachain(1), GeneralKey(vec![0].try_into().unwrap()))).into()),
+		location: Some(
+			MultiLocation::new(
+				1,
+				X2(Parachain(1), Junction::from(BoundedVec::try_from(vec![0]).unwrap())),
+			)
+			.into(),
+		),
 		additional: CustomMetadata {
 			fee_per_second: 1_000_000_000_000,
 		},
@@ -96,7 +111,8 @@ fn send_self_parachain_asset_to_sibling() {
 	});
 
 	ParaA::execute_with(|| {
-		metadata.location = Some(MultiLocation::new(0, X1(GeneralKey(vec![0].try_into().unwrap()))).into());
+		metadata.location =
+			Some(MultiLocation::new(0, X1(Junction::from(BoundedVec::try_from(vec![0]).unwrap()))).into());
 		AssetRegistry::register_asset(RuntimeOrigin::root(), metadata, None).unwrap();
 
 		assert_ok!(ParaTokens::deposit(CurrencyId::RegisteredAsset(1), &ALICE, 1_000));
@@ -111,7 +127,7 @@ fn send_self_parachain_asset_to_sibling() {
 					X2(
 						Parachain(2),
 						Junction::AccountId32 {
-							network: NetworkId::Any,
+							network: None,
 							id: BOB.into(),
 						}
 					)
@@ -148,7 +164,13 @@ fn send_sibling_asset_to_non_reserve_sibling() {
 		AssetRegistry::register_asset(
 			RuntimeOrigin::root(),
 			AssetMetadata {
-				location: Some(MultiLocation::new(1, X2(Parachain(2), GeneralKey(vec![0].try_into().unwrap()))).into()),
+				location: Some(
+					MultiLocation::new(
+						1,
+						X2(Parachain(2), Junction::from(BoundedVec::try_from(vec![0]).unwrap())),
+					)
+					.into(),
+				),
 				..dummy_metadata()
 			},
 			None,
@@ -161,7 +183,9 @@ fn send_sibling_asset_to_non_reserve_sibling() {
 		AssetRegistry::register_asset(
 			RuntimeOrigin::root(),
 			AssetMetadata {
-				location: Some(MultiLocation::new(0, X1(GeneralKey(vec![0].try_into().unwrap()))).into()),
+				location: Some(
+					MultiLocation::new(0, X1(Junction::from(BoundedVec::try_from(vec![0]).unwrap()))).into(),
+				),
 				..dummy_metadata()
 			},
 			None,
@@ -178,7 +202,13 @@ fn send_sibling_asset_to_non_reserve_sibling() {
 		AssetRegistry::register_asset(
 			RuntimeOrigin::root(),
 			AssetMetadata {
-				location: Some(MultiLocation::new(1, X2(Parachain(2), GeneralKey(vec![0].try_into().unwrap()))).into()),
+				location: Some(
+					MultiLocation::new(
+						1,
+						X2(Parachain(2), Junction::from(BoundedVec::try_from(vec![0]).unwrap())),
+					)
+					.into(),
+				),
 				..dummy_metadata()
 			},
 			None,
@@ -197,7 +227,7 @@ fn send_sibling_asset_to_non_reserve_sibling() {
 					X2(
 						Parachain(3),
 						Junction::AccountId32 {
-							network: NetworkId::Any,
+							network: None,
 							id: BOB.into(),
 						}
 					)
@@ -237,7 +267,13 @@ fn test_sequential_id_normal_behavior() {
 		let metadata2 = AssetMetadata {
 			name: "para A native token 2".as_bytes().to_vec(),
 			symbol: "paraA2".as_bytes().to_vec(),
-			location: Some(MultiLocation::new(1, X2(Parachain(1), GeneralKey(vec![1].try_into().unwrap()))).into()),
+			location: Some(
+				MultiLocation::new(
+					1,
+					X2(Parachain(1), Junction::from(BoundedVec::try_from(vec![1]).unwrap())),
+				)
+				.into(),
+			),
 			..dummy_metadata()
 		};
 		AssetRegistry::register_asset(RuntimeOrigin::root(), metadata1.clone(), None).unwrap();
@@ -278,7 +314,7 @@ fn test_fixed_rate_asset_trader() {
 
 	ParaA::execute_with(|| {
 		let para_a_metadata = AssetMetadata {
-			location: Some(MultiLocation::new(0, X1(GeneralKey(vec![0].try_into().unwrap()))).into()),
+			location: Some(MultiLocation::new(0, X1(Junction::from(BoundedVec::try_from(vec![0]).unwrap()))).into()),
 			..metadata.clone()
 		};
 		AssetRegistry::register_asset(RuntimeOrigin::root(), para_a_metadata, None).unwrap();
@@ -295,7 +331,7 @@ fn test_fixed_rate_asset_trader() {
 					X2(
 						Parachain(2),
 						Junction::AccountId32 {
-							network: NetworkId::Any,
+							network: None,
 							id: BOB.into(),
 						}
 					)
@@ -346,7 +382,7 @@ fn test_fixed_rate_asset_trader() {
 					X2(
 						Parachain(2),
 						Junction::AccountId32 {
-							network: NetworkId::Any,
+							network: None,
 							id: BOB.into(),
 						}
 					)
@@ -430,7 +466,13 @@ fn test_update_metadata_works() {
 			name: "para A native token2".as_bytes().to_vec(),
 			symbol: "paraA2".as_bytes().to_vec(),
 			existential_deposit: 1,
-			location: Some(MultiLocation::new(1, X2(Parachain(1), GeneralKey(vec![1].try_into().unwrap()))).into()),
+			location: Some(
+				MultiLocation::new(
+					1,
+					X2(Parachain(1), Junction::from(BoundedVec::try_from(vec![1]).unwrap())),
+				)
+				.into(),
+			),
 			additional: CustomMetadata {
 				fee_per_second: 2_000_000_000_000,
 			},
@@ -533,5 +575,73 @@ fn test_asset_authority() {
 			metadata,
 			Some(2)
 		));
+	});
+}
+
+#[test]
+fn test_v2_to_v3_incompatible_multilocation() {
+	// Assert that V2 and V3 Multilocation both are encoded differently
+	assert!(
+		OldMultiLocation::new(
+			0,
+			OldJunctions::X1(OldJunction::GeneralKey(vec![0].try_into().unwrap()))
+		)
+		.encode() != MultiLocation::new(0, X1(Junction::from(BoundedVec::try_from(vec![0]).unwrap()))).encode()
+	);
+}
+
+#[test]
+fn from_unversioned_to_v2_storage() {
+	TestNet::reset();
+
+	ParaA::execute_with(|| {
+		let module_prefix = b"AssetRegistry";
+		let storage_prefix = b"LocationToAssetId";
+
+		// StorageVersion is 0 before migration
+		assert_eq!(StorageVersion::get::<Pallet<para::Runtime>>(), 0);
+
+		// V2 storage key
+		let old_key = xcm::v2::MultiLocation::new(
+			0,
+			xcm::v2::Junctions::X1(xcm::v2::Junction::GeneralKey(vec![0].try_into().unwrap())),
+		)
+		.encode();
+
+		let asset_id: para::ParaAssetId = 5u32;
+
+		// Store raw xcm::v2 data
+		put_storage_value(
+			module_prefix,
+			storage_prefix,
+			&Blake2_128Concat::hash(&old_key),
+			asset_id,
+		);
+
+		// V3 storage key
+		let new_key = MultiLocation::new(0, X1(Junction::from(BoundedVec::try_from(vec![0]).unwrap())));
+
+		// Assert new StorageKey still does not exist
+		assert_eq!(AssetRegistry::location_to_asset_id(new_key), None);
+
+		// Run StorageKey migration
+		crate::Migration::<para::Runtime>::on_runtime_upgrade();
+
+		// StorageVersion is 2 after migration
+		assert_eq!(StorageVersion::get::<Pallet<para::Runtime>>(), 2);
+
+		// Assert the StorageKey exists and has been migrated to xcm::v3
+		assert_eq!(AssetRegistry::location_to_asset_id(new_key), Some(asset_id));
+
+		// Assert the old key does not exist anymore
+		assert!(get_storage_value::<para::ParaAssetId>(
+			module_prefix,
+			storage_prefix,
+			&Blake2_128Concat::hash(&old_key),
+		)
+		.is_none());
+
+		// Assert further calls are no-op
+		assert_eq!(crate::Migration::<para::Runtime>::on_runtime_upgrade(), Weight::zero());
 	});
 }

@@ -1,6 +1,6 @@
 use frame_support::dispatch::DispatchError;
 use sp_std::vec::Vec;
-use xcm::latest::prelude::*;
+use xcm::v3::prelude::*;
 
 pub struct Transferred<AccountId> {
 	pub sender: AccountId,
