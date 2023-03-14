@@ -57,7 +57,9 @@ mod v2 {
 
 		weight.saturating_accrue(T::DbWeight::get().reads(1));
 
-		let old_data = storage_iter::<u128>(module_prefix, storage_prefix).drain();
+		let old_data = storage_iter::<u128>(module_prefix, storage_prefix)
+			.drain()
+			.collect::<sp_std::vec::Vec<_>>();
 
 		for (raw_k, value) in old_data {
 			let mut full_key = Vec::new();

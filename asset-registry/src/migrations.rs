@@ -27,8 +27,9 @@ mod v2 {
 
 		weight.saturating_accrue(T::DbWeight::get().reads(1));
 		let old_data =
-			storage_key_iter::<xcm::v2::MultiLocation, T::AssetId, Blake2_128Concat>(module_prefix, storage_prefix)
-				.drain();
+			storage_key_iter::<xcm::v2::MultiLocation, T::AssetId, Twox64Concat>(module_prefix, storage_prefix)
+				.drain()
+				.collect::<sp_std::vec::Vec<_>>();
 
 		for (old_key, value) in old_data {
 			weight.saturating_accrue(T::DbWeight::get().writes(1));
