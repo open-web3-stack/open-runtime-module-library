@@ -592,11 +592,15 @@ fn test_v2_to_v3_incompatible_multilocation() {
 
 #[test]
 fn from_unversioned_to_v2_storage() {
+	use crate::migrations::pre_polkadot_0_9_38;
+	use xcm::VersionedMultiLocation;
+
 	TestNet::reset();
 
 	ParaA::execute_with(|| {
 		let module_prefix = b"AssetRegistry";
-		let storage_prefix = b"LocationToAssetId";
+		let location_storage_prefix = b"LocationToAssetId";
+		let metadata_storage_prefix = b"Metadata";
 
 		// StorageVersion is 0 before migration
 		assert_eq!(StorageVersion::get::<Pallet<para::Runtime>>(), 0);
@@ -628,19 +632,19 @@ fn from_unversioned_to_v2_storage() {
 		// Store raw xcm::v2 data
 		put_storage_value(
 			module_prefix,
-			storage_prefix,
+			location_storage_prefix,
 			&Twox64Concat::hash(&old_multilocation_0.encode()),
 			asset_id_0,
 		);
 		put_storage_value(
 			module_prefix,
-			storage_prefix,
+			location_storage_prefix,
 			&Twox64Concat::hash(&old_multilocation_1.encode()),
 			asset_id_1,
 		);
 		put_storage_value(
 			module_prefix,
-			storage_prefix,
+			location_storage_prefix,
 			&Twox64Concat::hash(&old_multilocation_2.encode()),
 			asset_id_2,
 		);
@@ -667,8 +671,58 @@ fn from_unversioned_to_v2_storage() {
 		assert_eq!(AssetRegistry::location_to_asset_id(new_multilocation_1), None);
 		assert_eq!(AssetRegistry::location_to_asset_id(new_multilocation_2), None);
 
+		let old_metadata_with_v0_location = pre_polkadot_0_9_38::AssetMetadata {
+			additional: CustomMetadata { fee_per_second: 5 },
+			decimals: 1,
+			existential_deposit: 1234,
+			location: Some(pre_polkadot_0_9_38::VersionedMultiLocation::V0(
+				crate::migrations::v0::MultiLocation::Null,
+			)),
+			name: b"ghi".to_vec(),
+			symbol: b"jkl".to_vec(),
+		};
+
+		let old_metadata_with_v1_location = pre_polkadot_0_9_38::AssetMetadata {
+			additional: CustomMetadata { fee_per_second: 6 },
+			decimals: 12,
+			existential_deposit: 123,
+			location: Some(pre_polkadot_0_9_38::VersionedMultiLocation::V1(
+				old_multilocation_1.clone(),
+			)),
+			name: b"abc".to_vec(),
+			symbol: b"def".to_vec(),
+		};
+
+		let old_metadata_without_location = pre_polkadot_0_9_38::AssetMetadata {
+			additional: CustomMetadata { fee_per_second: 7 },
+			decimals: 3,
+			existential_deposit: 12345,
+			location: None,
+			name: b"mno".to_vec(),
+			symbol: b"pqr".to_vec(),
+		};
+
+		put_storage_value(
+			module_prefix,
+			metadata_storage_prefix,
+			&Twox64Concat::hash(&asset_id_0.encode()),
+			old_metadata_with_v0_location.clone(),
+		);
+		put_storage_value(
+			module_prefix,
+			metadata_storage_prefix,
+			&Twox64Concat::hash(&asset_id_1.encode()),
+			old_metadata_with_v1_location.clone(),
+		);
+		put_storage_value(
+			module_prefix,
+			metadata_storage_prefix,
+			&Twox64Concat::hash(&asset_id_2.encode()),
+			old_metadata_without_location.clone(),
+		);
+
 		// Run StorageKey migration
-		crate::Migration::<para::Runtime>::on_runtime_upgrade();
+		crate::MigrateV1Only_V0NotSupported::<para::Runtime>::on_runtime_upgrade();
 
 		// StorageVersion is 2 after migration
 		assert_eq!(StorageVersion::get::<Pallet<para::Runtime>>(), 2);
@@ -690,24 +744,53 @@ fn from_unversioned_to_v2_storage() {
 		// Assert the old key does not exist anymore
 		assert!(get_storage_value::<para::ParaAssetId>(
 			module_prefix,
-			storage_prefix,
+			location_storage_prefix,
 			&Twox64Concat::hash(&old_multilocation_0.encode()),
 		)
 		.is_none());
 		assert!(get_storage_value::<para::ParaAssetId>(
 			module_prefix,
-			storage_prefix,
+			location_storage_prefix,
 			&Twox64Concat::hash(&old_multilocation_1.encode()),
 		)
 		.is_none());
 		assert!(get_storage_value::<para::ParaAssetId>(
 			module_prefix,
-			storage_prefix,
+			location_storage_prefix,
 			&Twox64Concat::hash(&old_multilocation_2.encode()),
 		)
 		.is_none());
 
+		let new_metadata_with_from_v0_location = AssetRegistry::metadata(asset_id_0).unwrap();
+		let new_metadata_with_from_v1_location = AssetRegistry::metadata(asset_id_1).unwrap();
+		let new_metadata_without_location = AssetRegistry::metadata(asset_id_2).unwrap();
+
+		assert!(new_metadata_with_from_v0_location.location.is_none());
+		assert!(new_metadata_without_location.location.is_none());
+		// check the case where a migration actually happened
+		assert_eq!(
+			new_metadata_with_from_v1_location.location,
+			Some(VersionedMultiLocation::V2(old_multilocation_1.clone()))
+		);
+
+		let assert_other_fields_unchanged =
+			|old: pre_polkadot_0_9_38::AssetMetadata<Balance, CustomMetadata>,
+			 new: AssetMetadata<Balance, CustomMetadata>| {
+				assert_eq!(old.additional, new.additional);
+				assert_eq!(old.decimals, new.decimals);
+				assert_eq!(old.existential_deposit, new.existential_deposit);
+				assert_eq!(old.name, new.name);
+				assert_eq!(old.symbol, new.symbol);
+			};
+
+		assert_other_fields_unchanged(old_metadata_with_v0_location, new_metadata_with_from_v0_location);
+		assert_other_fields_unchanged(old_metadata_with_v1_location, new_metadata_with_from_v1_location);
+		assert_other_fields_unchanged(old_metadata_without_location, new_metadata_without_location);
+
 		// Assert further calls are no-op
-		assert_eq!(crate::Migration::<para::Runtime>::on_runtime_upgrade(), Weight::zero());
+		assert_eq!(
+			crate::MigrateV1Only_V0NotSupported::<para::Runtime>::on_runtime_upgrade(),
+			Weight::zero()
+		);
 	});
 }

@@ -29,7 +29,7 @@ mod mock;
 mod tests;
 
 mod migrations;
-pub use migrations::Migration;
+pub use migrations::MigrateV1Only_V0NotSupported;
 
 #[frame_support::pallet]
 pub mod module {
