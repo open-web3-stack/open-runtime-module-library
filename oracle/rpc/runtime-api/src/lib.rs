@@ -10,6 +10,7 @@ use codec::Codec;
 use sp_std::prelude::Vec;
 
 sp_api::decl_runtime_apis! {
+	#[deprecated(note = "please use `state_call` instead of RPC")]
 	pub trait OracleApi<ProviderId, Key, Value> where
 		ProviderId: Codec,
 		Key: Codec,
