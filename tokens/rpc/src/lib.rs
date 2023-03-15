@@ -31,6 +31,7 @@ pub struct Tokens<C, P> {
 	_marker: std::marker::PhantomData<P>,
 }
 
+#[allow(deprecated)]
 impl<C, P> Tokens<C, P> {
 	/// Creates a new instance of the `Tokens` helper.
 	pub fn new(client: Arc<C>) -> Self {
@@ -56,6 +57,7 @@ impl From<Error> for i32 {
 }
 
 #[async_trait]
+#[allow(deprecated)]
 impl<C, Block, CurrencyId, Balance> TokensApiServer<<Block as BlockT>::Hash, CurrencyId, Balance> for Tokens<C, Block>
 where
 	Block: BlockT,

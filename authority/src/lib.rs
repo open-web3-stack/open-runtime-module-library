@@ -35,7 +35,6 @@ use frame_support::{
 		schedule::{v1::Named as ScheduleNamed, DispatchTime, Priority},
 		EitherOfDiverse, EnsureOrigin, Get, IsType, OriginTrait,
 	},
-	weights::OldWeight,
 };
 use frame_system::{pallet_prelude::*, EnsureRoot, EnsureSigned};
 use scale_info::TypeInfo;
