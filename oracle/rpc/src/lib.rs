@@ -21,6 +21,7 @@ pub trait OracleApi<BlockHash, ProviderId, Key, Value> {
 }
 
 /// Provides RPC methods to query oracle value.
+#[deprecated(note = "please use `state_call` instead of RPC")]
 pub struct Oracle<C, B> {
 	/// Shared reference to the client.
 	client: Arc<C>,

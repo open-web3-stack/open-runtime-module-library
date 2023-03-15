@@ -9,7 +9,6 @@
 use codec::Codec;
 
 sp_api::decl_runtime_apis! {
-	#[deprecated(note = "please use `state_call` instead of RPC")]
 	pub trait TokensApi<CurrencyId, Balance> where
 		Balance: Codec,
 		CurrencyId: Codec

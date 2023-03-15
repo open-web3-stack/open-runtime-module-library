@@ -24,6 +24,7 @@ pub trait TokensApi<BlockHash, CurrencyId, Balance> {
 }
 
 /// Provides RPC methods to query existential deposit of currency.
+#[deprecated(note = "please use `state_call` instead of RPC")]
 pub struct Tokens<C, P> {
 	/// Shared reference to the client.
 	client: Arc<C>,
