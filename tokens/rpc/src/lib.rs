@@ -10,10 +10,7 @@ use jsonrpsee::{
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
 use sp_rpc::number::NumberOrHex;
-use sp_runtime::{
-	generic::BlockId,
-	traits::{Block as BlockT, MaybeDisplay},
-};
+use sp_runtime::traits::{Block as BlockT, MaybeDisplay};
 
 pub use orml_tokens_rpc_runtime_api::TokensApi as TokensRuntimeApi;
 
@@ -69,9 +66,9 @@ where
 		at: Option<<Block as BlockT>::Hash>,
 	) -> RpcResult<NumberOrHex> {
 		let api = self.client.runtime_api();
-		let at = BlockId::hash(at.unwrap_or_else(|| self.client.info().best_hash));
+		let at = at.unwrap_or_else(|| self.client.info().best_hash);
 
-		let balance = api.query_existential_deposit(&at, currency_id).map_err(|e| {
+		let balance = api.query_existential_deposit(at, currency_id).map_err(|e| {
 			CallError::Custom(ErrorObject::owned(
 				Error::RuntimeError.into(),
 				"Unable to query existential deposit.",

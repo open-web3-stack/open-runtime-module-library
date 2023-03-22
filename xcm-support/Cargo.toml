@@ -10,12 +10,12 @@ edition = "2021"
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false }
 
-frame-support = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.38" }
-sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.38" }
-sp-std = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.38" }
+frame-support = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.39" }
+sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.39" }
+sp-std = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.39" }
 
-xcm = { git = "https://github.com/paritytech/polkadot", default-features = false , branch = "release-v0.9.38" }
-xcm-executor = { git = "https://github.com/paritytech/polkadot", default-features = false , branch = "release-v0.9.38" }
+xcm = { git = "https://github.com/paritytech/polkadot", default-features = false , branch = "release-v0.9.39" }
+xcm-executor = { git = "https://github.com/paritytech/polkadot", default-features = false , branch = "release-v0.9.39" }
 
 orml-traits = { path = "../traits", version = "0.4.1-dev", default-features = false }
 
