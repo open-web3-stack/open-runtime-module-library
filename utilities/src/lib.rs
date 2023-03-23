@@ -4,16 +4,8 @@ use frame_support::storage::{with_transaction, TransactionOutcome};
 use sp_runtime::DispatchError;
 use sp_std::result::Result;
 
-#[deprecated(
-	since = "0.4.1",
-	note = "iterator module's functionality is now available in substrate's frame-support"
-)]
-pub mod iterator;
 pub mod offchain_worker;
 pub mod ordered_set;
-
-#[allow(deprecated)]
-pub use iterator::{IterableStorageDoubleMapExtended, IterableStorageMapExtended};
 
 pub use offchain_worker::OffchainErr;
 pub use ordered_set::OrderedSet;
