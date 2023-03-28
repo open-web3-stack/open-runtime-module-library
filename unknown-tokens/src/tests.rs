@@ -7,7 +7,10 @@ use mock::*;
 
 use frame_support::{
 	assert_err, assert_ok,
-	storage::migration::{get_storage_value, put_storage_value},
+	storage::{
+		migration::{get_storage_value, put_storage_value},
+		unhashed::put_raw,
+	},
 	traits::OnRuntimeUpgrade,
 };
 
@@ -248,5 +251,14 @@ fn from_unversioned_to_v2_storage() {
 
 		// Assert further calls are no-op
 		assert_eq!(crate::Migration::<Runtime>::on_runtime_upgrade(), Weight::zero());
+	});
+}
+
+#[test]
+fn migrate_should_not_panic() {
+	ExtBuilder.build().execute_with(|| {
+		put_raw(&hex_literal::hex!["8d4649c9ee31ba6b2d10c66f5fcc252e76391a415c3fca956dccff701fe02e98082b3a7e1c0db7de23c07c6f14cc6c51000100411f728d113b5f9fee983dba4cbb22827c05000106080081"], &hex_literal::hex!["0b2493d4010000000000000000000000"]);
+
+		crate::Migration::<Runtime>::on_runtime_upgrade();
 	});
 }

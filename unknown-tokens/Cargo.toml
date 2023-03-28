@@ -24,7 +24,7 @@ orml-xcm-support = { path = "../xcm-support", default-features = false }
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
-
+hex-literal = "0.3.1"
 [features]
 default = ["std"]
 std = [
