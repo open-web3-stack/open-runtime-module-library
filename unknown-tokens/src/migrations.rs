@@ -44,7 +44,6 @@ mod v2 {
 				Decode::decode(&mut k1_k2_material).expect("Stored k1 xcm::v2::MultiLocation");
 
 			let mut k2_material = Blake2_128Concat::reverse(k1_k2_material);
-			println!("k2_material: {:?}", k2_material);
 			let k2: xcm::v2::MultiLocation =
 				Decode::decode(&mut k2_material).expect("Stored k2 xcm::v2::MultiLocation");
 
