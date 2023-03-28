@@ -31,7 +31,9 @@ mod v2 {
 
 		weight.saturating_accrue(T::DbWeight::get().reads(1));
 
-		let old_data = storage_iter::<u128>(module_prefix, storage_prefix).drain();
+		let old_data = storage_iter::<u128>(module_prefix, storage_prefix)
+			.drain()
+			.collect::<Vec<_>>();
 
 		for (raw_k, value) in old_data {
 			let mut full_key = Vec::new();
@@ -42,6 +44,7 @@ mod v2 {
 				Decode::decode(&mut k1_k2_material).expect("Stored k1 xcm::v2::MultiLocation");
 
 			let mut k2_material = Blake2_128Concat::reverse(k1_k2_material);
+			println!("k2_material: {:?}", k2_material);
 			let k2: xcm::v2::MultiLocation =
 				Decode::decode(&mut k2_material).expect("Stored k2 xcm::v2::MultiLocation");
 
@@ -59,7 +62,7 @@ mod v2 {
 
 		let old_data = storage_iter::<u128>(module_prefix, storage_prefix)
 			.drain()
-			.collect::<sp_std::vec::Vec<_>>();
+			.collect::<Vec<_>>();
 
 		for (raw_k, value) in old_data {
 			let mut full_key = Vec::new();
