@@ -55,7 +55,7 @@ use xcm_executor::traits::WeightBounds;
 pub use module::*;
 use orml_traits::{
 	location::{Parse, Reserve},
-	xcm_transfer::Transferred,
+	xcm_transfer::{Transferred, XtokensWeightInfo},
 	GetByKey, XcmTransfer,
 };
 
@@ -211,7 +211,7 @@ pub mod module {
 		/// by the network, and if the receiving chain would handle
 		/// messages correctly.
 		#[pallet::call_index(0)]
-		#[pallet::weight(Pallet::<T>::weight_of_transfer(currency_id.clone(), *amount, dest))]
+		#[pallet::weight(XtokensWeight::<T>::weight_of_transfer(currency_id.clone(), *amount, dest))]
 		pub fn transfer(
 			origin: OriginFor<T>,
 			currency_id: T::CurrencyId,
@@ -237,7 +237,7 @@ pub mod module {
 		/// by the network, and if the receiving chain would handle
 		/// messages correctly.
 		#[pallet::call_index(1)]
-		#[pallet::weight(Pallet::<T>::weight_of_transfer_multiasset(asset, dest))]
+		#[pallet::weight(XtokensWeight::<T>::weight_of_transfer_multiasset(asset, dest))]
 		pub fn transfer_multiasset(
 			origin: OriginFor<T>,
 			asset: Box<VersionedMultiAsset>,
@@ -272,7 +272,7 @@ pub mod module {
 		/// by the network, and if the receiving chain would handle
 		/// messages correctly.
 		#[pallet::call_index(2)]
-		#[pallet::weight(Pallet::<T>::weight_of_transfer(currency_id.clone(), *amount, dest))]
+		#[pallet::weight(XtokensWeight::<T>::weight_of_transfer(currency_id.clone(), *amount, dest))]
 		pub fn transfer_with_fee(
 			origin: OriginFor<T>,
 			currency_id: T::CurrencyId,
@@ -309,7 +309,7 @@ pub mod module {
 		/// by the network, and if the receiving chain would handle
 		/// messages correctly.
 		#[pallet::call_index(3)]
-		#[pallet::weight(Pallet::<T>::weight_of_transfer_multiasset(asset, dest))]
+		#[pallet::weight(XtokensWeight::<T>::weight_of_transfer_multiasset(asset, dest))]
 		pub fn transfer_multiasset_with_fee(
 			origin: OriginFor<T>,
 			asset: Box<VersionedMultiAsset>,
@@ -341,7 +341,7 @@ pub mod module {
 		/// by the network, and if the receiving chain would handle
 		/// messages correctly.
 		#[pallet::call_index(4)]
-		#[pallet::weight(Pallet::<T>::weight_of_transfer_multicurrencies(currencies, fee_item, dest))]
+		#[pallet::weight(XtokensWeight::<T>::weight_of_transfer_multicurrencies(currencies, fee_item, dest))]
 		pub fn transfer_multicurrencies(
 			origin: OriginFor<T>,
 			currencies: Vec<(T::CurrencyId, T::Balance)>,
@@ -371,7 +371,7 @@ pub mod module {
 		/// by the network, and if the receiving chain would handle
 		/// messages correctly.
 		#[pallet::call_index(5)]
-		#[pallet::weight(Pallet::<T>::weight_of_transfer_multiassets(assets, fee_item, dest))]
+		#[pallet::weight(XtokensWeight::<T>::weight_of_transfer_multiassets(assets, fee_item, dest))]
 		pub fn transfer_multiassets(
 			origin: OriginFor<T>,
 			assets: Box<VersionedMultiAssets>,
@@ -831,17 +831,31 @@ pub mod module {
 			};
 			Ok((transfer_kind, dest, reserve, recipient))
 		}
+
+		/// Get reserve location by `assets` and `fee_item`. the `assets`
+		/// includes fee asset and non fee asset. make sure assets have ge one
+		/// asset. all non fee asset should share same reserve location.
+		fn get_reserve_location(assets: &MultiAssets, fee_item: &u32) -> Option<MultiLocation> {
+			let reserve_idx = if assets.len() == 1 {
+				0
+			} else {
+				(*fee_item == 0) as usize
+			};
+			let asset = assets.get(reserve_idx);
+			asset.and_then(T::ReserveProvider::reserve)
+		}
 	}
 
+	pub struct XtokensWeight<T>(PhantomData<T>);
 	// weights
-	impl<T: Config> Pallet<T> {
+	impl<T: Config> XtokensWeightInfo<T::AccountId, T::Balance, T::CurrencyId> for XtokensWeight<T> {
 		/// Returns weight of `transfer_multiasset` call.
 		fn weight_of_transfer_multiasset(asset: &VersionedMultiAsset, dest: &VersionedMultiLocation) -> Weight {
 			let asset: Result<MultiAsset, _> = asset.clone().try_into();
 			let dest = dest.clone().try_into();
 			if let (Ok(asset), Ok(dest)) = (asset, dest) {
 				if let Ok((transfer_kind, dest, _, reserve)) =
-					Self::transfer_kind(T::ReserveProvider::reserve(&asset), &dest)
+					Pallet::<T>::transfer_kind(T::ReserveProvider::reserve(&asset), &dest)
 				{
 					let mut msg = match transfer_kind {
 						SelfReserveAsset => Xcm(vec![TransferReserveAsset {
@@ -904,8 +918,8 @@ pub mod module {
 			let assets: Result<MultiAssets, ()> = assets.clone().try_into();
 			let dest = dest.clone().try_into();
 			if let (Ok(assets), Ok(dest)) = (assets, dest) {
-				let reserve_location = Self::get_reserve_location(&assets, fee_item);
-				if let Ok((transfer_kind, dest, _, reserve)) = Self::transfer_kind(reserve_location, &dest) {
+				let reserve_location = Pallet::<T>::get_reserve_location(&assets, fee_item);
+				if let Ok((transfer_kind, dest, _, reserve)) = Pallet::<T>::transfer_kind(reserve_location, &dest) {
 					let mut msg = match transfer_kind {
 						SelfReserveAsset => Xcm(vec![TransferReserveAsset {
 							assets,
@@ -927,19 +941,6 @@ pub mod module {
 				}
 			}
 			Weight::zero()
-		}
-
-		/// Get reserve location by `assets` and `fee_item`. the `assets`
-		/// includes fee asset and non fee asset. make sure assets have ge one
-		/// asset. all non fee asset should share same reserve location.
-		fn get_reserve_location(assets: &MultiAssets, fee_item: &u32) -> Option<MultiLocation> {
-			let reserve_idx = if assets.len() == 1 {
-				0
-			} else {
-				(*fee_item == 0) as usize
-			};
-			let asset = assets.get(reserve_idx);
-			asset.and_then(T::ReserveProvider::reserve)
 		}
 	}
 
