@@ -35,7 +35,6 @@
 use frame_support::{
 	log,
 	pallet_prelude::*,
-	require_transactional,
 	traits::{Contains, Get},
 	Parameter,
 };
@@ -945,7 +944,6 @@ pub mod module {
 	}
 
 	impl<T: Config> XcmTransfer<T::AccountId, T::Balance, T::CurrencyId> for Pallet<T> {
-		#[require_transactional]
 		fn transfer(
 			who: T::AccountId,
 			currency_id: T::CurrencyId,
@@ -956,7 +954,6 @@ pub mod module {
 			Self::do_transfer(who, currency_id, amount, dest, dest_weight_limit)
 		}
 
-		#[require_transactional]
 		fn transfer_multiasset(
 			who: T::AccountId,
 			asset: MultiAsset,
@@ -966,7 +963,6 @@ pub mod module {
 			Self::do_transfer_multiasset(who, asset, dest, dest_weight_limit)
 		}
 
-		#[require_transactional]
 		fn transfer_with_fee(
 			who: T::AccountId,
 			currency_id: T::CurrencyId,
@@ -978,7 +974,6 @@ pub mod module {
 			Self::do_transfer_with_fee(who, currency_id, amount, fee, dest, dest_weight_limit)
 		}
 
-		#[require_transactional]
 		fn transfer_multiasset_with_fee(
 			who: T::AccountId,
 			asset: MultiAsset,
@@ -989,7 +984,6 @@ pub mod module {
 			Self::do_transfer_multiasset_with_fee(who, asset, fee, dest, dest_weight_limit)
 		}
 
-		#[require_transactional]
 		fn transfer_multicurrencies(
 			who: T::AccountId,
 			currencies: Vec<(T::CurrencyId, T::Balance)>,
@@ -1000,7 +994,6 @@ pub mod module {
 			Self::do_transfer_multicurrencies(who, currencies, fee_item, dest, dest_weight_limit)
 		}
 
-		#[require_transactional]
 		fn transfer_multiassets(
 			who: T::AccountId,
 			assets: MultiAssets,
