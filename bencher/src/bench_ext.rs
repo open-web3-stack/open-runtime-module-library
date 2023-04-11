@@ -1,5 +1,4 @@
 use core::any::{Any, TypeId};
-use hash_db::Hasher;
 use sp_externalities::{Extension, ExtensionStore, Externalities, MultiRemovalResults};
 use sp_state_machine::{Backend, Ext};
 use sp_std::sync::Arc;
@@ -9,7 +8,7 @@ use super::tracker::BenchTracker;
 
 pub struct BenchExt<'a, H, B>
 where
-	H: Hasher,
+	H: sp_core::Hasher,
 	B: 'a + Backend<H>,
 {
 	ext: Ext<'a, H, B>,
@@ -18,7 +17,7 @@ where
 
 impl<'a, H, B> BenchExt<'a, H, B>
 where
-	H: Hasher,
+	H: sp_core::Hasher,
 	B: 'a + Backend<H>,
 {
 	pub fn new(ext: Ext<'a, H, B>, tracker: Arc<BenchTracker>) -> Self {
@@ -28,7 +27,7 @@ where
 
 impl<'a, H, B> Externalities for BenchExt<'a, H, B>
 where
-	H: Hasher,
+	H: sp_core::Hasher,
 	B: 'a + Backend<H>,
 	H::Out: Ord + 'static + codec::Codec,
 {
@@ -171,7 +170,7 @@ where
 
 impl<'a, H, B> ExtensionStore for BenchExt<'a, H, B>
 where
-	H: Hasher,
+	H: sp_core::Hasher,
 	B: 'a + Backend<H>,
 {
 	fn extension_by_type_id(&mut self, type_id: TypeId) -> Option<&mut dyn Any> {

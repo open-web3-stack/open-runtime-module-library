@@ -510,7 +510,7 @@ fn trigger_call_works() {
 			Authority::trigger_call(
 				RuntimeOrigin::signed(1),
 				hash,
-				call_weight_bound - Weight::from_ref_time(1)
+				call_weight_bound - Weight::from_parts(1, 0)
 			),
 			Error::<Runtime>::WrongCallWeightBound
 		);
