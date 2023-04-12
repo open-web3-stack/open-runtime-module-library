@@ -29,7 +29,6 @@ pub mod test {
 	pub(crate) type Value<T: Config> = StorageValue<_, u32, OptionQuery>;
 
 	#[pallet::pallet]
-	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T>(_);
 
 	#[pallet::call]

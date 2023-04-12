@@ -8,9 +8,9 @@ edition = "2021"
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive"] }
-frame-support = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.39" }
-sp-api = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.39" }
-sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.39" }
+frame-support = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.40" }
+sp-api = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.40" }
+sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.40" }
 orml-tokens = { default-features = false, path = "../../../tokens" }
 
 [features]

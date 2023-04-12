@@ -37,14 +37,14 @@ pub trait WeightInfo {
 /// Default weights.
 impl WeightInfo for () {
 	fn bid_collateral_auction() -> Weight {
-		Weight::from_ref_time(108_000_000)
+		Weight::from_parts(108_000_000, 0)
 			.saturating_add(RocksDbWeight::get().reads(8 as u64))
 			.saturating_add(RocksDbWeight::get().writes(9 as u64))
 	}
 	fn on_finalize(c: u32, ) -> Weight {
-		Weight::from_ref_time(9_779_000)
+		Weight::from_parts(9_779_000, 0)
 			// Standard Error: 13_000
-			.saturating_add(Weight::from_ref_time(57_962_000).saturating_mul(c as u64))
+			.saturating_add(Weight::from_parts(57_962_000, 0).saturating_mul(c as u64))
 			.saturating_add(RocksDbWeight::get().reads(10 as u64))
 			.saturating_add(RocksDbWeight::get().reads((3 as u64).saturating_mul(c as u64)))
 			.saturating_add(RocksDbWeight::get().writes(7 as u64))

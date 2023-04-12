@@ -24,7 +24,7 @@ pub type BlockNumber = u64;
 
 parameter_types! {
 	pub BlockWeights: frame_system::limits::BlockWeights =
-			frame_system::limits::BlockWeights::simple_max(Weight::from_ref_time(2_000_000_000_000).set_proof_size(u64::MAX));
+			frame_system::limits::BlockWeights::simple_max(Weight::from_parts(2_000_000_000_000, 0).set_proof_size(u64::MAX));
 }
 
 impl frame_system::Config for Runtime {
