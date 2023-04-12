@@ -38,21 +38,21 @@ pub trait WeightInfo {
 /// Default weights.
 impl WeightInfo for () {
 	fn vested_transfer() -> Weight {
-		Weight::from_ref_time(69_000_000)
+		Weight::from_parts(69_000_000, 0)
 			.saturating_add(RocksDbWeight::get().reads(4 as u64))
 			.saturating_add(RocksDbWeight::get().writes(4 as u64))
 	}
 	fn claim(i: u32, ) -> Weight {
-		Weight::from_ref_time(31_747_000)
+		Weight::from_parts(31_747_000, 0)
 			// Standard Error: 4_000
-			.saturating_add(Weight::from_ref_time(63_000).saturating_mul(i as u64))
+			.saturating_add(Weight::from_parts(63_000, 0).saturating_mul(i as u64))
 			.saturating_add(RocksDbWeight::get().reads(2 as u64))
 			.saturating_add(RocksDbWeight::get().writes(2 as u64))
 	}
 	fn update_vesting_schedules(i: u32, ) -> Weight {
-		Weight::from_ref_time(29_457_000)
+		Weight::from_parts(29_457_000, 0)
 			// Standard Error: 4_000
-			.saturating_add(Weight::from_ref_time(117_000).saturating_mul(i as u64))
+			.saturating_add(Weight::from_parts(117_000, 0).saturating_mul(i as u64))
 			.saturating_add(RocksDbWeight::get().reads(2 as u64))
 			.saturating_add(RocksDbWeight::get().writes(3 as u64))
 	}

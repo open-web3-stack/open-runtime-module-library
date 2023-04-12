@@ -51,14 +51,14 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	// Storage: Assets Accounts (r:2 w:2)
 	// Storage: System Account (r:1 w:1)
 	fn pay(_x: u32, ) -> Weight {
-		Weight::from_ref_time(55_900_000)
+		Weight::from_parts(55_900_000, 0)
 			.saturating_add(T::DbWeight::get().reads(5 as u64))
 			.saturating_add(T::DbWeight::get().writes(4 as u64))
 	}
 	// Storage: Payment Payment (r:1 w:1)
 	// Storage: Assets Accounts (r:2 w:2)
 	fn release() -> Weight {
-		Weight::from_ref_time(36_000_000)
+		Weight::from_parts(36_000_000, 0)
 			.saturating_add(T::DbWeight::get().reads(3 as u64))
 			.saturating_add(T::DbWeight::get().writes(3 as u64))
 	}
@@ -66,35 +66,35 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	// Storage: Assets Accounts (r:2 w:2)
 	// Storage: System Account (r:1 w:0)
 	fn cancel() -> Weight {
-		Weight::from_ref_time(48_000_000)
+		Weight::from_parts(48_000_000, 0)
 			.saturating_add(T::DbWeight::get().reads(4 as u64))
 			.saturating_add(T::DbWeight::get().writes(3 as u64))
 	}
 	// Storage: Payment Payment (r:1 w:1)
 	// Storage: Assets Accounts (r:2 w:2)
 	fn resolve_payment() -> Weight {
-		Weight::from_ref_time(35_000_000)
+		Weight::from_parts(35_000_000, 0)
 			.saturating_add(T::DbWeight::get().reads(3 as u64))
 			.saturating_add(T::DbWeight::get().writes(3 as u64))
 	}
 	// Storage: Payment Payment (r:1 w:1)
 	// Storage: Payment ScheduledTasks (r:1 w:1)
 	fn request_refund() -> Weight {
-		Weight::from_ref_time(20_000_000)
+		Weight::from_parts(20_000_000, 0)
 			.saturating_add(T::DbWeight::get().reads(2 as u64))
 			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}
 	// Storage: Payment Payment (r:1 w:1)
 	// Storage: Payment ScheduledTasks (r:1 w:1)
 	fn dispute_refund() -> Weight {
-		Weight::from_ref_time(21_000_000)
+		Weight::from_parts(21_000_000, 0)
 			.saturating_add(T::DbWeight::get().reads(2 as u64))
 			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}
 	// Storage: Payment Payment (r:1 w:1)
 	// Storage: Sudo Key (r:1 w:0)
 	fn request_payment() -> Weight {
-		Weight::from_ref_time(17_000_000)
+		Weight::from_parts(17_000_000, 0)
 			.saturating_add(T::DbWeight::get().reads(2 as u64))
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
@@ -102,13 +102,13 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	// Storage: Assets Accounts (r:2 w:2)
 	// Storage: System Account (r:1 w:1)
 	fn accept_and_pay() -> Weight {
-		Weight::from_ref_time(58_000_000)
+		Weight::from_parts(58_000_000, 0)
 			.saturating_add(T::DbWeight::get().reads(4 as u64))
 			.saturating_add(T::DbWeight::get().writes(4 as u64))
 	}
 	// Storage: Payment ScheduledTasks (r:1 w:1)
 	fn remove_task() -> Weight {
-		Weight::from_ref_time(4_000_000)
+		Weight::from_parts(4_000_000, 0)
 			.saturating_add(T::DbWeight::get().reads(1 as u64))
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
@@ -121,14 +121,14 @@ impl WeightInfo for () {
 	// Storage: Assets Accounts (r:2 w:2)
 	// Storage: System Account (r:1 w:1)
 	fn pay(_x: u32, ) -> Weight {
-		Weight::from_ref_time(55_900_000)
+		Weight::from_parts(55_900_000, 0)
 			.saturating_add(RocksDbWeight::get().reads(5 as u64))
 			.saturating_add(RocksDbWeight::get().writes(4 as u64))
 	}
 	// Storage: Payment Payment (r:1 w:1)
 	// Storage: Assets Accounts (r:2 w:2)
 	fn release() -> Weight {
-		Weight::from_ref_time(36_000_000)
+		Weight::from_parts(36_000_000, 0)
 			.saturating_add(RocksDbWeight::get().reads(3 as u64))
 			.saturating_add(RocksDbWeight::get().writes(3 as u64))
 	}
@@ -136,35 +136,35 @@ impl WeightInfo for () {
 	// Storage: Assets Accounts (r:2 w:2)
 	// Storage: System Account (r:1 w:0)
 	fn cancel() -> Weight {
-		Weight::from_ref_time(48_000_000)
+		Weight::from_parts(48_000_000, 0)
 			.saturating_add(RocksDbWeight::get().reads(4 as u64))
 			.saturating_add(RocksDbWeight::get().writes(3 as u64))
 	}
 	// Storage: Payment Payment (r:1 w:1)
 	// Storage: Assets Accounts (r:2 w:2)
 	fn resolve_payment() -> Weight {
-		Weight::from_ref_time(35_000_000)
+		Weight::from_parts(35_000_000, 0)
 			.saturating_add(RocksDbWeight::get().reads(3 as u64))
 			.saturating_add(RocksDbWeight::get().writes(3 as u64))
 	}
 	// Storage: Payment Payment (r:1 w:1)
 	// Storage: Payment ScheduledTasks (r:1 w:1)
 	fn request_refund() -> Weight {
-		Weight::from_ref_time(20_000_000)
+		Weight::from_parts(20_000_000, 0)
 			.saturating_add(RocksDbWeight::get().reads(2 as u64))
 			.saturating_add(RocksDbWeight::get().writes(2 as u64))
 	}
 	// Storage: Payment Payment (r:1 w:1)
 	// Storage: Payment ScheduledTasks (r:1 w:1)
 	fn dispute_refund() -> Weight {
-		Weight::from_ref_time(21_000_000)
+		Weight::from_parts(21_000_000, 0)
 			.saturating_add(RocksDbWeight::get().reads(2 as u64))
 			.saturating_add(RocksDbWeight::get().writes(2 as u64))
 	}
 	// Storage: Payment Payment (r:1 w:1)
 	// Storage: Sudo Key (r:1 w:0)
 	fn request_payment() -> Weight {
-		Weight::from_ref_time(17_000_000)
+		Weight::from_parts(17_000_000, 0)
 			.saturating_add(RocksDbWeight::get().reads(2 as u64))
 			.saturating_add(RocksDbWeight::get().writes(1 as u64))
 	}
@@ -172,13 +172,13 @@ impl WeightInfo for () {
 	// Storage: Assets Accounts (r:2 w:2)
 	// Storage: System Account (r:1 w:1)
 	fn accept_and_pay() -> Weight {
-		Weight::from_ref_time(58_000_000)
+		Weight::from_parts(58_000_000, 0)
 			.saturating_add(RocksDbWeight::get().reads(4 as u64))
 			.saturating_add(RocksDbWeight::get().writes(4 as u64))
 	}
 	// Storage: Payment ScheduledTasks (r:1 w:1)
 	fn remove_task() -> Weight {
-		Weight::from_ref_time(4_000_000)
+		Weight::from_parts(4_000_000, 0)
 			.saturating_add(RocksDbWeight::get().reads(1 as u64))
 			.saturating_add(RocksDbWeight::get().writes(1 as u64))
 	}
