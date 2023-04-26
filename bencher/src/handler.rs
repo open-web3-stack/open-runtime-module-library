@@ -32,7 +32,7 @@ pub fn handle(output: Vec<u8>, storage_infos: Vec<StorageInfo>) {
 			let name = String::from_utf8_lossy(&result.method).to_string();
 
 			let y: Vec<f64> = result.elapses.into_iter().map(|x| x as f64).collect();
-			let x: Vec<f64> = (0..y.len()).into_iter().map(|x| x as f64).collect();
+			let x: Vec<f64> = (0..y.len()).map(|x| x as f64).collect();
 			let data = vec![("Y", y), ("X", x)];
 			let data = RegressionDataBuilder::new().build_from(data).unwrap();
 			let formula = "Y ~ X";
