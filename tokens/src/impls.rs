@@ -4,6 +4,7 @@ use frame_support::traits::{
 	tokens::{Balance as BalanceT, DepositConsequence, WithdrawConsequence},
 	Contains, Get,
 };
+use sp_arithmetic::{traits::Bounded, ArithmeticError};
 
 pub struct Combiner<AccountId, TestKey, A, B>(sp_std::marker::PhantomData<(AccountId, TestKey, A, B)>);
 
@@ -125,10 +126,25 @@ where
 	}
 }
 
-pub trait ConvertBalance<A, B> {
+pub trait ConvertBalance<A: Bounded, B: Bounded> {
 	type AssetId;
-	fn convert_balance(amount: A, asset_id: Self::AssetId) -> B;
-	fn convert_balance_back(amount: B, asset_id: Self::AssetId) -> A;
+	fn convert_balance(amount: A, asset_id: Self::AssetId) -> Result<B, ArithmeticError>;
+	fn convert_balance_back(amount: B, asset_id: Self::AssetId) -> Result<A, ArithmeticError>;
+
+	fn convert_balance_saturated(amount: A, asset_id: Self::AssetId) -> B {
+		Self::convert_balance(amount, asset_id).unwrap_or_else(|e| match e {
+			ArithmeticError::Overflow => B::max_value(),
+			ArithmeticError::Underflow => B::min_value(),
+			ArithmeticError::DivisionByZero => B::max_value(),
+		})
+	}
+	fn convert_balance_back_saturated(amount: B, asset_id: Self::AssetId) -> A {
+		Self::convert_balance_back(amount, asset_id).unwrap_or_else(|e| match e {
+			ArithmeticError::Overflow => A::max_value(),
+			ArithmeticError::Underflow => A::min_value(),
+			ArithmeticError::DivisionByZero => A::max_value(),
+		})
+	}
 }
 
 pub struct Mapper<AccountId, T, C, B, GetCurrencyId>(sp_std::marker::PhantomData<(AccountId, T, C, B, GetCurrencyId)>);
@@ -146,43 +162,48 @@ where
 	type Balance = B;
 
 	fn total_issuance() -> Self::Balance {
-		C::convert_balance(T::total_issuance(GetCurrencyId::get()), GetCurrencyId::get())
+		C::convert_balance_saturated(T::total_issuance(GetCurrencyId::get()), GetCurrencyId::get())
 	}
 
 	fn minimum_balance() -> Self::Balance {
-		C::convert_balance(T::minimum_balance(GetCurrencyId::get()), GetCurrencyId::get())
+		C::convert_balance_saturated(T::minimum_balance(GetCurrencyId::get()), GetCurrencyId::get())
 	}
 
 	fn balance(who: &AccountId) -> Self::Balance {
-		C::convert_balance(T::balance(GetCurrencyId::get(), who), GetCurrencyId::get())
+		C::convert_balance_saturated(T::balance(GetCurrencyId::get(), who), GetCurrencyId::get())
 	}
 
 	fn reducible_balance(who: &AccountId, keep_alive: bool) -> Self::Balance {
-		C::convert_balance(
+		C::convert_balance_saturated(
 			T::reducible_balance(GetCurrencyId::get(), who, keep_alive),
 			GetCurrencyId::get(),
 		)
 	}
 
 	fn can_deposit(who: &AccountId, amount: Self::Balance, mint: bool) -> DepositConsequence {
-		T::can_deposit(
-			GetCurrencyId::get(),
-			who,
-			C::convert_balance_back(amount, GetCurrencyId::get()),
-			mint,
-		)
+		let amount = C::convert_balance_back(amount, GetCurrencyId::get());
+		let amount = match amount {
+			Ok(amount) => amount,
+			Err(_) => return DepositConsequence::Overflow,
+		};
+		T::can_deposit(GetCurrencyId::get(), who, amount, mint)
 	}
 
 	fn can_withdraw(who: &AccountId, amount: Self::Balance) -> WithdrawConsequence<Self::Balance> {
 		use WithdrawConsequence::*;
-		let res = T::can_withdraw(
-			GetCurrencyId::get(),
-			who,
-			C::convert_balance_back(amount, GetCurrencyId::get()),
-		);
+
+		let amount = C::convert_balance_back(amount, GetCurrencyId::get());
+		let amount = match amount {
+			Ok(amount) => amount,
+			Err(ArithmeticError::Overflow) => return Overflow,
+			Err(ArithmeticError::Underflow) => return Underflow,
+			Err(ArithmeticError::DivisionByZero) => return Overflow,
+		};
+
+		let res = T::can_withdraw(GetCurrencyId::get(), who, amount);
 		match res {
 			WithdrawConsequence::ReducedToZero(b) => {
-				WithdrawConsequence::ReducedToZero(C::convert_balance(b, GetCurrencyId::get()))
+				WithdrawConsequence::ReducedToZero(C::convert_balance_saturated(b, GetCurrencyId::get()))
 			}
 			NoFunds => NoFunds,
 			WouldDie => WouldDie,
@@ -211,7 +232,7 @@ where
 			GetCurrencyId::get(),
 			source,
 			dest,
-			C::convert_balance_back(amount, GetCurrencyId::get()),
+			C::convert_balance_back(amount, GetCurrencyId::get())?,
 			keep_alive,
 		)
 	}
@@ -232,7 +253,7 @@ where
 		T::mint_into(
 			GetCurrencyId::get(),
 			dest,
-			C::convert_balance_back(amount, GetCurrencyId::get()),
+			C::convert_balance_back(amount, GetCurrencyId::get())?,
 		)
 	}
 
@@ -240,7 +261,7 @@ where
 		T::burn_from(
 			GetCurrencyId::get(),
 			dest,
-			C::convert_balance_back(amount, GetCurrencyId::get()),
+			C::convert_balance_back(amount, GetCurrencyId::get())?,
 		)
 	}
 }

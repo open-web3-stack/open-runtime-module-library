@@ -255,12 +255,12 @@ fn fungibles_inspect_convert_should_work() {
 	pub struct ConvertBalanceTest;
 	impl ConvertBalance<Balance, Balance> for ConvertBalanceTest {
 		type AssetId = CurrencyId;
-		fn convert_balance(balance: Balance, _asset_id: CurrencyId) -> Balance {
-			balance * 100
+		fn convert_balance(balance: Balance, _asset_id: CurrencyId) -> Result<Balance, ArithmeticError> {
+			Ok(balance * 100)
 		}
 
-		fn convert_balance_back(balance: Balance, _asset_id: CurrencyId) -> Balance {
-			balance / 100
+		fn convert_balance_back(balance: Balance, _asset_id: CurrencyId) -> Result<Balance, ArithmeticError> {
+			Ok(balance / 100)
 		}
 	}
 
@@ -309,12 +309,12 @@ fn fungibles_transfers_convert_should_work() {
 	pub struct ConvertBalanceTest;
 	impl ConvertBalance<Balance, Balance> for ConvertBalanceTest {
 		type AssetId = CurrencyId;
-		fn convert_balance(balance: Balance, _asset_id: CurrencyId) -> Balance {
-			balance * 100
+		fn convert_balance(balance: Balance, _asset_id: CurrencyId) -> Result<Balance, ArithmeticError> {
+			Ok(balance * 100)
 		}
 
-		fn convert_balance_back(balance: Balance, _asset_id: CurrencyId) -> Balance {
-			balance / 100
+		fn convert_balance_back(balance: Balance, _asset_id: CurrencyId) -> Result<Balance, ArithmeticError> {
+			Ok(balance / 100)
 		}
 	}
 
@@ -362,12 +362,12 @@ fn fungibles_mutate_convert_should_work() {
 	pub struct ConvertBalanceTest;
 	impl ConvertBalance<Balance, Balance> for ConvertBalanceTest {
 		type AssetId = CurrencyId;
-		fn convert_balance(balance: Balance, _asset_id: CurrencyId) -> Balance {
-			balance * 100
+		fn convert_balance(balance: Balance, _asset_id: CurrencyId) -> Result<Balance, ArithmeticError> {
+			Ok(balance * 100)
 		}
 
-		fn convert_balance_back(balance: Balance, _asset_id: CurrencyId) -> Balance {
-			balance / 100
+		fn convert_balance_back(balance: Balance, _asset_id: CurrencyId) -> Result<Balance, ArithmeticError> {
+			Ok(balance / 100)
 		}
 	}
 
