@@ -4,10 +4,7 @@ use frame_support::traits::{
 	tokens::{Balance as BalanceT, DepositConsequence, WithdrawConsequence},
 	Contains, Get,
 };
-use sp_arithmetic::{
-	traits::{Bounded, Zero},
-	ArithmeticError,
-};
+use sp_arithmetic::{traits::Bounded, ArithmeticError};
 
 pub struct Combiner<AccountId, TestKey, A, B>(sp_std::marker::PhantomData<(AccountId, TestKey, A, B)>);
 
@@ -129,7 +126,7 @@ where
 	}
 }
 
-pub trait ConvertBalance<A: Bounded + Zero, B: Bounded + Zero> {
+pub trait ConvertBalance<A: Bounded, B: Bounded> {
 	type AssetId;
 	fn convert_balance(amount: A, asset_id: Self::AssetId) -> Result<B, ArithmeticError>;
 	fn convert_balance_back(amount: B, asset_id: Self::AssetId) -> Result<A, ArithmeticError>;
@@ -138,14 +135,14 @@ pub trait ConvertBalance<A: Bounded + Zero, B: Bounded + Zero> {
 		Self::convert_balance(amount, asset_id).unwrap_or_else(|e| match e {
 			ArithmeticError::Overflow => B::max_value(),
 			ArithmeticError::Underflow => B::min_value(),
-			ArithmeticError::DivisionByZero => B::zero(),
+			ArithmeticError::DivisionByZero => B::max_value(),
 		})
 	}
 	fn convert_balance_back_saturated(amount: B, asset_id: Self::AssetId) -> A {
 		Self::convert_balance_back(amount, asset_id).unwrap_or_else(|e| match e {
 			ArithmeticError::Overflow => A::max_value(),
 			ArithmeticError::Underflow => A::min_value(),
-			ArithmeticError::DivisionByZero => A::zero(),
+			ArithmeticError::DivisionByZero => A::max_value(),
 		})
 	}
 }
