@@ -7,7 +7,7 @@ license = "Apache-2.0"
 description = "RPC module for orml-oracle."
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.0.0" }
+codec = { package = "parity-scale-codec", version = "3.4.0" }
 jsonrpsee = { version = "0.16.2", features = ["client", "server", "macros"] }
 tracing = "0.1.29"
 tracing-core = "0.1.28"
