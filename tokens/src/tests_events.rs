@@ -183,7 +183,7 @@ fn pallet_fungibles_transfer_deposit_events() {
 		.balances(vec![(ALICE, DOT, 100), (BOB, DOT, 100)])
 		.build()
 		.execute_with(|| {
-			assert_ok!(<Tokens as fungibles::Transfer<AccountId>>::transfer(
+			assert_ok!(<Tokens as fungibles::Mutate<AccountId>>::transfer(
 				DOT, &ALICE, &BOB, 50, true
 			));
 			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Transfer {
@@ -233,7 +233,7 @@ fn pallet_fungibles_mutate_hold_deposit_events() {
 				amount: 50,
 			}));
 
-			assert_ok!(<Tokens as fungibles::MutateHold<AccountId>>::transfer_held(
+			assert_ok!(<Tokens as fungibles::MutateHold<AccountId>>::transfer_on_hold(
 				DOT, &ALICE, &BOB, 50, true, true
 			));
 			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::ReserveRepatriated {

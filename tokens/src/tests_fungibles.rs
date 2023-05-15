@@ -44,7 +44,7 @@ fn fungibles_transfer_trait_should_work() {
 		.execute_with(|| {
 			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 100);
 			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &BOB), 100);
-			assert_ok!(<Tokens as fungibles::Transfer<_>>::transfer(
+			assert_ok!(<Tokens as fungibles::Mutate<_>>::transfer(
 				DOT, &ALICE, &BOB, 10, true
 			));
 			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 90);
@@ -343,7 +343,7 @@ fn fungibles_transfers_convert_should_work() {
 		.balances(vec![(ALICE, DOT, 300), (BOB, DOT, 200)])
 		.build()
 		.execute_with(|| {
-			assert_ok!(<RebaseTokens as fungibles::Transfer<AccountId>>::transfer(
+			assert_ok!(<RebaseTokens as fungibles::Mutate<AccountId>>::transfer(
 				DOT, &ALICE, &BOB, 10000, true
 			));
 			assert_eq!(
