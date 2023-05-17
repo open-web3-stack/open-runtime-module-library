@@ -82,12 +82,10 @@ pub fn print_start(method: &str) {
 	std::io::stdout().flush().unwrap();
 }
 pub fn print_summary(data: &BenchData) {
-	let pkg_name = get_package_name();
-	let method = &data.name;
 	print!(
 		"\r{} {:<60} {:>20} storage: {:<20}\n",
 		green_bold("Bench"),
-		cyan(&format!("{pkg_name}::{method}")),
+		cyan(&data.name),
 		green_bold(&format!("{:?}", data.time)),
 		green_bold(&format!(
 			"[r: {:>2}, w: {:>2}]",
