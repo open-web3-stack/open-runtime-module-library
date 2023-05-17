@@ -33,6 +33,6 @@ std = [
 	"frame-support/std",
 	"weight-meter-procedural/std",
 ]
-bench = [
-	"weight-meter-procedural/bench",
+wasm-bench = [
+	"weight-meter-procedural/wasm-bench",
 ]

@@ -16,4 +16,4 @@ syn = { version = "1.0.98", features = ["full"] }
 [features]
 default = ["std"]
 std = []
-bench = []
+wasm-bench = []

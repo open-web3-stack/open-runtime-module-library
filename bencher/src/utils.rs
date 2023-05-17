@@ -1,11 +1,9 @@
 use sp_std::vec::Vec;
 
 #[cfg(feature = "std")]
-use super::colorize::{cyan, red_bold, yellow_bold};
+use super::colorize::red_bold;
 #[cfg(feature = "std")]
 use super::tracker::BenchTrackerExt;
-#[cfg(feature = "std")]
-use codec::Decode;
 #[cfg(feature = "std")]
 use sp_externalities::ExternalitiesExt;
 
@@ -16,24 +14,11 @@ pub trait Bench {
 		eprintln!("{}", red_bold(&msg));
 	}
 
-	fn print_warnings(&mut self, method: Vec<u8>) {
+	fn warnings(&mut self) -> Vec<u8> {
 		let tracker = &***self
 			.extension::<BenchTrackerExt>()
 			.expect("No `bench_tracker` associated for the current context!");
-		let method_name = <String as Decode>::decode(&mut &method[..]).unwrap();
-		tracker.warnings().iter().for_each(|warning| {
-			println!(
-				"{} {} {}",
-				yellow_bold("WARNING:"),
-				cyan(&method_name),
-				yellow_bold(&warning.to_string())
-			);
-		});
-	}
-
-	fn print_info(&mut self, message: Vec<u8>) {
-		let msg = String::from_utf8_lossy(&message);
-		println!("{}", msg);
+		tracker.warnings()
 	}
 
 	fn commit_db(&mut self) {
@@ -96,19 +81,5 @@ pub trait Bench {
 			.extension::<BenchTrackerExt>()
 			.expect("No `bench_tracker` associated for the current context!");
 		tracker.whitelist(key, read, write);
-	}
-
-	fn init_bench(&mut self) {
-		let tracker = &***self
-			.extension::<BenchTrackerExt>()
-			.expect("No `bench_tracker` associated for the current context!");
-		tracker.reset();
-	}
-
-	fn count_clear_prefix(&mut self) {
-		let tracker = &***self
-			.extension::<BenchTrackerExt>()
-			.expect("No `bench_tracker` associated for the current context!");
-		tracker.count_clear_prefix();
 	}
 }

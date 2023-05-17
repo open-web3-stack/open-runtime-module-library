@@ -1,4 +1,4 @@
-#![cfg(any(test, feature = "bench"))]
+#![cfg(any(test, feature = "wasm-bench"))]
 
 use frame_support::pallet_prelude::ConstU32;
 use sp_core::H256;

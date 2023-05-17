@@ -9,27 +9,27 @@
 /// [[bench]]
 /// name = 'module_benches'
 /// harness = false
-/// required-features = ['bench']
+/// required-features = ['wasm-bench']
 ///
 /// [features]
-/// bench = [
-///    'orml-bencher/bench'
-///    'orml-weight-meter/bench'
+/// wasm-bench = [
+///    'orml-bencher/wasm-bench'
+///    'orml-weight-meter/wasm-bench'
 /// ]
 /// ..
 /// ```
 ///
 /// Create a file `benches/module_benches.rs` must be the same as bench name.
 /// ```.ignore
-/// use your_module::mock::{AllPalletsWithSystem, Block};
-/// orml_bencher::run_benches!(AllPalletsWithSystem, Block);
+/// use your_module::mock::{Runtime, AllPalletsWithSystem};
+/// orml_bencher::main!(Runtime, AllPalletsWithSystem);
 /// ```
 ///
 /// Define benches
 ///
 /// Create a file `src/benches.rs`
 /// ```ignore
-/// #!#[cfg(feature = "bench")]
+/// #!#[cfg(feature = "wasm-bench")]
 ///
 /// use orml_bencher::{Bencher, benches};
 /// use crate::mock::*;
@@ -56,40 +56,50 @@
 /// ```
 /// Update `src/lib.rs`
 /// ```ignore
-/// #[cfg(any(feature = "bench", test))]
+/// #[cfg(any(feature = "wasm-bench", test))]
 /// pub mod mock; /* mock runtime needs to be compiled into wasm */
 /// pub mod benches;
 /// ```
 ///
-/// Run benchmarking: `cargo bench --features=bench`
+/// Run benchmarking: `cargo bench --features=wasm-bench`
+/// Run tests & benchmarking: `cargo bench --features=wasm-bench -- --test`
+/// Run only tests: `cargo test --features=wasm-bench`
 #[macro_export]
 macro_rules! benches {
     ($($method:path),+) => {
-        #[cfg(feature = "bench")]
-        $crate::sp_core::wasm_export_functions! {
-            fn run_benches() -> $crate::sp_std::vec::Vec<$crate::BenchResult> {
-                $crate::bench::print_info("\nRunning benches ...\n".as_bytes().to_vec());
-                let mut bencher = $crate::Bencher::default();
+        #[cfg(feature = "wasm-bench")]
+        $crate::paste::item! {
+            use $crate::sp_std::vec::Vec;
+            $crate::sp_core::wasm_export_functions! {
+                // list of bench methods
+                fn available_bench_methods() -> Vec<&str> {
+                    let mut methods = Vec::<&str>::new();
+                    $(
+                        methods.push(stringify!($method));
+                    )+
+                    methods.sort();
+                    methods
+                }
+
+                // wrapped bench methods to run
                 $(
-                    $crate::bench::init_bench();
+                    fn [<bench_ $method>] () -> $crate::Bencher {
+                        let name = stringify!($method);
+                        let mut bencher = $crate::Bencher::with_name(name);
 
-                    let name = stringify!($method);
-                    bencher.current = $crate::BenchResult::with_name(name);
+                        for _ in 0..1_000 {
+                            bencher.before_run();
+                            $method(&mut bencher);
+                        }
 
-                    for _ in 0..1_000 {
-                        bencher.before_run();
-                        $method(&mut bencher);
+                        bencher
                     }
-
-                    bencher.print_warnings(name);
-
-                    bencher.results.push(bencher.current);
                 )+
-                bencher.results
             }
         }
 
-        #[cfg(all(feature = "bench", not(feature = "std")))]
+
+        #[cfg(all(feature = "wasm-bench", not(feature = "std")))]
         #[panic_handler]
         #[no_mangle]
         fn panic_handler(info: &::core::panic::PanicInfo) -> ! {
@@ -118,24 +128,49 @@ macro_rules! benches {
 }
 
 #[macro_export]
-macro_rules! run_benches {
+macro_rules! main {
 	(
-        $all_pallets_with_system:ident,
-        $block:tt
+        $runtime:ident
+        $(,$all_pallets_with_system:ident)?
     ) => {
-		#[cfg(all(feature = "std", feature = "bench"))]
+		#[cfg(all(feature = "std", feature = "wasm-bench"))]
 		pub fn main() -> std::io::Result<()> {
-			use $crate::frame_support::traits::StorageInfoTrait;
+			use $crate::frame_support::{sp_runtime::traits::GetRuntimeBlockType, traits::StorageInfoTrait};
 			let wasm = $crate::build_wasm::build()?;
-			let storage_info = $all_pallets_with_system::storage_info();
-			match $crate::bench_runner::run::<$block>(wasm) {
-				Ok(output) => {
-					$crate::handler::handle(output, storage_info);
-				}
-				Err(e) => {
-					eprintln!("{:?}", e);
-				}
-			};
+            type Block = <$runtime as GetRuntimeBlockType>::RuntimeBlock;
+
+            let methods = $crate::bench_runner::run::<Block>(&wasm[..], "available_bench_methods").unwrap();
+            let bench_methods = <Vec<String> as codec::Decode>::decode(&mut &methods[..]).unwrap();
+
+            let mut results: Vec<$crate::handler::BenchData> = vec![];
+            let mut has_error = false;
+
+            for method in bench_methods {
+                $crate::handler::print_start(&method);
+                match $crate::bench_runner::run::<Block>(&wasm[..], &format!("bench_{method}"))
+                {
+                    Ok(output) => {
+                        let data = $crate::handler::parse(output);
+                        $crate::handler::print_summary(&data);
+                        results.push(data);
+                    }
+                    Err(err) => {
+                        has_error = true;
+                    }
+                };
+            }
+
+            if has_error {
+                return Ok(());
+            }
+
+            let mut storage_info: Vec<$crate::frame_support::traits::StorageInfo> = vec![];
+            $(storage_info = $all_pallets_with_system::storage_info();)?
+            if std::env::args().find(|x| x.eq("json")).is_some() {
+                assert!(!storage_info.is_empty(), "Cannot find storage info, please include `AllPalletsWithSystem` generated by `frame_support::construct_runtime`");
+                $crate::handler::save_output_json(results, storage_info);
+            }
+
 			Ok(())
 		}
 	};

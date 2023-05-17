@@ -12,7 +12,7 @@ pub fn start(attr: TokenStream, item: TokenStream) -> TokenStream {
 	let ItemFn { attrs, vis, sig, block } = parse(item).unwrap();
 	(quote! {
 		#(#attrs)*
-		#[cfg_attr(feature = "bench", ::orml_bencher::benchmarkable)]
+		#[cfg_attr(feature = "wasm-bench", ::orml_bencher::benchmarkable)]
 		#vis #sig {
 			::orml_weight_meter::start(frame_support::weights::Weight::from_parts(#weight, 0));
 			let result = #block;
@@ -29,7 +29,7 @@ pub fn weight(attr: TokenStream, item: TokenStream) -> TokenStream {
 	let ItemFn { attrs, vis, sig, block } = parse(item).unwrap();
 	(quote! {
 		#(#attrs)*
-		#[cfg_attr(feature = "bench", ::orml_bencher::benchmarkable)]
+		#[cfg_attr(feature = "wasm-bench", ::orml_bencher::benchmarkable)]
 		#vis #sig {
 			::orml_weight_meter::using(frame_support::weights::Weight::from_parts(#weight, 0));
 			#block

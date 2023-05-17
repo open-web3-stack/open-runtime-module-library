@@ -42,7 +42,7 @@ pub fn build() -> std::io::Result<Vec<u8>> {
 		&project_cargo_toml,
 		default_rustflags,
 		cargo_cmd,
-		vec!["bench".to_string()],
+		vec!["wasm-bench".to_string()],
 		None,
 	);
 

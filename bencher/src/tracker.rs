@@ -1,5 +1,6 @@
-use codec::Encode;
+use codec::{Decode, Encode};
 use parking_lot::RwLock;
+use serde::{Deserialize, Serialize};
 use sp_state_machine::StorageKey;
 use sp_storage::ChildInfo;
 use std::{collections::HashMap, sync::Arc, time::Instant};
@@ -77,7 +78,7 @@ struct AccessReport {
 	pub written: u32,
 }
 
-#[derive(thiserror::Error, Copy, Clone, Debug)]
+#[derive(thiserror::Error, Serialize, Deserialize, Encode, Decode, Copy, Clone, Debug)]
 pub enum Warning {
 	#[error("clear prefix without limit, cannot be tracked")]
 	ClearPrefixWithoutLimit,
@@ -94,7 +95,6 @@ pub struct BenchTracker {
 	clear_prefixes: RwLock<HashMap<StorageKey, u32>>,
 	warnings: RwLock<Vec<Warning>>,
 	whitelisted_keys: RwLock<HashMap<StorageKey, (bool, bool)>>,
-	count_clear_prefix: RwLock<bool>,
 }
 
 impl BenchTracker {
@@ -108,13 +108,12 @@ impl BenchTracker {
 			clear_prefixes: RwLock::new(HashMap::new()),
 			warnings: RwLock::new(Vec::new()),
 			whitelisted_keys: RwLock::new(HashMap::new()),
-			count_clear_prefix: RwLock::new(false),
 		}
 	}
 
-	pub fn warnings(&self) -> Vec<Warning> {
+	pub fn warnings(&self) -> Vec<u8> {
 		let warnings = &*self.warnings.read();
-		warnings.clone()
+		warnings.encode()
 	}
 
 	pub fn instant(&self) {
@@ -179,7 +178,7 @@ impl BenchTracker {
 	}
 
 	pub fn on_clear_prefix(&self, prefix: &[u8], limit: Option<u32>) {
-		if self.is_redundant() || !(*self.count_clear_prefix.read()) {
+		if self.is_redundant() {
 			return;
 		}
 		if let Some(limit) = limit {
@@ -332,22 +331,6 @@ impl BenchTracker {
 	pub fn whitelist(&self, key: Vec<u8>, read: bool, write: bool) {
 		let whitelisted = &mut self.whitelisted_keys.write();
 		whitelisted.insert(key, (read, write));
-	}
-
-	pub fn count_clear_prefix(&self) {
-		*self.count_clear_prefix.write() = true;
-	}
-
-	/// Reset for the next benchmark
-	pub fn reset(&self) {
-		*self.depth.write() = 0;
-		*self.redundant.write() = Instant::now();
-		self.results.write().clear();
-		self.main_keys.write().clear();
-		self.clear_prefixes.write().clear();
-		self.warnings.write().clear();
-		self.whitelisted_keys.write().clear();
-		*self.count_clear_prefix.write() = false;
 	}
 }
 

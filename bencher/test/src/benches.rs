@@ -1,4 +1,4 @@
-#![cfg(feature = "bench")]
+#![cfg(feature = "wasm-bench")]
 #![allow(dead_code)]
 
 use crate::{mock::*, pallet::*};
@@ -17,22 +17,21 @@ fn set_foo(b: &mut Bencher) {
 	});
 }
 
-fn remove_all_bar(b: &mut Bencher) {
+fn clear_bar(b: &mut Bencher) {
 	Bar::<Runtime>::insert(1, 1);
 	b.bench(|| {
-		Test::remove_all_bar();
+		Test::clear_bar();
 	});
 }
 
-fn remove_all_bar_with_limit(b: &mut Bencher) {
-	b.count_clear_prefix();
+fn clear_bar_with_limit(b: &mut Bencher) {
 	Bar::<Runtime>::insert(1, 1);
 	b.bench(|| {
-		Test::remove_all_bar_with_limit();
+		Test::clear_bar_with_limit();
 	});
 }
 
-fn whitelist(b: &mut Bencher) {
+fn set_foo_with_whitelist(b: &mut Bencher) {
 	b.whitelist(Bar::<Runtime>::hashed_key_for(1), true, true);
 	b.whitelist(Bar::<Runtime>::hashed_key_for(2), true, false);
 	b.whitelist(Foo::<Runtime>::hashed_key().to_vec(), true, true);
@@ -42,4 +41,10 @@ fn whitelist(b: &mut Bencher) {
 	});
 }
 
-benches!(whitelist, set_value, set_foo, remove_all_bar, remove_all_bar_with_limit);
+benches!(
+	set_foo_with_whitelist,
+	set_value,
+	set_foo,
+	clear_bar,
+	clear_bar_with_limit
+);

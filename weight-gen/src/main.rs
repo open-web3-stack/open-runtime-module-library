@@ -95,7 +95,7 @@ fn parse_stdio() -> Option<Vec<BenchData>> {
 
 	let file_path = buffer
 		.split_ascii_whitespace()
-		.last()
+		.rfind(|x| x.ends_with("_bench_data.json"))
 		.expect("Last line must be JOSN file path.");
 	let reader = std::fs::File::open(std::path::Path::new(file_path)).unwrap();
 	serde_json::from_reader(&reader).ok()

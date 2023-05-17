@@ -9,7 +9,7 @@ edition = "2021"
 [[bench]]
 name = "foo"
 harness = false
-required-features = ["bench"]
+required-features = ["wasm-bench"]
 
 [dependencies]
 serde = { version = "1.0.136", optional = true }
@@ -40,7 +40,7 @@ std = [
     "orml-bencher/std",
     "orml-weight-meter/std",
 ]
-bench = [
-    "orml-bencher/bench",
-    "orml-weight-meter/bench",
+wasm-bench = [
+    "orml-bencher/wasm-bench",
+    "orml-weight-meter/wasm-bench",
 ]
