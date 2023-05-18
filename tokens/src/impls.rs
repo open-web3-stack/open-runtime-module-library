@@ -1,4 +1,4 @@
-use frame_support::dispatch::{DispatchError, DispatchResult};
+use frame_support::dispatch::DispatchError;
 use frame_support::traits::tokens::{Fortitude, Precision, Preservation, Provenance};
 use frame_support::traits::{
 	fungible, fungibles,
@@ -151,7 +151,8 @@ where
 	B: fungibles::Mutate<AccountId>,
 {
 	fn handle_dust(_dust: fungibles::Dust<AccountId, Self>) {
-		// FIXME: only way to access internals of Dust is into_credit, but T is not balanced
+		// FIXME: only way to access internals of Dust is into_credit, but T is
+		// not balanced
 	}
 
 	fn write_balance(
@@ -331,7 +332,8 @@ where
 	GetCurrencyId: Get<<T as fungibles::Inspect<AccountId>>::AssetId>,
 {
 	fn handle_dust(_dust: fungible::Dust<AccountId, Self>) {
-		// FIXME: only way to access internals of Dust is into_credit, but T is not balanced
+		// FIXME: only way to access internals of Dust is into_credit, but T is
+		// not balanced
 	}
 
 	fn write_balance(who: &AccountId, amount: Self::Balance) -> Result<Option<Self::Balance>, DispatchError> {
