@@ -24,7 +24,11 @@ fn executor() -> WasmExecutor<ComposeHostFunctions> {
 }
 
 /// Run benches
-pub fn run<B: Block>(wasm_code: &[u8], method: &str) -> Result<Vec<u8>, sc_executor_common::error::Error> {
+pub fn run<B: Block>(
+	wasm_code: &[u8],
+	method: &str,
+	call_data: &[u8],
+) -> Result<Vec<u8>, sc_executor_common::error::Error> {
 	let mut overlay = OverlayedChanges::default();
 	let mut cache = StorageTransactionCache::default();
 	let state = sc_client_db::BenchmarkingState::<B>::new(Default::default(), Default::default(), true, true)?;
@@ -40,5 +44,5 @@ pub fn run<B: Block>(wasm_code: &[u8], method: &str) -> Result<Vec<u8>, sc_execu
 
 	let blob = RuntimeBlob::uncompress_if_needed(wasm_code)?;
 
-	executor().uncached_call(blob, &mut bench_ext, false, method, &[])
+	executor().uncached_call(blob, &mut bench_ext, false, method, call_data)
 }

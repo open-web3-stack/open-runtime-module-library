@@ -73,12 +73,7 @@ fn get_package_name() -> String {
 }
 
 pub fn print_start(method: &str) {
-	let pkg_name = get_package_name();
-	print!(
-		"{} {:<60}...",
-		green_bold("Bench"),
-		cyan(&format!("{pkg_name}::{method}"))
-	);
+	print!("{} {:<60}...", green_bold("Bench"), cyan(method));
 	std::io::stdout().flush().unwrap();
 }
 pub fn print_summary(data: &BenchData) {

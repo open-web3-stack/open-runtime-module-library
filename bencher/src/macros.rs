@@ -139,15 +139,16 @@ macro_rules! main {
 			let wasm = $crate::build_wasm::build()?;
             type Block = <$runtime as GetRuntimeBlockType>::RuntimeBlock;
 
-            let methods = $crate::bench_runner::run::<Block>(&wasm[..], "available_bench_methods").unwrap();
+            let methods = $crate::bench_runner::run::<Block>(&wasm[..], "available_bench_methods", &[]).unwrap();
             let bench_methods = <Vec<String> as codec::Decode>::decode(&mut &methods[..]).unwrap();
+            println!("\nRunning {} benches\n", bench_methods.len());
 
             let mut results: Vec<$crate::handler::BenchData> = vec![];
-            let mut has_error = false;
+            let mut failed: Vec<String> = vec![];
 
             for method in bench_methods {
                 $crate::handler::print_start(&method);
-                match $crate::bench_runner::run::<Block>(&wasm[..], &format!("bench_{method}"))
+                match $crate::bench_runner::run::<Block>(&wasm[..], &format!("bench_{method}"), &[])
                 {
                     Ok(output) => {
                         let data = $crate::handler::parse(output);
@@ -155,13 +156,16 @@ macro_rules! main {
                         results.push(data);
                     }
                     Err(err) => {
-                        has_error = true;
+                        failed.push(method);
                     }
                 };
             }
 
-            if has_error {
-                return Ok(());
+            if failed.is_empty() {
+                println!("\n✅ Complete: {}", $crate::colorize::green_bold(&format!("{} passed", results.len())));
+            } else {
+                println!("\n❌ Finished with errors: {}, {}", $crate::colorize::green_bold(&format!("{} passed", results.len())), $crate::colorize::red_bold(&format!("{} failed", failed.len())));
+                std::process::exit(1);
             }
 
             let mut storage_info: Vec<$crate::frame_support::traits::StorageInfo> = vec![];
