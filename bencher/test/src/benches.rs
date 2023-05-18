@@ -17,14 +17,14 @@ fn set_foo(b: &mut Bencher) {
 	});
 }
 
-fn clear_bar(b: &mut Bencher) {
+fn clear_prefix_warning(b: &mut Bencher) {
 	Bar::<Runtime>::insert(1, 1);
 	b.bench(|| {
-		Test::clear_bar();
+		Test::clear_prefix_bar();
 	});
 }
 
-fn clear_bar_with_limit(b: &mut Bencher) {
+fn clear_prefix_with_limit(b: &mut Bencher) {
 	Bar::<Runtime>::insert(1, 1);
 	b.bench(|| {
 		Test::clear_bar_with_limit();
@@ -45,6 +45,6 @@ benches!(
 	set_foo_with_whitelist,
 	set_value,
 	set_foo,
-	clear_bar,
-	clear_bar_with_limit
+	clear_prefix_warning,
+	clear_prefix_with_limit
 );

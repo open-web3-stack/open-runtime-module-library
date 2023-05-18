@@ -11,6 +11,7 @@ pub mod pallet {
 	use frame_support::{
 		dispatch::{DispatchResult, DispatchResultWithPostInfo},
 		pallet_prelude::*,
+		StoragePrefixedMap,
 	};
 	use frame_system::pallet_prelude::*;
 
@@ -77,9 +78,9 @@ pub mod pallet {
 		}
 
 		#[orml_weight_meter::weight(0)]
-		pub(crate) fn clear_bar() {
-			#[allow(deprecated)]
-			_ = Bar::<T>::remove_all(None);
+		pub(crate) fn clear_prefix_bar() {
+			// This will cause warning because clear_prefix without limit cannot be counted.
+			let _ = storage::unhashed::clear_prefix(&Bar::<T>::final_prefix(), None, None);
 		}
 
 		#[orml_weight_meter::weight(0)]
