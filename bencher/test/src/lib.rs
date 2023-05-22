@@ -5,7 +5,7 @@ pub mod mock;
 mod tests;
 mod weights;
 
-#[frame_support::pallet]
+#[frame_support::pallet(dev_mode)]
 pub mod pallet {
 	use crate::weights::ModuleWeights;
 	use frame_support::{

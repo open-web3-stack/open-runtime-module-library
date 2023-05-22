@@ -16,7 +16,7 @@ use sp_runtime::{
 use sp_std::prelude::*;
 pub use test::*;
 
-#[frame_support::pallet]
+#[frame_support::pallet(dev_mode)]
 pub mod test {
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;

@@ -6,6 +6,8 @@ use super::*;
 use frame_support::assert_ok;
 use mock::*;
 
+const REASON: &() = &();
+
 fn events() -> Vec<RuntimeEvent> {
 	let evt = System::events().into_iter().map(|evt| evt.event).collect::<Vec<_>>();
 	System::reset_events();
@@ -168,7 +170,13 @@ fn pallet_fungibles_mutate_deposit_events() {
 				who: ALICE,
 				amount: 500,
 			}));
-			assert_ok!(<Tokens as fungibles::Mutate<AccountId>>::burn_from(DOT, &ALICE, 500));
+			assert_ok!(<Tokens as fungibles::Mutate<AccountId>>::burn_from(
+				DOT,
+				&ALICE,
+				500,
+				Precision::Exact,
+				Fortitude::Polite
+			));
 			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Withdrawn {
 				currency_id: DOT,
 				who: ALICE,
@@ -183,8 +191,12 @@ fn pallet_fungibles_transfer_deposit_events() {
 		.balances(vec![(ALICE, DOT, 100), (BOB, DOT, 100)])
 		.build()
 		.execute_with(|| {
-			assert_ok!(<Tokens as fungibles::Transfer<AccountId>>::transfer(
-				DOT, &ALICE, &BOB, 50, true
+			assert_ok!(<Tokens as fungibles::Mutate<AccountId>>::transfer(
+				DOT,
+				&ALICE,
+				&BOB,
+				50,
+				Preservation::Protect
 			));
 			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Transfer {
 				currency_id: DOT,
@@ -202,7 +214,7 @@ fn pallet_fungibles_unbalanced_deposit_events() {
 		.build()
 		.execute_with(|| {
 			assert_ok!(<Tokens as MultiReservableCurrency<AccountId>>::reserve(DOT, &ALICE, 50));
-			assert_ok!(<Tokens as fungibles::Unbalanced<AccountId>>::set_balance(
+			assert_ok!(<Tokens as fungibles::Unbalanced<AccountId>>::write_balance(
 				DOT, &ALICE, 500
 			));
 			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::BalanceSet {
@@ -226,15 +238,24 @@ fn pallet_fungibles_mutate_hold_deposit_events() {
 		.balances(vec![(ALICE, DOT, 100), (BOB, DOT, 100)])
 		.build()
 		.execute_with(|| {
-			assert_ok!(<Tokens as fungibles::MutateHold<AccountId>>::hold(DOT, &ALICE, 50));
+			assert_ok!(<Tokens as fungibles::MutateHold<AccountId>>::hold(
+				DOT, REASON, &ALICE, 50
+			));
 			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Reserved {
 				currency_id: DOT,
 				who: ALICE,
 				amount: 50,
 			}));
 
-			assert_ok!(<Tokens as fungibles::MutateHold<AccountId>>::transfer_held(
-				DOT, &ALICE, &BOB, 50, true, true
+			assert_ok!(<Tokens as fungibles::MutateHold<AccountId>>::transfer_on_hold(
+				DOT,
+				REASON,
+				&ALICE,
+				&BOB,
+				50,
+				Precision::Exact,
+				Restriction::OnHold,
+				Fortitude::Polite
 			));
 			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::ReserveRepatriated {
 				currency_id: DOT,
@@ -245,7 +266,7 @@ fn pallet_fungibles_mutate_hold_deposit_events() {
 			}));
 			System::reset_events();
 			assert_eq!(
-				<Tokens as fungibles::MutateHold<AccountId>>::release(DOT, &BOB, 50, true),
+				<Tokens as fungibles::MutateHold<AccountId>>::release(DOT, REASON, &BOB, 50, Precision::Exact),
 				Ok(50)
 			);
 			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Unreserved {

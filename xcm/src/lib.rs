@@ -51,7 +51,8 @@ pub mod module {
 	impl<T: Config> Pallet<T> {
 		/// Send an XCM message as parachain sovereign.
 		#[pallet::call_index(0)]
-		#[pallet::weight(100_000_000)]
+		// FIXME: Benchmark send
+		#[pallet::weight(Weight::from_parts(100_000_000, 0))]
 		pub fn send_as_sovereign(
 			origin: OriginFor<T>,
 			dest: Box<VersionedMultiLocation>,

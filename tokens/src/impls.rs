@@ -1,4 +1,5 @@
-use frame_support::dispatch::{DispatchError, DispatchResult};
+use frame_support::dispatch::DispatchError;
+use frame_support::traits::tokens::{Fortitude, Precision, Preservation, Provenance};
 use frame_support::traits::{
 	fungible, fungibles,
 	tokens::{Balance as BalanceT, DepositConsequence, WithdrawConsequence},
@@ -41,19 +42,37 @@ where
 		}
 	}
 
-	fn reducible_balance(asset: Self::AssetId, who: &AccountId, keep_alive: bool) -> Self::Balance {
+	fn total_balance(asset: Self::AssetId, who: &AccountId) -> Self::Balance {
 		if TestKey::contains(&asset) {
-			A::reducible_balance(who, keep_alive)
+			A::total_balance(who)
 		} else {
-			B::reducible_balance(asset, who, keep_alive)
+			B::total_balance(asset, who)
 		}
 	}
 
-	fn can_deposit(asset: Self::AssetId, who: &AccountId, amount: Self::Balance, mint: bool) -> DepositConsequence {
+	fn reducible_balance(
+		asset: Self::AssetId,
+		who: &AccountId,
+		preservation: Preservation,
+		fortitude: Fortitude,
+	) -> Self::Balance {
 		if TestKey::contains(&asset) {
-			A::can_deposit(who, amount, mint)
+			A::reducible_balance(who, preservation, fortitude)
 		} else {
-			B::can_deposit(asset, who, amount, mint)
+			B::reducible_balance(asset, who, preservation, fortitude)
+		}
+	}
+
+	fn can_deposit(
+		asset: Self::AssetId,
+		who: &AccountId,
+		amount: Self::Balance,
+		provenance: Provenance,
+	) -> DepositConsequence {
+		if TestKey::contains(&asset) {
+			A::can_deposit(who, amount, provenance)
+		} else {
+			B::can_deposit(asset, who, amount, provenance)
 		}
 	}
 
@@ -78,34 +97,17 @@ where
 	}
 }
 
-impl<AccountId, TestKey, A, B> fungibles::Transfer<AccountId> for Combiner<AccountId, TestKey, A, B>
-where
-	TestKey: Contains<<B as fungibles::Inspect<AccountId>>::AssetId>,
-	A: fungible::Transfer<AccountId, Balance = <B as fungibles::Inspect<AccountId>>::Balance>,
-	B: fungibles::Transfer<AccountId>,
-{
-	fn transfer(
-		asset: Self::AssetId,
-		source: &AccountId,
-		dest: &AccountId,
-		amount: Self::Balance,
-		keep_alive: bool,
-	) -> Result<Self::Balance, DispatchError> {
-		if TestKey::contains(&asset) {
-			A::transfer(source, dest, amount, keep_alive)
-		} else {
-			B::transfer(asset, source, dest, amount, keep_alive)
-		}
-	}
-}
-
 impl<AccountId, TestKey, A, B> fungibles::Mutate<AccountId> for Combiner<AccountId, TestKey, A, B>
 where
 	TestKey: Contains<<B as fungibles::Inspect<AccountId>>::AssetId>,
 	A: fungible::Mutate<AccountId, Balance = <B as fungibles::Inspect<AccountId>>::Balance>,
 	B: fungibles::Mutate<AccountId>,
 {
-	fn mint_into(asset: Self::AssetId, dest: &AccountId, amount: Self::Balance) -> DispatchResult {
+	fn mint_into(
+		asset: Self::AssetId,
+		dest: &AccountId,
+		amount: Self::Balance,
+	) -> Result<Self::Balance, DispatchError> {
 		if TestKey::contains(&asset) {
 			A::mint_into(dest, amount)
 		} else {
@@ -117,11 +119,59 @@ where
 		asset: Self::AssetId,
 		dest: &AccountId,
 		amount: Self::Balance,
+		precision: Precision,
+		fortitude: Fortitude,
 	) -> Result<Self::Balance, DispatchError> {
 		if TestKey::contains(&asset) {
-			A::burn_from(dest, amount)
+			A::burn_from(dest, amount, precision, fortitude)
 		} else {
-			B::burn_from(asset, dest, amount)
+			B::burn_from(asset, dest, amount, precision, fortitude)
+		}
+	}
+
+	fn transfer(
+		asset: Self::AssetId,
+		source: &AccountId,
+		dest: &AccountId,
+		amount: Self::Balance,
+		preservation: Preservation,
+	) -> Result<Self::Balance, DispatchError> {
+		if TestKey::contains(&asset) {
+			A::transfer(source, dest, amount, preservation)
+		} else {
+			B::transfer(asset, source, dest, amount, preservation)
+		}
+	}
+}
+
+impl<AccountId, TestKey, A, B> fungibles::Unbalanced<AccountId> for Combiner<AccountId, TestKey, A, B>
+where
+	TestKey: Contains<<B as fungibles::Inspect<AccountId>>::AssetId>,
+	A: fungible::Mutate<AccountId, Balance = <B as fungibles::Inspect<AccountId>>::Balance>,
+	B: fungibles::Mutate<AccountId>,
+{
+	fn handle_dust(_dust: fungibles::Dust<AccountId, Self>) {
+		// FIXME: only way to access internals of Dust is into_credit, but T is
+		// not balanced
+	}
+
+	fn write_balance(
+		asset: Self::AssetId,
+		who: &AccountId,
+		amount: Self::Balance,
+	) -> Result<Option<Self::Balance>, DispatchError> {
+		if TestKey::contains(&asset) {
+			A::write_balance(who, amount)
+		} else {
+			B::write_balance(asset, who, amount)
+		}
+	}
+
+	fn set_total_issuance(asset: Self::AssetId, amount: Self::Balance) {
+		if TestKey::contains(&asset) {
+			A::set_total_issuance(amount)
+		} else {
+			B::set_total_issuance(asset, amount)
 		}
 	}
 }
@@ -173,20 +223,24 @@ where
 		C::convert_balance_saturated(T::balance(GetCurrencyId::get(), who), GetCurrencyId::get())
 	}
 
-	fn reducible_balance(who: &AccountId, keep_alive: bool) -> Self::Balance {
+	fn total_balance(who: &AccountId) -> Self::Balance {
+		C::convert_balance_saturated(T::total_balance(GetCurrencyId::get(), who), GetCurrencyId::get())
+	}
+
+	fn reducible_balance(who: &AccountId, preservation: Preservation, fortitude: Fortitude) -> Self::Balance {
 		C::convert_balance_saturated(
-			T::reducible_balance(GetCurrencyId::get(), who, keep_alive),
+			T::reducible_balance(GetCurrencyId::get(), who, preservation, fortitude),
 			GetCurrencyId::get(),
 		)
 	}
 
-	fn can_deposit(who: &AccountId, amount: Self::Balance, mint: bool) -> DepositConsequence {
+	fn can_deposit(who: &AccountId, amount: Self::Balance, provenance: Provenance) -> DepositConsequence {
 		let amount = C::convert_balance_back(amount, GetCurrencyId::get());
 		let amount = match amount {
 			Ok(amount) => amount,
 			Err(_) => return DepositConsequence::Overflow,
 		};
-		T::can_deposit(GetCurrencyId::get(), who, amount, mint)
+		T::can_deposit(GetCurrencyId::get(), who, amount, provenance)
 	}
 
 	fn can_withdraw(who: &AccountId, amount: Self::Balance) -> WithdrawConsequence<Self::Balance> {
@@ -205,7 +259,7 @@ where
 			WithdrawConsequence::ReducedToZero(b) => {
 				WithdrawConsequence::ReducedToZero(C::convert_balance_saturated(b, GetCurrencyId::get()))
 			}
-			NoFunds => NoFunds,
+			BalanceLow => BalanceLow,
 			WouldDie => WouldDie,
 			UnknownAsset => UnknownAsset,
 			Underflow => Underflow,
@@ -213,28 +267,6 @@ where
 			Frozen => Frozen,
 			Success => Success,
 		}
-	}
-}
-
-impl<AccountId, T, C, B, GetCurrencyId> fungible::Transfer<AccountId> for Mapper<AccountId, T, C, B, GetCurrencyId>
-where
-	T: fungibles::Transfer<AccountId, Balance = B>,
-	C: ConvertBalance<
-		<T as fungibles::Inspect<AccountId>>::Balance,
-		B,
-		AssetId = <T as fungibles::Inspect<AccountId>>::AssetId,
-	>,
-	B: BalanceT,
-	GetCurrencyId: Get<<T as fungibles::Inspect<AccountId>>::AssetId>,
-{
-	fn transfer(source: &AccountId, dest: &AccountId, amount: B, keep_alive: bool) -> Result<B, DispatchError> {
-		T::transfer(
-			GetCurrencyId::get(),
-			source,
-			dest,
-			C::convert_balance_back(amount, GetCurrencyId::get())?,
-			keep_alive,
-		)
 	}
 }
 
@@ -249,7 +281,7 @@ where
 	B: BalanceT,
 	GetCurrencyId: Get<<T as fungibles::Inspect<AccountId>>::AssetId>,
 {
-	fn mint_into(dest: &AccountId, amount: Self::Balance) -> DispatchResult {
+	fn mint_into(dest: &AccountId, amount: Self::Balance) -> Result<Self::Balance, DispatchError> {
 		T::mint_into(
 			GetCurrencyId::get(),
 			dest,
@@ -257,11 +289,58 @@ where
 		)
 	}
 
-	fn burn_from(dest: &AccountId, amount: Self::Balance) -> Result<Self::Balance, DispatchError> {
+	fn burn_from(
+		dest: &AccountId,
+		amount: Self::Balance,
+		precision: Precision,
+		fortitude: Fortitude,
+	) -> Result<Self::Balance, DispatchError> {
 		T::burn_from(
 			GetCurrencyId::get(),
 			dest,
 			C::convert_balance_back(amount, GetCurrencyId::get())?,
+			precision,
+			fortitude,
 		)
+	}
+
+	fn transfer(
+		source: &AccountId,
+		dest: &AccountId,
+		amount: B,
+		preservation: Preservation,
+	) -> Result<B, DispatchError> {
+		T::transfer(
+			GetCurrencyId::get(),
+			source,
+			dest,
+			C::convert_balance_back(amount, GetCurrencyId::get())?,
+			preservation,
+		)
+	}
+}
+
+impl<AccountId, T, C, B, GetCurrencyId> fungible::Unbalanced<AccountId> for Mapper<AccountId, T, C, B, GetCurrencyId>
+where
+	T: fungibles::Unbalanced<AccountId, Balance = B>,
+	C: ConvertBalance<
+		<T as fungibles::Inspect<AccountId>>::Balance,
+		B,
+		AssetId = <T as fungibles::Inspect<AccountId>>::AssetId,
+	>,
+	B: BalanceT,
+	GetCurrencyId: Get<<T as fungibles::Inspect<AccountId>>::AssetId>,
+{
+	fn handle_dust(_dust: fungible::Dust<AccountId, Self>) {
+		// FIXME: only way to access internals of Dust is into_credit, but T is
+		// not balanced
+	}
+
+	fn write_balance(who: &AccountId, amount: Self::Balance) -> Result<Option<Self::Balance>, DispatchError> {
+		T::write_balance(GetCurrencyId::get(), who, amount)
+	}
+
+	fn set_total_issuance(amount: Self::Balance) {
+		T::set_total_issuance(GetCurrencyId::get(), amount)
 	}
 }

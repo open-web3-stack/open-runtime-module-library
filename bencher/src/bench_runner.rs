@@ -26,15 +26,13 @@ pub fn run<B: Block>(wasm_code: Vec<u8>) -> std::result::Result<Vec<u8>, sc_exec
 	let ext = Ext::<_, _>::new(&mut overlay, &mut cache, &state, Some(&mut extensions));
 	let mut bench_ext = BenchExt::new(ext, tracker);
 
-	let executor = WasmExecutor::<ComposeHostFunctions>::new(
-		WasmExecutionMethod::Compiled {
+	let executor = WasmExecutor::<ComposeHostFunctions>::builder()
+		.with_execution_method(WasmExecutionMethod::Compiled {
 			instantiation_strategy: WasmtimeInstantiationStrategy::PoolingCopyOnWrite,
-		},
-		Default::default(),
-		1,
-		None,
-		1,
-	);
+		})
+		.with_max_runtime_instances(1)
+		.with_runtime_cache_size(1)
+		.build();
 
 	let blob = RuntimeBlob::uncompress_if_needed(&wasm_code[..]).unwrap();
 
