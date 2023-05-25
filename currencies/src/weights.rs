@@ -40,27 +40,27 @@ pub trait WeightInfo {
 /// Default weights.
 impl WeightInfo for () {
 	fn transfer_non_native_currency() -> Weight {
-		Weight::from_ref_time(60_000_000)
+		Weight::from_parts(60_000_000, 0)
 			.saturating_add(RocksDbWeight::get().reads(5 as u64))
 			.saturating_add(RocksDbWeight::get().writes(4 as u64))
 	}
 	fn transfer_native_currency() -> Weight {
-		Weight::from_ref_time(60_000_000)
+		Weight::from_parts(60_000_000, 0)
 			.saturating_add(RocksDbWeight::get().reads(3 as u64))
 			.saturating_add(RocksDbWeight::get().writes(2 as u64))
 	}
 	fn update_balance_non_native_currency() -> Weight {
-		Weight::from_ref_time(29_000_000)
+		Weight::from_parts(29_000_000, 0)
 			.saturating_add(RocksDbWeight::get().reads(3 as u64))
 			.saturating_add(RocksDbWeight::get().writes(3 as u64))
 	}
 	fn update_balance_native_currency_creating() -> Weight {
-		Weight::from_ref_time(31_000_000)
+		Weight::from_parts(31_000_000, 0)
 			.saturating_add(RocksDbWeight::get().reads(1 as u64))
 			.saturating_add(RocksDbWeight::get().writes(1 as u64))
 	}
 	fn update_balance_native_currency_killing() -> Weight {
-		Weight::from_ref_time(37_000_000)
+		Weight::from_parts(37_000_000, 0)
 			.saturating_add(RocksDbWeight::get().reads(3 as u64))
 			.saturating_add(RocksDbWeight::get().writes(2 as u64))
 	}

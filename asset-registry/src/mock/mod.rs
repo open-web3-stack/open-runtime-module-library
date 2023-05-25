@@ -3,6 +3,9 @@
 use super::*;
 
 use mock::para::AssetRegistry;
+use scale_info::TypeInfo;
+use serde::{Deserialize, Serialize};
+use sp_core::bounded::BoundedVec;
 use sp_io::TestExternalities;
 use sp_runtime::{traits::Convert, AccountId32};
 use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain};
@@ -35,6 +38,7 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
 			return Some(asset_id);
 		}
 		None
+
 	}
 }
 impl Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert {
@@ -159,7 +163,7 @@ pub fn para_ext(para_id: u32, asset_data: Option<(Vec<(u32, Vec<u8>)>, u32)>) ->
 	.unwrap();
 
 	if let Some((assets, _)) = asset_data {
-		GenesisConfig::<Runtime> { assets: assets }
+		GenesisConfig::<Runtime> { assets }
 			.assimilate_storage(&mut t)
 			.unwrap();
 	}

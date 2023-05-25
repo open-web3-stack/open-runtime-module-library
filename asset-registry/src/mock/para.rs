@@ -30,11 +30,11 @@ use sp_runtime::{
 	traits::{AccountIdConversion, Convert, IdentityLookup},
 	AccountId32, DispatchError,
 };
-use xcm::latest::{prelude::*, Weight};
+use xcm::v3::{prelude::*, Weight};
 use xcm_builder::{
-	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin, FixedWeightBounds, LocationInverter,
-	ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
-	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue, TakeWeightCredit,
+	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin, FixedWeightBounds, ParentIsPreset,
+	RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
+	SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue, TakeWeightCredit,
 };
 use xcm_executor::{Config, XcmExecutor};
 
@@ -127,7 +127,7 @@ impl EnsureOriginWithArg<RuntimeOrigin, Option<u32>> for AssetAuthority {
 	}
 
 	#[cfg(feature = "runtime-benchmarks")]
-	fn successful_origin(_asset_id: &Option<u32>) -> RuntimeOrigin {
+	fn try_successful_origin(_asset_id: &Option<u32>) -> Result<RuntimeOrigin, ()> {
 		unimplemented!()
 	}
 }
@@ -157,11 +157,12 @@ impl<T: orml_asset_registry::Config> AssetProcessor<CurrencyId, AssetMetadataOf>
 		}
 	}
 }
+pub type ParaAssetId = u32;
 
 impl orml_asset_registry::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
-	type AssetId = u32;
+	type AssetId = ParaAssetId;
 	type AuthorityOrigin = AssetAuthority;
 	type CustomMetadata = CustomMetadata;
 	type AssetProcessor = SequentialIdWithCreation<Runtime>;
@@ -169,8 +170,8 @@ impl orml_asset_registry::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ReservedXcmpWeight: Weight = WEIGHT_REF_TIME_PER_SECOND / 4;
-	pub const ReservedDmpWeight: Weight = WEIGHT_REF_TIME_PER_SECOND / 4;
+	pub const ReservedXcmpWeight: Weight = Weight::from_parts(WEIGHT_REF_TIME_PER_SECOND.saturating_div(4), 0);
+	pub const ReservedDmpWeight: Weight = Weight::from_parts(WEIGHT_REF_TIME_PER_SECOND.saturating_div(4), 0);
 }
 
 impl parachain_info::Config for Runtime {}
@@ -179,7 +180,8 @@ parameter_types! {
 	pub const RelayLocation: MultiLocation = MultiLocation::parent();
 	pub const RelayNetwork: NetworkId = NetworkId::Kusama;
 	pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
-	pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
+	pub UniversalLocation: InteriorMultiLocation =
+		X2(GlobalConsensus(RelayNetwork::get()), Parachain(ParachainInfo::parachain_id().into()));
 }
 
 pub type LocationToAccountId = (
@@ -240,6 +242,13 @@ impl FixedConversionRateProvider for MyFixedConversionRateProvider {
 	}
 }
 
+parameter_types! {
+	pub const UnitWeightCost: Weight = Weight::from_parts(10, 10);
+	pub const BaseXcmWeight: Weight = Weight::from_parts(100_000_000, 100_000_000);
+	pub const MaxInstructions: u32 = 100;
+	pub const MaxAssetsIntoHolding: u32 = 64;
+}
+
 pub struct XcmConfig;
 impl Config for XcmConfig {
 	type RuntimeCall = RuntimeCall;
@@ -248,14 +257,23 @@ impl Config for XcmConfig {
 	type OriginConverter = XcmOriginToCallOrigin;
 	type IsReserve = MultiNativeAsset<AbsoluteReserveProvider>;
 	type IsTeleporter = ();
-	type LocationInverter = LocationInverter<Ancestry>;
+	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
-	type Weigher = FixedWeightBounds<ConstU64<10>, RuntimeCall, ConstU32<100>>;
+	type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
 	type Trader = AssetRegistryWeightTrader;
 	type ResponseHandler = ();
 	type AssetTrap = PolkadotXcm;
 	type AssetClaims = PolkadotXcm;
 	type SubscriptionService = PolkadotXcm;
+	type AssetLocker = PolkadotXcm;
+	type AssetExchanger = ();
+	type PalletInstancesInfo = ();
+	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;
+	type FeeManager = ();
+	type MessageExporter = ();
+	type UniversalAliases = Nothing;
+	type CallDispatcher = RuntimeCall;
+	type SafeCallFilter = Everything;
 }
 
 pub struct ChannelInfo;
@@ -277,6 +295,7 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
 	type ControllerOrigin = EnsureRoot<AccountId>;
 	type ControllerOriginConverter = XcmOriginToCallOrigin;
 	type WeightInfo = ();
+	type PriceForSiblingDelivery = ();
 }
 
 impl cumulus_pallet_dmp_queue::Config for Runtime {
@@ -292,6 +311,16 @@ impl cumulus_pallet_xcm::Config for Runtime {
 
 pub type LocalOriginToLocation = SignedToAccountId32<RuntimeOrigin, AccountId, RelayNetwork>;
 
+parameter_types! {
+	pub SelfLocation: MultiLocation = MultiLocation::here();
+	pub const MaxAssetsForTransfer: usize = 3;
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+parameter_types! {
+	pub ReachableDest: Option<MultiLocation> = Some(Parent.into());
+}
+
 impl pallet_xcm::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type SendXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, LocalOriginToLocation>;
@@ -301,28 +330,31 @@ impl pallet_xcm::Config for Runtime {
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type XcmTeleportFilter = Nothing;
 	type XcmReserveTransferFilter = Everything;
-	type Weigher = FixedWeightBounds<ConstU64<10>, RuntimeCall, ConstU32<100>>;
-	type LocationInverter = LocationInverter<Ancestry>;
+	type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
+	type UniversalLocation = UniversalLocation;
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeCall = RuntimeCall;
 	const VERSION_DISCOVERY_QUEUE_SIZE: u32 = 100;
 	type AdvertisedXcmVersion = pallet_xcm::CurrentXcmVersion;
+	type Currency = Balances;
+	type CurrencyMatcher = ();
+	type TrustedLockers = ();
+	type SovereignAccountOf = ();
+	type MaxLockers = ConstU32<8>;
+	type WeightInfo = pallet_xcm::TestWeightInfo;
+	#[cfg(feature = "runtime-benchmarks")]
+	type ReachableDest = ReachableDest;
 }
 
 pub struct AccountIdToMultiLocation;
 impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 	fn convert(account: AccountId) -> MultiLocation {
 		X1(Junction::AccountId32 {
-			network: NetworkId::Any,
+			network: None,
 			id: account.into(),
 		})
 		.into()
 	}
-}
-
-parameter_types! {
-	pub SelfLocation: MultiLocation = MultiLocation::here();
-	pub const MaxAssetsForTransfer: usize = 3;
 }
 
 match_types! {
@@ -357,9 +389,9 @@ impl orml_xtokens::Config for Runtime {
 	type MultiLocationsFilter = ParentOrParachains;
 	type MinXcmFee = ParachainMinFee;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
-	type Weigher = FixedWeightBounds<ConstU64<10>, RuntimeCall, ConstU32<100>>;
-	type BaseXcmWeight = ConstU64<100_000_000>;
-	type LocationInverter = LocationInverter<Ancestry>;
+	type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
+	type BaseXcmWeight = BaseXcmWeight;
+	type UniversalLocation = UniversalLocation;
 	type MaxAssetsForTransfer = MaxAssetsForTransfer;
 	type ReserveProvider = RelativeReserveProvider;
 }

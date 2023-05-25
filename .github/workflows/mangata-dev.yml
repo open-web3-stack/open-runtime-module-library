@@ -13,10 +13,10 @@ jobs:
         with:
           toolchain: nightly
           default: true
-      - name: Install nightly-2020-10-01 with wasm
+      - name: Install nightly-2022-11-11 with wasm
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2020-10-01
+          toolchain: nightly-2022-11-11
           target: wasm32-unknown-unknown
       - name: Check Cargo version
         run: |

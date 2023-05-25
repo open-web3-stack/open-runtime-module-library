@@ -510,7 +510,7 @@ fn trigger_call_works() {
 			Authority::trigger_call(
 				RuntimeOrigin::signed(1),
 				hash,
-				call_weight_bound - Weight::from_ref_time(1)
+				call_weight_bound - Weight::from_parts(1, 0)
 			),
 			Error::<Runtime>::WrongCallWeightBound
 		);
@@ -644,48 +644,6 @@ fn trigger_call_should_be_free_and_operational() {
 		// successfull call doesn't pay fee
 		assert_eq!(
 			trigger_call.dispatch(RuntimeOrigin::signed(1)),
-			Ok(PostDispatchInfo {
-				actual_weight: None,
-				pays_fee: Pays::No
-			})
-		);
-	});
-}
-
-#[test]
-fn trigger_old_call_should_be_free_and_operational() {
-	ExtBuilder::default().build().execute_with(|| {
-		let call = RuntimeCall::RootTesting(pallet_root_testing::Call::fill_block {
-			ratio: Perbill::from_percent(50),
-		});
-		let hash = <Runtime as frame_system::Config>::Hashing::hash_of(&call);
-		let call_weight_bound: OldWeight = OldWeight(call.get_dispatch_info().weight.ref_time());
-		let trigger_old_call = RuntimeCall::Authority(authority::Call::trigger_old_call {
-			hash,
-			call_weight_bound,
-		});
-
-		assert_ok!(Authority::authorize_call(
-			RuntimeOrigin::root(),
-			Box::new(call),
-			Some(1)
-		));
-
-		// bad caller pays fee
-		assert_eq!(
-			trigger_old_call.clone().dispatch(RuntimeOrigin::signed(2)),
-			Err(DispatchErrorWithPostInfo {
-				post_info: PostDispatchInfo {
-					actual_weight: None,
-					pays_fee: Pays::Yes
-				},
-				error: Error::<Runtime>::TriggerCallNotPermitted.into()
-			})
-		);
-
-		// successfull call doesn't pay fee
-		assert_eq!(
-			trigger_old_call.dispatch(RuntimeOrigin::signed(1)),
 			Ok(PostDispatchInfo {
 				actual_weight: None,
 				pays_fee: Pays::No

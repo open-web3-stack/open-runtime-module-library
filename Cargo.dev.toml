@@ -26,6 +26,7 @@ members = [
 	"build-script-utils",
 	"weight-gen",
 	"weight-meter",
+	"payments"
 ]
 
 exclude = ["bencher/test"]
@@ -60,7 +61,7 @@ pallet-assets = { git = "https://github.com/mangata-finance//substrate", branch 
 pallet-tips = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
 pallet-election-provider-multi-phase = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
 pallet-beefy-mmr = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
-beefy-merkle-tree = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
+#beefy-merkle-tree = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
 pallet-scheduler = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
 pallet-multisig = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
 frame-executive = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
@@ -93,10 +94,10 @@ pallet-elections-phragmen = { git = "https://github.com/mangata-finance//substra
 pallet-proxy = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
 pallet-vesting = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
 sc-informant = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
-sc-finality-grandpa-rpc = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
-sc-finality-grandpa = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
-beefy-gadget-rpc = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
-beefy-gadget = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
+#sc-finality-grandpa-rpc = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
+#sc-finality-grandpa = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
+#beefy-gadget-rpc = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
+#beefy-gadget = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
 sc-executor-wasmtime = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
 sc-executor-common = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
 sc-executor-wasmi = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
@@ -129,7 +130,7 @@ sc-state-db = { git = "https://github.com/mangata-finance//substrate", branch = 
 sc-allocator = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
 sc-consensus = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
 sc-consensus-aura = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
-sc-consensus-uncles = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
+#sc-consensus-uncles = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
 sc-consensus-epochs = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
 sc-consensus-slots = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
 sc-consensus-babe-rpc = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
@@ -153,9 +154,9 @@ sp-inherents = { git = "https://github.com/mangata-finance//substrate", branch =
 sp-authorship = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
 sp-storage = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
 sp-std = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
-sp-finality-grandpa = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
-beefy-primitives = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev", package = "sp-beefy" }
-remote-externalities = { git = "https://github.com/mangata-finance//substrate" }
+#sp-finality-grandpa = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
+#beefy-primitives = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev", package = "sp-beefy" }
+#remote-externalities = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev"}
 sp-version-proc-macro = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
 sp-version = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }
 sp-transaction-pool = { git = "https://github.com/mangata-finance//substrate", branch = "mangata-dev" }

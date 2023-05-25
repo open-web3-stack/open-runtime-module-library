@@ -103,7 +103,6 @@ pub mod module {
 		StorageDoubleMap<_, Twox64Concat, T::BlockNumber, Blake2_128Concat, T::AuctionId, (), OptionQuery>;
 
 	#[pallet::pallet]
-	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T>(_);
 
 	#[pallet::hooks]

@@ -1,5 +1,5 @@
 use crate::module::*;
-use frame_support::{log, pallet_prelude::*, weights::constants::{WEIGHT_REF_TIME_PER_SECOND}};
+use frame_support::{log, pallet_prelude::*, weights::constants::WEIGHT_REF_TIME_PER_SECOND};
 use orml_traits::{
 	asset_registry::{AssetMetadata, FixedConversionRateProvider, Inspect, Mutate, WeightToFeeConverter},
 	GetByKey,
@@ -7,13 +7,10 @@ use orml_traits::{
 use sp_runtime::FixedPointNumber;
 use sp_runtime::{traits::Bounded, FixedU128};
 use sp_std::prelude::*;
-use xcm::latest::{prelude::*, Weight as XcmWeight};
+use xcm::v3::{prelude::*, Weight as XcmWeight};
 use xcm::VersionedMultiLocation;
 use xcm_builder::TakeRevenue;
 use xcm_executor::{traits::WeightTrader, Assets};
-
-use crate::module::*;
-
 /*
 /// Alias for AssetMetadata to improve readability (and to placate clippy)
 pub type DefaultAssetMetadata<T> = AssetMetadata<<T as Config>::Balance, <T as Config>::CustomMetadata>;
@@ -103,7 +100,7 @@ impl<W: WeightToFeeConverter, R: TakeRevenue> WeightTrader for AssetRegistryTrad
 					continue;
 				}
 
-				if let Some(fee_increase) = W::convert_weight_to_fee(location, Weight::from_ref_time(weight)) {
+				if let Some(fee_increase) = W::convert_weight_to_fee(location, weight) {
 					if fee_increase == 0 {
 						// if the fee is set very low it could lead to zero fees, in which case
 						// constructing the fee asset item to subtract from payment would fail.
@@ -111,7 +108,7 @@ impl<W: WeightToFeeConverter, R: TakeRevenue> WeightTrader for AssetRegistryTrad
 						return Ok(payment);
 					}
 
-					if let Ok(unused) = payment.clone().checked_sub((asset.clone(), fee_increase).into()) {
+					if let Ok(unused) = payment.clone().checked_sub((*asset, fee_increase).into()) {
 						let (existing_weight, existing_fee) = match self.bought_weight {
 							Some(ref x) => (x.weight, x.amount),
 							None => (Weight::zero(), 0),
@@ -119,10 +116,8 @@ impl<W: WeightToFeeConverter, R: TakeRevenue> WeightTrader for AssetRegistryTrad
 
 						self.bought_weight = Some(BoughtWeight {
 							amount: existing_fee.checked_add(fee_increase).ok_or(XcmError::Overflow)?,
-							weight: existing_weight
-								.checked_add(&Weight::from_ref_time(weight))
-								.ok_or(XcmError::Overflow)?,
-							asset_location: location.clone(),
+							weight: existing_weight.checked_add(&weight).ok_or(XcmError::Overflow)?,
+							asset_location: *location,
 						});
 						return Ok(unused);
 					}
@@ -137,14 +132,14 @@ impl<W: WeightToFeeConverter, R: TakeRevenue> WeightTrader for AssetRegistryTrad
 
 		match self.bought_weight {
 			Some(ref mut bought) => {
-				let new_weight = bought.weight.saturating_sub(Weight::from_ref_time(weight));
+				let new_weight = bought.weight.saturating_sub(weight);
 				let new_amount = W::convert_weight_to_fee(&bought.asset_location, new_weight)?;
 				let refunded_amount = bought.amount.saturating_sub(new_amount);
 
 				bought.weight = new_weight;
 				bought.amount = new_amount;
 
-				Some((AssetId::Concrete(bought.asset_location.clone()), refunded_amount).into())
+				Some((AssetId::Concrete(bought.asset_location), refunded_amount).into())
 			}
 			None => None, // nothing to refund
 		}
@@ -154,7 +149,7 @@ impl<W: WeightToFeeConverter, R: TakeRevenue> WeightTrader for AssetRegistryTrad
 impl<W: WeightToFeeConverter, R: TakeRevenue> Drop for AssetRegistryTrader<W, R> {
 	fn drop(&mut self) {
 		if let Some(ref bought) = self.bought_weight {
-			R::take_revenue((AssetId::Concrete(bought.asset_location.clone()), bought.amount).into());
+			R::take_revenue((AssetId::Concrete(bought.asset_location), bought.amount).into());
 		}
 	}
 }

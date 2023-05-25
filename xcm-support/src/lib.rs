@@ -9,12 +9,15 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 
-use frame_support::dispatch::{DispatchError, DispatchResult};
+use frame_support::{
+	dispatch::{DispatchError, DispatchResult},
+	traits::ContainsPair,
+};
 use sp_runtime::traits::{CheckedConversion, Convert};
-use sp_std::{marker::PhantomData, prelude::*};
+use sp_std::marker::PhantomData;
 
-use xcm::latest::prelude::*;
-use xcm_executor::traits::{FilterAssetLocation, MatchesFungible};
+use xcm::v3::prelude::*;
+use xcm_executor::traits::MatchesFungible;
 
 use orml_traits::{location::Reserve, GetByKey};
 
@@ -34,7 +37,7 @@ where
 {
 	fn matches_fungible(a: &MultiAsset) -> Option<Amount> {
 		if let (Fungible(ref amount), Concrete(ref location)) = (&a.fun, &a.id) {
-			if CurrencyIdConvert::convert(location.clone()).is_some() {
+			if CurrencyIdConvert::convert(*location).is_some() {
 				return CheckedConversion::checked_from(*amount);
 			}
 		}
@@ -42,14 +45,14 @@ where
 	}
 }
 
-/// A `FilterAssetLocation` implementation. Filters multi native assets whose
+/// A `ContainsPair` implementation. Filters multi native assets whose
 /// reserve is same with `origin`.
 pub struct MultiNativeAsset<ReserveProvider>(PhantomData<ReserveProvider>);
-impl<ReserveProvider> FilterAssetLocation for MultiNativeAsset<ReserveProvider>
+impl<ReserveProvider> ContainsPair<MultiAsset, MultiLocation> for MultiNativeAsset<ReserveProvider>
 where
 	ReserveProvider: Reserve,
 {
-	fn filter_asset_location(asset: &MultiAsset, origin: &MultiLocation) -> bool {
+	fn contains(asset: &MultiAsset, origin: &MultiLocation) -> bool {
 		if let Some(ref reserve) = ReserveProvider::reserve(asset) {
 			if reserve == origin {
 				return true;

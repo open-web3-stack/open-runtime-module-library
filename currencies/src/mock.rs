@@ -160,6 +160,7 @@ impl Default for ExtBuilder {
 	}
 }
 
+
 impl ExtBuilder {
 	pub fn balances(mut self, balances: Vec<(AccountId, CurrencyId, Balance)>) -> Self {
 		self.balances = balances;

@@ -24,7 +24,7 @@ pub use rewards::RewardHandler;
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
-pub use xcm_transfer::XcmTransfer;
+pub use xcm_transfer::{XcmTransfer, XtokensWeightInfo};
 
 pub mod arithmetic;
 pub mod asset_registry;

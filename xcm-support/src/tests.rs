@@ -82,7 +82,9 @@ fn is_native_concrete_does_not_matches_non_native_currencies() {
 			fun: Fungible(100),
 			id: Concrete(MultiLocation::new(
 				1,
-				X1(GeneralKey(b"TokenB".to_vec().try_into().unwrap()))
+				X1(Junction::from(
+					sp_runtime::BoundedVec::try_from(b"TokenB".to_vec()).unwrap()
+				))
 			)),
 		})
 		.is_none()
@@ -91,18 +93,18 @@ fn is_native_concrete_does_not_matches_non_native_currencies() {
 
 #[test]
 fn multi_native_asset() {
-	assert!(MultiNativeAsset::<AbsoluteReserveProvider>::filter_asset_location(
+	assert!(MultiNativeAsset::<AbsoluteReserveProvider>::contains(
 		&MultiAsset {
 			fun: Fungible(10),
 			id: Concrete(MultiLocation::parent())
 		},
 		&Parent.into()
 	));
-	assert!(MultiNativeAsset::<AbsoluteReserveProvider>::filter_asset_location(
+	assert!(MultiNativeAsset::<AbsoluteReserveProvider>::contains(
 		&MultiAsset::sibling_parachain_asset(1, b"TokenA".to_vec().try_into().unwrap(), 100),
 		&MultiLocation::new(1, X1(Parachain(1))),
 	));
-	assert!(!MultiNativeAsset::<AbsoluteReserveProvider>::filter_asset_location(
+	assert!(!MultiNativeAsset::<AbsoluteReserveProvider>::contains(
 		&MultiAsset::sibling_parachain_asset(1, b"TokenA".to_vec().try_into().unwrap(), 100),
 		&MultiLocation::parent(),
 	));
