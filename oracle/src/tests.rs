@@ -65,7 +65,7 @@ fn should_feed_values_from_root() {
 			vec![(50, 1000), (51, 900), (52, 800)]
 		));
 
-		// Or using the trait trait
+		// Or feed from root using the DataFeeder trait with None
 		assert_ok!(ModuleOracle::feed_value(None, 53, 700));
 
 		assert_eq!(
