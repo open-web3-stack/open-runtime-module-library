@@ -1,5 +1,5 @@
 use core::any::{Any, TypeId};
-use hash_db::Hasher;
+use sp_core::Hasher;
 use sp_externalities::{Extension, ExtensionStore, Externalities, MultiRemovalResults};
 use sp_state_machine::{Backend, Ext};
 use sp_std::sync::Arc;

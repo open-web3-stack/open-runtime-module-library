@@ -5,6 +5,7 @@ use super::*;
 use mock::para::AssetRegistry;
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
+use sp_core::bounded::BoundedVec;
 use sp_io::TestExternalities;
 use sp_runtime::{traits::Convert, AccountId32};
 use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain};
@@ -42,12 +43,54 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
 	fn convert(id: CurrencyId) -> Option<MultiLocation> {
 		match id {
 			CurrencyId::R => Some(Parent.into()),
-			CurrencyId::A => Some((Parent, Parachain(1), GeneralKey(b"A".to_vec().try_into().unwrap())).into()),
-			CurrencyId::A1 => Some((Parent, Parachain(1), GeneralKey(b"A1".to_vec().try_into().unwrap())).into()),
-			CurrencyId::B => Some((Parent, Parachain(2), GeneralKey(b"B".to_vec().try_into().unwrap())).into()),
-			CurrencyId::B1 => Some((Parent, Parachain(2), GeneralKey(b"B1".to_vec().try_into().unwrap())).into()),
-			CurrencyId::B2 => Some((Parent, Parachain(2), GeneralKey(b"B2".to_vec().try_into().unwrap())).into()),
-			CurrencyId::D => Some((Parent, Parachain(4), GeneralKey(b"D".to_vec().try_into().unwrap())).into()),
+			CurrencyId::A => Some(
+				(
+					Parent,
+					Parachain(1),
+					Junction::from(BoundedVec::try_from(b"A".to_vec()).unwrap()),
+				)
+					.into(),
+			),
+			CurrencyId::A1 => Some(
+				(
+					Parent,
+					Parachain(1),
+					Junction::from(BoundedVec::try_from(b"A1".to_vec()).unwrap()),
+				)
+					.into(),
+			),
+			CurrencyId::B => Some(
+				(
+					Parent,
+					Parachain(2),
+					Junction::from(BoundedVec::try_from(b"B".to_vec()).unwrap()),
+				)
+					.into(),
+			),
+			CurrencyId::B1 => Some(
+				(
+					Parent,
+					Parachain(2),
+					Junction::from(BoundedVec::try_from(b"B1".to_vec()).unwrap()),
+				)
+					.into(),
+			),
+			CurrencyId::B2 => Some(
+				(
+					Parent,
+					Parachain(2),
+					Junction::from(BoundedVec::try_from(b"B2".to_vec()).unwrap()),
+				)
+					.into(),
+			),
+			CurrencyId::D => Some(
+				(
+					Parent,
+					Parachain(4),
+					Junction::from(BoundedVec::try_from(b"D".to_vec()).unwrap()),
+				)
+					.into(),
+			),
 			CurrencyId::RegisteredAsset(id) => AssetRegistry::multilocation(&id).unwrap_or_default(),
 		}
 	}
@@ -65,21 +108,21 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
 		}
 		let currency_id = match l.clone() {
 			MultiLocation { parents, interior } if parents == 1 => match interior {
-				X2(Parachain(1), GeneralKey(k)) if k == a => Some(CurrencyId::A),
-				X2(Parachain(1), GeneralKey(k)) if k == a1 => Some(CurrencyId::A1),
-				X2(Parachain(2), GeneralKey(k)) if k == b => Some(CurrencyId::B),
-				X2(Parachain(2), GeneralKey(k)) if k == b1 => Some(CurrencyId::B1),
-				X2(Parachain(2), GeneralKey(k)) if k == b2 => Some(CurrencyId::B2),
-				X2(Parachain(4), GeneralKey(k)) if k == d => Some(CurrencyId::D),
+				X2(Parachain(1), GeneralKey { data, .. }) if data.to_vec() == a => Some(CurrencyId::A),
+				X2(Parachain(1), GeneralKey { data, .. }) if data.to_vec() == a1 => Some(CurrencyId::A1),
+				X2(Parachain(2), GeneralKey { data, .. }) if data.to_vec() == b => Some(CurrencyId::B),
+				X2(Parachain(2), GeneralKey { data, .. }) if data.to_vec() == b1 => Some(CurrencyId::B1),
+				X2(Parachain(2), GeneralKey { data, .. }) if data.to_vec() == b2 => Some(CurrencyId::B2),
+				X2(Parachain(4), GeneralKey { data, .. }) if data.to_vec() == d => Some(CurrencyId::D),
 				_ => None,
 			},
 			MultiLocation { parents, interior } if parents == 0 => match interior {
-				X1(GeneralKey(k)) if k == a => Some(CurrencyId::A),
-				X1(GeneralKey(k)) if k == b => Some(CurrencyId::B),
-				X1(GeneralKey(k)) if k == a1 => Some(CurrencyId::A1),
-				X1(GeneralKey(k)) if k == b1 => Some(CurrencyId::B1),
-				X1(GeneralKey(k)) if k == b2 => Some(CurrencyId::B2),
-				X1(GeneralKey(k)) if k == d => Some(CurrencyId::D),
+				X1(GeneralKey { data, .. }) if data.to_vec() == a => Some(CurrencyId::A),
+				X1(GeneralKey { data, .. }) if data.to_vec() == b => Some(CurrencyId::B),
+				X1(GeneralKey { data, .. }) if data.to_vec() == a1 => Some(CurrencyId::A1),
+				X1(GeneralKey { data, .. }) if data.to_vec() == b1 => Some(CurrencyId::B1),
+				X1(GeneralKey { data, .. }) if data.to_vec() == b2 => Some(CurrencyId::B2),
+				X1(GeneralKey { data, .. }) if data.to_vec() == d => Some(CurrencyId::D),
 				_ => None,
 			},
 			_ => None,

@@ -6,6 +6,14 @@ use super::*;
 use frame_support::assert_ok;
 use mock::*;
 
+const REASON: &() = &();
+
+fn events() -> Vec<RuntimeEvent> {
+	let evt = System::events().into_iter().map(|evt| evt.event).collect::<Vec<_>>();
+	System::reset_events();
+	evt
+}
+
 #[test]
 fn pallet_multicurrency_deposit_events() {
 	ExtBuilder::default()
@@ -162,7 +170,13 @@ fn pallet_fungibles_mutate_deposit_events() {
 				who: ALICE,
 				amount: 500,
 			}));
-			assert_ok!(<Tokens as fungibles::Mutate<AccountId>>::burn_from(DOT, &ALICE, 500));
+			assert_ok!(<Tokens as fungibles::Mutate<AccountId>>::burn_from(
+				DOT,
+				&ALICE,
+				500,
+				Precision::Exact,
+				Fortitude::Polite
+			));
 			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Withdrawn {
 				currency_id: DOT,
 				who: ALICE,
@@ -177,8 +191,12 @@ fn pallet_fungibles_transfer_deposit_events() {
 		.balances(vec![(ALICE, DOT, 100), (BOB, DOT, 100)])
 		.build()
 		.execute_with(|| {
-			assert_ok!(<Tokens as fungibles::Transfer<AccountId>>::transfer(
-				DOT, &ALICE, &BOB, 50, true
+			assert_ok!(<Tokens as fungibles::Mutate<AccountId>>::transfer(
+				DOT,
+				&ALICE,
+				&BOB,
+				50,
+				Preservation::Protect
 			));
 			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Transfer {
 				currency_id: DOT,
@@ -196,7 +214,7 @@ fn pallet_fungibles_unbalanced_deposit_events() {
 		.build()
 		.execute_with(|| {
 			assert_ok!(<Tokens as MultiReservableCurrency<AccountId>>::reserve(DOT, &ALICE, 50));
-			assert_ok!(<Tokens as fungibles::Unbalanced<AccountId>>::set_balance(
+			assert_ok!(<Tokens as fungibles::Unbalanced<AccountId>>::write_balance(
 				DOT, &ALICE, 500
 			));
 			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::BalanceSet {
@@ -220,15 +238,24 @@ fn pallet_fungibles_mutate_hold_deposit_events() {
 		.balances(vec![(ALICE, DOT, 100), (BOB, DOT, 100)])
 		.build()
 		.execute_with(|| {
-			assert_ok!(<Tokens as fungibles::MutateHold<AccountId>>::hold(DOT, &ALICE, 50));
+			assert_ok!(<Tokens as fungibles::MutateHold<AccountId>>::hold(
+				DOT, REASON, &ALICE, 50
+			));
 			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Reserved {
 				currency_id: DOT,
 				who: ALICE,
 				amount: 50,
 			}));
 
-			assert_ok!(<Tokens as fungibles::MutateHold<AccountId>>::transfer_held(
-				DOT, &ALICE, &BOB, 50, true, true
+			assert_ok!(<Tokens as fungibles::MutateHold<AccountId>>::transfer_on_hold(
+				DOT,
+				REASON,
+				&ALICE,
+				&BOB,
+				50,
+				Precision::Exact,
+				Restriction::OnHold,
+				Fortitude::Polite
 			));
 			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::ReserveRepatriated {
 				currency_id: DOT,
@@ -239,7 +266,7 @@ fn pallet_fungibles_mutate_hold_deposit_events() {
 			}));
 			System::reset_events();
 			assert_eq!(
-				<Tokens as fungibles::MutateHold<AccountId>>::release(DOT, &BOB, 50, true),
+				<Tokens as fungibles::MutateHold<AccountId>>::release(DOT, REASON, &BOB, 50, Precision::Exact),
 				Ok(50)
 			);
 			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Unreserved {
@@ -299,4 +326,99 @@ fn currency_adapter_pallet_currency_deposit_events() {
 				reserved: 40,
 			}));
 		});
+}
+
+#[test]
+fn pallet_change_locks_events() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(Tokens::do_deposit(DOT, &ALICE, 100, false, false));
+		assert_ok!(Tokens::do_deposit(BTC, &ALICE, 100, false, false));
+		System::reset_events();
+
+		// Locks: [10/DOT]
+		assert_ok!(Tokens::set_lock(ID_1, DOT, &ALICE, 10));
+		assert!(events().contains(&RuntimeEvent::Tokens(crate::Event::Locked {
+			currency_id: DOT,
+			who: ALICE,
+			amount: 10
+		})));
+
+		// Locks: [15/DOT]
+		assert_ok!(Tokens::set_lock(ID_1, DOT, &ALICE, 15));
+		assert!(events().contains(&RuntimeEvent::Tokens(crate::Event::Locked {
+			currency_id: DOT,
+			who: ALICE,
+			amount: 5
+		})));
+
+		// Locks: [15/DOT, 20/BTC]
+		assert_ok!(Tokens::set_lock(ID_1, BTC, &ALICE, 20));
+		assert!(events().contains(&RuntimeEvent::Tokens(crate::Event::Locked {
+			currency_id: BTC,
+			who: ALICE,
+			amount: 20
+		})));
+
+		// Locks: [15/DOT, 20/BTC, 10/DOT]
+		assert_ok!(Tokens::set_lock(ID_2, DOT, &ALICE, 10));
+		for event in events() {
+			match event {
+				RuntimeEvent::Tokens(crate::Event::Locked { .. }) => assert!(false, "unexpected lock event"),
+				RuntimeEvent::Tokens(crate::Event::Unlocked { .. }) => assert!(false, "unexpected unlock event"),
+				_ => continue,
+			}
+		}
+
+		// Locks: [15/DOT, 20/BTC, 12/DOT]
+		assert_ok!(Tokens::set_lock(ID_2, DOT, &ALICE, 12));
+		for event in events() {
+			match event {
+				RuntimeEvent::Tokens(crate::Event::Locked { .. }) => assert!(false, "unexpected lock event"),
+				RuntimeEvent::Tokens(crate::Event::Unlocked { .. }) => assert!(false, "unexpected unlock event"),
+				_ => continue,
+			}
+		}
+
+		// Locks: [15/DOT, 20/BTC, 10/DOT]
+		assert_ok!(Tokens::set_lock(ID_2, DOT, &ALICE, 10));
+		for event in events() {
+			match event {
+				RuntimeEvent::Tokens(crate::Event::Locked { .. }) => assert!(false, "unexpected lock event"),
+				RuntimeEvent::Tokens(crate::Event::Unlocked { .. }) => assert!(false, "unexpected unlock event"),
+				_ => continue,
+			}
+		}
+
+		// Locks: [15/DOT, 20/BTC, 20/DOT]
+		assert_ok!(Tokens::set_lock(ID_2, DOT, &ALICE, 20));
+		assert!(events().contains(&RuntimeEvent::Tokens(crate::Event::Locked {
+			currency_id: DOT,
+			who: ALICE,
+			amount: 5
+		})));
+
+		// Locks: [15/DOT, 20/BTC, 16/DOT]
+		assert_ok!(Tokens::set_lock(ID_2, DOT, &ALICE, 16));
+		assert!(events().contains(&RuntimeEvent::Tokens(crate::Event::Unlocked {
+			currency_id: DOT,
+			who: ALICE,
+			amount: 4
+		})));
+
+		// Locks: [15/DOT, 12/BTC, 16/DOT]
+		assert_ok!(Tokens::set_lock(ID_1, BTC, &ALICE, 12));
+		assert!(events().contains(&RuntimeEvent::Tokens(crate::Event::Unlocked {
+			currency_id: BTC,
+			who: ALICE,
+			amount: 8
+		})));
+
+		// Locks: [15/DOT, 12/BTC]
+		assert_ok!(Tokens::remove_lock(ID_2, DOT, &ALICE));
+		assert!(events().contains(&RuntimeEvent::Tokens(crate::Event::Unlocked {
+			currency_id: DOT,
+			who: ALICE,
+			amount: 1
+		})));
+	});
 }

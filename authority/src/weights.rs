@@ -43,44 +43,44 @@ pub trait WeightInfo {
 /// Default weights.
 impl WeightInfo for () {
 	fn dispatch_as() -> Weight {
-		Weight::from_ref_time(12_000_000)
+		Weight::from_parts(12_000_000, 0)
 	}
 	fn schedule_dispatch_without_delay() -> Weight {
-		Weight::from_ref_time(30_000_000)
+		Weight::from_parts(30_000_000, 0)
 			.saturating_add(RocksDbWeight::get().reads(3 as u64))
 			.saturating_add(RocksDbWeight::get().writes(3 as u64))
 	}
 	fn schedule_dispatch_with_delay() -> Weight {
-		Weight::from_ref_time(32_000_000)
+		Weight::from_parts(32_000_000, 0)
 			.saturating_add(RocksDbWeight::get().reads(3 as u64))
 			.saturating_add(RocksDbWeight::get().writes(3 as u64))
 	}
 	fn fast_track_scheduled_dispatch() -> Weight {
-		Weight::from_ref_time(42_000_000)
+		Weight::from_parts(42_000_000, 0)
 			.saturating_add(RocksDbWeight::get().reads(3 as u64))
 			.saturating_add(RocksDbWeight::get().writes(3 as u64))
 	}
 	fn delay_scheduled_dispatch() -> Weight {
-		Weight::from_ref_time(42_000_000)
+		Weight::from_parts(42_000_000, 0)
 			.saturating_add(RocksDbWeight::get().reads(3 as u64))
 			.saturating_add(RocksDbWeight::get().writes(3 as u64))
 	}
 	fn cancel_scheduled_dispatch() -> Weight {
-		Weight::from_ref_time(29_000_000)
+		Weight::from_parts(29_000_000, 0)
 			.saturating_add(RocksDbWeight::get().reads(2 as u64))
 			.saturating_add(RocksDbWeight::get().writes(2 as u64))
 	}
 	fn authorize_call() -> Weight {
-		Weight::from_ref_time(14_000_000)
+		Weight::from_parts(14_000_000, 0)
 			.saturating_add(RocksDbWeight::get().writes(1 as u64))
 	}
 	fn remove_authorized_call() -> Weight {
-		Weight::from_ref_time(16_000_000)
+		Weight::from_parts(16_000_000, 0)
 			.saturating_add(RocksDbWeight::get().reads(1 as u64))
 			.saturating_add(RocksDbWeight::get().writes(1 as u64))
 	}
 	fn trigger_call() -> Weight {
-		Weight::from_ref_time(29_000_000)
+		Weight::from_parts(29_000_000, 0)
 			.saturating_add(RocksDbWeight::get().reads(1 as u64))
 			.saturating_add(RocksDbWeight::get().writes(1 as u64))
 	}

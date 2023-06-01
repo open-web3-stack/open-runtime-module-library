@@ -7,16 +7,16 @@ authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2021"
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.0.0" }
-jsonrpsee = { version = "0.15.1", features = ["server", "macros"] }
-tracing = { version = "0.1.29" }
-tracing-core = { version = "0.1.28" }
+codec = { package = "parity-scale-codec", version = "3.4.0" }
+jsonrpsee = { version = "0.16.2", features = ["client", "server", "macros"] }
+tracing = "0.1.29"
+tracing-core = "0.1.28"
 
-frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.33" }
-sp-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.33" }
-sp-blockchain = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.33" }
-sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.33" }
-sp-rpc = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.33" }
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.33" }
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.42" }
+sp-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.42" }
+sp-blockchain = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.42" }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.42" }
+sp-rpc = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.42" }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.42" }
 
 orml-tokens-rpc-runtime-api = { version = "0.4.1-dev", path = "./runtime-api" }

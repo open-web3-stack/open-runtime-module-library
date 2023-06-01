@@ -178,7 +178,7 @@ pub mod module {
 		) -> DispatchResult {
 			T::GovernanceOrigin::ensure_origin(origin)?;
 
-			RateLimitRules::<T>::try_mutate_exists(&rate_limiter_id, &encoded_key, |maybe_limit| -> DispatchResult {
+			RateLimitRules::<T>::try_mutate_exists(rate_limiter_id, &encoded_key, |maybe_limit| -> DispatchResult {
 				*maybe_limit = update.clone();
 
 				if let Some(rule) = maybe_limit {
@@ -211,7 +211,7 @@ pub mod module {
 				}
 
 				// always reset RateLimitQuota.
-				RateLimitQuota::<T>::remove(&rate_limiter_id, &encoded_key);
+				RateLimitQuota::<T>::remove(rate_limiter_id, &encoded_key);
 
 				Self::deposit_event(Event::RateLimitRuleUpdated {
 					rate_limiter_id,
@@ -352,7 +352,7 @@ pub mod module {
 						}
 					}
 
-					_ => {}
+					RateLimitRule::Unlimited | RateLimitRule::NotAllowed => {}
 				}
 
 				*remainer_quota
@@ -392,7 +392,7 @@ pub mod module {
 		fn is_allowed(limiter_id: Self::RateLimiterId, key: impl Encode, value: u128) -> Result<(), RateLimiterError> {
 			let encoded_key: Vec<u8> = key.encode();
 
-			let allowed = match RateLimitRules::<T>::get(&limiter_id, &encoded_key) {
+			let allowed = match RateLimitRules::<T>::get(limiter_id, &encoded_key) {
 				Some(rate_limit_rule @ RateLimitRule::PerBlocks { .. })
 				| Some(rate_limit_rule @ RateLimitRule::PerSeconds { .. })
 				| Some(rate_limit_rule @ RateLimitRule::TokenBucket { .. }) => {
@@ -420,12 +420,12 @@ pub mod module {
 		fn record(limiter_id: Self::RateLimiterId, key: impl Encode, value: u128) {
 			let encoded_key: Vec<u8> = key.encode();
 
-			match RateLimitRules::<T>::get(&limiter_id, &encoded_key) {
+			match RateLimitRules::<T>::get(limiter_id, &encoded_key) {
 				Some(RateLimitRule::PerBlocks { .. })
 				| Some(RateLimitRule::PerSeconds { .. })
 				| Some(RateLimitRule::TokenBucket { .. }) => {
 					// consume remainer quota in these situation.
-					RateLimitQuota::<T>::mutate(&limiter_id, &encoded_key, |(_, remainer_quota)| {
+					RateLimitQuota::<T>::mutate(limiter_id, &encoded_key, |(_, remainer_quota)| {
 						*remainer_quota = (*remainer_quota).saturating_sub(value);
 					});
 				}

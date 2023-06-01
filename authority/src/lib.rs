@@ -35,7 +35,6 @@ use frame_support::{
 		schedule::{v1::Named as ScheduleNamed, DispatchTime, Priority},
 		EitherOfDiverse, EnsureOrigin, Get, IsType, OriginTrait,
 	},
-	weights::OldWeight,
 };
 use frame_system::{pallet_prelude::*, EnsureRoot, EnsureSigned};
 use scale_info::TypeInfo;
@@ -146,7 +145,7 @@ impl<
 	}
 
 	#[cfg(feature = "runtime-benchmarks")]
-	fn successful_origin() -> O {
+	fn try_successful_origin() -> Result<O, ()> {
 		unimplemented!()
 	}
 }
@@ -297,7 +296,6 @@ pub mod module {
 	pub type SavedCalls<T: Config> = StorageMap<_, Identity, T::Hash, (CallOf<T>, Option<T::AccountId>), OptionQuery>;
 
 	#[pallet::pallet]
-	#[pallet::generate_store(pub(super) trait Store)]
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
@@ -485,38 +483,6 @@ pub mod module {
 				}
 				Self::deposit_event(Event::RemovedAuthorizedCall { hash });
 				Ok(())
-			})
-		}
-
-		#[pallet::call_index(7)]
-		#[pallet::weight((
-			T::WeightInfo::trigger_call().saturating_add((*call_weight_bound).into()),
-			DispatchClass::Operational,
-		))]
-		#[allow(deprecated)]
-		#[deprecated(note = "1D weight is used in this extrinsic, please migrate to `trigger_call`")]
-		pub fn trigger_old_call(
-			origin: OriginFor<T>,
-			hash: T::Hash,
-			#[pallet::compact] call_weight_bound: OldWeight,
-		) -> DispatchResultWithPostInfo {
-			let call_weight_bound: Weight = call_weight_bound.into();
-			let who = ensure_signed(origin)?;
-			SavedCalls::<T>::try_mutate_exists(hash, |maybe_call| {
-				let (call, maybe_caller) = maybe_call.take().ok_or(Error::<T>::CallNotAuthorized)?;
-				if let Some(caller) = maybe_caller {
-					ensure!(who == caller, Error::<T>::TriggerCallNotPermitted);
-				}
-				ensure!(
-					call_weight_bound.ref_time() >= call.get_dispatch_info().weight.ref_time(),
-					Error::<T>::WrongCallWeightBound
-				);
-				let result = call.dispatch(OriginFor::<T>::root());
-				Self::deposit_event(Event::TriggeredCallBy { hash, caller: who });
-				Self::deposit_event(Event::Dispatched {
-					result: result.map(|_| ()).map_err(|e| e.error),
-				});
-				Ok(Pays::No.into())
 			})
 		}
 

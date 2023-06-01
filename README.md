@@ -88,6 +88,7 @@ ORML is part of the bigger `Open-Web3-Stack` initiative, that is currently under
 _In alphabetical order_
 
 - [Acala Network](https://github.com/AcalaNetwork/Acala)
+- [Ajuna Network](https://github.com/ajuna-network/Ajuna)
 - [Astar Network](https://github.com/AstarNetwork)
 - [Bifrost Finance](https://github.com/bifrost-finance/bifrost)
 - [Bit.Country](https://github.com/bit-country/Bit-Country-Blockchain)
@@ -102,8 +103,11 @@ _In alphabetical order_
 - [Libra](https://github.com/atscaletech/libra)
 - [Listen](https://github.com/listenofficial)
 - [Manta Network](https://github.com/Manta-Network)
+- [Mangata Finance](https://github.com/mangata-finance)
 - [Minterest](https://github.com/minterest-finance/minterest-chain-node)
+- [Moonbeam](https://github.com/PureStake/moonbeam/)
 - [OAK](https://github.com/OAK-Foundation/OAK-blockchain)
+- [Parallel Finance](https://github.com/parallel-finance/)
 - [PolkaFoundry Network](https://github.com/PolkaFoundry)
 - [Setheum Network](https://github.com/Setheum-Labs/Setheum)
 - [Valiu Liquidity Network](https://github.com/valibre-org/vln-node)

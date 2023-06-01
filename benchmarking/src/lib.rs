@@ -741,6 +741,9 @@ macro_rules! impl_benchmark {
 					$crate::BenchmarkMetadata {
 						name: benchmark.as_bytes().to_vec(),
 						components,
+						// TODO: Not supported by V2 syntax as of yet.
+						// https://github.com/paritytech/substrate/issues/13132
+						pov_modes: vec![],
 					}
 				}).collect::<$crate::Vec<_>>()
 			}
@@ -1180,6 +1183,14 @@ macro_rules! impl_benchmark_test_suite {
 											$crate::str::from_utf8(benchmark_name)
 												.expect("benchmark name is always a valid string!"),
 										);
+									},
+									$crate::BenchmarkError::Weightless => {
+										// This is considered a success condition.
+										$crate::log::error!(
+											"WARNING: benchmark error weightless skipped - {}",
+											$crate::str::from_utf8(benchmark_name)
+												.expect("benchmark name is always a valid string!"),
+										);
 									}
 								}
 							},
@@ -1314,6 +1325,17 @@ macro_rules! add_benchmark {
 							.expect("benchmark name is always a valid string!")
 					);
 					None
+				},
+				Err($crate::BenchmarkError::Weightless) => {
+					$crate::log::error!(
+						"WARNING: benchmark weightless skipped - {}",
+						$crate::str::from_utf8(benchmark)
+							.expect("benchmark name is always a valid string!")
+					);
+					Some(vec![$crate::BenchmarkResult {
+						components: selected_components.clone(),
+						.. Default::default()
+					}])
 				}
 			};
 

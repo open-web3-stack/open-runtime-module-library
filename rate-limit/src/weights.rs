@@ -40,28 +40,28 @@ impl WeightInfo for () {
 	// Storage: RateLimit RateLimitQuota (r:0 w:1)
 	fn update_rate_limit_rule() -> Weight {
 		// Minimum execution time: 31_000 nanoseconds.
-		Weight::from_ref_time(32_000_000)
+		Weight::from_parts(32_000_000, 0)
 			.saturating_add(RocksDbWeight::get().reads(1))
 			.saturating_add(RocksDbWeight::get().writes(2))
 	}
 	// Storage: RateLimit LimitWhitelist (r:1 w:1)
 	fn add_whitelist() -> Weight {
 		// Minimum execution time: 25_000 nanoseconds.
-		Weight::from_ref_time(27_000_000)
+		Weight::from_parts(27_000_000, 0)
 			.saturating_add(RocksDbWeight::get().reads(1))
 			.saturating_add(RocksDbWeight::get().writes(1))
 	}
 	// Storage: RateLimit LimitWhitelist (r:1 w:1)
 	fn remove_whitelist() -> Weight {
 		// Minimum execution time: 26_000 nanoseconds.
-		Weight::from_ref_time(27_000_000)
+		Weight::from_parts(27_000_000, 0)
 			.saturating_add(RocksDbWeight::get().reads(1))
 			.saturating_add(RocksDbWeight::get().writes(1))
 	}
 	// Storage: RateLimit LimitWhitelist (r:0 w:1)
 	fn reset_whitelist() -> Weight {
 		// Minimum execution time: 22_000 nanoseconds.
-		Weight::from_ref_time(22_000_000)
+		Weight::from_parts(22_000_000, 0)
 			.saturating_add(RocksDbWeight::get().writes(1))
 	}
 }

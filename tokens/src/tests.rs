@@ -365,7 +365,7 @@ fn withdraw_consequence_should_work() {
 					frozen: 0
 				}
 			)
-			.into_result(),
+			.into_result(true),
 			Ok(Zero::zero())
 		);
 
@@ -383,7 +383,7 @@ fn withdraw_consequence_should_work() {
 					frozen: 0
 				}
 			)
-			.into_result(),
+			.into_result(true),
 			Err(ArithmeticError::Underflow.into())
 		);
 
@@ -399,8 +399,8 @@ fn withdraw_consequence_should_work() {
 					frozen: 0
 				}
 			)
-			.into_result(),
-			Err(TokenError::NoFunds.into())
+			.into_result(true),
+			Err(TokenError::FundsUnavailable.into())
 		);
 
 		// below ED and cannot dec provider
@@ -419,8 +419,8 @@ fn withdraw_consequence_should_work() {
 					frozen: 0
 				}
 			)
-			.into_result(),
-			Err(TokenError::WouldDie.into())
+			.into_result(true),
+			Err(TokenError::OnlyProvider.into())
 		);
 
 		// below ED and can dec provider
@@ -437,7 +437,7 @@ fn withdraw_consequence_should_work() {
 					frozen: 0
 				}
 			)
-			.into_result(),
+			.into_result(false),
 			Ok(1)
 		);
 
@@ -453,8 +453,8 @@ fn withdraw_consequence_should_work() {
 					frozen: 0
 				}
 			)
-			.into_result(),
-			Err(TokenError::NoFunds.into())
+			.into_result(true),
+			Err(TokenError::FundsUnavailable.into())
 		);
 
 		// less to frozen balance
@@ -469,7 +469,7 @@ fn withdraw_consequence_should_work() {
 					frozen: 2
 				}
 			)
-			.into_result(),
+			.into_result(true),
 			Err(TokenError::Frozen.into())
 		);
 	});

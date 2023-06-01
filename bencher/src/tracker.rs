@@ -4,18 +4,13 @@ use sp_state_machine::StorageKey;
 use sp_storage::ChildInfo;
 use std::{collections::HashMap, sync::Arc, time::Instant};
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Default)]
 enum AccessType {
+	#[default]
 	None,
 	Redundant,
 	Important,
 	Whitelisted,
-}
-
-impl Default for AccessType {
-	fn default() -> Self {
-		AccessType::None
-	}
 }
 
 impl AccessType {

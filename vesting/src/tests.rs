@@ -7,6 +7,7 @@ use frame_support::{assert_noop, assert_ok, error::BadOrigin};
 use mock::*;
 use pallet_balances::{BalanceLock, Reasons};
 use sp_runtime::traits::Dispatchable;
+use sp_runtime::TokenError;
 
 #[test]
 fn vesting_from_chain_spec_works() {
@@ -214,7 +215,7 @@ fn vested_transfer_fails_if_transfer_err() {
 		};
 		assert_noop!(
 			Vesting::vested_transfer(RuntimeOrigin::signed(BOB), ALICE, schedule),
-			pallet_balances::Error::<Runtime, _>::InsufficientBalance,
+			TokenError::FundsUnavailable,
 		);
 	});
 }
@@ -518,7 +519,7 @@ fn cliff_vesting_works() {
 			assert_eq!(PalletBalances::locks(&BOB), vec![balance_lock.clone()]);
 			assert_noop!(
 				PalletBalances::transfer(RuntimeOrigin::signed(BOB), CHARLIE, VESTING_AMOUNT),
-				pallet_balances::Error::<Runtime>::LiquidityRestrictions,
+				TokenError::Frozen,
 			);
 		}
 

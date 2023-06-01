@@ -134,7 +134,6 @@ pub mod module {
 		StorageValue<_, OrderedSet<T::AccountId, T::MaxHasDispatchedSize>, ValueQuery>;
 
 	#[pallet::pallet]
-	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T, I = ()>(PhantomData<(T, I)>);
 
 	#[pallet::hooks]
@@ -215,7 +214,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 				value: value.clone(),
 				timestamp: now,
 			};
-			RawValues::<T, I>::insert(&who, &key, timestamped);
+			RawValues::<T, I>::insert(&who, key, timestamped);
 
 			// Update `Values` storage if `combined` yielded result.
 			if let Some(combined) = Self::combined(key) {

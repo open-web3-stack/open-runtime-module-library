@@ -1,4 +1,4 @@
-#[frame_support::pallet]
+#[frame_support::pallet(dev_mode)]
 pub mod test_module {
 	use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*, weights::Weight};
 	use frame_system::pallet_prelude::*;
@@ -7,7 +7,6 @@ pub mod test_module {
 	pub trait Config: frame_system::Config {}
 
 	#[pallet::pallet]
-	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T>(PhantomData<T>);
 
 	#[pallet::hooks]
@@ -182,6 +181,10 @@ impl pallet_balances::Config for Runtime {
 	type MaxReserves = ();
 	type ReserveIdentifier = [u8; 8];
 	type WeightInfo = ();
+	type HoldIdentifier = [u8; 8];
+	type FreezeIdentifier = [u8; 8];
+	type MaxHolds = ();
+	type MaxFreezes = ();
 }
 
 impl test_module::Config for Runtime {}

@@ -20,7 +20,8 @@ use sp_runtime::{traits::BadOrigin, Perbill};
 #[test]
 fn dispatch_as_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let ensure_root_call = RuntimeCall::System(frame_system::Call::fill_block { ratio: Perbill::one() });
+		let ensure_root_call =
+			RuntimeCall::RootTesting(pallet_root_testing::Call::fill_block { ratio: Perbill::one() });
 		let ensure_signed_call = RuntimeCall::System(frame_system::Call::remark { remark: vec![] });
 		assert_ok!(Authority::dispatch_as(
 			RuntimeOrigin::root(),
@@ -59,7 +60,7 @@ fn dispatch_as_work() {
 #[test]
 fn schedule_dispatch_at_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let ensure_root_call = RuntimeCall::System(frame_system::Call::fill_block {
+		let ensure_root_call = RuntimeCall::RootTesting(pallet_root_testing::Call::fill_block {
 			ratio: Perbill::from_percent(50),
 		});
 		let call = RuntimeCall::Authority(authority::Call::dispatch_as {
@@ -129,7 +130,7 @@ fn schedule_dispatch_at_work() {
 #[test]
 fn schedule_dispatch_after_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let ensure_root_call = RuntimeCall::System(frame_system::Call::fill_block {
+		let ensure_root_call = RuntimeCall::RootTesting(pallet_root_testing::Call::fill_block {
 			ratio: Perbill::from_percent(50),
 		});
 		let call = RuntimeCall::Authority(authority::Call::dispatch_as {
@@ -200,7 +201,7 @@ fn schedule_dispatch_after_work() {
 fn fast_track_scheduled_dispatch_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		System::set_block_number(1);
-		let ensure_root_call = RuntimeCall::System(frame_system::Call::fill_block {
+		let ensure_root_call = RuntimeCall::RootTesting(pallet_root_testing::Call::fill_block {
 			ratio: Perbill::from_percent(50),
 		});
 		let call = RuntimeCall::Authority(authority::Call::dispatch_as {
@@ -279,7 +280,7 @@ fn fast_track_scheduled_dispatch_work() {
 fn delay_scheduled_dispatch_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		System::set_block_number(1);
-		let ensure_root_call = RuntimeCall::System(frame_system::Call::fill_block {
+		let ensure_root_call = RuntimeCall::RootTesting(pallet_root_testing::Call::fill_block {
 			ratio: Perbill::from_percent(50),
 		});
 		let call = RuntimeCall::Authority(authority::Call::dispatch_as {
@@ -357,7 +358,7 @@ fn delay_scheduled_dispatch_work() {
 #[test]
 fn cancel_scheduled_dispatch_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let ensure_root_call = RuntimeCall::System(frame_system::Call::fill_block {
+		let ensure_root_call = RuntimeCall::RootTesting(pallet_root_testing::Call::fill_block {
 			ratio: Perbill::from_percent(50),
 		});
 		let call = RuntimeCall::Authority(authority::Call::dispatch_as {
@@ -442,7 +443,7 @@ fn call_size_limit() {
 fn authorize_call_works() {
 	ExtBuilder::default().build().execute_with(|| {
 		run_to_block(1);
-		let ensure_root_call = RuntimeCall::System(frame_system::Call::fill_block {
+		let ensure_root_call = RuntimeCall::RootTesting(pallet_root_testing::Call::fill_block {
 			ratio: Perbill::from_percent(50),
 		});
 		let call = RuntimeCall::Authority(authority::Call::dispatch_as {
@@ -481,7 +482,7 @@ fn authorize_call_works() {
 fn trigger_call_works() {
 	ExtBuilder::default().build().execute_with(|| {
 		run_to_block(1);
-		let ensure_root_call = RuntimeCall::System(frame_system::Call::fill_block {
+		let ensure_root_call = RuntimeCall::RootTesting(pallet_root_testing::Call::fill_block {
 			ratio: Perbill::from_percent(50),
 		});
 		let call = RuntimeCall::Authority(authority::Call::dispatch_as {
@@ -509,7 +510,7 @@ fn trigger_call_works() {
 			Authority::trigger_call(
 				RuntimeOrigin::signed(1),
 				hash,
-				call_weight_bound - Weight::from_ref_time(1)
+				call_weight_bound - Weight::from_parts(1, 0)
 			),
 			Error::<Runtime>::WrongCallWeightBound
 		);
@@ -559,7 +560,7 @@ fn trigger_call_works() {
 fn remove_authorized_call_works() {
 	ExtBuilder::default().build().execute_with(|| {
 		run_to_block(1);
-		let ensure_root_call = RuntimeCall::System(frame_system::Call::fill_block {
+		let ensure_root_call = RuntimeCall::RootTesting(pallet_root_testing::Call::fill_block {
 			ratio: Perbill::from_percent(50),
 		});
 		let call = RuntimeCall::Authority(authority::Call::dispatch_as {
@@ -612,7 +613,7 @@ fn remove_authorized_call_works() {
 #[test]
 fn trigger_call_should_be_free_and_operational() {
 	ExtBuilder::default().build().execute_with(|| {
-		let call = RuntimeCall::System(frame_system::Call::fill_block {
+		let call = RuntimeCall::RootTesting(pallet_root_testing::Call::fill_block {
 			ratio: Perbill::from_percent(50),
 		});
 		let hash = <Runtime as frame_system::Config>::Hashing::hash_of(&call);
@@ -643,48 +644,6 @@ fn trigger_call_should_be_free_and_operational() {
 		// successfull call doesn't pay fee
 		assert_eq!(
 			trigger_call.dispatch(RuntimeOrigin::signed(1)),
-			Ok(PostDispatchInfo {
-				actual_weight: None,
-				pays_fee: Pays::No
-			})
-		);
-	});
-}
-
-#[test]
-fn trigger_old_call_should_be_free_and_operational() {
-	ExtBuilder::default().build().execute_with(|| {
-		let call = RuntimeCall::System(frame_system::Call::fill_block {
-			ratio: Perbill::from_percent(50),
-		});
-		let hash = <Runtime as frame_system::Config>::Hashing::hash_of(&call);
-		let call_weight_bound: OldWeight = OldWeight(call.get_dispatch_info().weight.ref_time());
-		let trigger_old_call = RuntimeCall::Authority(authority::Call::trigger_old_call {
-			hash,
-			call_weight_bound,
-		});
-
-		assert_ok!(Authority::authorize_call(
-			RuntimeOrigin::root(),
-			Box::new(call),
-			Some(1)
-		));
-
-		// bad caller pays fee
-		assert_eq!(
-			trigger_old_call.clone().dispatch(RuntimeOrigin::signed(2)),
-			Err(DispatchErrorWithPostInfo {
-				post_info: PostDispatchInfo {
-					actual_weight: None,
-					pays_fee: Pays::Yes
-				},
-				error: Error::<Runtime>::TriggerCallNotPermitted.into()
-			})
-		);
-
-		// successfull call doesn't pay fee
-		assert_eq!(
-			trigger_old_call.dispatch(RuntimeOrigin::signed(1)),
 			Ok(PostDispatchInfo {
 				actual_weight: None,
 				pays_fee: Pays::No

@@ -24,7 +24,7 @@ pub type BlockNumber = u64;
 
 parameter_types! {
 	pub BlockWeights: frame_system::limits::BlockWeights =
-			frame_system::limits::BlockWeights::simple_max(Weight::from_ref_time(2_000_000_000_000).set_proof_size(u64::MAX));
+			frame_system::limits::BlockWeights::simple_max(Weight::from_parts(2_000_000_000_000, 0).set_proof_size(u64::MAX));
 }
 
 impl frame_system::Config for Runtime {
@@ -78,6 +78,8 @@ impl pallet_scheduler::Config for Runtime {
 	type OriginPrivilegeCmp = EqualPrivilegeOnly;
 	type Preimages = Preimage;
 }
+
+impl pallet_root_testing::Config for Runtime {}
 
 #[derive(Clone, Encode, Decode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
 pub enum MockAsOriginId {
@@ -182,6 +184,7 @@ frame_support::construct_runtime!(
 		Authority: authority::{Pallet, Call, Origin<T>, Event<T>},
 		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
 		Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>},
+		RootTesting: pallet_root_testing::{Pallet, Call},
 	}
 );
 

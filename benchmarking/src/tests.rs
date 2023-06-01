@@ -16,7 +16,7 @@ use sp_runtime::{
 use sp_std::prelude::*;
 pub use test::*;
 
-#[frame_support::pallet]
+#[frame_support::pallet(dev_mode)]
 pub mod test {
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
@@ -29,7 +29,6 @@ pub mod test {
 	pub(crate) type Value<T: Config> = StorageValue<_, u32, OptionQuery>;
 
 	#[pallet::pallet]
-	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T>(_);
 
 	#[pallet::call]

@@ -53,6 +53,10 @@ impl pallet_balances::Config for Runtime {
 	type MaxReserves = ();
 	type ReserveIdentifier = [u8; 8];
 	type WeightInfo = ();
+	type HoldIdentifier = [u8; 8];
+	type FreezeIdentifier = [u8; 8];
+	type MaxHolds = ();
+	type MaxFreezes = ();
 }
 
 pub struct EnsureAliceOrBob;
@@ -68,10 +72,10 @@ impl EnsureOrigin<RuntimeOrigin> for EnsureAliceOrBob {
 	}
 
 	#[cfg(feature = "runtime-benchmarks")]
-	fn successful_origin() -> RuntimeOrigin {
+	fn try_successful_origin() -> Result<RuntimeOrigin, ()> {
 		let zero_account_id = AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes())
 			.expect("infinite length input; no invalid inputs for type; qed");
-		RuntimeOrigin::from(RawOrigin::Signed(zero_account_id))
+		Ok(RuntimeOrigin::from(RawOrigin::Signed(zero_account_id)))
 	}
 }
 
