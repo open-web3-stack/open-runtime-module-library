@@ -65,6 +65,9 @@ fn should_feed_values_from_root() {
 			vec![(50, 1000), (51, 900), (52, 800)]
 		));
 
+		// Or using the trait trait
+		assert_ok!(ModuleOracle::feed_value(None, 53, 700));
+
 		assert_eq!(
 			ModuleOracle::raw_values(&root_feeder, &50),
 			Some(TimestampedValue {
@@ -85,6 +88,14 @@ fn should_feed_values_from_root() {
 			ModuleOracle::raw_values(&root_feeder, &52),
 			Some(TimestampedValue {
 				value: 800,
+				timestamp: 12345,
+			})
+		);
+
+		assert_eq!(
+			ModuleOracle::raw_values(&root_feeder, &53),
+			Some(TimestampedValue {
+				value: 700,
 				timestamp: 12345,
 			})
 		);
@@ -175,7 +186,7 @@ fn multiple_calls_should_fail() {
 		);
 
 		// But not if fed thought the trait internally
-		assert_ok!(ModuleOracle::feed_value(1, 50, 1300));
+		assert_ok!(ModuleOracle::feed_value(Some(1), 50, 1300));
 
 		ModuleOracle::on_finalize(1);
 

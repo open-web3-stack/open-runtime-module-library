@@ -263,7 +263,7 @@ impl<T: Config<I>, I: 'static> DataProviderExtended<T::OracleKey, TimestampedVal
 }
 
 impl<T: Config<I>, I: 'static> DataFeeder<T::OracleKey, T::OracleValue, T::AccountId> for Pallet<T, I> {
-	fn feed_value(who: T::AccountId, key: T::OracleKey, value: T::OracleValue) -> DispatchResult {
-		Self::do_feed_values(Self::ensure_account(Some(who))?, vec![(key, value)])
+	fn feed_value(who: Option<T::AccountId>, key: T::OracleKey, value: T::OracleValue) -> DispatchResult {
+		Self::do_feed_values(Self::ensure_account(who)?, vec![(key, value)])
 	}
 }
