@@ -167,10 +167,15 @@ fn should_return_none_for_non_exist_key() {
 fn multiple_calls_should_fail() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(ModuleOracle::feed_values(RuntimeOrigin::signed(1), vec![(50, 1300)]));
+
+		// Fails feeding by the the extrinsic
 		assert_noop!(
 			ModuleOracle::feed_values(RuntimeOrigin::signed(1), vec![(50, 1300)]),
 			Error::<Test, _>::AlreadyFeeded,
 		);
+
+		// But not if fed thought the trait internally
+		assert_ok!(ModuleOracle::feed_value(1, 50, 1300));
 
 		ModuleOracle::on_finalize(1);
 
