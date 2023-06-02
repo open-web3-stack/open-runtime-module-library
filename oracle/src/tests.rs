@@ -65,6 +65,9 @@ fn should_feed_values_from_root() {
 			vec![(50, 1000), (51, 900), (52, 800)]
 		));
 
+		// Or feed from root using the DataFeeder trait with None
+		assert_ok!(ModuleOracle::feed_value(None, 53, 700));
+
 		assert_eq!(
 			ModuleOracle::raw_values(&root_feeder, &50),
 			Some(TimestampedValue {
@@ -85,6 +88,14 @@ fn should_feed_values_from_root() {
 			ModuleOracle::raw_values(&root_feeder, &52),
 			Some(TimestampedValue {
 				value: 800,
+				timestamp: 12345,
+			})
+		);
+
+		assert_eq!(
+			ModuleOracle::raw_values(&root_feeder, &53),
+			Some(TimestampedValue {
+				value: 700,
 				timestamp: 12345,
 			})
 		);
@@ -167,10 +178,15 @@ fn should_return_none_for_non_exist_key() {
 fn multiple_calls_should_fail() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(ModuleOracle::feed_values(RuntimeOrigin::signed(1), vec![(50, 1300)]));
+
+		// Fails feeding by the the extrinsic
 		assert_noop!(
 			ModuleOracle::feed_values(RuntimeOrigin::signed(1), vec![(50, 1300)]),
 			Error::<Test, _>::AlreadyFeeded,
 		);
+
+		// But not if fed thought the trait internally
+		assert_ok!(ModuleOracle::feed_value(Some(1), 50, 1300));
 
 		ModuleOracle::on_finalize(1);
 
