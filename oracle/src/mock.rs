@@ -92,6 +92,7 @@ impl Config for Test {
 	type Members = Members;
 	type WeightInfo = ();
 	type MaxHasDispatchedSize = ConstU32<100>;
+	type MaxFeedValues = ConstU32<5>;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
