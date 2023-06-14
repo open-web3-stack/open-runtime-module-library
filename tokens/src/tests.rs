@@ -20,7 +20,7 @@ fn genesis_issuance_should_work() {
 		.execute_with(|| {
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
 			assert_eq!(Tokens::free_balance(DOT, &BOB), 100);
-			assert_eq!(Tokens::free_balance(DOT, &DustReceiver::get()), 0);
+			assert_eq!(Tokens::free_balance(DOT, &DustReceiverAccount::get()), 0);
 			assert_eq!(Tokens::total_issuance(DOT), 200);
 		});
 }
@@ -269,213 +269,6 @@ fn set_balance_should_work() {
 // *************************************************
 
 #[test]
-fn deposit_consequence_should_work() {
-	ExtBuilder::default().build().execute_with(|| {
-		assert_eq!(
-			Tokens::deposit_consequence(
-				&CHARLIE,
-				DOT,
-				0,
-				&AccountData {
-					free: 1,
-					reserved: 0,
-					frozen: 0
-				}
-			)
-			.into_result(),
-			Ok(())
-		);
-
-		// total issuance overflow
-		assert_eq!(
-			Tokens::deposit_consequence(
-				&CHARLIE,
-				DOT,
-				Balance::max_value(),
-				&AccountData {
-					free: 1,
-					reserved: 0,
-					frozen: 0
-				}
-			)
-			.into_result(),
-			Err(ArithmeticError::Overflow.into())
-		);
-
-		// total balance overflow
-		assert_eq!(
-			Tokens::deposit_consequence(
-				&CHARLIE,
-				DOT,
-				1,
-				&AccountData {
-					free: Balance::max_value(),
-					reserved: 0,
-					frozen: 0
-				}
-			)
-			.into_result(),
-			Err(ArithmeticError::Overflow.into())
-		);
-
-		// below ed
-		assert_eq!(
-			Tokens::deposit_consequence(
-				&CHARLIE,
-				DOT,
-				1,
-				&AccountData {
-					free: 0,
-					reserved: 0,
-					frozen: 0
-				}
-			)
-			.into_result(),
-			Err(TokenError::BelowMinimum.into())
-		);
-
-		assert_eq!(
-			Tokens::deposit_consequence(
-				&CHARLIE,
-				DOT,
-				1,
-				&AccountData {
-					free: 1,
-					reserved: 0,
-					frozen: 0
-				}
-			)
-			.into_result(),
-			Ok(())
-		);
-	});
-}
-
-#[test]
-fn withdraw_consequence_should_work() {
-	ExtBuilder::default().build().execute_with(|| {
-		assert_eq!(
-			Tokens::withdraw_consequence(
-				&ALICE,
-				DOT,
-				0,
-				&AccountData {
-					free: 1,
-					reserved: 0,
-					frozen: 0
-				}
-			)
-			.into_result(true),
-			Ok(Zero::zero())
-		);
-
-		// total issuance underflow
-		assert_ok!(Tokens::update_balance(DOT, &ALICE, 2));
-		assert_eq!(Tokens::total_issuance(DOT), 2);
-		assert_eq!(
-			Tokens::withdraw_consequence(
-				&ALICE,
-				DOT,
-				3,
-				&AccountData {
-					free: 1,
-					reserved: 0,
-					frozen: 0
-				}
-			)
-			.into_result(true),
-			Err(ArithmeticError::Underflow.into())
-		);
-
-		// total issuance is not enough
-		assert_eq!(
-			Tokens::withdraw_consequence(
-				&ALICE,
-				DOT,
-				2,
-				&AccountData {
-					free: 1,
-					reserved: 0,
-					frozen: 0
-				}
-			)
-			.into_result(true),
-			Err(TokenError::FundsUnavailable.into())
-		);
-
-		// below ED and cannot dec provider
-		assert_ok!(Tokens::update_balance(DOT, &ALICE, 2));
-		assert_eq!(System::providers(&ALICE), 1);
-		assert_ok!(System::inc_consumers(&ALICE));
-		assert!(!System::can_dec_provider(&ALICE));
-		assert_eq!(
-			Tokens::withdraw_consequence(
-				&ALICE,
-				DOT,
-				1,
-				&AccountData {
-					free: 2,
-					reserved: 0,
-					frozen: 0
-				}
-			)
-			.into_result(true),
-			Err(TokenError::OnlyProvider.into())
-		);
-
-		// below ED and can dec provider
-		let _ = System::inc_providers(&ALICE);
-		assert!(System::can_dec_provider(&ALICE));
-		assert_eq!(
-			Tokens::withdraw_consequence(
-				&ALICE,
-				DOT,
-				1,
-				&AccountData {
-					free: 2,
-					reserved: 0,
-					frozen: 0
-				}
-			)
-			.into_result(false),
-			Ok(1)
-		);
-
-		// free balance is not enough
-		assert_eq!(
-			Tokens::withdraw_consequence(
-				&ALICE,
-				DOT,
-				2,
-				&AccountData {
-					free: 1,
-					reserved: 1,
-					frozen: 0
-				}
-			)
-			.into_result(true),
-			Err(TokenError::FundsUnavailable.into())
-		);
-
-		// less to frozen balance
-		assert_eq!(
-			Tokens::withdraw_consequence(
-				&ALICE,
-				DOT,
-				2,
-				&AccountData {
-					free: 2,
-					reserved: 0,
-					frozen: 2
-				}
-			)
-			.into_result(true),
-			Err(TokenError::Frozen.into())
-		);
-	});
-}
-
-#[test]
 fn ensure_can_withdraw_should_work() {
 	ExtBuilder::default()
 		.balances(vec![(ALICE, DOT, 100)])
@@ -504,26 +297,25 @@ fn set_free_balance_should_work() {
 		/* Scenarios: ED is not zero, account is not in dust removal whitelist */
 		assert!(!Accounts::<Runtime>::contains_key(ALICE, DOT));
 		assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
-		assert_eq!(Tokens::free_balance(DOT, &DustReceiver::get()), 0);
+		assert_eq!(Tokens::free_balance(DOT, &DustReceiverAccount::get()), 0);
 		assert_eq!(Tokens::total_issuance(DOT), 0);
 
 		// when total is below ED, account will be reaped.
 		Tokens::set_free_balance(DOT, &ALICE, 1);
-		assert!(!Accounts::<Runtime>::contains_key(ALICE, DOT));
 		assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
-		assert_eq!(Tokens::free_balance(DOT, &DustReceiver::get()), 1);
+		assert_eq!(Tokens::free_balance(DOT, &DustReceiverAccount::get()), 1);
 		// set_free_balance do not change total issuance.
 		assert_eq!(Tokens::total_issuance(DOT), 0);
 
 		Tokens::set_free_balance(DOT, &ALICE, 2);
 		assert!(Accounts::<Runtime>::contains_key(ALICE, DOT));
 		assert_eq!(Tokens::free_balance(DOT, &ALICE), 2);
-		assert_eq!(Tokens::free_balance(DOT, &DustReceiver::get()), 1);
+		assert_eq!(Tokens::free_balance(DOT, &DustReceiverAccount::get()), 1);
 
 		/* Scenarios: ED is not zero, account is in dust removal whitelist */
 		assert!(!Accounts::<Runtime>::contains_key(DAVE, DOT));
 		assert_eq!(Tokens::free_balance(DOT, &DAVE), 0);
-		assert_eq!(Tokens::free_balance(DOT, &DustReceiver::get()), 1);
+		assert_eq!(Tokens::free_balance(DOT, &DustReceiverAccount::get()), 1);
 
 		// set zero will not create account
 		Tokens::set_free_balance(DOT, &DAVE, 0);
@@ -533,18 +325,18 @@ fn set_free_balance_should_work() {
 		Tokens::set_free_balance(DOT, &DAVE, 1);
 		assert!(Accounts::<Runtime>::contains_key(DAVE, DOT));
 		assert_eq!(Tokens::free_balance(DOT, &DAVE), 1);
-		assert_eq!(Tokens::free_balance(DOT, &DustReceiver::get()), 1);
+		assert_eq!(Tokens::free_balance(DOT, &DustReceiverAccount::get()), 1);
 
 		/* Scenarios: ED is zero */
 		assert!(!Accounts::<Runtime>::contains_key(ALICE, ETH));
 		assert_eq!(Tokens::free_balance(ETH, &ALICE), 0);
-		assert_eq!(Tokens::free_balance(ETH, &DustReceiver::get()), 0);
+		assert_eq!(Tokens::free_balance(ETH, &DustReceiverAccount::get()), 0);
 
 		// set zero will create account
 		Tokens::set_free_balance(ETH, &ALICE, 0);
 		assert!(Accounts::<Runtime>::contains_key(ALICE, ETH));
 		assert_eq!(Tokens::free_balance(ETH, &ALICE), 0);
-		assert_eq!(Tokens::free_balance(ETH, &DustReceiver::get()), 0);
+		assert_eq!(Tokens::free_balance(ETH, &DustReceiverAccount::get()), 0);
 	});
 }
 
@@ -640,7 +432,7 @@ fn do_transfer_dust_removal_when_allow_death() {
 		.execute_with(|| {
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
 			assert_eq!(Tokens::free_balance(DOT, &BOB), 100);
-			assert_eq!(Tokens::free_balance(DOT, &DustReceiver::get()), 0);
+			assert_eq!(Tokens::free_balance(DOT, &DustReceiverAccount::get()), 0);
 
 			assert_ok!(Tokens::do_transfer(
 				DOT,
@@ -651,7 +443,7 @@ fn do_transfer_dust_removal_when_allow_death() {
 			));
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
 			assert_eq!(Tokens::free_balance(DOT, &BOB), 199);
-			assert_eq!(Tokens::free_balance(DOT, &DustReceiver::get()), 1);
+			assert_eq!(Tokens::free_balance(DOT, &DustReceiverAccount::get()), 1);
 		});
 }
 
@@ -837,7 +629,7 @@ fn do_withdraw_dust_removal_when_allow_death() {
 			assert_eq!(Tokens::total_issuance(DOT), 100);
 			assert!(Accounts::<Runtime>::contains_key(ALICE, DOT));
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
-			assert_eq!(Tokens::free_balance(DOT, &DustReceiver::get()), 0);
+			assert_eq!(Tokens::free_balance(DOT, &DustReceiverAccount::get()), 0);
 
 			assert_ok!(Tokens::do_withdraw(
 				DOT,
@@ -849,7 +641,7 @@ fn do_withdraw_dust_removal_when_allow_death() {
 			assert_eq!(Tokens::total_issuance(DOT), 1);
 			assert!(!Accounts::<Runtime>::contains_key(ALICE, DOT));
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
-			assert_eq!(Tokens::free_balance(DOT, &DustReceiver::get()), 1);
+			assert_eq!(Tokens::free_balance(DOT, &DustReceiverAccount::get()), 1);
 		});
 }
 
@@ -1082,7 +874,7 @@ fn dust_removal_work() {
 			assert_eq!(System::providers(&ALICE), 1);
 			assert!(Accounts::<Runtime>::contains_key(ALICE, DOT));
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
-			assert_eq!(Tokens::free_balance(DOT, &DustReceiver::get()), 0);
+			assert_eq!(Tokens::free_balance(DOT, &DustReceiverAccount::get()), 0);
 			Tokens::set_free_balance(DOT, &ALICE, 1);
 			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::DustLost {
 				currency_id: DOT,
@@ -1092,7 +884,7 @@ fn dust_removal_work() {
 			assert_eq!(System::providers(&ALICE), 0);
 			assert!(!Accounts::<Runtime>::contains_key(ALICE, DOT));
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
-			assert_eq!(Tokens::free_balance(DOT, &DustReceiver::get()), 1);
+			assert_eq!(Tokens::free_balance(DOT, &DustReceiverAccount::get()), 1);
 
 			// dave is in dust removal whitelist, will not remove its dust even if its total
 			// below ED
@@ -1114,7 +906,7 @@ fn dust_removal_work() {
 #[test]
 fn account_survive_due_to_dust_transfer_failure() {
 	ExtBuilder::default().build().execute_with(|| {
-		let dust_account = DustReceiver::get();
+		let dust_account = DustReceiverAccount::get();
 		Tokens::set_free_balance(DOT, &dust_account, 0);
 		assert_eq!(Tokens::free_balance(DOT, &dust_account), 0);
 		assert_eq!(Tokens::total_balance(DOT, &ALICE), 0);

@@ -43,7 +43,10 @@ use frame_support::{
 	ensure, log,
 	pallet_prelude::*,
 	traits::{
-		tokens::{fungible, fungibles, DepositConsequence, Fortitude, Preservation, Provenance, WithdrawConsequence},
+		tokens::{
+			fungible, fungibles, DepositConsequence, Fortitude, Precision, Preservation, Provenance,
+			WithdrawConsequence,
+		},
 		BalanceStatus as Status, Contains, DefensiveSaturating, ExistenceRequirement, Get, Imbalance, OnUnbalanced,
 	},
 	BoundedVec,
@@ -55,7 +58,7 @@ use sp_runtime::{
 		AtLeast32BitUnsigned, Bounded, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, Saturating,
 		StaticLookup, Zero,
 	},
-	ArithmeticError, DispatchError, DispatchResult, FixedPointOperand, RuntimeDebug,
+	ArithmeticError, DispatchError, DispatchResult, FixedPointOperand, RuntimeDebug, TokenError,
 };
 use sp_std::{cmp, convert::Infallible, marker, prelude::*, vec::Vec};
 
@@ -70,11 +73,11 @@ mod impl_currency;
 mod impl_fungibles;
 mod impls;
 mod mock;
-// mod tests;
-// mod tests_currency_adapter;
-// mod tests_events;
-// mod tests_fungibles;
-// mod tests_multicurrency;
+mod tests;
+mod tests_currency_adapter;
+mod tests_events;
+mod tests_fungibles;
+mod tests_multicurrency;
 
 mod weights;
 

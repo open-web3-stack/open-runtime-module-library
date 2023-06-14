@@ -209,7 +209,7 @@ impl pallet_elections_phragmen::Config for Runtime {
 pub struct MockDustRemovalWhitelist;
 impl Contains<AccountId> for MockDustRemovalWhitelist {
 	fn contains(a: &AccountId) -> bool {
-		*a == DAVE || *a == DustReceiver::get()
+		*a == DAVE || *a == DustReceiverAccount::get()
 	}
 }
 
@@ -400,10 +400,6 @@ impl<T: Config> PostTransfer<T> {
 	}
 }
 
-parameter_types! {
-	pub DustReceiver: AccountId = PalletId(*b"orml/dst").into_account_truncating();
-}
-
 pub struct CurrencyHooks<T>(marker::PhantomData<T>);
 impl<T: Config> MutationHooks<T::AccountId, T::CurrencyId, T::Balance> for CurrencyHooks<T>
 where
@@ -420,6 +416,24 @@ where
 	type OnKilledTokenAccount = TrackKilledAccounts<T>;
 }
 
+parameter_types! {
+	pub DustReceiverAccount: AccountId = PalletId(*b"orml/dst").into_account_truncating();
+	pub static GetDustReceiverAccount: Option<AccountId> = Some(DustReceiverAccount::get());
+}
+
+pub struct MockDustRemoval;
+impl OnUnbalanced<fungibles::Credit<AccountId, Tokens>> for MockDustRemoval {
+	fn on_nonzero_unbalanced(amount: fungibles::Credit<AccountId, Tokens>) {
+		match GetDustReceiverAccount::get() {
+			None => drop(amount),
+			Some(a) => {
+				let result = <Tokens as fungibles::Balanced<_>>::resolve(&a, amount);
+				debug_assert!(result.is_ok());
+			}
+		}
+	}
+}
+
 impl Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
@@ -432,7 +446,7 @@ impl Config for Runtime {
 	type MaxReserves = ConstU32<2>;
 	type ReserveIdentifier = ReserveIdentifier;
 	type DustRemovalWhitelist = MockDustRemovalWhitelist;
-	type DustRemoval = ();
+	type DustRemoval = MockDustRemoval;
 }
 pub type TreasuryCurrencyAdapter = <Runtime as pallet_treasury::Config>::Currency;
 

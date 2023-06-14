@@ -1,7 +1,7 @@
 use super::*;
 use frame_support::{
 	traits::{
-		tokens::{Balance as BalanceT, Precision, Restriction},
+		tokens::{Balance as BalanceT, Restriction},
 		Currency as PalletCurrency, LockableCurrency as PalletLockableCurrency,
 		NamedReservableCurrency as PalletNamedReservableCurrency, ReservableCurrency as PalletReservableCurrency,
 		SignedImbalance, WithdrawReasons,
