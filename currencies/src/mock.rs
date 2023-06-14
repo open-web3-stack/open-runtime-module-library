@@ -82,7 +82,7 @@ impl<T: orml_tokens::Config> MutationHooks<T::AccountId, T::CurrencyId, T::Balan
 where
 	T::AccountId: From<AccountId32>,
 {
-	type OnDust = orml_tokens::TransferDust<T, DustAccount>;
+	type OnDust = ();
 	type OnSlash = ();
 	type PreDeposit = ();
 	type PostDeposit = ();
@@ -104,6 +104,7 @@ impl orml_tokens::Config for Runtime {
 	type MaxReserves = ConstU32<100_000>;
 	type ReserveIdentifier = ReserveIdentifier;
 	type DustRemovalWhitelist = Nothing;
+	type DustRemoval = ();
 }
 
 pub const NATIVE_CURRENCY_ID: CurrencyId = 1;

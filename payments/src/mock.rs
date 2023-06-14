@@ -104,6 +104,7 @@ impl orml_tokens::Config for Test {
 	type DustRemovalWhitelist = MockDustRemovalWhitelist;
 	type MaxReserves = ConstU32<2>;
 	type ReserveIdentifier = ReserveIdentifier;
+	type DustRemoval = ();
 }
 
 pub struct MockDisputeResolver;

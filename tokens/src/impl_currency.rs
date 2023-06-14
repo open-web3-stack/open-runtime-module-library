@@ -1,8 +1,7 @@
 // wrapping these imbalances in a private module is necessary to ensure absolute
 // privacy of the inner member.
 use super::*;
-use frame_support::traits::{Get, Imbalance, SameOrOther, TryDrop};
-use sp_runtime::traits::{Saturating, Zero};
+use frame_support::traits::{SameOrOther, TryDrop};
 use sp_std::{marker, mem, result};
 
 /// Opaque, move-only struct with private fields that serves as a token
@@ -430,7 +429,7 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 		);
 		let reserved_balance = Self::reserved_balance(currency_id, who);
 		let actual = reserved_balance.min(value);
-		Self::mutate_account(currency_id, who, |account| {
+		Self::mutate_account_handling_dust(currency_id, who, |account| {
 			// ensured reserved_balance >= actual but just to be defensive here.
 			account.reserved = reserved_balance.defensive_saturating_sub(actual);
 		});
@@ -459,7 +458,7 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 		}
 		Self::ensure_can_withdraw(currency_id, who, value)?;
 
-		Self::mutate_account(currency_id, who, |account| {
+		Self::mutate_account_handling_dust(currency_id, who, |account| {
 			account.free = account.free.defensive_saturating_sub(value);
 			account.reserved = account.reserved.defensive_saturating_add(value);
 
@@ -482,7 +481,7 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 			return value;
 		}
 
-		let (remaining, _) = Self::mutate_account(currency_id, who, |account| {
+		let remaining = Self::mutate_account_handling_dust(currency_id, who, |account| {
 			let actual = account.reserved.min(value);
 			account.reserved = account.reserved.defensive_saturating_sub(actual);
 			account.free = account.free.defensive_saturating_add(actual);

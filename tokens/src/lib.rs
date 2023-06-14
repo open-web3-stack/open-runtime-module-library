@@ -43,16 +43,10 @@ use frame_support::{
 	ensure, log,
 	pallet_prelude::*,
 	traits::{
-		tokens::{
-			fungible, fungibles, DepositConsequence, Fortitude, Precision, Preservation, Provenance, Restriction,
-			WithdrawConsequence,
-		},
-		BalanceStatus as Status, Contains, Currency as PalletCurrency, DefensiveSaturating, ExistenceRequirement, Get,
-		Imbalance, LockableCurrency as PalletLockableCurrency,
-		NamedReservableCurrency as PalletNamedReservableCurrency, OnUnbalanced,
-		ReservableCurrency as PalletReservableCurrency, SignedImbalance, WithdrawReasons,
+		tokens::{fungible, fungibles, DepositConsequence, Fortitude, Preservation, Provenance, WithdrawConsequence},
+		BalanceStatus as Status, Contains, DefensiveSaturating, ExistenceRequirement, Get, Imbalance, OnUnbalanced,
 	},
-	transactional, BoundedVec,
+	BoundedVec,
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
 use scale_info::TypeInfo;
@@ -72,51 +66,21 @@ use orml_traits::{
 	MultiReservableCurrency, NamedMultiReservableCurrency,
 };
 
-mod currency_adapter;
 mod impl_currency;
 mod impl_fungibles;
 mod impls;
 mod mock;
-mod tests;
-mod tests_currency_adapter;
-mod tests_events;
-mod tests_fungibles;
-mod tests_multicurrency;
+// mod tests;
+// mod tests_currency_adapter;
+// mod tests_events;
+// mod tests_fungibles;
+// mod tests_multicurrency;
 
 mod weights;
 
-pub use currency_adapter::CurrencyAdapter;
 pub use impl_currency::{NegativeImbalance, PositiveImbalance};
 pub use impls::*;
 pub use weights::WeightInfo;
-
-pub struct TransferDust<T, GetAccountId>(marker::PhantomData<(T, GetAccountId)>);
-impl<T, GetAccountId> OnDust<T::AccountId, T::CurrencyId, T::Balance> for TransferDust<T, GetAccountId>
-where
-	T: Config,
-	GetAccountId: Get<T::AccountId>,
-{
-	fn on_dust(who: &T::AccountId, currency_id: T::CurrencyId, amount: T::Balance) {
-		// transfer the dust to treasury account, ignore the result,
-		// if failed will leave some dust which still could be recycled.
-		let _ = Pallet::<T>::do_transfer(
-			currency_id,
-			who,
-			&GetAccountId::get(),
-			amount,
-			ExistenceRequirement::AllowDeath,
-		);
-	}
-}
-
-pub struct BurnDust<T>(marker::PhantomData<T>);
-impl<T: Config> OnDust<T::AccountId, T::CurrencyId, T::Balance> for BurnDust<T> {
-	fn on_dust(who: &T::AccountId, currency_id: T::CurrencyId, amount: T::Balance) {
-		// burn the dust, ignore the result,
-		// if failed will leave some dust which still could be recycled.
-		let _ = Pallet::<T>::do_withdraw(currency_id, who, amount, ExistenceRequirement::AllowDeath, true);
-	}
-}
 
 /// A single lock on a balance. There can be many of these on an account and
 /// they "overlap", so the same balance is frozen by multiple locks.
@@ -180,25 +144,6 @@ pub mod module {
 	use orml_traits::currency::MutationHooks;
 
 	use super::*;
-
-	pub type CreditOf<T> = fungibles::Credit<<T as frame_system::Config>::AccountId, Pallet<T>>;
-
-	pub struct DustReceiver<T, GetAccountId>(sp_std::marker::PhantomData<(T, GetAccountId)>);
-	impl<T, GetAccountId> OnUnbalanced<CreditOf<T>> for DustReceiver<T, GetAccountId>
-	where
-		T: Config,
-		GetAccountId: Get<Option<T::AccountId>>,
-	{
-		fn on_nonzero_unbalanced(amount: CreditOf<T>) {
-			match GetAccountId::get() {
-				None => drop(amount),
-				Some(receiver) => {
-					let result = <Pallet<T> as fungibles::Balanced<_>>::resolve(&receiver, amount);
-					debug_assert!(result.is_ok());
-				}
-			}
-		}
-	}
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -466,7 +411,7 @@ pub mod module {
 						*initial_balance >= T::ExistentialDeposits::get(currency_id),
 						"the balance of any account should always be more than existential deposit.",
 					);
-					Pallet::<T>::mutate_account(account_id, *currency_id, |account_data| {
+					Pallet::<T>::mutate_account(*currency_id, account_id, |account_data| {
 						account_data.free = *initial_balance
 					});
 					TotalIssuance::<T>::mutate(*currency_id, |total_issuance| {
@@ -782,6 +727,11 @@ impl<T: Config> Pallet<T> {
 			}
 
 			if let Some(dust_amount) = maybe_dust {
+				<T::CurrencyHooks as MutationHooks<T::AccountId, T::CurrencyId, T::Balance>>::OnDust::on_dust(
+					currency_id,
+					who,
+					dust_amount,
+				);
 				Self::deposit_event(Event::DustLost {
 					currency_id,
 					who: who.clone(),

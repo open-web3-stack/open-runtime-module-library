@@ -294,11 +294,24 @@ where
 }
 
 thread_local! {
+	pub static ON_DUST_CALLS: RefCell<u32> = RefCell::new(0);
 	pub static ON_SLASH_CALLS: RefCell<u32> = RefCell::new(0);
 	pub static ON_DEPOSIT_PREHOOK_CALLS: RefCell<u32> = RefCell::new(0);
 	pub static ON_DEPOSIT_POSTHOOK_CALLS: RefCell<u32> = RefCell::new(0);
 	pub static ON_TRANSFER_PREHOOK_CALLS: RefCell<u32> = RefCell::new(0);
 	pub static ON_TRANSFER_POSTHOOK_CALLS: RefCell<u32> = RefCell::new(0);
+}
+
+pub struct OnDustHook<T>(marker::PhantomData<T>);
+impl<T: Config> OnDust<T::AccountId, T::CurrencyId, T::Balance> for OnDustHook<T> {
+	fn on_dust(_currency_id: T::CurrencyId, _account_id: &T::AccountId, _amount: T::Balance) {
+		ON_DUST_CALLS.with(|cell| *cell.borrow_mut() += 1);
+	}
+}
+impl<T: Config> OnDustHook<T> {
+	pub fn calls() -> u32 {
+		ON_SLASH_CALLS.with(|accounts| *accounts.borrow())
+	}
 }
 
 pub struct OnSlashHook<T>(marker::PhantomData<T>);
@@ -397,7 +410,7 @@ where
 	T::AccountId: From<AccountId32> + Into<AccountId32>,
 	T::CurrencyId: From<u32> + Into<u32>,
 {
-	type OnDust = TransferDust<T, DustReceiver>;
+	type OnDust = OnDustHook<T>;
 	type OnSlash = OnSlashHook<T>;
 	type PreDeposit = PreDeposit<T>;
 	type PostDeposit = PostDeposit<T>;
@@ -419,6 +432,7 @@ impl Config for Runtime {
 	type MaxReserves = ConstU32<2>;
 	type ReserveIdentifier = ReserveIdentifier;
 	type DustRemovalWhitelist = MockDustRemovalWhitelist;
+	type DustRemoval = ();
 }
 pub type TreasuryCurrencyAdapter = <Runtime as pallet_treasury::Config>::Currency;
 
