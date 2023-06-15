@@ -707,6 +707,8 @@ impl<T: Config> Pallet<T> {
 
 			let exists = maybe_account.is_some();
 
+			// TODO: need review new provider and consumer machanism of frame_system to decide
+			// how to handle the providers here!
 			if !is_new && !exists {
 				// If existed before, decrease account provider.
 				// Ignore the result, because if it failed then there are remaining consumers,
