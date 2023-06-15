@@ -1923,7 +1923,7 @@ impl<T: Config> fungibles::Unbalanced<T::AccountId> for Pallet<T> {
 		let new_balance = old_balance.checked_sub(&amount).ok_or(TokenError::FundsUnavailable)?;
 		let _dust_amount = Self::write_balance(asset, who, new_balance)?.unwrap_or_default();
 
-		// here just return decreased amount, shouldn't count the dust_amount,
+		// here just return decrease amount, shouldn't count the dust_amount
 		Ok(old_balance.saturating_sub(new_balance))
 	}
 }
