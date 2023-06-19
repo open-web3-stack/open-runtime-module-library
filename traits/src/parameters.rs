@@ -35,11 +35,11 @@ pub trait AggregratedKeyValue: Parameter {
 ///
 /// ```
 /// define_parameters! {
-/// 	pub Pallet = {
-/// 		Key1: u64 = 0,
-/// 		Key2(u32): u32 = 1,
-/// 		Key3((u8, u8)): u128 = 2,
-/// 	}
+///     pub Pallet = {
+///         Key1: u64 = 0,
+///         Key2(u32): u32 = 1,
+///         Key3((u8, u8)): u128 = 2,
+///     }
 /// }
 /// ```
 #[macro_export]
@@ -186,30 +186,30 @@ macro_rules! define_parameters {
 /// Example:
 /// ```
 /// mod pallet1 {
-/// 	define_parameters! {
-/// 		pub Pallet = {
-/// 			Key1: u64 = 0,
-/// 			Key2(u32): u32 = 1,
-/// 			Key3((u8, u8)): u128 = 2,
-/// 		}
-/// 	}
+///     define_parameters! {
+///         pub Pallet = {
+///             Key1: u64 = 0,
+///             Key2(u32): u32 = 1,
+///             Key3((u8, u8)): u128 = 2,
+///         }
+///     }
 /// }
 ///
 /// mod pallet2 {
-/// 	define_parameters! {
-/// 		pub Pallet = {
-/// 			Key1: u64 = 0,
-/// 			Key2(u32): u32 = 1,
-/// 			Key3((u8, u8)): u128 = 2,
-/// 		}
-/// 	}
+///     define_parameters! {
+///         pub Pallet = {
+///             Key1: u64 = 0,
+///             Key2(u32): u32 = 1,
+///             Key3((u8, u8)): u128 = 2,
+///         }
+///     }
 /// }
 ///
 /// define_aggregrated_parameters! {
-/// 	pub AggregratedPallet = {
-/// 		Pallet1: pallet1::Pallet = 0,
-/// 		Pallet2: pallet2::Pallet = 1,
-/// 	}
+///     pub AggregratedPallet = {
+///         Pallet1: pallet1::Pallet = 0,
+///         Pallet2: pallet2::Pallet = 1,
+///     }
 /// }
 /// ```
 #[macro_export]
