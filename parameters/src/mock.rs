@@ -7,13 +7,13 @@ use frame_support::{
 	construct_runtime,
 	traits::{ConstU32, ConstU64, Everything},
 };
-use orml_traits::{define_aggregrated_parameters, define_parameters};
+use orml_traits::define_aggregrated_parameters;
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 
 use super::*;
 
-use crate as nft;
+use crate as parameters;
 
 pub type AccountId = u128;
 pub type BlockNumber = u64;
@@ -45,7 +45,7 @@ impl frame_system::Config for Runtime {
 	type MaxConsumers = ConstU32<16>;
 }
 
-mod pallet1 {
+pub mod pallet1 {
 	orml_traits::define_parameters! {
 		pub Parameters = {
 			Key1: u64 = 0,
@@ -54,7 +54,7 @@ mod pallet1 {
 		}
 	}
 }
-mod pallet2 {
+pub mod pallet2 {
 	orml_traits::define_parameters! {
 		pub Parameters = {
 			Key1: u64 = 0,
@@ -105,20 +105,14 @@ construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system,
-		Parameters: crate,
+		ModuleParameters: parameters,
 	}
 );
 
 pub struct ExtBuilder;
 
-impl Default for ExtBuilder {
-	fn default() -> Self {
-		ExtBuilder
-	}
-}
-
 impl ExtBuilder {
-	pub fn build(self) -> sp_io::TestExternalities {
+	pub fn new() -> sp_io::TestExternalities {
 		let t = frame_system::GenesisConfig::default()
 			.build_storage::<Runtime>()
 			.unwrap();

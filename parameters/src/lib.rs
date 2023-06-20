@@ -1,5 +1,5 @@
 //! # Parameters
-//! Offer a centralized place to store and configure parameters.
+//! Offer a centra place to store and configure parameters.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
@@ -73,16 +73,21 @@ pub mod module {
 impl<T: Config> ParameterStore for Pallet<T> {
 	type AggregratedKeyValue = T::AggregratedKeyValue;
 
-	fn get<K>(key: K) -> Option<K::Value>
+	fn get<KV, K>(key: K) -> Option<K::Value>
 	where
-		K: Key + Into<<<Self as ParameterStore>::AggregratedKeyValue as AggregratedKeyValue>::AggregratedKey>,
+		KV: AggregratedKeyValue,
+		K: Key + Into<<KV as AggregratedKeyValue>::AggregratedKey>,
+		<KV as AggregratedKeyValue>::AggregratedKey:
+			Into<<<Self as ParameterStore>::AggregratedKeyValue as AggregratedKeyValue>::AggregratedKey>,
 		<<Self as ParameterStore>::AggregratedKeyValue as AggregratedKeyValue>::AggregratedValue:
-			TryInto<K::WrappedValue>,
+			TryInto<<KV as AggregratedKeyValue>::AggregratedValue>,
+		<KV as AggregratedKeyValue>::AggregratedValue: TryInto<K::WrappedValue>,
 	{
-		let key = key.into();
-		let val = Parameters::<T>::get(key);
+		let key: <KV as AggregratedKeyValue>::AggregratedKey = key.into();
+		let val = Parameters::<T>::get(key.into());
 		val.and_then(|v| {
-			let val: K::WrappedValue = v.try_into().ok()?;
+			let val: <KV as AggregratedKeyValue>::AggregratedValue = v.try_into().ok()?;
+			let val: K::WrappedValue = val.try_into().ok()?;
 			let val = val.into();
 			Some(val)
 		})

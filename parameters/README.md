@@ -2,4 +2,4 @@
 
 ### Overview
 
-Offer a centralized place to store and configure parameters.
+Offer a centra place to store and configure parameters.

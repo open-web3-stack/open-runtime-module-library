@@ -1,6 +1,6 @@
 [package]
 name = "orml-parameters"
-description = "Offer a centralized place to store and configure parameters."
+description = "Offer a centra place to store and configure parameters."
 repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/parameters"
 license = "Apache-2.0"
 version = "0.4.1-dev"

@@ -11,11 +11,15 @@ pub use scale_info;
 pub trait ParameterStore {
 	type AggregratedKeyValue: AggregratedKeyValue;
 
-	fn get<K>(key: K) -> Option<K::Value>
+	fn get<KV, K>(key: K) -> Option<K::Value>
 	where
-		K: Key + Into<<<Self as ParameterStore>::AggregratedKeyValue as AggregratedKeyValue>::AggregratedKey>,
+		KV: AggregratedKeyValue,
+		K: Key + Into<<KV as AggregratedKeyValue>::AggregratedKey>,
+		<KV as AggregratedKeyValue>::AggregratedKey:
+			Into<<<Self as ParameterStore>::AggregratedKeyValue as AggregratedKeyValue>::AggregratedKey>,
 		<<Self as ParameterStore>::AggregratedKeyValue as AggregratedKeyValue>::AggregratedValue:
-			TryInto<K::WrappedValue>;
+			TryInto<<KV as AggregratedKeyValue>::AggregratedValue>,
+		<KV as AggregratedKeyValue>::AggregratedValue: TryInto<K::WrappedValue>;
 }
 
 pub trait Key {
@@ -288,6 +292,25 @@ macro_rules! define_aggregrated_parameters {
 					}
 				}
 			}
+
+			$(
+				impl From<<$parameter_type as $crate::parameters::AggregratedKeyValue>::AggregratedKey> for [<$name Key>] {
+					fn from(key: <$parameter_type as $crate::parameters::AggregratedKeyValue>::AggregratedKey) -> Self {
+						[<$name Key>]::$parameter_name(key)
+					}
+				}
+
+				impl TryFrom<[<$name Value>]> for <$parameter_type as $crate::parameters::AggregratedKeyValue>::AggregratedValue {
+					type Error = ();
+
+					fn try_from(value: [<$name Value>]) -> Result<Self, Self::Error> {
+						match value {
+							[<$name Value>]::$parameter_name(value) => Ok(value),
+							_ => Err(()),
+						}
+					}
+				}
+			)*
 		}
 	};
 }
