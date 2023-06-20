@@ -62,7 +62,7 @@ macro_rules! define_parameters {
 				Eq,
 				$crate::parameters::codec::Encode,
 				$crate::parameters::codec::Decode,
-			    $crate::parameters::codec::MaxEncodedLen,
+				$crate::parameters::codec::MaxEncodedLen,
 				$crate::parameters::frame_support::RuntimeDebug,
 				$crate::parameters::scale_info::TypeInfo
 			)]
@@ -79,7 +79,7 @@ macro_rules! define_parameters {
 				Eq,
 				$crate::parameters::codec::Encode,
 				$crate::parameters::codec::Decode,
-			    $crate::parameters::codec::MaxEncodedLen,
+				$crate::parameters::codec::MaxEncodedLen,
 				$crate::parameters::frame_support::RuntimeDebug,
 				$crate::parameters::scale_info::TypeInfo
 			)]
@@ -96,7 +96,7 @@ macro_rules! define_parameters {
 				Eq,
 				$crate::parameters::codec::Encode,
 				$crate::parameters::codec::Decode,
-			    $crate::parameters::codec::MaxEncodedLen,
+				$crate::parameters::codec::MaxEncodedLen,
 				$crate::parameters::frame_support::RuntimeDebug,
 				$crate::parameters::scale_info::TypeInfo
 			)]
@@ -232,7 +232,7 @@ macro_rules! define_aggregrated_parameters {
 				Eq,
 				$crate::parameters::codec::Encode,
 				$crate::parameters::codec::Decode,
-			    $crate::parameters::codec::MaxEncodedLen,
+				$crate::parameters::codec::MaxEncodedLen,
 				$crate::parameters::frame_support::RuntimeDebug,
 				$crate::parameters::scale_info::TypeInfo
 			)]
@@ -249,7 +249,7 @@ macro_rules! define_aggregrated_parameters {
 				Eq,
 				$crate::parameters::codec::Encode,
 				$crate::parameters::codec::Decode,
-			    $crate::parameters::codec::MaxEncodedLen,
+				$crate::parameters::codec::MaxEncodedLen,
 				$crate::parameters::frame_support::RuntimeDebug,
 				$crate::parameters::scale_info::TypeInfo
 			)]
@@ -266,7 +266,7 @@ macro_rules! define_aggregrated_parameters {
 				Eq,
 				$crate::parameters::codec::Encode,
 				$crate::parameters::codec::Decode,
-			    $crate::parameters::codec::MaxEncodedLen,
+				$crate::parameters::codec::MaxEncodedLen,
 				$crate::parameters::frame_support::RuntimeDebug,
 				$crate::parameters::scale_info::TypeInfo
 			)]
