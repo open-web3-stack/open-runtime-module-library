@@ -9,7 +9,11 @@ use sp_runtime::{testing::Header, traits::IdentityLookup, AccountId32};
 
 use crate::Weight;
 use cumulus_primitives_core::ParaId;
-use polkadot_runtime_parachains::{configuration, inclusion::{AggregateMessageOrigin, UmpQueueId}, origin, shared};
+use polkadot_runtime_parachains::{
+	configuration,
+	inclusion::{AggregateMessageOrigin, UmpQueueId},
+	origin, shared,
+};
 use xcm::v3::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, ChildParachainAsNative, ChildParachainConvertsVia,
@@ -195,11 +199,12 @@ impl ProcessMessage for MessageProcessor {
 		let para = match origin {
 			AggregateMessageOrigin::Ump(UmpQueueId::Para(para)) => para,
 		};
-		xcm_builder::ProcessXcmMessage::<
-			Junction,
-			xcm_executor::XcmExecutor<XcmConfig>,
-			RuntimeCall,
-		>::process_message(message, Junction::Parachain(para.into()), meter, id)
+		xcm_builder::ProcessXcmMessage::<Junction, xcm_executor::XcmExecutor<XcmConfig>, RuntimeCall>::process_message(
+			message,
+			Junction::Parachain(para.into()),
+			meter,
+			id,
+		)
 	}
 }
 
