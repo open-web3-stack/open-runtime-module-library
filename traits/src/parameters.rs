@@ -144,6 +144,23 @@ macro_rules! define_parameters {
 					}
 				}
 
+				impl TryFrom<[<$name Key>]> for $key_name {
+					type Error = ();
+
+					fn try_from(key: [<$name Key>]) -> Result<Self, Self::Error> {
+						match key {
+							[<$name Key>]::$key_name(key) => Ok(key),
+							_ => Err(()),
+						}
+					}
+				}
+
+				#[derive(
+					Clone,
+					PartialEq,
+					Eq,
+					$crate::parameters::frame_support::RuntimeDebug
+				)]
 				$vis struct [<$key_name Value>](pub $value_type);
 
 				impl From<[<$key_name Value>]> for [<$name Value>] {
@@ -313,4 +330,134 @@ macro_rules! define_aggregrated_parameters {
 			)*
 		}
 	};
+}
+
+#[cfg(test)]
+mod tests {
+	pub mod pallet1 {
+		define_parameters! {
+			pub Parameters = {
+				Key1: u64 = 0,
+				Key2(u32): u32 = 1,
+				Key3((u8, u8)): u128 = 2,
+			}
+		}
+	}
+	pub mod pallet2 {
+		define_parameters! {
+			pub Parameters = {
+				Key1: u64 = 0,
+				Key2(u32): u32 = 2,
+				Key3((u8, u8)): u128 = 4,
+			}
+		}
+	}
+	define_aggregrated_parameters! {
+		pub RuntimeParameters = {
+			Pallet1: pallet1::Parameters = 0,
+			Pallet2: pallet2::Parameters = 3,
+		}
+	}
+
+	#[test]
+	fn test_define_parameters_key_convert() {
+		let key1 = pallet1::Key1();
+		let parameter_key: pallet1::ParametersKey = key1.clone().into();
+		let key1_2: pallet1::Key1 = parameter_key.clone().try_into().unwrap();
+
+		assert_eq!(key1, key1_2);
+		assert_eq!(parameter_key, pallet1::ParametersKey::Key1(key1));
+
+		let key2 = pallet1::Key2(1);
+		let parameter_key: pallet1::ParametersKey = key2.clone().into();
+		let key2_2: pallet1::Key2 = parameter_key.clone().try_into().unwrap();
+
+		assert_eq!(key2, key2_2);
+		assert_eq!(parameter_key, pallet1::ParametersKey::Key2(key2));
+	}
+
+	#[test]
+	fn test_define_parameters_value_convert() {
+		let value1 = pallet1::Key1Value(1);
+		let parameter_value: pallet1::ParametersValue = value1.clone().into();
+		let value1_2: pallet1::Key1Value = parameter_value.clone().try_into().unwrap();
+
+		assert_eq!(value1, value1_2);
+		assert_eq!(parameter_value, pallet1::ParametersValue::Key1(1));
+
+		let value2 = pallet1::Key2Value(2);
+		let parameter_value: pallet1::ParametersValue = value2.clone().into();
+		let value2_2: pallet1::Key2Value = parameter_value.clone().try_into().unwrap();
+
+		assert_eq!(value2, value2_2);
+		assert_eq!(parameter_value, pallet1::ParametersValue::Key2(2));
+	}
+
+	#[test]
+	fn test_define_parameters_aggregrated_key_value() {
+		use crate::parameters::AggregratedKeyValue;
+
+		let kv1 = pallet1::Parameters::Key1(pallet1::Key1(), None);
+		let (key1, value1) = kv1.clone().into_parts();
+
+		assert_eq!(key1, pallet1::ParametersKey::Key1(pallet1::Key1()));
+		assert_eq!(value1, None);
+
+		let kv2 = pallet1::Parameters::Key2(pallet1::Key2(1), Some(2));
+		let (key2, value2) = kv2.clone().into_parts();
+
+		assert_eq!(key2, pallet1::ParametersKey::Key2(pallet1::Key2(1)));
+		assert_eq!(value2, Some(pallet1::ParametersValue::Key2(2)));
+	}
+
+	#[test]
+	fn test_define_aggregrated_parameters_key_convert() {
+		use codec::Encode;
+
+		let key1 = pallet1::Key1();
+		let parameter_key: pallet1::ParametersKey = key1.clone().into();
+		let runtime_key: RuntimeParametersKey = parameter_key.clone().into();
+
+		assert_eq!(
+			runtime_key,
+			RuntimeParametersKey::Pallet1(pallet1::ParametersKey::Key1(key1))
+		);
+		assert_eq!(runtime_key.encode(), vec![0, 0]);
+
+		let key2 = pallet2::Key2(1);
+		let parameter_key: pallet2::ParametersKey = key2.clone().into();
+		let runtime_key: RuntimeParametersKey = parameter_key.clone().into();
+
+		assert_eq!(
+			runtime_key,
+			RuntimeParametersKey::Pallet2(pallet2::ParametersKey::Key2(key2))
+		);
+		assert_eq!(runtime_key.encode(), vec![3, 2, 1, 0, 0, 0]);
+	}
+
+	#[test]
+	fn test_define_aggregrated_parameters_aggregrated_key_value() {
+		use crate::parameters::AggregratedKeyValue;
+
+		let kv1 = RuntimeParameters::Pallet1(pallet1::Parameters::Key1(pallet1::Key1(), None));
+		let (key1, value1) = kv1.clone().into_parts();
+
+		assert_eq!(
+			key1,
+			RuntimeParametersKey::Pallet1(pallet1::ParametersKey::Key1(pallet1::Key1()))
+		);
+		assert_eq!(value1, None);
+
+		let kv2 = RuntimeParameters::Pallet2(pallet2::Parameters::Key2(pallet2::Key2(1), Some(2)));
+		let (key2, value2) = kv2.clone().into_parts();
+
+		assert_eq!(
+			key2,
+			RuntimeParametersKey::Pallet2(pallet2::ParametersKey::Key2(pallet2::Key2(1)))
+		);
+		assert_eq!(
+			value2,
+			Some(RuntimeParametersValue::Pallet2(pallet2::ParametersValue::Key2(2)))
+		);
+	}
 }
