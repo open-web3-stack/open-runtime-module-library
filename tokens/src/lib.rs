@@ -1859,11 +1859,6 @@ impl<T: Config> fungibles::Mutate<T::AccountId> for Pallet<T> {
 	}
 }
 
-// impl<T: Config> fungibles::Balanced<T::AccountId> for Pallet<T> {
-// 	type OnDropDebt = IncreaseIssuance<T::AccountId, U>;
-// 	type OnDropCredit = DecreaseIssuance<T::AccountId, U>;
-// }
-
 impl<T: Config> fungibles::Unbalanced<T::AccountId> for Pallet<T> {
 	fn handle_dust(_dust: fungibles::Dust<T::AccountId, Self>) {
 		// Dust is handled in account mutate method
@@ -1931,6 +1926,11 @@ impl<T: Config> fungibles::Unbalanced<T::AccountId> for Pallet<T> {
 		// here just return decrease amount, shouldn't count the dust_amount
 		Ok(old_balance.saturating_sub(new_balance))
 	}
+}
+
+impl<T: Config> fungibles::Balanced<T::AccountId> for Pallet<T> {
+	type OnDropDebt = fungibles::IncreaseIssuance<T::AccountId, Pallet<T>>;
+	type OnDropCredit = fungibles::DecreaseIssuance<T::AccountId, Pallet<T>>;
 }
 
 type ReasonOf<P, T> = <P as fungibles::InspectHold<<T as frame_system::Config>::AccountId>>::Reason;
