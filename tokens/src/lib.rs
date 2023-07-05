@@ -358,6 +358,24 @@ pub mod module {
 			who: T::AccountId,
 			amount: T::Balance,
 		},
+		Deposit {
+			asset: T::CurrencyId,
+			who: T::AccountId,
+			amount: T::Balance,
+		},
+		Withdraw {
+			asset: T::CurrencyId,
+			who: T::AccountId,
+			amount: T::Balance,
+		},
+		Issued {
+			asset: T::CurrencyId,
+			amount: T::Balance,
+		},
+		Rescinded {
+			asset: T::CurrencyId,
+			amount: T::Balance,
+		},
 	}
 
 	/// The total issuance of a token type.
@@ -1929,8 +1947,29 @@ impl<T: Config> fungibles::Unbalanced<T::AccountId> for Pallet<T> {
 }
 
 impl<T: Config> fungibles::Balanced<T::AccountId> for Pallet<T> {
-	type OnDropDebt = fungibles::IncreaseIssuance<T::AccountId, Pallet<T>>;
-	type OnDropCredit = fungibles::DecreaseIssuance<T::AccountId, Pallet<T>>;
+	type OnDropDebt = fungibles::IncreaseIssuance<T::AccountId, Self>;
+	type OnDropCredit = fungibles::DecreaseIssuance<T::AccountId, Self>;
+
+	fn done_deposit(asset: Self::AssetId, who: &T::AccountId, amount: Self::Balance) {
+		Self::deposit_event(Event::Deposit {
+			asset,
+			who: who.clone(),
+			amount,
+		});
+	}
+	fn done_withdraw(asset: Self::AssetId, who: &T::AccountId, amount: Self::Balance) {
+		Self::deposit_event(Event::Withdraw {
+			asset,
+			who: who.clone(),
+			amount,
+		});
+	}
+	fn done_issue(asset: Self::AssetId, amount: Self::Balance) {
+		Self::deposit_event(Event::Issued { asset, amount });
+	}
+	fn done_rescind(asset: Self::AssetId, amount: Self::Balance) {
+		Self::deposit_event(Event::Rescinded { asset, amount });
+	}
 }
 
 type ReasonOf<P, T> = <P as fungibles::InspectHold<<T as frame_system::Config>::AccountId>>::Reason;
