@@ -288,6 +288,62 @@ fn fungibles_unbalanced_trait_should_work() {
 }
 
 #[test]
+fn fungibles_balanced_done_deposit_emits_event() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			<Tokens as fungibles::Balanced<_>>::done_deposit(DOT, &ALICE, 10);
+
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Deposit {
+				asset: DOT,
+				who: ALICE,
+				amount: 10,
+			}));
+		});
+}
+
+#[test]
+fn fungibles_balanced_done_withdraw_emits_event() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			<Tokens as fungibles::Balanced<_>>::done_withdraw(DOT, &ALICE, 10);
+
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Withdraw {
+				asset: DOT,
+				who: ALICE,
+				amount: 10,
+			}));
+		});
+}
+
+#[test]
+fn fungibles_balanced_done_issue_emits_event() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			<Tokens as fungibles::Balanced<_>>::done_issue(DOT, 10);
+
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Issued { asset: DOT, amount: 10 }));
+		});
+}
+
+#[test]
+fn fungibles_balanced_done_rescind_emits_event() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			<Tokens as fungibles::Balanced<_>>::done_rescind(DOT, 10);
+
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Rescinded { asset: DOT, amount: 10 }));
+		});
+}
+
+#[test]
 fn fungibles_inspect_hold_trait_should_work() {
 	ExtBuilder::default()
 		.balances(vec![(ALICE, DOT, 100)])
