@@ -1768,7 +1768,7 @@ impl<T: Config> fungibles::Inspect<T::AccountId> for Pallet<T> {
 	}
 
 	fn balance(asset_id: Self::AssetId, who: &T::AccountId) -> Self::Balance {
-		Self::accounts(who, asset_id).total()
+		Self::accounts(who, asset_id).free
 	}
 
 	fn total_balance(asset_id: Self::AssetId, who: &T::AccountId) -> Self::Balance {
@@ -1869,11 +1869,21 @@ impl<T: Config> fungibles::Unbalanced<T::AccountId> for Pallet<T> {
 		who: &T::AccountId,
 		amount: Self::Balance,
 	) -> Result<Option<Self::Balance>, DispatchError> {
+		let max_reduction = <Self as fungibles::Inspect<_>>::reducible_balance(
+			asset_id,
+			who,
+			Preservation::Expendable,
+			Fortitude::Force,
+		);
+
 		// Balance is the same type and will not overflow
 		let (_, dust_amount) = Self::try_mutate_account(who, asset_id, |account, _| -> Result<(), DispatchError> {
-			// free = new_balance - reserved
-			account.free = amount.checked_sub(&account.reserved).ok_or(TokenError::BelowMinimum)?;
+			// Make sure the reduction (if there is one) is no more than the maximum
+			// allowed.
+			let reduction = account.free.saturating_sub(amount);
+			ensure!(reduction <= max_reduction, Error::<T>::BalanceTooLow);
 
+			account.free = amount;
 			Self::deposit_event(Event::BalanceSet {
 				currency_id: asset_id,
 				who: who.clone(),
@@ -1911,9 +1921,10 @@ impl<T: Config> fungibles::Unbalanced<T::AccountId> for Pallet<T> {
 			amount = amount.min(free);
 		}
 		let new_balance = old_balance.checked_sub(&amount).ok_or(TokenError::FundsUnavailable)?;
-		// Original implementation was not returning burnt dust in result
-		let dust_burnt = Self::write_balance(asset, who, new_balance)?.unwrap_or_default();
-		Ok(old_balance.saturating_sub(new_balance).saturating_add(dust_burnt))
+		let _dust_amount = Self::write_balance(asset, who, new_balance)?.unwrap_or_default();
+
+		// here just return decrease amount, shouldn't count the dust_amount
+		Ok(old_balance.saturating_sub(new_balance))
 	}
 }
 

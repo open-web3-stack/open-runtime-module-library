@@ -139,7 +139,7 @@ impl AsOriginId<RuntimeOrigin, OriginCaller> for MockAsOriginId {
 	fn check_dispatch_from(&self, origin: RuntimeOrigin) -> DispatchResult {
 		ensure_root(origin.clone()).or_else(|_| {
 			if let OriginCaller::Authority(ref sign) = origin.caller() {
-				if sign.origin == Box::new(RuntimeOrigin::root().caller().clone()) {
+				if *sign.origin == RuntimeOrigin::root().caller().clone() {
 					return Ok(());
 				} else {
 					return Err(BadOrigin.into());

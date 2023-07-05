@@ -81,7 +81,7 @@ fn get_rustup_nightly(selected: Option<String>) -> Option<CargoCommand> {
 			let lines = output.as_slice().lines();
 
 			let mut latest_nightly = None;
-			for line in lines.filter_map(|l| l.ok()) {
+			for line in lines.map_while(Result::ok) {
 				if line.starts_with("nightly-") && line.ends_with(&host) {
 					// Rustup prints them sorted
 					latest_nightly = Some(line.clone());

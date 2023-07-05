@@ -119,12 +119,24 @@ fn fungibles_unbalanced_trait_should_work() {
 					Preservation::Expendable,
 					Fortitude::Polite
 				),
-				Ok(5)
+				Ok(4)
 			);
 			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 0);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::total_balance(DOT, &ALICE), 0);
 			// set reserved
 			assert_ok!(<Tokens as fungibles::Unbalanced<_>>::write_balance(DOT, &ALICE, 100));
 			assert_ok!(<Tokens as MultiReservableCurrency<AccountId>>::reserve(DOT, &ALICE, 50));
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 50);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::total_balance(DOT, &ALICE), 100);
+			assert_eq!(
+				<Tokens as fungibles::Inspect<_>>::reducible_balance(
+					DOT,
+					&ALICE,
+					Preservation::Protect,
+					Fortitude::Polite
+				),
+				50
+			);
 			assert_noop!(
 				<Tokens as fungibles::Unbalanced<_>>::decrease_balance(
 					DOT,
@@ -134,7 +146,7 @@ fn fungibles_unbalanced_trait_should_work() {
 					Preservation::Protect,
 					Fortitude::Polite
 				),
-				TokenError::BelowMinimum
+				TokenError::FundsUnavailable
 			);
 			assert_eq!(
 				<Tokens as fungibles::Unbalanced<_>>::decrease_balance(
@@ -147,16 +159,19 @@ fn fungibles_unbalanced_trait_should_work() {
 				),
 				Ok(50)
 			);
-			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 50);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 0);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::total_balance(DOT, &ALICE), 50);
 			assert_eq!(
 				<Tokens as MultiReservableCurrency<AccountId>>::unreserve(DOT, &ALICE, 50),
 				0
 			);
 			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 50);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::total_balance(DOT, &ALICE), 50);
 
 			// decrease_balance_at_most
 			assert_ok!(<Tokens as fungibles::Unbalanced<_>>::write_balance(DOT, &ALICE, 10));
 			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 10);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::total_balance(DOT, &ALICE), 10);
 			assert_eq!(
 				<Tokens as fungibles::Unbalanced<_>>::decrease_balance(
 					DOT,
@@ -168,6 +183,8 @@ fn fungibles_unbalanced_trait_should_work() {
 				),
 				Ok(10)
 			);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 0);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::total_balance(DOT, &ALICE), 0);
 			assert_ok!(<Tokens as fungibles::Unbalanced<_>>::write_balance(DOT, &ALICE, 10));
 			assert_eq!(
 				<Tokens as fungibles::Unbalanced<_>>::decrease_balance(
@@ -181,6 +198,8 @@ fn fungibles_unbalanced_trait_should_work() {
 				Ok(5)
 			);
 			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 5);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::total_balance(DOT, &ALICE), 5);
+
 			// new balance < ExistentialDeposits, clean dust
 			assert_eq!(
 				<Tokens as fungibles::Unbalanced<_>>::decrease_balance(
@@ -191,12 +210,24 @@ fn fungibles_unbalanced_trait_should_work() {
 					Preservation::Expendable,
 					Fortitude::Polite
 				),
-				Ok(5)
+				Ok(4)
 			);
 			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 0);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::total_balance(DOT, &ALICE), 0);
 			// set reserved
 			assert_ok!(<Tokens as fungibles::Unbalanced<_>>::write_balance(DOT, &ALICE, 100));
 			assert_ok!(<Tokens as MultiReservableCurrency<AccountId>>::reserve(DOT, &ALICE, 50));
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 50);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::total_balance(DOT, &ALICE), 100);
+			assert_eq!(
+				<Tokens as fungibles::Inspect<_>>::reducible_balance(
+					DOT,
+					&ALICE,
+					Preservation::Protect,
+					Fortitude::Polite
+				),
+				50
+			);
 			assert_eq!(
 				<Tokens as fungibles::Unbalanced<_>>::decrease_balance(
 					DOT,
@@ -208,12 +239,14 @@ fn fungibles_unbalanced_trait_should_work() {
 				),
 				Ok(50),
 			);
-			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 50);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 0);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::total_balance(DOT, &ALICE), 50);
 			assert_eq!(
 				<Tokens as MultiReservableCurrency<AccountId>>::unreserve(DOT, &ALICE, 50),
 				0
 			);
 			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 50);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::total_balance(DOT, &ALICE), 50);
 
 			// increase_balance
 			assert_ok!(<Tokens as fungibles::Unbalanced<_>>::write_balance(DOT, &ALICE, 0));
@@ -285,11 +318,15 @@ fn fungibles_mutate_hold_trait_should_work() {
 				<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, REASON, &ALICE),
 				0
 			);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 100);
+
 			assert_ok!(<Tokens as fungibles::MutateHold<_>>::hold(DOT, REASON, &ALICE, 100));
 			assert_eq!(
 				<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, REASON, &ALICE),
 				100
 			);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 0);
+
 			assert_eq!(
 				<Tokens as fungibles::MutateHold<_>>::release(DOT, REASON, &ALICE, 40, Precision::Exact),
 				Ok(40)
@@ -298,6 +335,7 @@ fn fungibles_mutate_hold_trait_should_work() {
 				<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, REASON, &ALICE),
 				60
 			);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 40);
 
 			// exceed hold amount when not in best_effort
 			assert_noop!(
@@ -314,17 +352,20 @@ fn fungibles_mutate_hold_trait_should_work() {
 				<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, REASON, &ALICE),
 				0
 			);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 100);
 
 			assert_ok!(<Tokens as fungibles::MutateHold<_>>::hold(DOT, REASON, &ALICE, 70));
 			assert_eq!(
 				<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, REASON, &ALICE),
 				70
 			);
-			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &BOB), 100);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 30);
+
 			assert_eq!(
 				<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, REASON, &BOB),
 				0
 			);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &BOB), 100);
 			assert_eq!(
 				<Tokens as fungibles::MutateHold<_>>::transfer_on_hold(
 					DOT,
@@ -342,11 +383,13 @@ fn fungibles_mutate_hold_trait_should_work() {
 				<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, REASON, &ALICE),
 				65
 			);
-			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &BOB), 105);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 30);
 			assert_eq!(
 				<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, REASON, &BOB),
 				0
 			);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &BOB), 105);
+
 			assert_eq!(
 				<Tokens as fungibles::MutateHold<_>>::transfer_on_hold(
 					DOT,
@@ -364,11 +407,12 @@ fn fungibles_mutate_hold_trait_should_work() {
 				<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, REASON, &ALICE),
 				60
 			);
-			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &BOB), 110);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 30);
 			assert_eq!(
 				<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, REASON, &BOB),
 				5
 			);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &BOB), 105);
 
 			// exceed hold amount when not in best_effort
 			assert_noop!(
@@ -403,11 +447,12 @@ fn fungibles_mutate_hold_trait_should_work() {
 				<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, REASON, &ALICE),
 				0
 			);
-			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &BOB), 170);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 30);
 			assert_eq!(
 				<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, REASON, &BOB),
 				65
 			);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &BOB), 105);
 		});
 }
 

@@ -10,7 +10,7 @@ use sp_runtime::{AccountId32, BoundedVec};
 use xcm_executor::traits::WeightTrader;
 use xcm_executor::Assets;
 
-use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain};
+use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain, TestExt};
 
 pub mod para;
 pub mod para_relative_view;
@@ -208,7 +208,11 @@ decl_test_parachain! {
 decl_test_relay_chain! {
 	pub struct Relay {
 		Runtime = relay::Runtime,
+		RuntimeCall = relay::RuntimeCall,
+		RuntimeEvent = relay::RuntimeEvent,
 		XcmConfig = relay::XcmConfig,
+		MessageQueue = relay::MessageQueue,
+		System = relay::System,
 		new_ext = relay_ext(),
 	}
 }
