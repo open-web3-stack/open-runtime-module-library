@@ -358,6 +358,14 @@ pub mod module {
 			who: T::AccountId,
 			amount: T::Balance,
 		},
+		Issued {
+			currency_id: T::CurrencyId,
+			amount: T::Balance,
+		},
+		Rescinded {
+			currency_id: T::CurrencyId,
+			amount: T::Balance,
+		},
 	}
 
 	/// The total issuance of a token type.
@@ -1925,6 +1933,32 @@ impl<T: Config> fungibles::Unbalanced<T::AccountId> for Pallet<T> {
 
 		// here just return decrease amount, shouldn't count the dust_amount
 		Ok(old_balance.saturating_sub(new_balance))
+	}
+}
+
+impl<T: Config> fungibles::Balanced<T::AccountId> for Pallet<T> {
+	type OnDropDebt = fungibles::IncreaseIssuance<T::AccountId, Self>;
+	type OnDropCredit = fungibles::DecreaseIssuance<T::AccountId, Self>;
+
+	fn done_deposit(currency_id: Self::AssetId, who: &T::AccountId, amount: Self::Balance) {
+		Self::deposit_event(Event::Deposited {
+			currency_id,
+			who: who.clone(),
+			amount,
+		});
+	}
+	fn done_withdraw(currency_id: Self::AssetId, who: &T::AccountId, amount: Self::Balance) {
+		Self::deposit_event(Event::Withdrawn {
+			currency_id,
+			who: who.clone(),
+			amount,
+		});
+	}
+	fn done_issue(currency_id: Self::AssetId, amount: Self::Balance) {
+		Self::deposit_event(Event::Issued { currency_id, amount });
+	}
+	fn done_rescind(currency_id: Self::AssetId, amount: Self::Balance) {
+		Self::deposit_event(Event::Rescinded { currency_id, amount });
 	}
 }
 

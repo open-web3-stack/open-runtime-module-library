@@ -288,6 +288,102 @@ fn fungibles_unbalanced_trait_should_work() {
 }
 
 #[test]
+fn fungibles_balanced_deposit_works() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			let amount = 42;
+			let alice_old_balance = <Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE);
+			let debt = <Tokens as fungibles::Balanced<_>>::deposit(DOT, &ALICE, amount, Precision::Exact).unwrap();
+			assert_eq!(debt.asset(), DOT);
+			assert_eq!(debt.peek(), amount);
+			let alice_new_balance = <Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE);
+			assert_eq!(alice_old_balance + amount, alice_new_balance);
+
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Deposited {
+				currency_id: DOT,
+				who: ALICE,
+				amount,
+			}));
+		});
+}
+
+#[test]
+fn fungibles_balanced_withdraw_works() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			let amount = 42;
+			let alice_old_balance = <Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE);
+			let credit = <Tokens as fungibles::Balanced<_>>::withdraw(
+				DOT,
+				&ALICE,
+				amount,
+				Precision::Exact,
+				Preservation::Protect,
+				Fortitude::Polite,
+			)
+			.unwrap();
+			assert_eq!(credit.asset(), DOT);
+			assert_eq!(credit.peek(), amount);
+			let alice_new_balance = <Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE);
+			assert_eq!(alice_old_balance - amount, alice_new_balance);
+
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Withdrawn {
+				currency_id: DOT,
+				who: ALICE,
+				amount,
+			}));
+		});
+}
+
+#[test]
+fn fungibles_balanced_issue_works() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			let amount = 42;
+
+			let old_total_issuance = <Tokens as fungibles::Inspect<_>>::total_issuance(DOT);
+			let credit = <Tokens as fungibles::Balanced<_>>::issue(DOT, amount);
+			assert_eq!(credit.asset(), DOT);
+			assert_eq!(credit.peek(), amount);
+			let new_total_issuance = <Tokens as fungibles::Inspect<_>>::total_issuance(DOT);
+			assert_eq!(old_total_issuance + amount, new_total_issuance);
+
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Issued {
+				currency_id: DOT,
+				amount,
+			}));
+		});
+}
+
+#[test]
+fn fungibles_balanced_rescind_works() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			let amount = 42;
+
+			let old_total_issuance = <Tokens as fungibles::Inspect<_>>::total_issuance(DOT);
+			let debt = <Tokens as fungibles::Balanced<_>>::rescind(DOT, amount);
+			assert_eq!(debt.asset(), DOT);
+			assert_eq!(debt.peek(), amount);
+			let new_total_issuance = <Tokens as fungibles::Inspect<_>>::total_issuance(DOT);
+			assert_eq!(old_total_issuance - amount, new_total_issuance);
+
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Rescinded {
+				currency_id: DOT,
+				amount,
+			}));
+		});
+}
+
+#[test]
 fn fungibles_inspect_hold_trait_should_work() {
 	ExtBuilder::default()
 		.balances(vec![(ALICE, DOT, 100)])
