@@ -354,7 +354,10 @@ fn fungibles_balanced_issue_works() {
 			let new_total_issuance = <Tokens as fungibles::Inspect<_>>::total_issuance(DOT);
 			assert_eq!(old_total_issuance + amount, new_total_issuance);
 
-			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Issued { asset: DOT, amount }));
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Issued {
+				currency_id: DOT,
+				amount,
+			}));
 		});
 }
 
@@ -373,7 +376,10 @@ fn fungibles_balanced_rescind_works() {
 			let new_total_issuance = <Tokens as fungibles::Inspect<_>>::total_issuance(DOT);
 			assert_eq!(old_total_issuance - amount, new_total_issuance);
 
-			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Rescinded { asset: DOT, amount }));
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Rescinded {
+				currency_id: DOT,
+				amount,
+			}));
 		});
 }
 
