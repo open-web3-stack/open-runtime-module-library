@@ -358,16 +358,6 @@ pub mod module {
 			who: T::AccountId,
 			amount: T::Balance,
 		},
-		Deposit {
-			asset: T::CurrencyId,
-			who: T::AccountId,
-			amount: T::Balance,
-		},
-		Withdraw {
-			asset: T::CurrencyId,
-			who: T::AccountId,
-			amount: T::Balance,
-		},
 		Issued {
 			asset: T::CurrencyId,
 			amount: T::Balance,
@@ -1951,15 +1941,15 @@ impl<T: Config> fungibles::Balanced<T::AccountId> for Pallet<T> {
 	type OnDropCredit = fungibles::DecreaseIssuance<T::AccountId, Self>;
 
 	fn done_deposit(asset: Self::AssetId, who: &T::AccountId, amount: Self::Balance) {
-		Self::deposit_event(Event::Deposit {
-			asset,
+		Self::deposit_event(Event::Deposited {
+			currency_id: asset,
 			who: who.clone(),
 			amount,
 		});
 	}
 	fn done_withdraw(asset: Self::AssetId, who: &T::AccountId, amount: Self::Balance) {
-		Self::deposit_event(Event::Withdraw {
-			asset,
+		Self::deposit_event(Event::Withdrawn {
+			currency_id: asset,
 			who: who.clone(),
 			amount,
 		});
