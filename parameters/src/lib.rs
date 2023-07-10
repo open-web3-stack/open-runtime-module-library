@@ -12,6 +12,7 @@ use orml_traits::parameters::{AggregratedKeyValue, Key, ParameterStore};
 
 mod mock;
 mod tests;
+mod weights;
 
 pub use module::*;
 
@@ -22,8 +23,16 @@ pub mod module {
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+
+		/// The key value type for parameters. Usually created by
+		/// orml_traits::parameters::define_aggregrated_parameters
 		type AggregratedKeyValue: AggregratedKeyValue;
+
+		/// The origin which may update the parameter.
 		type AdminOrigin: EnsureOriginWithArg<Self::RuntimeOrigin, KeyOf<Self>>;
+
+		/// Weight information for extrinsics in this module.
+		type WeightInfo: WeightInfo;
 	}
 
 	type KeyOf<T> = <<T as Config>::AggregratedKeyValue as AggregratedKeyValue>::AggregratedKey;
@@ -55,7 +64,7 @@ pub mod module {
 	impl<T: Config> Pallet<T> {
 		/// Set parameter
 		#[pallet::call_index(0)]
-		#[pallet::weight(0)]
+		#[pallet::weight(T::WeightInfo::set_parameter())]
 		pub fn set_parameter(origin: OriginFor<T>, key_value: T::AggregratedKeyValue) -> DispatchResult {
 			let (key, value) = key_value.clone().into_parts();
 
