@@ -15,6 +15,7 @@ mod tests;
 mod weights;
 
 pub use module::*;
+pub use weights::WeightInfo;
 
 #[frame_support::pallet]
 pub mod module {
