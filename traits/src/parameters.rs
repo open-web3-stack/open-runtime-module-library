@@ -38,6 +38,9 @@ pub trait AggregratedKeyValue: Parameter {
 /// Example:
 ///
 /// ```
+/// # #[macro_use]
+/// # extern crate orml_traits;
+/// # fn main() {}
 /// define_parameters! {
 ///     pub Pallet = {
 ///         Key1: u64 = 0,
@@ -206,6 +209,9 @@ macro_rules! define_parameters {
 ///
 /// Example:
 /// ```
+/// # #[macro_use]
+/// # extern crate orml_traits;
+/// # fn main() {}
 /// mod pallet1 {
 ///     define_parameters! {
 ///         pub Pallet = {
