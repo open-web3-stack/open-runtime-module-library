@@ -89,7 +89,7 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for EnsureOriginIm
 	}
 
 	#[cfg(feature = "runtime-benchmarks")]
-	fn try_successful_origin() -> Result<RuntimeOrigin, ()> {
+	fn try_successful_origin(_key: &RuntimeParametersKey) -> Result<RuntimeOrigin, ()> {
 		Err(())
 	}
 }
