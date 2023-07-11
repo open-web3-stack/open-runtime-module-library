@@ -87,12 +87,18 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for EnsureOriginIm
 			}
 		}
 	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn try_successful_origin() -> Result<RuntimeOrigin, ()> {
+		Err(())
+	}
 }
 
 impl Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type AggregratedKeyValue = RuntimeParameters;
 	type AdminOrigin = EnsureOriginImpl;
+	type WeightInfo = ();
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
