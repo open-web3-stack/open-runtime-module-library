@@ -228,7 +228,7 @@ construct_runtime!(
 		System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		ParasOrigin: origin::{Pallet, Origin},
-		XcmPallet: pallet_xcm::{Pallet, Call, Storage, Event<T>, Origin},
 		MessageQueue: pallet_message_queue::{Pallet, Event<T>},
+		XcmPallet: pallet_xcm::{Pallet, Call, Storage, Event<T>, Origin},
 	}
 );
