@@ -1339,6 +1339,12 @@ impl<T: Config> MultiLockableCurrency<T::AccountId> for Pallet<T> {
 			})
 			.collect::<Vec<_>>();
 		if let Some(lock) = new_lock {
+			Self::deposit_event(Event::LockSet {
+				lock_id,
+				currency_id,
+				who: who.clone(),
+				amount: lock.amount,
+			});
 			locks.push(lock)
 		}
 		Self::update_locks(currency_id, who, &locks[..])
