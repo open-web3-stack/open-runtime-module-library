@@ -166,10 +166,11 @@ pub mod module {
 		pub tokens: Vec<GenesisTokens<T>>,
 	}
 
-	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
-			GenesisConfig { tokens: vec![] }
+			GenesisConfig {
+				tokens: Default::default(),
+			}
 		}
 	}
 

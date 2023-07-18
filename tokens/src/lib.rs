@@ -423,7 +423,6 @@ pub mod module {
 		pub balances: Vec<(T::AccountId, T::CurrencyId, T::Balance)>,
 	}
 
-	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
 			GenesisConfig { balances: vec![] }
@@ -438,7 +437,7 @@ pub mod module {
 				.balances
 				.iter()
 				.map(|(account_id, currency_id, _)| (account_id, currency_id))
-				.collect::<std::collections::BTreeSet<_>>();
+				.collect::<sp_std::collections::btree_set::BTreeSet<_>>();
 			assert!(
 				unique_endowed_accounts.len() == self.balances.len(),
 				"duplicate endowed accounts in genesis."
