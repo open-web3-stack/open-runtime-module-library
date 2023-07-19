@@ -73,7 +73,7 @@ impl pallet_balances::Config for Runtime {
 	type WeightInfo = ();
 	type MaxReserves = ConstU32<50>;
 	type ReserveIdentifier = [u8; 8];
-	type HoldIdentifier = [u8; 8];
+	type RuntimeHoldReason = RuntimeHoldReason;
 	type FreezeIdentifier = [u8; 8];
 	type MaxHolds = ();
 	type MaxFreezes = ();
@@ -121,12 +121,14 @@ impl EnsureOriginWithArg<RuntimeOrigin, Option<u32>> for AssetAuthority {
 	fn try_origin(origin: RuntimeOrigin, asset_id: &Option<u32>) -> Result<Self::Success, RuntimeOrigin> {
 		match asset_id {
 			// We mock an edge case where the asset_id 2 requires a special origin check.
-			Some(2) => EnsureSignedBy::<AdminAssetTwo, AccountId32>::try_origin(origin.clone())
-				.map(|_| ())
-				.map_err(|_| origin),
+			Some(2) => {
+				<EnsureSignedBy<AdminAssetTwo, AccountId32> as EnsureOrigin<RuntimeOrigin>>::try_origin(origin.clone())
+					.map(|_| ())
+					.map_err(|_| origin)
+			}
 
 			// Any other `asset_id` defaults to EnsureRoot
-			_ => EnsureRoot::try_origin(origin),
+			_ => <EnsureRoot<AccountId> as EnsureOrigin<RuntimeOrigin>>::try_origin(origin),
 		}
 	}
 
@@ -253,6 +255,7 @@ impl Config for XcmConfig {
 	type UniversalAliases = Nothing;
 	type CallDispatcher = RuntimeCall;
 	type SafeCallFilter = Everything;
+	type Aliasers = Nothing;
 }
 
 pub struct ChannelInfo;

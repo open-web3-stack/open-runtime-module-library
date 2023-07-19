@@ -61,7 +61,7 @@ impl pallet_balances::Config for Runtime {
 	type WeightInfo = ();
 	type MaxReserves = ConstU32<50>;
 	type ReserveIdentifier = [u8; 8];
-	type HoldIdentifier = [u8; 8];
+	type RuntimeHoldReason = RuntimeHoldReason;
 	type FreezeIdentifier = [u8; 8];
 	type MaxHolds = ();
 	type MaxFreezes = ();
@@ -127,6 +127,7 @@ impl Config for XcmConfig {
 	type UniversalAliases = Nothing;
 	type CallDispatcher = RuntimeCall;
 	type SafeCallFilter = Everything;
+	type Aliasers = Nothing;
 }
 
 pub type LocalOriginToLocation = SignedToAccountId32<RuntimeOrigin, AccountId, KusamaNetwork>;
@@ -210,6 +211,7 @@ impl pallet_message_queue::Config for Runtime {
 	type ServiceWeight = MessageQueueServiceWeight;
 	type MessageProcessor = MessageProcessor;
 	type QueueChangeHandler = ();
+	type QueuePausedQuery = ();
 	type WeightInfo = ();
 }
 

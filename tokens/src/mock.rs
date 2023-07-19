@@ -5,10 +5,7 @@
 use super::*;
 use frame_support::{
 	construct_runtime, parameter_types,
-	traits::{
-		ChangeMembers, ConstU32, ConstU64, ContainsLengthBound, Everything, GenesisBuild, SaturatingCurrencyToVote,
-		SortedMembers,
-	},
+	traits::{ChangeMembers, ConstU32, ConstU64, ContainsLengthBound, Everything, GenesisBuild, SortedMembers},
 	PalletId,
 };
 use orml_traits::parameter_type_with_key;
@@ -189,7 +186,7 @@ impl pallet_elections_phragmen::Config for Runtime {
 	type PalletId = ElectionsPhragmenPalletId;
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = MockCurrencyAdapter;
-	type CurrencyToVote = SaturatingCurrencyToVote;
+	type CurrencyToVote = sp_staking::currency_to_vote::SaturatingCurrencyToVote;
 	type ChangeMembers = TestChangeMembers;
 	type InitializeMembers = ();
 	type CandidacyBond = ConstU64<3>;

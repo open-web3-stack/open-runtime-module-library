@@ -110,7 +110,6 @@ pub mod module {
 		pub last_asset_id: T::AssetId,
 	}
 
-	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
 			Self {
