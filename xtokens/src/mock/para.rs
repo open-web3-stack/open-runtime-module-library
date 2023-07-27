@@ -1,4 +1,6 @@
-use super::{Amount, Balance, CurrencyId, CurrencyIdConvert, ParachainXcmRouter};
+use super::{
+	Amount, Balance, CurrencyId, CurrencyIdConvert, CurrencyIdType, MockMaintenanceStatusProvider, ParachainXcmRouter,
+};
 use crate as orml_xtokens;
 
 use frame_support::{
@@ -75,7 +77,7 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_type_with_key! {
-	pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
+	pub ExistentialDeposits: |_currency_id: CurrencyIdType| -> Balance {
 		Default::default()
 	};
 }
@@ -84,7 +86,7 @@ impl orml_tokens::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
 	type Amount = Amount;
-	type CurrencyId = CurrencyId;
+	type CurrencyId = CurrencyIdType;
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
 	type CurrencyHooks = ();
@@ -126,10 +128,10 @@ pub type XcmOriginToCallOrigin = (
 pub type LocalAssetTransactor = MultiCurrencyAdapter<
 	Tokens,
 	(),
-	IsNativeConcrete<CurrencyId, CurrencyIdConvert>,
+	IsNativeConcrete<CurrencyIdType, CurrencyIdConvert>,
 	AccountId,
 	LocationToAccountId,
-	CurrencyId,
+	CurrencyIdType,
 	CurrencyIdConvert,
 	(),
 >;
@@ -183,6 +185,7 @@ impl GetChannelInfo for ChannelInfo {
 
 impl cumulus_pallet_xcmp_queue::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
+	type MaintenanceStatusProvider = MockMaintenanceStatusProvider;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type ChannelInfo = ChannelInfo;
 	type VersionWrapper = ();
@@ -195,6 +198,7 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
 
 impl cumulus_pallet_dmp_queue::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
+	type MaintenanceStatusProvider = MockMaintenanceStatusProvider;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
 }
@@ -278,7 +282,7 @@ parameter_type_with_key! {
 impl orml_xtokens::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
-	type CurrencyId = CurrencyId;
+	type CurrencyId = CurrencyIdType;
 	type CurrencyIdConvert = CurrencyIdConvert;
 	type AccountIdToMultiLocation = AccountIdToMultiLocation;
 	type SelfLocation = SelfLocation;

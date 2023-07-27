@@ -3,6 +3,7 @@
 use super::*;
 use crate as orml_xtokens;
 
+use mangata_support::traits::GetMaintenanceStatusTrait;
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 use sp_io::TestExternalities;
@@ -21,30 +22,22 @@ pub mod teleport_currency_adapter;
 pub const ALICE: AccountId32 = AccountId32::new([0u8; 32]);
 pub const BOB: AccountId32 = AccountId32::new([1u8; 32]);
 
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord, codec::MaxEncodedLen, TypeInfo)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub enum CurrencyId {
-	/// Relay chain token.
-	R,
-	/// Parachain A token.
-	A,
-	/// Parachain A A1 token.
-	A1,
-	/// Parachain B token.
-	B,
-	/// Parachain B B1 token
-	B1,
-	/// Parachain B B2 token
-	B2,
-	/// Parachain C token
-	C,
-	/// Parachain D token
-	D,
+pub type CurrencyIdType = u32;
+pub struct CurrencyId;
+impl CurrencyId {
+	pub const R: CurrencyIdType = 0u32;
+	pub const A: CurrencyIdType = 1u32;
+	pub const A1: CurrencyIdType = 2u32;
+	pub const B: CurrencyIdType = 3u32;
+	pub const B1: CurrencyIdType = 4u32;
+	pub const B2: CurrencyIdType = 5u32;
+	pub const C: CurrencyIdType = 6u32;
+	pub const D: CurrencyIdType = 7u32;
 }
 
 pub struct CurrencyIdConvert;
-impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
-	fn convert(id: CurrencyId) -> Option<MultiLocation> {
+impl Convert<CurrencyIdType, Option<MultiLocation>> for CurrencyIdConvert {
+	fn convert(id: CurrencyIdType) -> Option<MultiLocation> {
 		match id {
 			CurrencyId::R => Some(Parent.into()),
 			CurrencyId::A => Some(
@@ -103,11 +96,12 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
 				)
 					.into(),
 			),
+			_ => None,
 		}
 	}
 }
-impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
-	fn convert(l: MultiLocation) -> Option<CurrencyId> {
+impl Convert<MultiLocation, Option<CurrencyIdType>> for CurrencyIdConvert {
+	fn convert(l: MultiLocation) -> Option<CurrencyIdType> {
 		let mut a: Vec<u8> = "A".into();
 		a.resize(32, 0);
 		let mut a1: Vec<u8> = "A1".into();
@@ -150,8 +144,8 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
 		}
 	}
 }
-impl Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert {
-	fn convert(a: MultiAsset) -> Option<CurrencyId> {
+impl Convert<MultiAsset, Option<CurrencyIdType>> for CurrencyIdConvert {
+	fn convert(a: MultiAsset) -> Option<CurrencyIdType> {
 		if let MultiAsset {
 			fun: Fungible(_),
 			id: Concrete(id),
@@ -248,7 +242,8 @@ pub fn para_ext(para_id: u32) -> TestExternalities {
 		.unwrap();
 
 	orml_tokens::GenesisConfig::<Runtime> {
-		balances: vec![(ALICE, CurrencyId::R, 1_000)],
+		tokens_endowment: vec![(ALICE, CurrencyId::R, 1_000)],
+		created_tokens_for_staking: vec![],
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();
@@ -272,7 +267,8 @@ pub fn para_teleport_ext(para_id: u32) -> TestExternalities {
 		.unwrap();
 
 	orml_tokens::GenesisConfig::<Runtime> {
-		balances: vec![(ALICE, CurrencyId::R, 1_000)],
+		tokens_endowment: vec![(ALICE, CurrencyId::R, 1_000)],
+		created_tokens_for_staking: vec![],
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();
@@ -340,5 +336,16 @@ impl WeightTrader for AllTokensAreCreatedEqualToWeight {
 		} else {
 			Some((self.0.clone(), weight.ref_time() as u128).into())
 		}
+	}
+}
+
+pub struct MockMaintenanceStatusProvider;
+impl GetMaintenanceStatusTrait for MockMaintenanceStatusProvider {
+	fn is_maintenance() -> bool {
+		false
+	}
+
+	fn is_upgradable() -> bool {
+		true
 	}
 }

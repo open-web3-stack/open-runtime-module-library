@@ -36,6 +36,8 @@ orml-xcm-support = { path = "../xcm-support", default-features = false }
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.42" }
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.42" }
 
+mangata-support = { git = "https://github.com/mangata-finance/substrate", branch = "develop-v0.9.42" }
+
 # cumulus
 cumulus-pallet-dmp-queue = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.42" }
 cumulus-pallet-xcm = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.42" }

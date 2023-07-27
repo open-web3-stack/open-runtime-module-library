@@ -60,8 +60,8 @@ use orml_traits::{
 };
 
 // not comaptible with our CurrencyId type
-// mod mock;
-// mod tests;
+mod mock;
+mod tests;
 
 enum TransferKind {
 	/// Transfer self reserve asset.

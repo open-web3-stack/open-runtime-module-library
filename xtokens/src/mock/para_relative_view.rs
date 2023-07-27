@@ -1,4 +1,6 @@
-use super::{Amount, Balance, CurrencyId, CurrencyIdConvert, ParachainXcmRouter};
+use super::{
+	Amount, Balance, CurrencyId, CurrencyIdConvert, CurrencyIdType, MockMaintenanceStatusProvider, ParachainXcmRouter,
+};
 use crate as orml_xtokens;
 
 use frame_support::{
@@ -78,7 +80,7 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_type_with_key! {
-	pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
+	pub ExistentialDeposits: |_currency_id: CurrencyIdType| -> Balance {
 		Default::default()
 	};
 }
@@ -87,7 +89,7 @@ impl orml_tokens::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
 	type Amount = Amount;
-	type CurrencyId = CurrencyId;
+	type CurrencyId = CurrencyIdType;
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
 	type CurrencyHooks = ();
@@ -129,10 +131,10 @@ pub type XcmOriginToCallOrigin = (
 pub type LocalAssetTransactor = MultiCurrencyAdapter<
 	Tokens,
 	(),
-	IsNativeConcrete<CurrencyId, CurrencyIdConvert>,
+	IsNativeConcrete<CurrencyIdType, CurrencyIdConvert>,
 	AccountId,
 	LocationToAccountId,
-	CurrencyId,
+	CurrencyIdType,
 	CurrencyIdConvert,
 	(),
 >;
@@ -186,6 +188,7 @@ impl GetChannelInfo for ChannelInfo {
 
 impl cumulus_pallet_xcmp_queue::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
+	type MaintenanceStatusProvider = MockMaintenanceStatusProvider;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type ChannelInfo = ChannelInfo;
 	type VersionWrapper = ();
@@ -198,6 +201,7 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
 
 impl cumulus_pallet_dmp_queue::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
+	type MaintenanceStatusProvider = MockMaintenanceStatusProvider;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
 }
@@ -252,8 +256,8 @@ impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 }
 
 pub struct RelativeCurrencyIdConvert;
-impl Convert<CurrencyId, Option<MultiLocation>> for RelativeCurrencyIdConvert {
-	fn convert(id: CurrencyId) -> Option<MultiLocation> {
+impl Convert<CurrencyIdType, Option<MultiLocation>> for RelativeCurrencyIdConvert {
+	fn convert(id: CurrencyIdType) -> Option<MultiLocation> {
 		match id {
 			CurrencyId::R => Some(Parent.into()),
 			CurrencyId::A => Some(
@@ -305,11 +309,12 @@ impl Convert<CurrencyId, Option<MultiLocation>> for RelativeCurrencyIdConvert {
 					.into(),
 			),
 			CurrencyId::D => Some(Junction::from(BoundedVec::try_from(b"D".to_vec()).unwrap()).into()),
+			_ => None,
 		}
 	}
 }
-impl Convert<MultiLocation, Option<CurrencyId>> for RelativeCurrencyIdConvert {
-	fn convert(l: MultiLocation) -> Option<CurrencyId> {
+impl Convert<MultiLocation, Option<CurrencyIdType>> for RelativeCurrencyIdConvert {
+	fn convert(l: MultiLocation) -> Option<CurrencyIdType> {
 		let mut a: Vec<u8> = "A".into();
 		a.resize(32, 0);
 		let mut a1: Vec<u8> = "A1".into();
@@ -356,8 +361,8 @@ impl Convert<MultiLocation, Option<CurrencyId>> for RelativeCurrencyIdConvert {
 		}
 	}
 }
-impl Convert<MultiAsset, Option<CurrencyId>> for RelativeCurrencyIdConvert {
-	fn convert(a: MultiAsset) -> Option<CurrencyId> {
+impl Convert<MultiAsset, Option<CurrencyIdType>> for RelativeCurrencyIdConvert {
+	fn convert(a: MultiAsset) -> Option<CurrencyIdType> {
 		if let MultiAsset {
 			fun: Fungible(_),
 			id: Concrete(id),
@@ -401,7 +406,7 @@ parameter_type_with_key! {
 impl orml_xtokens::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
-	type CurrencyId = CurrencyId;
+	type CurrencyId = CurrencyIdType;
 	type CurrencyIdConvert = RelativeCurrencyIdConvert;
 	type AccountIdToMultiLocation = AccountIdToMultiLocation;
 	type SelfLocation = SelfLocation;
