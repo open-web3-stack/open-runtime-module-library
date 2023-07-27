@@ -23,7 +23,7 @@ pub const PAYMENT_CREATOR: AccountId = 10;
 pub const PAYMENT_RECIPENT: AccountId = 11;
 pub const PAYMENT_CREATOR_TWO: AccountId = 30;
 pub const PAYMENT_RECIPENT_TWO: AccountId = 31;
-pub const CURRENCY_ID: u32 = 1;
+pub const CURRENCY_ID: u32 = 0;
 pub const RESOLVER_ACCOUNT: AccountId = 12;
 pub const FEE_RECIPIENT_ACCOUNT: AccountId = 20;
 pub const PAYMENT_RECIPENT_FEE_CHARGED: AccountId = 21;
@@ -152,10 +152,11 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = system::GenesisConfig::default().build_storage::<Test>().unwrap();
 
 	orml_tokens::GenesisConfig::<Test> {
-		balances: vec![
+		tokens_endowment: vec![
 			(PAYMENT_CREATOR, CURRENCY_ID, 100),
 			(PAYMENT_CREATOR_TWO, CURRENCY_ID, 100),
 		],
+		created_tokens_for_staking: vec![],
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();

@@ -5,12 +5,14 @@ on:
     branches:
       - master
       - polkadot-**
+      - develop**
     paths-ignore:
       - '**/README.md'
   push:
     branches:
       - master
       - polkadot-**
+      - develop**
     paths-ignore:
       - '**/README.md'
 
@@ -25,9 +27,9 @@ jobs:
         with:
           access_token: ${{ github.token }}
   build:
-    runs-on: [self-hosted]
-    env:
-      SCCACHE_CACHE_SIZE: "50G"
+    runs-on: ubuntu-latest
+    # env:
+    #   SCCACHE_CACHE_SIZE: "50G"
     needs: cancel
     steps:
     - uses: actions/checkout@v3

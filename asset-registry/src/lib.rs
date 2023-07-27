@@ -23,6 +23,7 @@ pub use weights::WeightInfo;
 mod impls;
 mod weights;
 
+mod benchmarking;
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
@@ -99,24 +100,15 @@ pub mod module {
 	#[pallet::getter(fn location_to_asset_id)]
 	pub type LocationToAssetId<T: Config> = StorageMap<_, Twox64Concat, MultiLocation, T::AssetId, OptionQuery>;
 
-	/// The last processed asset id - used when assigning a sequential id.
-	#[pallet::storage]
-	#[pallet::getter(fn last_asset_id)]
-	pub(crate) type LastAssetId<T: Config> = StorageValue<_, T::AssetId, ValueQuery>;
-
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub assets: Vec<(T::AssetId, Vec<u8>)>,
-		pub last_asset_id: T::AssetId,
 	}
 
 	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
-			Self {
-				assets: vec![],
-				last_asset_id: Default::default(),
-			}
+			Self { assets: vec![] }
 		}
 	}
 
@@ -125,11 +117,8 @@ pub mod module {
 		fn build(&self) {
 			self.assets.iter().for_each(|(asset_id, metadata_encoded)| {
 				let metadata = AssetMetadata::decode(&mut &metadata_encoded[..]).expect("Error decoding AssetMetadata");
-				Pallet::<T>::do_register_asset_without_asset_processor(metadata, asset_id.clone())
-					.expect("Error registering Asset");
+				Pallet::<T>::do_register_asset(metadata, Some(asset_id.clone())).expect("Error registering Asset");
 			});
-
-			LastAssetId::<T>::set(self.last_asset_id.clone());
 		}
 	}
 

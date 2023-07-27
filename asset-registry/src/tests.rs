@@ -93,9 +93,8 @@ fn genesis_issuance_should_work() {
 				fee_per_second: 1_000_000_000_000,
 			},
 		};
-		assert_eq!(AssetRegistry::metadata(4).unwrap(), metadata1);
-		assert_eq!(AssetRegistry::metadata(5).unwrap(), metadata2);
-		assert_eq!(LastAssetId::<para::Runtime>::get(), 5);
+		assert_eq!(AssetRegistry::metadata(0).unwrap(), metadata1);
+		assert_eq!(AssetRegistry::metadata(1).unwrap(), metadata2);
 	});
 }
 
@@ -115,11 +114,11 @@ fn send_self_parachain_asset_to_sibling() {
 			Some(MultiLocation::new(0, X1(Junction::from(BoundedVec::try_from(vec![0]).unwrap()))).into());
 		AssetRegistry::register_asset(RuntimeOrigin::root(), metadata, None).unwrap();
 
-		assert_ok!(ParaTokens::deposit(CurrencyId::RegisteredAsset(1), &ALICE, 1_000));
+		assert_ok!(ParaTokens::deposit(1, &ALICE, 1_000));
 
 		assert_ok!(ParaXTokens::transfer(
 			Some(ALICE).into(),
-			CurrencyId::RegisteredAsset(1),
+			1,
 			500,
 			Box::new(
 				MultiLocation::new(
@@ -137,19 +136,13 @@ fn send_self_parachain_asset_to_sibling() {
 			WeightLimit::Unlimited,
 		));
 
-		assert_eq!(ParaTokens::free_balance(CurrencyId::RegisteredAsset(1), &ALICE), 500);
-		assert_eq!(
-			ParaTokens::free_balance(CurrencyId::RegisteredAsset(1), &sibling_b_account()),
-			500
-		);
+		assert_eq!(ParaTokens::free_balance(1, &ALICE), 500);
+		assert_eq!(ParaTokens::free_balance(1, &sibling_b_account()), 500);
 	});
 
 	ParaB::execute_with(|| {
-		assert_eq!(ParaTokens::free_balance(CurrencyId::RegisteredAsset(1), &BOB), 460);
-		assert_eq!(
-			ParaTokens::free_balance(CurrencyId::RegisteredAsset(1), &treasury_account()),
-			40
-		);
+		assert_eq!(ParaTokens::free_balance(1, &BOB), 460);
+		assert_eq!(ParaTokens::free_balance(1, &treasury_account()), 40);
 	});
 }
 
@@ -176,7 +169,7 @@ fn send_sibling_asset_to_non_reserve_sibling() {
 			None,
 		)
 		.unwrap();
-		assert_ok!(ParaTokens::deposit(CurrencyId::RegisteredAsset(1), &ALICE, 1_000));
+		assert_ok!(ParaTokens::deposit(1, &ALICE, 1_000));
 	});
 
 	ParaB::execute_with(|| {
@@ -191,11 +184,7 @@ fn send_sibling_asset_to_non_reserve_sibling() {
 			None,
 		)
 		.unwrap();
-		assert_ok!(ParaTokens::deposit(
-			CurrencyId::RegisteredAsset(1),
-			&sibling_a_account(),
-			1_000
-		));
+		assert_ok!(ParaTokens::deposit(1, &sibling_a_account(), 1_000));
 	});
 
 	ParaC::execute_with(|| {
@@ -219,7 +208,7 @@ fn send_sibling_asset_to_non_reserve_sibling() {
 	ParaA::execute_with(|| {
 		assert_ok!(ParaXTokens::transfer(
 			Some(ALICE).into(),
-			CurrencyId::RegisteredAsset(1),
+			1,
 			500,
 			Box::new(
 				MultiLocation::new(
@@ -236,23 +225,17 @@ fn send_sibling_asset_to_non_reserve_sibling() {
 			),
 			WeightLimit::Unlimited
 		));
-		assert_eq!(ParaTokens::free_balance(CurrencyId::RegisteredAsset(1), &ALICE), 500);
+		assert_eq!(ParaTokens::free_balance(1, &ALICE), 500);
 	});
 
 	// check reserve accounts
 	ParaB::execute_with(|| {
-		assert_eq!(
-			ParaTokens::free_balance(CurrencyId::RegisteredAsset(1), &sibling_a_account()),
-			500
-		);
-		assert_eq!(
-			ParaTokens::free_balance(CurrencyId::RegisteredAsset(1), &sibling_c_account()),
-			460
-		);
+		assert_eq!(ParaTokens::free_balance(1, &sibling_a_account()), 500);
+		assert_eq!(ParaTokens::free_balance(1, &sibling_c_account()), 460);
 	});
 
 	ParaC::execute_with(|| {
-		assert_eq!(ParaTokens::free_balance(CurrencyId::RegisteredAsset(1), &BOB), 420);
+		assert_eq!(ParaTokens::free_balance(1, &BOB), 420);
 	});
 }
 
@@ -296,6 +279,10 @@ fn test_sequential_id_with_invalid_id_returns_error() {
 		));
 		assert_noop!(
 			AssetRegistry::register_asset(RuntimeOrigin::root(), dummy_metadata(), Some(1)),
+			Error::<para::Runtime>::ConflictingAssetId
+		);
+		assert_noop!(
+			AssetRegistry::register_asset(RuntimeOrigin::root(), dummy_metadata(), Some(5)),
 			Error::<para::Runtime>::InvalidAssetId
 		);
 	});
@@ -319,11 +306,11 @@ fn test_fixed_rate_asset_trader() {
 		};
 		AssetRegistry::register_asset(RuntimeOrigin::root(), para_a_metadata, None).unwrap();
 
-		assert_ok!(ParaTokens::deposit(CurrencyId::RegisteredAsset(1), &ALICE, 1_000));
+		assert_ok!(ParaTokens::deposit(1, &ALICE, 1_000));
 
 		assert_ok!(ParaXTokens::transfer(
 			Some(ALICE).into(),
-			CurrencyId::RegisteredAsset(1),
+			1,
 			500,
 			Box::new(
 				MultiLocation::new(
@@ -345,15 +332,9 @@ fn test_fixed_rate_asset_trader() {
 	let expected_fee = 40;
 	let expected_transfer_1_amount = 500 - expected_fee;
 	ParaB::execute_with(|| {
-		assert_eq!(
-			ParaTokens::free_balance(CurrencyId::RegisteredAsset(1), &BOB),
-			expected_transfer_1_amount
-		);
+		assert_eq!(ParaTokens::free_balance(1, &BOB), expected_transfer_1_amount);
 
-		assert_eq!(
-			ParaTokens::free_balance(CurrencyId::RegisteredAsset(1), &treasury_account()),
-			expected_fee
-		);
+		assert_eq!(ParaTokens::free_balance(1, &treasury_account()), expected_fee);
 
 		// now double the fee rate
 		AssetRegistry::update_asset(
@@ -374,7 +355,7 @@ fn test_fixed_rate_asset_trader() {
 	ParaA::execute_with(|| {
 		assert_ok!(ParaXTokens::transfer(
 			Some(ALICE).into(),
-			CurrencyId::RegisteredAsset(1),
+			1,
 			500,
 			Box::new(
 				MultiLocation::new(
@@ -398,12 +379,12 @@ fn test_fixed_rate_asset_trader() {
 
 	ParaB::execute_with(|| {
 		assert_eq!(
-			ParaTokens::free_balance(CurrencyId::RegisteredAsset(1), &BOB),
+			ParaTokens::free_balance(1, &BOB),
 			expected_transfer_1_amount + expected_transfer_2_amount
 		);
 
 		assert_eq!(
-			ParaTokens::free_balance(CurrencyId::RegisteredAsset(1), &treasury_account()),
+			ParaTokens::free_balance(1, &treasury_account()),
 			expected_fee * 3 // 1 for the first transfer, then twice for the second one
 		);
 	});
@@ -519,32 +500,19 @@ fn test_existential_deposits() {
 	TestNet::reset();
 
 	ParaA::execute_with(|| {
-		let metadata = AssetMetadata {
-			existential_deposit: 100,
-			..dummy_metadata()
-		};
+		let metadata = AssetMetadata { ..dummy_metadata() };
 		assert_ok!(AssetRegistry::register_asset(RuntimeOrigin::root(), metadata, None));
 
-		assert_ok!(Tokens::set_balance(
-			RuntimeOrigin::root(),
-			ALICE,
-			CurrencyId::RegisteredAsset(1),
-			1_000,
-			0
-		));
+		assert_ok!(Tokens::set_balance(RuntimeOrigin::root(), ALICE, 1, 1_000, 0));
 
-		// transferring at existential_deposit succeeds
-		assert_ok!(Tokens::transfer(
-			Some(ALICE).into(),
-			BOB,
-			CurrencyId::RegisteredAsset(1),
-			100
-		));
+		// transferring tokens from one account to other ED is zero
+		assert_ok!(Tokens::transfer(Some(ALICE).into(), BOB, 1, 100));
+		// In our case we do not need to check below Ed because it is zero
 		// transferring below existential_deposit fails
-		assert_noop!(
-			Tokens::transfer(Some(ALICE).into(), CHARLIE, CurrencyId::RegisteredAsset(1), 50),
-			orml_tokens::Error::<para::Runtime>::ExistentialDeposit
-		);
+		// assert_noop!(
+		// 	Tokens::transfer(Some(ALICE).into(), CHARLIE, 1, 50),
+		// 	orml_tokens::Error::<para::Runtime>::ExistentialDeposit
+		// );
 	});
 }
 

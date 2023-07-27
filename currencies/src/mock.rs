@@ -106,8 +106,8 @@ impl orml_tokens::Config for Runtime {
 	type DustRemovalWhitelist = Nothing;
 }
 
-pub const NATIVE_CURRENCY_ID: CurrencyId = 1;
-pub const X_TOKEN_ID: CurrencyId = 2;
+pub const NATIVE_CURRENCY_ID: CurrencyId = 99;
+pub const X_TOKEN_ID: CurrencyId = 0;
 
 parameter_types! {
 	pub const GetNativeCurrencyId: CurrencyId = NATIVE_CURRENCY_ID;
@@ -183,11 +183,12 @@ impl ExtBuilder {
 		.unwrap();
 
 		orml_tokens::GenesisConfig::<Runtime> {
-			balances: self
+			tokens_endowment: self
 				.balances
 				.into_iter()
 				.filter(|(_, currency_id, _)| *currency_id != NATIVE_CURRENCY_ID)
 				.collect::<Vec<_>>(),
+			created_tokens_for_staking: vec![],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();

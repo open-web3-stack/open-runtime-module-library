@@ -6,7 +6,7 @@ use super::*;
 use frame_support::{
 	construct_runtime, parameter_types,
 	traits::{
-		ChangeMembers, ConstU32, ConstU64, ContainsLengthBound, Everything, GenesisBuild, SaturatingCurrencyToVote,
+		ChangeMembers, ConstU128, ConstU64, ContainsLengthBound, Everything, GenesisBuild, SaturatingCurrencyToVote,
 		SortedMembers,
 	},
 	PalletId,
@@ -22,12 +22,13 @@ use sp_std::cell::RefCell;
 
 pub type AccountId = AccountId32;
 pub type CurrencyId = u32;
-pub type Balance = u64;
+pub type Balance = u128;
+pub type Amount = i128;
 pub type ReserveIdentifier = [u8; 8];
 
-pub const DOT: CurrencyId = 1;
-pub const BTC: CurrencyId = 2;
-pub const ETH: CurrencyId = 3;
+pub const DOT: CurrencyId = 0;
+pub const BTC: CurrencyId = 1;
+pub const ETH: CurrencyId = 2;
 pub const ALICE: AccountId = AccountId32::new([0u8; 32]);
 pub const BOB: AccountId = AccountId32::new([1u8; 32]);
 pub const CHARLIE: AccountId = AccountId32::new([2u8; 32]);
@@ -105,7 +106,7 @@ impl ContainsLengthBound for TenToFourteen {
 parameter_types! {
 	pub const ProposalBond: Permill = Permill::from_percent(5);
 	pub const ProposalBondMinimum: u64 = 1;
-	pub const ProposalBondMaximum: u64 = 5;
+	pub const ProposalBondMaximum: Option<u128> = Some(5);
 	pub const SpendPeriod: u64 = 2;
 	pub const Burn: Permill = Permill::from_percent(50);
 	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
@@ -192,9 +193,9 @@ impl pallet_elections_phragmen::Config for Runtime {
 	type CurrencyToVote = SaturatingCurrencyToVote;
 	type ChangeMembers = TestChangeMembers;
 	type InitializeMembers = ();
-	type CandidacyBond = ConstU64<3>;
-	type VotingBondBase = ConstU64<2>;
-	type VotingBondFactor = ConstU64<0>;
+	type CandidacyBond = ConstU128<3>;
+	type VotingBondBase = ConstU128<2>;
+	type VotingBondFactor = ConstU128<0>;
 	type TermDuration = ConstU64<5>;
 	type DesiredMembers = ConstU32<2>;
 	type DesiredRunnersUp = ConstU32<2>;
@@ -410,7 +411,7 @@ where
 impl Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
-	type Amount = i64;
+	type Amount = Amount;
 	type CurrencyId = CurrencyId;
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
@@ -440,13 +441,14 @@ construct_runtime!(
 
 #[derive(Default)]
 pub struct ExtBuilder {
-	balances: Vec<(AccountId, CurrencyId, Balance)>,
+	tokens_endowment: Vec<(AccountId, CurrencyId, Balance)>,
 	treasury_genesis: bool,
 }
 
 impl ExtBuilder {
-	pub fn balances(mut self, mut balances: Vec<(AccountId, CurrencyId, Balance)>) -> Self {
-		self.balances.append(&mut balances);
+	#[allow(unused_mut)]
+	pub fn balances(mut self, mut tokens_endowment: Vec<(AccountId, CurrencyId, Balance)>) -> Self {
+		self.tokens_endowment = tokens_endowment;
 		self
 	}
 
@@ -456,7 +458,8 @@ impl ExtBuilder {
 			.unwrap();
 
 		tokens::GenesisConfig::<Runtime> {
-			balances: self.balances,
+			tokens_endowment: self.tokens_endowment,
+			created_tokens_for_staking: vec![],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();
