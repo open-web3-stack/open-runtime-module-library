@@ -430,7 +430,7 @@ pub mod module {
 	}
 
 	#[pallet::genesis_build]
-	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+	impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
 		fn build(&self) {
 			// ensure no duplicates exist.
 			let unique_endowed_accounts = self
@@ -466,7 +466,7 @@ pub mod module {
 	pub struct Pallet<T>(_);
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
@@ -1274,7 +1274,7 @@ impl<T: Config> MultiCurrencyExtended<T::AccountId> for Pallet<T> {
 }
 
 impl<T: Config> MultiLockableCurrency<T::AccountId> for Pallet<T> {
-	type Moment = T::BlockNumber;
+	type Moment = BlockNumberFor<T>;
 
 	// Set a lock on the balance of `who` under `currency_id`.
 	// Is a no-op if lock amount is zero.
@@ -2400,7 +2400,7 @@ where
 	T: Config,
 	GetCurrencyId: Get<T::CurrencyId>,
 {
-	type Moment = T::BlockNumber;
+	type Moment = BlockNumberFor<T>;
 	type MaxLocks = ();
 
 	fn set_lock(id: LockIdentifier, who: &T::AccountId, amount: Self::Balance, _reasons: WithdrawReasons) {

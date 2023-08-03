@@ -23,6 +23,7 @@
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{ensure, pallet_prelude::*, traits::Get, BoundedVec, Parameter};
+use frame_system::pallet_prelude::*;
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, One, Zero},
@@ -175,7 +176,7 @@ pub mod module {
 	}
 
 	#[pallet::genesis_build]
-	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+	impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
 		fn build(&self) {
 			self.tokens.iter().for_each(|token_class| {
 				let class_id = Pallet::<T>::create_class(&token_class.0, token_class.1.to_vec(), token_class.2.clone())
@@ -193,7 +194,7 @@ pub mod module {
 	pub struct Pallet<T>(_);
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {}
@@ -229,7 +230,7 @@ impl<T: Config> Pallet<T> {
 	/// Transfer NFT(non fungible token) from `from` account to `to` account
 	pub fn transfer(from: &T::AccountId, to: &T::AccountId, token: (T::ClassId, T::TokenId)) -> DispatchResult {
 		Tokens::<T>::try_mutate(token.0, token.1, |token_info| -> DispatchResult {
-			let mut info = token_info.as_mut().ok_or(Error::<T>::TokenNotFound)?;
+			let info = token_info.as_mut().ok_or(Error::<T>::TokenNotFound)?;
 			ensure!(info.owner == *from, Error::<T>::NoPermission);
 			if from == to {
 				// no change needed

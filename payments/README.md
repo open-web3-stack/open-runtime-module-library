@@ -1,6 +1,6 @@
 # Payments Pallet
 
-This pallet allows users to create secure reversible payments that keep funds locked in a merchant's account until the off-chain goods are confirmed to be received. Each payment gets assigned its own *judge* that can help resolve any disputes between the two parties. 
+This pallet allows users to create secure reversible payments that keep funds locked in a merchant's account until the off-chain goods are confirmed to be received. Each payment gets assigned its own *judge* that can help resolve any disputes between the two parties.
 
 ## Terminology
 
@@ -18,7 +18,7 @@ This pallet allows users to create secure reversible payments that keep funds lo
 - `PaymentCreated { from: T::AccountId, asset: AssetIdOf<T>, amount: BalanceOf<T> },`,
 - `PaymentReleased { from: T::AccountId, to: T::AccountId }`,
 - `PaymentCancelled { from: T::AccountId, to: T::AccountId }`,
-- `PaymentCreatorRequestedRefund { from: T::AccountId, to: T::AccountId, expiry: T::BlockNumber}`
+- `PaymentCreatorRequestedRefund { from: T::AccountId, to: T::AccountId, expiry: BlockNumberFor<T>}`
 - `PaymentRefundDisputed { from: T::AccountId, to: T::AccountId }`
 - `PaymentRequestCreated { from: T::AccountId, to: T::AccountId }`
 - `PaymentRequestCompleted { from: T::AccountId, to: T::AccountId }`
@@ -42,11 +42,11 @@ This pallet allows users to create secure reversible payments that keep funds lo
 The RatesProvider module provides implementations for the following traits.
 - [`PaymentHandler`](./src/types.rs)
 
-## Types 
+## Types
 
 The `PaymentDetail` struct stores information about the payment/escrow. A "payment" in virto network is similar to an escrow, it is used to guarantee proof of funds and can be released once an agreed upon condition has reached between the payment creator and recipient. The payment lifecycle is tracked using the state field.
 
-```rust 
+```rust
 pub struct PaymentDetail<T: pallet::Config> {
 	/// type of asset used for payment
 	pub asset: AssetIdOf<T>,
@@ -55,7 +55,7 @@ pub struct PaymentDetail<T: pallet::Config> {
 	/// incentive amount that is credited to creator for resolving
 	pub incentive_amount: BalanceOf<T>,
 	/// enum to track payment lifecycle [Created, NeedsReview]
-	pub state: PaymentState<T::BlockNumber>,
+	pub state: PaymentState<BlockNumberFor<T>>,
 	/// account that can settle any disputes created in the payment
 	pub resolver_account: T::AccountId,
 	/// fee charged and recipient account details

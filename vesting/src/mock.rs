@@ -86,7 +86,7 @@ parameter_types! {
 impl BlockNumberProvider for MockBlockNumberProvider {
 	type BlockNumber = u64;
 
-	fn current_block_number() -> Self::BlockNumber {
+	fn current_block_number() -> BlockNumberFor<Self> {
 		Self::get()
 	}
 }
