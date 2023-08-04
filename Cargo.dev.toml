@@ -98,6 +98,7 @@ parachain-info = { git = "https://github.com/paritytech//cumulus", rev = "0d17cf
 pallet-xcm = { git = "https://github.com/paritytech//polkadot", rev = "c9ec8c5a15959ce711bb60aa79add58f560d61e9" }
 polkadot-core-primitives = { git = "https://github.com/paritytech//polkadot", rev = "c9ec8c5a15959ce711bb60aa79add58f560d61e9" }
 polkadot-runtime-parachains = { git = "https://github.com/paritytech//polkadot", rev = "c9ec8c5a15959ce711bb60aa79add58f560d61e9" }
+polkadot-runtime-common = { git = "https://github.com/paritytech//polkadot", rev = "c9ec8c5a15959ce711bb60aa79add58f560d61e9" }
 polkadot-parachain = { git = "https://github.com/paritytech//polkadot", rev = "c9ec8c5a15959ce711bb60aa79add58f560d61e9" }
 polkadot-primitives = { git = "https://github.com/paritytech//polkadot", rev = "c9ec8c5a15959ce711bb60aa79add58f560d61e9" }
 xcm = { git = "https://github.com/paritytech//polkadot", rev = "c9ec8c5a15959ce711bb60aa79add58f560d61e9" }
