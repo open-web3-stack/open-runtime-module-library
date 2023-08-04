@@ -3,9 +3,8 @@
 use frame_support::pallet_prelude::ConstU32;
 use sp_core::H256;
 use sp_runtime::{
-	BuildStorage,
 	traits::{BlakeTwo256, IdentityLookup},
-	MultiSignature,
+	BuildStorage, MultiSignature,
 };
 use sp_std::prelude::*;
 
