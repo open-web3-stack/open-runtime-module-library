@@ -43,7 +43,7 @@ mod tests {
 	use frame_support::{assert_noop, assert_ok, construct_runtime, pallet_prelude::*, traits::Everything};
 	use sp_core::{ConstU64, H256};
 	use sp_io::TestExternalities;
-	use sp_runtime::{testing::Header, traits::IdentityLookup};
+	use sp_runtime::traits::IdentityLookup;
 	use sp_runtime::{DispatchError, DispatchResult};
 	use sp_std::result::Result;
 
@@ -69,14 +69,13 @@ mod tests {
 
 	impl frame_system::Config for Runtime {
 		type RuntimeOrigin = RuntimeOrigin;
-		type Index = u64;
-		type BlockNumber = u64;
+		type Nonce = u64;
 		type RuntimeCall = RuntimeCall;
 		type Hash = H256;
 		type Hashing = ::sp_runtime::traits::BlakeTwo256;
 		type AccountId = u128;
 		type Lookup = IdentityLookup<Self::AccountId>;
-		type Header = Header;
+		type Block = Block;
 		type RuntimeEvent = RuntimeEvent;
 		type BlockHashCount = ConstU64<250>;
 		type BlockWeights = ();
@@ -96,15 +95,10 @@ mod tests {
 
 	impl module::Config for Runtime {}
 
-	type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 	type Block = frame_system::mocking::MockBlock<Runtime>;
 
 	construct_runtime!(
-		pub enum Runtime where
-			Block = Block,
-			NodeBlock = Block,
-			UncheckedExtrinsic = UncheckedExtrinsic,
-		{
+		pub enum Runtime {
 			System: frame_system,
 			TestModule: module,
 		}

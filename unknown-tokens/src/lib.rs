@@ -50,9 +50,6 @@ pub mod module {
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
-	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
-
 	/// Concrete fungible balances under a given location and a concrete
 	/// fungible id.
 	///
@@ -70,9 +67,6 @@ pub mod module {
 	#[pallet::getter(fn abstract_fungible_balances)]
 	pub(crate) type AbstractFungibleBalances<T> =
 		StorageDoubleMap<_, Blake2_128Concat, MultiLocation, Blake2_128Concat, Vec<u8>, u128, ValueQuery>;
-
-	#[pallet::call]
-	impl<T: Config> Pallet<T> {}
 }
 
 impl<T: Config> UnknownAsset for Pallet<T> {

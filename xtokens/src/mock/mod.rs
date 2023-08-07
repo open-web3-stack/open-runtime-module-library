@@ -6,7 +6,7 @@ use crate as orml_xtokens;
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 use sp_io::TestExternalities;
-use sp_runtime::{AccountId32, BoundedVec};
+use sp_runtime::{AccountId32, BoundedVec, BuildStorage};
 use xcm_executor::traits::WeightTrader;
 use xcm_executor::Assets;
 
@@ -241,15 +241,15 @@ pub type ParaTeleportTokens = orml_tokens::Pallet<para_teleport::Runtime>;
 pub fn para_ext(para_id: u32) -> TestExternalities {
 	use para::{Runtime, System};
 
-	let mut t = frame_system::GenesisConfig::default()
-		.build_storage::<Runtime>()
+	let mut t = frame_system::GenesisConfig::<Runtime>::default()
+		.build_storage()
 		.unwrap();
 
-	let parachain_info_config = parachain_info::GenesisConfig {
+	let parachain_info_config = parachain_info::GenesisConfig::<Runtime> {
+		_config: Default::default(),
 		parachain_id: para_id.into(),
 	};
-	<parachain_info::GenesisConfig as GenesisBuild<Runtime, _>>::assimilate_storage(&parachain_info_config, &mut t)
-		.unwrap();
+	parachain_info_config.assimilate_storage(&mut t).unwrap();
 
 	orml_tokens::GenesisConfig::<Runtime> {
 		balances: vec![(ALICE, CurrencyId::R, 1_000)],
@@ -265,15 +265,15 @@ pub fn para_ext(para_id: u32) -> TestExternalities {
 pub fn para_teleport_ext(para_id: u32) -> TestExternalities {
 	use para_teleport::{Runtime, System};
 
-	let mut t = frame_system::GenesisConfig::default()
-		.build_storage::<Runtime>()
+	let mut t = frame_system::GenesisConfig::<Runtime>::default()
+		.build_storage()
 		.unwrap();
 
-	let parachain_info_config = parachain_info::GenesisConfig {
+	let parachain_info_config = parachain_info::GenesisConfig::<Runtime> {
+		_config: Default::default(),
 		parachain_id: para_id.into(),
 	};
-	<parachain_info::GenesisConfig as GenesisBuild<Runtime, _>>::assimilate_storage(&parachain_info_config, &mut t)
-		.unwrap();
+	parachain_info_config.assimilate_storage(&mut t).unwrap();
 
 	orml_tokens::GenesisConfig::<Runtime> {
 		balances: vec![(ALICE, CurrencyId::R, 1_000)],
@@ -289,8 +289,8 @@ pub fn para_teleport_ext(para_id: u32) -> TestExternalities {
 pub fn relay_ext() -> sp_io::TestExternalities {
 	use relay::{Runtime, System};
 
-	let mut t = frame_system::GenesisConfig::default()
-		.build_storage::<Runtime>()
+	let mut t = frame_system::GenesisConfig::<Runtime>::default()
+		.build_storage()
 		.unwrap();
 
 	pallet_balances::GenesisConfig::<Runtime> {
