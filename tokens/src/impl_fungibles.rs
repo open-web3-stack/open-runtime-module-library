@@ -186,6 +186,48 @@ impl<T: Config> fungibles::Unbalanced<T::AccountId> for Pallet<T> {
 		Ok(maybe_dust)
 	}
 
+	/// Increase the balance of `who` by `amount`.
+	///
+	/// If it cannot be increased by that amount for some reason, return `Err`
+	/// and don't increase it at all. If Ok, return the imbalance.
+	/// Minimum balance will be respected and an error will be returned if
+	/// `amount < Self::minimum_balance()` when the account of `who` is zero.
+	/// NOTE: this impl overrides the default implementation of
+	/// fungibles::Unbalanced, allow `amount < Self::minimum_balance() && who is
+	/// in DustRemovalWhitelist` when the account of `who` is zero
+	fn increase_balance(
+		asset: Self::AssetId,
+		who: &T::AccountId,
+		amount: Self::Balance,
+		precision: Precision,
+	) -> Result<Self::Balance, DispatchError> {
+		let old_balance = <Self as fungibles::Inspect<_>>::balance(asset, who);
+		let new_balance = if let Precision::BestEffort = precision {
+			old_balance.saturating_add(amount)
+		} else {
+			old_balance.checked_add(&amount).ok_or(ArithmeticError::Overflow)?
+		};
+		if new_balance < <Self as fungibles::Inspect<_>>::minimum_balance(asset)
+			&& !Self::in_dust_removal_whitelist(who)
+		{
+			// Attempt to increase from 0 to below minimum -> stays at zero.
+			if let Precision::BestEffort = precision {
+				Ok(Self::Balance::default())
+			} else {
+				Err(TokenError::BelowMinimum.into())
+			}
+		} else {
+			if new_balance == old_balance {
+				Ok(Self::Balance::default())
+			} else {
+				if let Some(dust) = Self::write_balance(asset, who, new_balance)? {
+					Self::handle_dust(fungibles::Dust(asset, dust));
+				}
+				Ok(new_balance.saturating_sub(old_balance))
+			}
+		}
+	}
+
 	fn set_total_issuance(asset_id: Self::AssetId, amount: Self::Balance) {
 		// Balance is the same type and will not overflow
 		TotalIssuance::<T>::mutate(asset_id, |t| *t = amount);

@@ -170,9 +170,16 @@ where
 	A: fungible::Mutate<AccountId, Balance = <B as fungibles::Inspect<AccountId>>::Balance>,
 	B: fungibles::Mutate<AccountId>,
 {
-	fn handle_dust(_dust: fungibles::Dust<AccountId, Self>) {
-		// FIXME: only way to access internals of Dust is into_credit, but T is
-		// not balanced
+	fn handle_dust(dust: fungibles::Dust<AccountId, Self>) {
+		let asset = dust.0;
+		let dust_amount = dust.1;
+		if TestKey::contains(&asset) {
+			let fungible_dust = fungible::Dust::<AccountId, A>(dust_amount);
+			A::handle_dust(fungible_dust)
+		} else {
+			let fungibles_dust = fungibles::Dust::<AccountId, B>(asset, dust_amount);
+			B::handle_dust(fungibles_dust)
+		}
 	}
 
 	fn write_balance(
@@ -184,6 +191,22 @@ where
 			A::write_balance(who, amount)
 		} else {
 			B::write_balance(asset, who, amount)
+		}
+	}
+
+	/// NOTE: this impl overrides the default implementation of
+	/// fungibles::Unbalanced, because orml-tokens override the default the
+	/// implementation of fungibles::Unbalanced. Here override for consistency.
+	fn increase_balance(
+		asset: Self::AssetId,
+		who: &AccountId,
+		amount: Self::Balance,
+		precision: Precision,
+	) -> Result<Self::Balance, DispatchError> {
+		if TestKey::contains(&asset) {
+			A::increase_balance(who, amount, precision)
+		} else {
+			B::increase_balance(asset, who, amount, precision)
 		}
 	}
 
@@ -351,13 +374,26 @@ where
 	B: BalanceT,
 	GetCurrencyId: Get<<T as fungibles::Inspect<AccountId>>::AssetId>,
 {
-	fn handle_dust(_dust: fungible::Dust<AccountId, Self>) {
-		// FIXME: only way to access internals of Dust is into_credit, but T is
-		// not balanced
+	fn handle_dust(dust: fungible::Dust<AccountId, Self>) {
+		let dust_amount = dust.0;
+		let asset = GetCurrencyId::get();
+		let fungibles_dust = fungibles::Dust::<AccountId, T>(asset, dust_amount);
+		T::handle_dust(fungibles_dust)
 	}
 
 	fn write_balance(who: &AccountId, amount: Self::Balance) -> Result<Option<Self::Balance>, DispatchError> {
 		T::write_balance(GetCurrencyId::get(), who, amount)
+	}
+
+	/// NOTE: this impl overrides the default implementation of
+	/// fungible::Unbalanced, because orml-tokens override the default the
+	/// implementation of fungibles::Unbalanced. Here override for consistency.
+	fn increase_balance(
+		who: &AccountId,
+		amount: Self::Balance,
+		precision: Precision,
+	) -> Result<Self::Balance, DispatchError> {
+		T::increase_balance(GetCurrencyId::get(), who, amount, precision)
 	}
 
 	fn set_total_issuance(amount: Self::Balance) {
@@ -517,7 +553,7 @@ where
 		value: Self::Balance,
 	) -> SignedImbalance<Self::Balance, Self::PositiveImbalance> {
 		let currency_id = GetCurrencyId::get();
-		Pallet::<T>::try_mutate_account(
+		Pallet::<T>::try_mutate_account_handling_dust(
 			currency_id,
 			who,
 			|account, is_new| -> Result<SignedImbalance<Self::Balance, Self::PositiveImbalance>, ()> {
@@ -547,7 +583,6 @@ where
 				Ok(imbalance)
 			},
 		)
-		.map(|(imbalance, _)| imbalance)
 		.unwrap_or_else(|_| SignedImbalance::Positive(Self::PositiveImbalance::zero()))
 	}
 }
@@ -740,13 +775,28 @@ where
 	T: Config,
 	GetCurrencyId: Get<T::CurrencyId>,
 {
-	fn handle_dust(_dust: fungible::Dust<T::AccountId, Self>) {
-		// Dust is handled in account mutate method
+	fn handle_dust(dust: fungible::Dust<T::AccountId, Self>) {
+		let dust_amount = dust.0;
+		let asset = GetCurrencyId::get();
+		let fungibles_dust = fungibles::Dust::<T::AccountId, Pallet<T>>(asset, dust_amount);
+		<Pallet<T> as fungibles::Unbalanced<_>>::handle_dust(fungibles_dust)
 	}
 
 	fn write_balance(who: &T::AccountId, amount: Self::Balance) -> Result<Option<Self::Balance>, DispatchError> {
 		<Pallet<T> as fungibles::Unbalanced<_>>::write_balance(GetCurrencyId::get(), who, amount)
 	}
+
+	/// NOTE: this impl overrides the default implementation of
+	/// fungible::Unbalanced, because orml-tokens override the default the
+	/// implementation of fungibles::Unbalanced. Here override for consistency.
+	fn increase_balance(
+		who: &T::AccountId,
+		amount: Self::Balance,
+		precision: Precision,
+	) -> Result<Self::Balance, DispatchError> {
+		<Pallet<T> as fungibles::Unbalanced<_>>::increase_balance(GetCurrencyId::get(), who, amount, precision)
+	}
+
 	fn set_total_issuance(amount: Self::Balance) {
 		<Pallet<T> as fungibles::Unbalanced<_>>::set_total_issuance(GetCurrencyId::get(), amount)
 	}
