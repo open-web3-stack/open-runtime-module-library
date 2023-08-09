@@ -47,7 +47,7 @@ use frame_support::{
 			fungible, fungibles, DepositConsequence, Fortitude, Precision, Preservation, Provenance,
 			WithdrawConsequence,
 		},
-		BalanceStatus as Status, Contains, DefensiveSaturating, ExistenceRequirement, Get, Imbalance, OnUnbalanced,
+		Contains, DefensiveSaturating, ExistenceRequirement, Get, Imbalance, OnUnbalanced,
 	},
 	BoundedVec,
 };
@@ -129,10 +129,6 @@ pub struct AccountData<Balance> {
 }
 
 impl<Balance: Saturating + Copy + Ord> AccountData<Balance> {
-	pub(crate) fn usable(&self) -> Balance {
-		self.free.saturating_sub(self.frozen)
-	}
-
 	/// The total balance in this account including any that is reserved and
 	/// ignoring any frozen.
 	pub(crate) fn total(&self) -> Balance {
@@ -580,43 +576,52 @@ pub mod module {
 			ensure_root(origin)?;
 			let who = T::Lookup::lookup(who)?;
 
-			Self::try_mutate_account(currency_id, &who, |account, _| -> DispatchResult {
-				let mut new_total = new_free.checked_add(&new_reserved).ok_or(ArithmeticError::Overflow)?;
-				let (new_free, new_reserved) = if new_total < T::ExistentialDeposits::get(&currency_id) {
-					new_total = Zero::zero();
-					(Zero::zero(), Zero::zero())
-				} else {
-					(new_free, new_reserved)
-				};
-				let old_total = account.total();
+			let mut new_total = new_free.checked_add(&new_reserved).ok_or(ArithmeticError::Overflow)?;
+			let ed = Self::ed(currency_id);
+			let wipeout = new_free < ed && new_reserved.is_zero() && !Self::in_dust_removal_whitelist(&who);
+			let (new_free, new_reserved) = if wipeout {
+				new_total = Zero::zero();
+				(Zero::zero(), Zero::zero())
+			} else {
+				(new_free, new_reserved)
+			};
 
-				account.free = new_free;
-				account.reserved = new_reserved;
+			// First we try to modify the account's balance to the forced balance.
+			let old_total = Self::try_mutate_account_handling_dust(
+				currency_id,
+				&who,
+				|account, _| -> Result<T::Balance, DispatchError> {
+					let old_total = account.total();
+					account.free = new_free;
+					account.reserved = new_reserved;
+					Ok(old_total)
+				},
+			)?;
 
-				if new_total > old_total {
-					TotalIssuance::<T>::try_mutate(currency_id, |t| -> DispatchResult {
-						*t = t
-							.checked_add(&(new_total.defensive_saturating_sub(old_total)))
-							.ok_or(ArithmeticError::Overflow)?;
-						Ok(())
-					})?;
-				} else if new_total < old_total {
-					TotalIssuance::<T>::try_mutate(currency_id, |t| -> DispatchResult {
-						*t = t
-							.checked_sub(&(old_total.defensive_saturating_sub(new_total)))
-							.ok_or(ArithmeticError::Underflow)?;
-						Ok(())
-					})?;
-				}
+			// This will adjust the total issuance, which was not done by the
+			// `mutate_account` above.
+			if new_total > old_total {
+				TotalIssuance::<T>::try_mutate(currency_id, |t| -> DispatchResult {
+					*t = t
+						.checked_add(&(new_total.defensive_saturating_sub(old_total)))
+						.ok_or(ArithmeticError::Overflow)?;
+					Ok(())
+				})?;
+			} else if new_total < old_total {
+				TotalIssuance::<T>::try_mutate(currency_id, |t| -> DispatchResult {
+					*t = t
+						.checked_sub(&(old_total.defensive_saturating_sub(new_total)))
+						.ok_or(ArithmeticError::Underflow)?;
+					Ok(())
+				})?;
+			}
 
-				Self::deposit_event(Event::BalanceSet {
-					currency_id,
-					who: who.clone(),
-					free: new_free,
-					reserved: new_reserved,
-				});
-				Ok(())
-			})?;
+			Self::deposit_event(Event::BalanceSet {
+				currency_id,
+				who: who.clone(),
+				free: new_free,
+				reserved: new_reserved,
+			});
 
 			Ok(())
 		}
@@ -652,6 +657,11 @@ impl<T: Config> Pallet<T> {
 			Error::<T>::LiquidityRestrictions
 		);
 		Ok(())
+	}
+
+	pub(crate) fn wipeout(currency_id: T::CurrencyId, who: &T::AccountId, account: &AccountData<T::Balance>) -> bool {
+		let ed = Self::ed(currency_id);
+		account.free < ed && account.reserved.is_zero() && !Self::in_dust_removal_whitelist(who)
 	}
 
 	/// Mutate an account to some new value, or delete it entirely with `None`.
@@ -692,22 +702,10 @@ impl<T: Config> Pallet<T> {
 			//
 			// We should never be dropping if reserved is non-zero. Reserved being non-zero
 			// should imply that we have a consumer ref, so this is economically safe.
-			let ed = Self::ed(currency_id);
-			let maybe_dust = if account.free < ed && account.reserved.is_zero() {
-				if account.free.is_zero() {
-					None
-				} else if Self::in_dust_removal_whitelist(who) {
-					// NOTE: if the account is in the dust removal whitelist, don't drop!
-					*maybe_account = Some(account);
-
-					None
-				} else {
-					Some(account.free)
-				}
+			let maybe_dust = if Self::wipeout(currency_id, who, &account) {
+				Some(account.free)
 			} else {
-				assert!(
-					account.free.is_zero() || account.free >= ed || !account.reserved.is_zero()
-				);
+				// update account
 				*maybe_account = Some(account);
 				None
 			};
@@ -825,44 +823,6 @@ impl<T: Config> Pallet<T> {
 		r
 	}
 
-	/// Set free balance of `who` to a new value.
-	///
-	/// Note: this will not maintain total issuance, and the caller is expected
-	/// to do it. If it will cause the account to be removed dust, shouldn't use
-	/// it, because maybe the account that should be reaped to remain due to
-	/// failed transfer/withdraw dust.
-	pub(crate) fn set_free_balance(currency_id: T::CurrencyId, who: &T::AccountId, amount: T::Balance) {
-		Self::mutate_account(currency_id, who, |account| {
-			account.free = amount;
-
-			Self::deposit_event(Event::BalanceSet {
-				currency_id,
-				who: who.clone(),
-				free: account.free,
-				reserved: account.reserved,
-			});
-		});
-	}
-
-	/// Set reserved balance of `who` to a new value.
-	///
-	/// Note: this will not maintain total issuance, and the caller is expected
-	/// to do it. If it will cause the account to be removed dust, shouldn't use
-	/// it, because maybe the account that should be reaped to remain due to
-	/// failed transfer/withdraw dust.
-	pub(crate) fn set_reserved_balance(currency_id: T::CurrencyId, who: &T::AccountId, amount: T::Balance) {
-		Self::mutate_account(currency_id, who, |account| {
-			account.reserved = amount;
-
-			Self::deposit_event(Event::BalanceSet {
-				currency_id,
-				who: who.clone(),
-				free: account.free,
-				reserved: account.reserved,
-			});
-		});
-	}
-
 	/// Update the account entry for `who` under `currency_id`, given the
 	/// locks.
 	pub(crate) fn update_locks(
@@ -875,7 +835,7 @@ impl<T: Config> Pallet<T> {
 		let mut total_frozen_after = Zero::zero();
 
 		// update account data
-		Self::mutate_account(currency_id, who, |account| {
+		let (_, maybe_dust) = Self::mutate_account(currency_id, who, |account| {
 			total_frozen_prev = account.frozen;
 			account.frozen = Zero::zero();
 			for lock in locks.iter() {
@@ -883,6 +843,7 @@ impl<T: Config> Pallet<T> {
 			}
 			total_frozen_after = account.frozen;
 		});
+		debug_assert!(maybe_dust.is_none(), "Not altering main balance; qed");
 
 		// update locks
 		let existed = Locks::<T>::contains_key(who, currency_id);
@@ -952,40 +913,25 @@ impl<T: Config> Pallet<T> {
 			to,
 			amount,
 		)?;
-		Self::try_mutate_account(currency_id, to, |to_account, _| -> DispatchResult {
-			Self::try_mutate_account(currency_id, from, |from_account, _| -> DispatchResult {
+
+		Self::try_mutate_account_handling_dust(currency_id, to, |to_account, _| -> DispatchResult {
+			Self::try_mutate_account_handling_dust(currency_id, from, |from_account, _| -> DispatchResult {
+				Self::ensure_can_withdraw(currency_id, from, amount)?;
+
 				from_account.free = from_account
 					.free
 					.checked_sub(&amount)
 					.ok_or(Error::<T>::BalanceTooLow)?;
 				to_account.free = to_account.free.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
 
-				let ed = T::ExistentialDeposits::get(&currency_id);
-				// if the total of `to_account` is below existential deposit, would return an
-				// error.
-				// Note: if `to_account` is in `T::DustRemovalWhitelist`, can bypass this check.
-				ensure!(
-					to_account.total() >= ed || T::DustRemovalWhitelist::contains(to),
-					Error::<T>::ExistentialDeposit
-				);
-
-				Self::ensure_can_withdraw(currency_id, from, amount)?;
+				let to_wipeout = Self::wipeout(currency_id, to, &to_account);
+				ensure!(to_wipeout, Error::<T>::ExistentialDeposit);
 
 				let allow_death = existence_requirement == ExistenceRequirement::AllowDeath;
 				let allow_death = allow_death && frame_system::Pallet::<T>::can_dec_provider(from);
-				let would_be_dead = if from_account.total() < ed {
-					if from_account.total().is_zero() {
-						true
-					} else {
-						// Note: if account is not in `T::DustRemovalWhitelist`, account will eventually
-						// be reaped due to the dust removal.
-						!T::DustRemovalWhitelist::contains(from)
-					}
-				} else {
-					false
-				};
+				let keep_alive = !Self::wipeout(currency_id, from, &from_account);
 
-				ensure!(allow_death || !would_be_dead, Error::<T>::KeepAlive);
+				ensure!(allow_death || keep_alive, Error::<T>::KeepAlive);
 				Ok(())
 			})?;
 			Ok(())
@@ -1025,26 +971,13 @@ impl<T: Config> Pallet<T> {
 			return Ok(());
 		}
 
-		Self::try_mutate_account(currency_id, who, |account, _| -> DispatchResult {
-			Self::ensure_can_withdraw(currency_id, who, amount)?;
-			let previous_total = account.total();
+		Self::ensure_can_withdraw(currency_id, who, amount)?;
+		Self::try_mutate_account_handling_dust(currency_id, who, |account, _| -> DispatchResult {
 			account.free = account.free.defensive_saturating_sub(amount);
 
-			let ed = T::ExistentialDeposits::get(&currency_id);
-			let would_be_dead = if account.total() < ed {
-				if account.total().is_zero() {
-					true
-				} else {
-					// Note: if account is not in `T::DustRemovalWhitelist`, account will eventually
-					// be reaped due to the dust removal.
-					!T::DustRemovalWhitelist::contains(who)
-				}
-			} else {
-				false
-			};
-			let would_kill = would_be_dead && (previous_total >= ed || !previous_total.is_zero());
+			let keep_alive = !Self::wipeout(currency_id, who, &account);
 			ensure!(
-				existence_requirement == ExistenceRequirement::AllowDeath || !would_kill,
+				existence_requirement == ExistenceRequirement::AllowDeath || keep_alive,
 				Error::<T>::KeepAlive
 			);
 
@@ -1090,7 +1023,7 @@ impl<T: Config> Pallet<T> {
 			who,
 			amount,
 		)?;
-		Self::try_mutate_account(currency_id, who, |account, is_new| -> DispatchResult {
+		Self::try_mutate_account_handling_dust(currency_id, who, |account, is_new| -> DispatchResult {
 			if require_existed {
 				ensure!(!is_new, Error::<T>::DeadAccount);
 			} else {
@@ -1110,6 +1043,12 @@ impl<T: Config> Pallet<T> {
 				TotalIssuance::<T>::mutate(currency_id, |v| *v = new_total_issuance);
 			}
 			account.free = account.free.defensive_saturating_add(amount);
+
+			Self::deposit_event(Event::Deposited {
+				currency_id,
+				who: who.clone(),
+				amount,
+			});
 			Ok(())
 		})?;
 		<T::CurrencyHooks as MutationHooks<T::AccountId, T::CurrencyId, T::Balance>>::PostDeposit::on_deposit(
@@ -1117,11 +1056,83 @@ impl<T: Config> Pallet<T> {
 			who,
 			amount,
 		)?;
-		Self::deposit_event(Event::Deposited {
-			currency_id,
-			who: who.clone(),
-			amount,
-		});
 		Ok(amount)
+	}
+
+	/// Move the reserved balance of one account into the balance of another,
+	/// according to `status`. This will respect freezes/locks only if
+	/// `fortitude` is `Polite`.
+	///
+	/// Is a no-op if the value to be moved is zero.
+	///
+	/// NOTE: returns actual amount of transferred value in `Ok` case.
+	pub(crate) fn do_transfer_reserved(
+		currency_id: T::CurrencyId,
+		slashed: &T::AccountId,
+		beneficiary: &T::AccountId,
+		value: T::Balance,
+		precision: Precision,
+		fortitude: Fortitude,
+		status: BalanceStatus,
+	) -> Result<T::Balance, DispatchError> {
+		if value.is_zero() {
+			return Ok(Zero::zero());
+		}
+
+		let max = <Self as fungibles::InspectHold<_>>::reducible_total_balance_on_hold(currency_id, slashed, fortitude);
+		let actual = match precision {
+			Precision::BestEffort => value.min(max),
+			Precision::Exact => value,
+		};
+		ensure!(actual <= max, TokenError::FundsUnavailable);
+		if slashed == beneficiary {
+			return match status {
+				BalanceStatus::Free => Ok(actual.saturating_sub(<Self as MultiReservableCurrency<_>>::unreserve(
+					currency_id,
+					slashed,
+					actual,
+				))),
+				BalanceStatus::Reserved => Ok(actual),
+			};
+		}
+
+		let ((_, maybe_dust_1), maybe_dust_2) = Self::try_mutate_account(
+			currency_id,
+			beneficiary,
+			|to_account, is_new| -> Result<((), Option<T::Balance>), DispatchError> {
+				ensure!(!is_new, Error::<T>::DeadAccount);
+				Self::try_mutate_account(currency_id, slashed, |from_account, _| -> DispatchResult {
+					match status {
+						BalanceStatus::Free => {
+							to_account.free = to_account.free.checked_add(&actual).ok_or(ArithmeticError::Overflow)?
+						}
+						BalanceStatus::Reserved => {
+							to_account.reserved = to_account
+								.reserved
+								.checked_add(&actual)
+								.ok_or(ArithmeticError::Overflow)?
+						}
+					}
+					from_account.reserved.saturating_reduce(actual);
+					Ok(())
+				})
+			},
+		)?;
+
+		if let Some(dust) = maybe_dust_1 {
+			<Self as fungibles::Unbalanced<_>>::handle_raw_dust(currency_id, dust);
+		}
+		if let Some(dust) = maybe_dust_2 {
+			<Self as fungibles::Unbalanced<_>>::handle_raw_dust(currency_id, dust);
+		}
+
+		Self::deposit_event(Event::ReserveRepatriated {
+			currency_id,
+			from: slashed.clone(),
+			to: beneficiary.clone(),
+			amount: actual,
+			status,
+		});
+		Ok(actual)
 	}
 }

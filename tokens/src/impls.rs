@@ -460,48 +460,27 @@ where
 		}
 
 		let currency_id = GetCurrencyId::get();
-		let account = Pallet::<T>::accounts(who, currency_id);
-		let free_slashed_amount = account.free.min(value);
-		let mut remaining_slash = value.defensive_saturating_sub(free_slashed_amount);
+		<T::CurrencyHooks as MutationHooks<T::AccountId, T::CurrencyId, T::Balance>>::OnSlash::on_slash(
+			currency_id,
+			who,
+			value,
+		);
+		let (actual, remaining_slash) =
+			Pallet::<T>::mutate_account_handling_dust(currency_id, who, |account| -> (Self::Balance, Self::Balance) {
+				let free_slashed_amount = account.free.min(value);
+				account.free = account.free.defensive_saturating_sub(free_slashed_amount);
 
-		// slash free balance
-		if !free_slashed_amount.is_zero() {
-			Pallet::<T>::set_free_balance(
-				currency_id,
-				who,
-				account.free.defensive_saturating_sub(free_slashed_amount),
-			);
-		}
+				Pallet::<T>::deposit_event(Event::Slashed {
+					currency_id,
+					who: who.clone(),
+					free_amount: free_slashed_amount,
+					reserved_amount: Zero::zero(),
+				});
 
-		// slash reserved balance
-		if !remaining_slash.is_zero() {
-			let reserved_slashed_amount = account.reserved.min(remaining_slash);
-			remaining_slash = remaining_slash.defensive_saturating_sub(reserved_slashed_amount);
-			Pallet::<T>::set_reserved_balance(
-				currency_id,
-				who,
-				account.reserved.defensive_saturating_sub(reserved_slashed_amount),
-			);
-
-			Pallet::<T>::deposit_event(Event::Slashed {
-				currency_id,
-				who: who.clone(),
-				free_amount: free_slashed_amount,
-				reserved_amount: reserved_slashed_amount,
+				(free_slashed_amount, value.saturating_sub(free_slashed_amount))
 			});
-			(
-				Self::NegativeImbalance::new(free_slashed_amount.saturating_add(reserved_slashed_amount)),
-				remaining_slash,
-			)
-		} else {
-			Pallet::<T>::deposit_event(Event::Slashed {
-				currency_id,
-				who: who.clone(),
-				free_amount: value,
-				reserved_amount: Zero::zero(),
-			});
-			(Self::NegativeImbalance::new(value), remaining_slash)
-		}
+
+		(Self::NegativeImbalance::new(actual), remaining_slash)
 	}
 
 	/// Deposit some `value` into the free balance of an existing target account
@@ -603,7 +582,7 @@ where
 		slashed: &T::AccountId,
 		beneficiary: &T::AccountId,
 		value: Self::Balance,
-		status: Status,
+		status: BalanceStatus,
 	) -> sp_std::result::Result<Self::Balance, DispatchError> {
 		<Pallet<T> as MultiReservableCurrency<_>>::repatriate_reserved(
 			GetCurrencyId::get(),
@@ -649,7 +628,7 @@ where
 		slashed: &T::AccountId,
 		beneficiary: &T::AccountId,
 		value: Self::Balance,
-		status: Status,
+		status: BalanceStatus,
 	) -> sp_std::result::Result<Self::Balance, DispatchError> {
 		<Pallet<T> as NamedMultiReservableCurrency<_>>::repatriate_reserved_named(
 			id,
