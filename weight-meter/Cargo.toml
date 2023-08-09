@@ -10,19 +10,19 @@ targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 scale-info = { version = "2.1.2", default-features = false, features = ["derive"] }
-frame-support = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.42" }
+frame-support = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v1.0.0" }
 weight-meter-procedural = { path = "weight-meter-procedural", default-features = false }
 
 [dev-dependencies]
 serde = "1.0.136"
 codec = { package = "parity-scale-codec", version = "3.4.0" }
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.42" }
-sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.42" }
-sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.42" }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
+sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
 
-frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.42" }
-frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.42" }
-pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.42" }
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
+frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
+pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
 
 orml-bencher = { path = "../bencher" }
 

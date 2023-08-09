@@ -96,6 +96,10 @@ pub mod module {
 		/// Maximum size of HasDispatched
 		#[pallet::constant]
 		type MaxHasDispatchedSize: Get<u32>;
+
+		/// Maximum size the vector used for feed values
+		#[pallet::constant]
+		type MaxFeedValues: Get<u32>;
 	}
 
 	#[pallet::error]
@@ -137,13 +141,13 @@ pub mod module {
 	pub struct Pallet<T, I = ()>(PhantomData<(T, I)>);
 
 	#[pallet::hooks]
-	impl<T: Config<I>, I: 'static> Hooks<T::BlockNumber> for Pallet<T, I> {
+	impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> {
 		/// `on_initialize` to return the weight used in `on_finalize`.
-		fn on_initialize(_n: T::BlockNumber) -> Weight {
+		fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
 			T::WeightInfo::on_finalize()
 		}
 
-		fn on_finalize(_n: T::BlockNumber) {
+		fn on_finalize(_n: BlockNumberFor<T>) {
 			// cleanup for next block
 			<HasDispatched<T, I>>::kill();
 		}
@@ -158,7 +162,7 @@ pub mod module {
 		#[pallet::weight(T::WeightInfo::feed_values(values.len() as u32))]
 		pub fn feed_values(
 			origin: OriginFor<T>,
-			values: Vec<(T::OracleKey, T::OracleValue)>,
+			values: BoundedVec<(T::OracleKey, T::OracleValue), T::MaxFeedValues>,
 		) -> DispatchResultWithPostInfo {
 			let feeder = ensure_signed(origin.clone())
 				.map(Some)
@@ -172,7 +176,7 @@ pub mod module {
 				Error::<T, I>::AlreadyFeeded
 			);
 
-			Self::do_feed_values(who, values)?;
+			Self::do_feed_values(who, values.into())?;
 			Ok(Pays::No.into())
 		}
 	}

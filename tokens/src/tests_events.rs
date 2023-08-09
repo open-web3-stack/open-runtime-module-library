@@ -220,7 +220,7 @@ fn pallet_fungibles_unbalanced_deposit_events() {
 			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::BalanceSet {
 				currency_id: DOT,
 				who: ALICE,
-				free: 450,
+				free: 500,
 				reserved: 50,
 			}));
 

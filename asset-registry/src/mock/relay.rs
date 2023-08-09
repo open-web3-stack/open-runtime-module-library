@@ -2,13 +2,17 @@ use crate::Weight;
 use cumulus_primitives_core::ParaId;
 use frame_support::{
 	construct_runtime, parameter_types,
-	traits::{ConstU128, ConstU32, ConstU64, Everything, Nothing},
-	weights::IdentityFee,
+	traits::{ConstU128, ConstU32, ConstU64, Everything, Nothing, ProcessMessage, ProcessMessageError},
+	weights::{IdentityFee, WeightMeter},
 };
 use frame_system::EnsureRoot;
-use polkadot_runtime_parachains::{configuration, origin, shared, ump};
+use polkadot_runtime_parachains::{
+	configuration,
+	inclusion::{AggregateMessageOrigin, UmpQueueId},
+	origin, shared,
+};
 use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup, AccountId32};
+use sp_runtime::{traits::IdentityLookup, AccountId32};
 use xcm::v3::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, ChildParachainAsNative, ChildParachainConvertsVia,
@@ -23,13 +27,12 @@ pub type Balance = u128;
 impl frame_system::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeCall = RuntimeCall;
-	type Index = u64;
-	type BlockNumber = u64;
+	type Nonce = u64;
 	type Hash = H256;
 	type Hashing = ::sp_runtime::traits::BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
-	type Header = Header;
+	type Block = Block;
 	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = ConstU64<250>;
 	type BlockWeights = ();
@@ -57,7 +60,7 @@ impl pallet_balances::Config for Runtime {
 	type WeightInfo = ();
 	type MaxReserves = ConstU32<50>;
 	type ReserveIdentifier = [u8; 8];
-	type HoldIdentifier = [u8; 8];
+	type RuntimeHoldReason = RuntimeHoldReason;
 	type FreezeIdentifier = [u8; 8];
 	type MaxHolds = ();
 	type MaxFreezes = ();
@@ -123,6 +126,7 @@ impl Config for XcmConfig {
 	type UniversalAliases = Nothing;
 	type CallDispatcher = RuntimeCall;
 	type SafeCallFilter = Everything;
+	type Aliasers = Nothing;
 }
 
 pub type LocalOriginToLocation = SignedToAccountId32<RuntimeOrigin, AccountId, KusamaNetwork>;
@@ -159,33 +163,62 @@ impl pallet_xcm::Config for Runtime {
 	type MaxLockers = ConstU32<8>;
 	type WeightInfo = pallet_xcm::TestWeightInfo;
 	type AdminOrigin = EnsureRoot<AccountId>;
+	type MaxRemoteLockConsumers = ConstU32<0>;
+	type RemoteLockConsumerIdentifier = ();
 	#[cfg(feature = "runtime-benchmarks")]
 	type ReachableDest = ReachableDest;
 }
 
-impl ump::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type UmpSink = ump::XcmSink<XcmExecutor<XcmConfig>, Runtime>;
-	type FirstMessageFactorPercent = ConstU64<100>;
-	type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
-	type WeightInfo = polkadot_runtime_parachains::ump::TestWeightInfo;
-}
-
 impl origin::Config for Runtime {}
 
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 type Block = frame_system::mocking::MockBlock<Runtime>;
 
+parameter_types! {
+	pub MessageQueueServiceWeight: Weight = Weight::from_parts(1_000_000_000, 1_000_000);
+	pub const MessageQueueHeapSize: u32 = 65_536;
+	pub const MessageQueueMaxStale: u32 = 16;
+}
+
+pub struct MessageProcessor;
+impl ProcessMessage for MessageProcessor {
+	type Origin = AggregateMessageOrigin;
+
+	fn process_message(
+		message: &[u8],
+		origin: Self::Origin,
+		meter: &mut WeightMeter,
+		id: &mut [u8; 32],
+	) -> Result<bool, ProcessMessageError> {
+		let para = match origin {
+			AggregateMessageOrigin::Ump(UmpQueueId::Para(para)) => para,
+		};
+		xcm_builder::ProcessXcmMessage::<Junction, xcm_executor::XcmExecutor<XcmConfig>, RuntimeCall>::process_message(
+			message,
+			Junction::Parachain(para.into()),
+			meter,
+			id,
+		)
+	}
+}
+
+impl pallet_message_queue::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Size = u32;
+	type HeapSize = MessageQueueHeapSize;
+	type MaxStale = MessageQueueMaxStale;
+	type ServiceWeight = MessageQueueServiceWeight;
+	type MessageProcessor = MessageProcessor;
+	type QueueChangeHandler = ();
+	type QueuePausedQuery = ();
+	type WeightInfo = ();
+}
+
 construct_runtime!(
-	pub enum Runtime where
-		Block = Block,
-		NodeBlock = Block,
-		UncheckedExtrinsic = UncheckedExtrinsic,
-	{
-		System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
-		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-		ParasOrigin: origin::{Pallet, Origin},
-		ParasUmp: ump::{Pallet, Call, Storage, Event},
-		XcmPallet: pallet_xcm::{Pallet, Call, Storage, Event<T>, Origin},
+	pub enum Runtime {
+		System: frame_system,
+		Balances: pallet_balances,
+		ParasOrigin: origin,
+		MessageQueue: pallet_message_queue,
+		XcmPallet: pallet_xcm,
 	}
 );

@@ -12,6 +12,7 @@ use frame_system::RawOrigin;
 use sp_runtime::{
 	testing::{Header, H256},
 	traits::{BlakeTwo256, IdentityLookup},
+	BuildStorage,
 };
 use sp_std::prelude::*;
 pub use test::*;
@@ -54,14 +55,13 @@ type AccountId = u128;
 
 impl frame_system::Config for Test {
 	type RuntimeOrigin = RuntimeOrigin;
-	type Index = u64;
-	type BlockNumber = u64;
+	type Nonce = u64;
 	type Hash = H256;
 	type RuntimeCall = RuntimeCall;
 	type Hashing = BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
-	type Header = Header;
+	type Block = Block;
 	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = ();
 	type DbWeight = ();
@@ -85,21 +85,17 @@ pub type Block = sp_runtime::generic::Block<Header, UncheckedExtrinsic>;
 pub type UncheckedExtrinsic = sp_runtime::generic::UncheckedExtrinsic<u32, RuntimeCall, u32, ()>;
 
 construct_runtime!(
-	pub enum Test where
-		Block = Block,
-		NodeBlock = Block,
-		UncheckedExtrinsic = UncheckedExtrinsic,
-	{
-		System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
-		Pallet: test::{Pallet, Call, Storage},
+	pub enum Test {
+		System: frame_system,
+		Pallet: test,
 	}
 );
 
 // This function basically just builds a genesis storage key/value store
 // according to our desired mockup.
 fn new_test_ext() -> sp_io::TestExternalities {
-	frame_system::GenesisConfig::default()
-		.build_storage::<Test>()
+	frame_system::GenesisConfig::<Test>::default()
+		.build_storage()
 		.unwrap()
 		.into()
 }

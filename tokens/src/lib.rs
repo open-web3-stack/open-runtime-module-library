@@ -329,6 +329,14 @@ pub mod module {
 			who: T::AccountId,
 			amount: T::Balance,
 		},
+		Issued {
+			currency_id: T::CurrencyId,
+			amount: T::Balance,
+		},
+		Rescinded {
+			currency_id: T::CurrencyId,
+			amount: T::Balance,
+		},
 	}
 
 	/// The total issuance of a token type.
@@ -386,7 +394,6 @@ pub mod module {
 		pub balances: Vec<(T::AccountId, T::CurrencyId, T::Balance)>,
 	}
 
-	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
 			GenesisConfig { balances: vec![] }
@@ -394,14 +401,14 @@ pub mod module {
 	}
 
 	#[pallet::genesis_build]
-	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+	impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
 		fn build(&self) {
 			// ensure no duplicates exist.
 			let unique_endowed_accounts = self
 				.balances
 				.iter()
 				.map(|(account_id, currency_id, _)| (account_id, currency_id))
-				.collect::<std::collections::BTreeSet<_>>();
+				.collect::<sp_std::collections::btree_set::BTreeSet<_>>();
 			assert!(
 				unique_endowed_accounts.len() == self.balances.len(),
 				"duplicate endowed accounts in genesis."
@@ -430,7 +437,7 @@ pub mod module {
 	pub struct Pallet<T>(_);
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {

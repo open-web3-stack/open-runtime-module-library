@@ -667,7 +667,7 @@ where
 	T: Config,
 	GetCurrencyId: Get<T::CurrencyId>,
 {
-	type Moment = T::BlockNumber;
+	type Moment = BlockNumberFor<T>;
 	type MaxLocks = ();
 
 	fn set_lock(id: LockIdentifier, who: &T::AccountId, amount: Self::Balance, _reasons: WithdrawReasons) {

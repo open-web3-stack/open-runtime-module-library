@@ -254,9 +254,19 @@ impl<T: Config> fungibles::Balanced<T::AccountId> for Pallet<T> {
 		});
 	}
 
-	fn done_issue(_asset: Self::AssetId, _amount: Self::Balance) {}
+	fn done_issue(asset: Self::AssetId, amount: Self::Balance) {
+		Self::deposit_event(Event::Issued {
+			currency_id: asset,
+			amount,
+		});
+	}
 
-	fn done_rescind(_asset: Self::AssetId, _amount: Self::Balance) {}
+	fn done_rescind(asset: Self::AssetId, amount: Self::Balance) {
+		Self::deposit_event(Event::Rescinded {
+			currency_id: asset,
+			amount,
+		});
+	}
 }
 
 impl<T: Config> fungibles::Mutate<T::AccountId> for Pallet<T> {

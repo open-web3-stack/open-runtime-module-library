@@ -318,7 +318,7 @@ impl<T: Config> MultiCurrencyExtended<T::AccountId> for Pallet<T> {
 }
 
 impl<T: Config> MultiLockableCurrency<T::AccountId> for Pallet<T> {
-	type Moment = T::BlockNumber;
+	type Moment = BlockNumberFor<T>;
 
 	// Set a lock on the balance of `who` under `currency_id`.
 	// Is a no-op if lock amount is zero.

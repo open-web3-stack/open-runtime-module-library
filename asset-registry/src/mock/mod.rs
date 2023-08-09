@@ -7,8 +7,8 @@ use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 use sp_core::bounded::BoundedVec;
 use sp_io::TestExternalities;
-use sp_runtime::{traits::Convert, AccountId32};
-use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain};
+use sp_runtime::{traits::Convert, AccountId32, BuildStorage};
+use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain, TestExt};
 
 pub mod para;
 pub mod relay;
@@ -211,7 +211,11 @@ decl_test_parachain! {
 decl_test_relay_chain! {
 	pub struct Relay {
 		Runtime = relay::Runtime,
+		RuntimeCall = relay::RuntimeCall,
+		RuntimeEvent = relay::RuntimeEvent,
 		XcmConfig = relay::XcmConfig,
+		MessageQueue = relay::MessageQueue,
+		System = relay::System,
 		new_ext = relay_ext(),
 	}
 }
@@ -234,15 +238,15 @@ pub type ParaXTokens = orml_xtokens::Pallet<para::Runtime>;
 pub fn para_ext(para_id: u32, asset_data: Option<(Vec<(u32, Vec<u8>)>, u32)>) -> TestExternalities {
 	use para::{Runtime, System};
 
-	let mut t = frame_system::GenesisConfig::default()
-		.build_storage::<Runtime>()
+	let mut t = frame_system::GenesisConfig::<Runtime>::default()
+		.build_storage()
 		.unwrap();
 
-	let parachain_info_config = parachain_info::GenesisConfig {
+	let parachain_info_config = parachain_info::GenesisConfig::<Runtime> {
+		_config: Default::default(),
 		parachain_id: para_id.into(),
 	};
-	<parachain_info::GenesisConfig as GenesisBuild<Runtime, _>>::assimilate_storage(&parachain_info_config, &mut t)
-		.unwrap();
+	parachain_info_config.assimilate_storage(&mut t).unwrap();
 
 	orml_tokens::GenesisConfig::<Runtime> {
 		balances: vec![(ALICE, CurrencyId::R, 1_000)],
@@ -264,8 +268,8 @@ pub fn para_ext(para_id: u32, asset_data: Option<(Vec<(u32, Vec<u8>)>, u32)>) ->
 pub fn relay_ext() -> sp_io::TestExternalities {
 	use relay::{Runtime, System};
 
-	let mut t = frame_system::GenesisConfig::default()
-		.build_storage::<Runtime>()
+	let mut t = frame_system::GenesisConfig::<Runtime>::default()
+		.build_storage()
 		.unwrap();
 
 	pallet_balances::GenesisConfig::<Runtime> {
