@@ -925,7 +925,7 @@ impl<T: Config> Pallet<T> {
 				to_account.free = to_account.free.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
 
 				let to_wipeout = Self::wipeout(currency_id, to, &to_account);
-				ensure!(to_wipeout, Error::<T>::ExistentialDeposit);
+				ensure!(!to_wipeout, Error::<T>::ExistentialDeposit);
 
 				let allow_death = existence_requirement == ExistenceRequirement::AllowDeath;
 				let allow_death = allow_death && frame_system::Pallet::<T>::can_dec_provider(from);
@@ -1099,8 +1099,7 @@ impl<T: Config> Pallet<T> {
 		let ((_, maybe_dust_1), maybe_dust_2) = Self::try_mutate_account(
 			currency_id,
 			beneficiary,
-			|to_account, is_new| -> Result<((), Option<T::Balance>), DispatchError> {
-				ensure!(!is_new, Error::<T>::DeadAccount);
+			|to_account, _| -> Result<((), Option<T::Balance>), DispatchError> {
 				Self::try_mutate_account(currency_id, slashed, |from_account, _| -> DispatchResult {
 					match status {
 						BalanceStatus::Free => {
