@@ -28,7 +28,8 @@ pub const ALICE: AccountId = AccountId32::new([0u8; 32]);
 pub const BOB: AccountId = AccountId32::new([1u8; 32]);
 pub const CHARLIE: AccountId = AccountId32::new([2u8; 32]);
 pub const DAVE: AccountId = AccountId32::new([3u8; 32]);
-pub const TREASURY_ACCOUNT: AccountId = AccountId32::new([4u8; 32]);
+pub const EVE: AccountId = AccountId32::new([4u8; 32]);
+pub const TREASURY_ACCOUNT: AccountId = AccountId32::new([5u8; 32]);
 pub const ID_1: LockIdentifier = *b"1       ";
 pub const ID_2: LockIdentifier = *b"2       ";
 pub const ID_3: LockIdentifier = *b"3       ";
@@ -416,19 +417,6 @@ parameter_types! {
 	pub static GetDustReceiverAccount: Option<AccountId> = Some(DustReceiverAccount::get());
 }
 
-pub struct MockDustRemoval;
-impl OnUnbalanced<fungibles::Credit<AccountId, Tokens>> for MockDustRemoval {
-	fn on_nonzero_unbalanced(amount: fungibles::Credit<AccountId, Tokens>) {
-		match GetDustReceiverAccount::get() {
-			None => drop(amount),
-			Some(a) => {
-				let result = <Tokens as fungibles::Balanced<_>>::resolve(&a, amount);
-				debug_assert!(result.is_ok());
-			}
-		}
-	}
-}
-
 impl Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
@@ -441,7 +429,7 @@ impl Config for Runtime {
 	type MaxReserves = ConstU32<2>;
 	type ReserveIdentifier = ReserveIdentifier;
 	type DustRemovalWhitelist = MockDustRemovalWhitelist;
-	type DustRemoval = MockDustRemoval;
+	type DustRemoval = DustReceiver<Runtime, GetDustReceiverAccount>;
 }
 pub type TreasuryCurrencyAdapter = <Runtime as pallet_treasury::Config>::Currency;
 

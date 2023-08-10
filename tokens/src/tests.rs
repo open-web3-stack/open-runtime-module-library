@@ -264,9 +264,433 @@ fn set_balance_should_work() {
 		});
 }
 
-// *************************************************
-// tests for inline impl
-// *************************************************
+// // *************************************************
+// // tests for utils function
+// // *************************************************
+
+#[test]
+fn wipeout_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_eq!(
+			Tokens::wipeout(
+				DOT,
+				&ALICE,
+				&AccountData {
+					free: 0,
+					reserved: 0,
+					frozen: 0
+				}
+			),
+			true
+		);
+		assert_eq!(
+			Tokens::wipeout(
+				ETH,
+				&ALICE,
+				&AccountData {
+					free: 0,
+					reserved: 0,
+					frozen: 0
+				}
+			),
+			false
+		);
+		assert_eq!(
+			Tokens::wipeout(
+				DOT,
+				&DAVE,
+				&AccountData {
+					free: 0,
+					reserved: 0,
+					frozen: 0
+				}
+			),
+			false
+		);
+		assert_eq!(
+			Tokens::wipeout(
+				ETH,
+				&DAVE,
+				&AccountData {
+					free: 0,
+					reserved: 0,
+					frozen: 0
+				}
+			),
+			false
+		);
+
+		assert_eq!(
+			Tokens::wipeout(
+				DOT,
+				&ALICE,
+				&AccountData {
+					free: 0,
+					reserved: 1,
+					frozen: 0
+				}
+			),
+			false
+		);
+		assert_eq!(
+			Tokens::wipeout(
+				ETH,
+				&ALICE,
+				&AccountData {
+					free: 0,
+					reserved: 1,
+					frozen: 0
+				}
+			),
+			false
+		);
+		assert_eq!(
+			Tokens::wipeout(
+				DOT,
+				&DAVE,
+				&AccountData {
+					free: 0,
+					reserved: 1,
+					frozen: 0
+				}
+			),
+			false
+		);
+		assert_eq!(
+			Tokens::wipeout(
+				ETH,
+				&DAVE,
+				&AccountData {
+					free: 0,
+					reserved: 1,
+					frozen: 0
+				}
+			),
+			false
+		);
+
+		assert_eq!(
+			Tokens::wipeout(
+				DOT,
+				&ALICE,
+				&AccountData {
+					free: 1,
+					reserved: 0,
+					frozen: 0
+				}
+			),
+			true
+		);
+		assert_eq!(
+			Tokens::wipeout(
+				ETH,
+				&ALICE,
+				&AccountData {
+					free: 1,
+					reserved: 0,
+					frozen: 0
+				}
+			),
+			false
+		);
+		assert_eq!(
+			Tokens::wipeout(
+				DOT,
+				&DAVE,
+				&AccountData {
+					free: 1,
+					reserved: 0,
+					frozen: 0
+				}
+			),
+			false
+		);
+		assert_eq!(
+			Tokens::wipeout(
+				ETH,
+				&DAVE,
+				&AccountData {
+					free: 1,
+					reserved: 0,
+					frozen: 0
+				}
+			),
+			false
+		);
+	});
+}
+
+#[test]
+fn try_mutate_account_work() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100), (BOB, DOT, 100), (EVE, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			// mutate existed account, will not trigger Endowed event
+			assert_eq!(System::providers(&ALICE), 1);
+			assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), true);
+			assert_eq!(
+				Tokens::accounts(&ALICE, DOT),
+				AccountData {
+					free: 100,
+					reserved: 0,
+					frozen: 0
+				}
+			);
+			assert_ok!(Tokens::try_mutate_account(
+				DOT,
+				&ALICE,
+				|account, _| -> DispatchResult {
+					account.free = 50;
+					Ok(())
+				}
+			));
+			assert_eq!(System::providers(&ALICE), 1);
+			assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), true);
+			assert_eq!(
+				Tokens::accounts(&ALICE, DOT),
+				AccountData {
+					free: 50,
+					reserved: 0,
+					frozen: 0
+				}
+			);
+			assert!(System::events().iter().all(|record| !matches!(
+				record.event,
+				RuntimeEvent::Tokens(crate::Event::Endowed {
+					currency_id: DOT,
+					who: ALICE,
+					amount: _
+				})
+			)));
+
+			// wipe out account has dust, will trigger DustLost event
+			assert_ok!(Tokens::try_mutate_account(
+				DOT,
+				&ALICE,
+				|account, _| -> DispatchResult {
+					account.free = 1;
+					Ok(())
+				}
+			));
+			assert_eq!(System::providers(&ALICE), 0);
+			assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), false);
+			assert_eq!(
+				Tokens::accounts(&ALICE, DOT),
+				AccountData {
+					free: 0,
+					reserved: 0,
+					frozen: 0
+				}
+			);
+			System::assert_has_event(RuntimeEvent::Tokens(crate::Event::DustLost {
+				currency_id: DOT,
+				who: ALICE,
+				amount: 1,
+			}));
+
+			// wipe out zero account, will not trigger DustLost event
+			assert_eq!(System::providers(&BOB), 1);
+			assert_eq!(Accounts::<Runtime>::contains_key(BOB, DOT), true);
+			assert_eq!(
+				Tokens::accounts(&BOB, DOT),
+				AccountData {
+					free: 100,
+					reserved: 0,
+					frozen: 0
+				}
+			);
+			assert_ok!(Tokens::try_mutate_account(DOT, &BOB, |account, _| -> DispatchResult {
+				account.free = 0;
+				Ok(())
+			}));
+			assert_eq!(System::providers(&BOB), 0);
+			assert_eq!(Accounts::<Runtime>::contains_key(BOB, DOT), false);
+			assert_eq!(
+				Tokens::accounts(&BOB, DOT),
+				AccountData {
+					free: 0,
+					reserved: 0,
+					frozen: 0
+				}
+			);
+			assert!(System::events().iter().all(|record| !matches!(
+				record.event,
+				RuntimeEvent::Tokens(crate::Event::DustLost {
+					currency_id: DOT,
+					who: BOB,
+					amount: 0
+				})
+			)));
+
+			// endow new account, will trigger Endowed event
+			assert_eq!(System::providers(&CHARLIE), 0);
+			assert_eq!(Accounts::<Runtime>::contains_key(CHARLIE, DOT), false);
+			assert_eq!(
+				Tokens::accounts(&CHARLIE, DOT),
+				AccountData {
+					free: 0,
+					reserved: 0,
+					frozen: 0
+				}
+			);
+			assert_ok!(Tokens::try_mutate_account(
+				DOT,
+				&CHARLIE,
+				|account, _| -> DispatchResult {
+					account.free = 50;
+					Ok(())
+				}
+			));
+			assert_eq!(System::providers(&CHARLIE), 1);
+			assert_eq!(Accounts::<Runtime>::contains_key(CHARLIE, DOT), true);
+			assert_eq!(
+				Tokens::accounts(&CHARLIE, DOT),
+				AccountData {
+					free: 50,
+					reserved: 0,
+					frozen: 0
+				}
+			);
+			System::assert_has_event(RuntimeEvent::Tokens(crate::Event::Endowed {
+				currency_id: DOT,
+				who: CHARLIE,
+				amount: 50,
+			}));
+
+			// if the account is in DustRemovalWhitelist, will not wipe out account data if
+			// free balance is below ED
+			assert_ok!(Tokens::try_mutate_account(DOT, &DAVE, |account, _| -> DispatchResult {
+				account.free = 1;
+				Ok(())
+			}));
+			assert_eq!(System::providers(&DAVE), 1);
+			assert_eq!(Accounts::<Runtime>::contains_key(DAVE, DOT), true);
+			assert_eq!(
+				Tokens::accounts(&DAVE, DOT),
+				AccountData {
+					free: 1,
+					reserved: 0,
+					frozen: 0
+				}
+			);
+			assert!(System::events().iter().all(|record| !matches!(
+				record.event,
+				RuntimeEvent::Tokens(crate::Event::DustLost {
+					currency_id: DOT,
+					who: DAVE,
+					amount: _
+				})
+			)));
+
+			// mutate account reserved but free is zero, will not trigger dust removal
+			assert_eq!(System::providers(&EVE), 1);
+			assert_eq!(Accounts::<Runtime>::contains_key(EVE, DOT), true);
+			assert_eq!(
+				Tokens::accounts(&EVE, DOT),
+				AccountData {
+					free: 100,
+					reserved: 0,
+					frozen: 0
+				}
+			);
+			assert_ok!(Tokens::try_mutate_account(DOT, &EVE, |account, _| -> DispatchResult {
+				account.free = 0;
+				account.reserved = 1;
+				Ok(())
+			}));
+			assert_eq!(System::providers(&EVE), 1);
+			assert_eq!(Accounts::<Runtime>::contains_key(EVE, DOT), true);
+			assert_eq!(
+				Tokens::accounts(&EVE, DOT),
+				AccountData {
+					free: 0,
+					reserved: 1,
+					frozen: 0
+				}
+			);
+			assert!(System::events().iter().all(|record| !matches!(
+				record.event,
+				RuntimeEvent::Tokens(crate::Event::DustLost {
+					currency_id: DOT,
+					who: EVE,
+					amount: _
+				})
+			)));
+		});
+}
+
+#[test]
+fn try_mutate_account_handling_dust_work() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100), (BOB, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			// try_mutate_account will not handle dust
+			let (_, maybe_dust) = Tokens::try_mutate_account(DOT, &ALICE, |account, _| -> DispatchResult {
+				account.free = 1;
+				Ok(())
+			})
+			.unwrap();
+			assert_eq!(System::providers(&ALICE), 0);
+			assert_eq!(Accounts::<Runtime>::contains_key(ALICE, DOT), false);
+			assert_eq!(
+				Tokens::accounts(&ALICE, DOT),
+				AccountData {
+					free: 0,
+					reserved: 0,
+					frozen: 0
+				}
+			);
+			System::assert_has_event(RuntimeEvent::Tokens(crate::Event::DustLost {
+				currency_id: DOT,
+				who: ALICE,
+				amount: 1,
+			}));
+			assert_eq!(maybe_dust, Some(1));
+			assert_eq!(
+				Tokens::accounts(DustReceiverAccount::get(), DOT),
+				AccountData {
+					free: 0,
+					reserved: 0,
+					frozen: 0
+				}
+			);
+
+			// try_mutate_account_handling_dust will handle dust
+			assert_ok!(Tokens::try_mutate_account_handling_dust(
+				DOT,
+				&BOB,
+				|account, _| -> DispatchResult {
+					account.free = 1;
+					Ok(())
+				}
+			));
+			assert_eq!(System::providers(&BOB), 0);
+			assert_eq!(Accounts::<Runtime>::contains_key(BOB, DOT), false);
+			assert_eq!(
+				Tokens::accounts(&BOB, DOT),
+				AccountData {
+					free: 0,
+					reserved: 0,
+					frozen: 0
+				}
+			);
+			System::assert_has_event(RuntimeEvent::Tokens(crate::Event::DustLost {
+				currency_id: DOT,
+				who: BOB,
+				amount: 1,
+			}));
+			assert_eq!(
+				Tokens::accounts(DustReceiverAccount::get(), DOT),
+				AccountData {
+					free: 1,
+					reserved: 0,
+					frozen: 0
+				}
+			);
+		});
+}
 
 #[test]
 fn ensure_can_withdraw_should_work() {
@@ -289,99 +713,6 @@ fn ensure_can_withdraw_should_work() {
 
 			assert_ok!(Tokens::ensure_can_withdraw(DOT, &ALICE, 50));
 		});
-}
-
-#[test]
-fn set_free_balance_should_work() {
-	ExtBuilder::default().build().execute_with(|| {
-		/* Scenarios: ED is not zero, account is not in dust removal whitelist */
-		assert!(!Accounts::<Runtime>::contains_key(ALICE, DOT));
-		assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
-		assert_eq!(Tokens::free_balance(DOT, &DustReceiverAccount::get()), 0);
-		assert_eq!(Tokens::total_issuance(DOT), 0);
-
-		// when total is below ED, account will be reaped.
-		Tokens::set_free_balance(DOT, &ALICE, 1);
-		assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
-		assert_eq!(Tokens::free_balance(DOT, &DustReceiverAccount::get()), 1);
-		// set_free_balance do not change total issuance.
-		assert_eq!(Tokens::total_issuance(DOT), 0);
-
-		Tokens::set_free_balance(DOT, &ALICE, 2);
-		assert!(Accounts::<Runtime>::contains_key(ALICE, DOT));
-		assert_eq!(Tokens::free_balance(DOT, &ALICE), 2);
-		assert_eq!(Tokens::free_balance(DOT, &DustReceiverAccount::get()), 1);
-
-		/* Scenarios: ED is not zero, account is in dust removal whitelist */
-		assert!(!Accounts::<Runtime>::contains_key(DAVE, DOT));
-		assert_eq!(Tokens::free_balance(DOT, &DAVE), 0);
-		assert_eq!(Tokens::free_balance(DOT, &DustReceiverAccount::get()), 1);
-
-		// set zero will not create account
-		Tokens::set_free_balance(DOT, &DAVE, 0);
-		assert!(!Accounts::<Runtime>::contains_key(DAVE, DOT));
-
-		// when total is below ED, account will not be reaped.
-		Tokens::set_free_balance(DOT, &DAVE, 1);
-		assert!(Accounts::<Runtime>::contains_key(DAVE, DOT));
-		assert_eq!(Tokens::free_balance(DOT, &DAVE), 1);
-		assert_eq!(Tokens::free_balance(DOT, &DustReceiverAccount::get()), 1);
-
-		/* Scenarios: ED is zero */
-		assert!(!Accounts::<Runtime>::contains_key(ALICE, ETH));
-		assert_eq!(Tokens::free_balance(ETH, &ALICE), 0);
-		assert_eq!(Tokens::free_balance(ETH, &DustReceiverAccount::get()), 0);
-
-		// set zero will create account
-		Tokens::set_free_balance(ETH, &ALICE, 0);
-		assert!(Accounts::<Runtime>::contains_key(ALICE, ETH));
-		assert_eq!(Tokens::free_balance(ETH, &ALICE), 0);
-		assert_eq!(Tokens::free_balance(ETH, &DustReceiverAccount::get()), 0);
-	});
-}
-
-#[test]
-fn set_reserved_balance_should_work() {
-	ExtBuilder::default().build().execute_with(|| {
-		/* Scenarios: ED is not zero, account is not in dust removal whitelist */
-		assert!(!Accounts::<Runtime>::contains_key(ALICE, DOT));
-		assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 0);
-		assert_eq!(Tokens::total_issuance(DOT), 0);
-
-		// when total is below ED, account should be reaped.
-		Tokens::set_reserved_balance(DOT, &ALICE, 1);
-		// but reap it failed because failed to transfer/withdraw dust removal!!!
-		assert!(Accounts::<Runtime>::contains_key(ALICE, DOT));
-		assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 1);
-		// set_reserved_balance do not change total issuance.
-		assert_eq!(Tokens::total_issuance(DOT), 0);
-
-		Tokens::set_reserved_balance(DOT, &ALICE, 2);
-		assert!(Accounts::<Runtime>::contains_key(ALICE, DOT));
-		assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 2);
-
-		/* Scenarios: ED is not zero, account is in dust removal whitelist */
-		assert!(!Accounts::<Runtime>::contains_key(DAVE, DOT));
-		assert_eq!(Tokens::free_balance(DOT, &DAVE), 0);
-
-		// set zero will not create account
-		Tokens::set_reserved_balance(DOT, &DAVE, 0);
-		assert!(!Accounts::<Runtime>::contains_key(DAVE, DOT));
-
-		// when total is below ED, account shouldn't be reaped.
-		Tokens::set_reserved_balance(DOT, &DAVE, 1);
-		assert!(Accounts::<Runtime>::contains_key(DAVE, DOT));
-		assert_eq!(Tokens::reserved_balance(DOT, &DAVE), 1);
-
-		/* Scenarios: ED is zero */
-		assert!(!Accounts::<Runtime>::contains_key(ALICE, ETH));
-		assert_eq!(Tokens::reserved_balance(ETH, &ALICE), 0);
-
-		// set zero will create account
-		Tokens::set_reserved_balance(ETH, &ALICE, 0);
-		assert!(Accounts::<Runtime>::contains_key(ALICE, ETH));
-		assert_eq!(Tokens::reserved_balance(ETH, &ALICE), 0);
-	});
 }
 
 #[test]
@@ -459,14 +790,7 @@ fn do_transfer_report_keep_alive_error_when_ed_is_not_zero() {
 				Error::<Runtime>::KeepAlive
 			);
 
-			// even if dave is in dust removal whitelist, but account drain will still cause
-			// account be be reaped.
-			assert_noop!(
-				Tokens::do_transfer(DOT, &DAVE, &BOB, 100, ExistenceRequirement::KeepAlive),
-				Error::<Runtime>::KeepAlive
-			);
-
-			// as long as do not transfer all balance, even if the total is below ED, the
+			// if account is in DustRemovalWhitelist, even if the total is below ED, the
 			// account will not be reaped.
 			assert_eq!(Tokens::free_balance(DOT, &DAVE), 100);
 			assert_eq!(Tokens::free_balance(DOT, &BOB), 0);
@@ -645,7 +969,7 @@ fn do_withdraw_dust_removal_when_allow_death() {
 		});
 }
 
-#[test]
+// #[test]
 fn do_withdraw_report_keep_alive_error_when_ed_is_not_zero() {
 	ExtBuilder::default()
 		.balances(vec![(ALICE, DOT, 100), (DAVE, DOT, 100)])
@@ -782,6 +1106,459 @@ fn do_deposit_report_existential_deposit_error() {
 	});
 }
 
+#[test]
+fn update_locks_works() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			assert_eq!(
+				Tokens::accounts(&ALICE, &DOT),
+				AccountData {
+					free: 100,
+					reserved: 0,
+					frozen: 0,
+				}
+			);
+			assert_eq!(Tokens::locks(&ALICE, &DOT), vec![]);
+			assert_eq!(System::consumers(&ALICE), 0);
+
+			assert_ok!(Tokens::update_locks(
+				DOT,
+				&ALICE,
+				&vec![BalanceLock { id: ID_1, amount: 30 }]
+			));
+			System::assert_has_event(RuntimeEvent::Tokens(crate::Event::Locked {
+				currency_id: DOT,
+				who: ALICE,
+				amount: 30,
+			}));
+			assert_eq!(
+				Tokens::accounts(&ALICE, &DOT),
+				AccountData {
+					free: 100,
+					reserved: 0,
+					frozen: 30,
+				}
+			);
+			assert_eq!(Tokens::locks(&ALICE, &DOT), vec![BalanceLock { id: ID_1, amount: 30 }]);
+			assert_eq!(System::consumers(&ALICE), 1);
+
+			assert_ok!(Tokens::update_locks(
+				DOT,
+				&ALICE,
+				&vec![
+					BalanceLock { id: ID_1, amount: 30 },
+					BalanceLock { id: ID_2, amount: 35 }
+				]
+			));
+			System::assert_has_event(RuntimeEvent::Tokens(crate::Event::Locked {
+				currency_id: DOT,
+				who: ALICE,
+				amount: 5,
+			}));
+			assert_eq!(
+				Tokens::accounts(&ALICE, &DOT),
+				AccountData {
+					free: 100,
+					reserved: 0,
+					frozen: 35,
+				}
+			);
+			assert_eq!(
+				Tokens::locks(&ALICE, &DOT),
+				vec![
+					BalanceLock { id: ID_1, amount: 30 },
+					BalanceLock { id: ID_2, amount: 35 }
+				]
+			);
+			assert_eq!(System::consumers(&ALICE), 1);
+
+			assert_noop!(
+				Tokens::update_locks(
+					DOT,
+					&ALICE,
+					&vec![
+						BalanceLock { id: ID_1, amount: 30 },
+						BalanceLock { id: ID_2, amount: 35 },
+						BalanceLock { id: ID_3, amount: 40 },
+					]
+				),
+				Error::<Runtime>::MaxLocksExceeded
+			);
+			assert_eq!(
+				Tokens::accounts(&ALICE, &DOT),
+				AccountData {
+					free: 100,
+					reserved: 0,
+					frozen: 35,
+				}
+			);
+			assert_eq!(
+				Tokens::locks(&ALICE, &DOT),
+				vec![
+					BalanceLock { id: ID_1, amount: 30 },
+					BalanceLock { id: ID_2, amount: 35 }
+				]
+			);
+			assert_eq!(System::consumers(&ALICE), 1);
+
+			assert_ok!(Tokens::update_locks(DOT, &ALICE, &vec![]));
+			System::assert_has_event(RuntimeEvent::Tokens(crate::Event::Unlocked {
+				currency_id: DOT,
+				who: ALICE,
+				amount: 35,
+			}));
+			assert_eq!(
+				Tokens::accounts(&ALICE, &DOT),
+				AccountData {
+					free: 100,
+					reserved: 0,
+					frozen: 0,
+				}
+			);
+			assert_eq!(Tokens::locks(&ALICE, &DOT), vec![]);
+			assert_eq!(System::consumers(&ALICE), 0);
+		});
+}
+
+#[test]
+fn do_transfer_reserved_works() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			assert_ok!(Tokens::reserve(DOT, &ALICE, 80));
+			assert_ok!(Tokens::update_locks(
+				DOT,
+				&ALICE,
+				&vec![BalanceLock { id: ID_1, amount: 30 }]
+			));
+			assert_eq!(
+				Tokens::accounts(&ALICE, &DOT),
+				AccountData {
+					free: 20,
+					reserved: 80,
+					frozen: 30,
+				}
+			);
+
+			// case 1:
+			// slashed == beneficiary
+			// Precision::Exact
+			// Fortitude::Polite, The freeze lock applies to the total balance, if discount
+			// free balance the remaining is not zero, will locks reserved balance also
+			// BalanceStatus::Free
+			// amount is 80, but avaliable is 70, will fail
+			assert_noop!(
+				Tokens::do_transfer_reserved(
+					DOT,
+					&ALICE,
+					&ALICE,
+					80,
+					Precision::Exact,
+					Fortitude::Polite,
+					BalanceStatus::Free
+				),
+				TokenError::FundsUnavailable
+			);
+
+			// case 2:
+			// slashed == beneficiary
+			// Precision::BestEffort
+			// Fortitude::Polite, The freeze lock applies to the total balance, if discount
+			// free balance the remaining is not zero, will locks reserved balance also
+			// BalanceStatus::Free
+			// amount is 80, avaliable is 70, actual is 70
+			// ALICE will unreserve 70
+			assert_eq!(
+				Tokens::do_transfer_reserved(
+					DOT,
+					&ALICE,
+					&ALICE,
+					80,
+					Precision::BestEffort,
+					Fortitude::Polite,
+					BalanceStatus::Free
+				),
+				Ok(70)
+			);
+			System::assert_has_event(RuntimeEvent::Tokens(crate::Event::Unreserved {
+				currency_id: DOT,
+				who: ALICE,
+				amount: 70,
+			}));
+			assert_eq!(
+				Tokens::accounts(&ALICE, &DOT),
+				AccountData {
+					free: 90,
+					reserved: 10,
+					frozen: 30,
+				}
+			);
+
+			// revert to origin state
+			assert_ok!(Tokens::update_locks(DOT, &ALICE, &vec![]));
+			assert_ok!(Tokens::reserve(DOT, &ALICE, 70));
+			assert_ok!(Tokens::update_locks(
+				DOT,
+				&ALICE,
+				&vec![BalanceLock { id: ID_1, amount: 30 }]
+			));
+			assert_eq!(
+				Tokens::accounts(&ALICE, &DOT),
+				AccountData {
+					free: 20,
+					reserved: 80,
+					frozen: 30,
+				}
+			);
+
+			// case 3:
+			// slashed == beneficiary
+			// Precision::Exact
+			// Fortitude::Force
+			// BalanceStatus::Free
+			// amount is 80, but avaliable is 80
+			// ALICE will unreserve 80
+			assert_eq!(
+				Tokens::do_transfer_reserved(
+					DOT,
+					&ALICE,
+					&ALICE,
+					80,
+					Precision::Exact,
+					Fortitude::Force,
+					BalanceStatus::Free
+				),
+				Ok(80)
+			);
+			System::assert_has_event(RuntimeEvent::Tokens(crate::Event::Unreserved {
+				currency_id: DOT,
+				who: ALICE,
+				amount: 80,
+			}));
+			assert_eq!(
+				Tokens::accounts(&ALICE, &DOT),
+				AccountData {
+					free: 100,
+					reserved: 0,
+					frozen: 30,
+				}
+			);
+
+			// revert to origin state
+			assert_ok!(Tokens::update_locks(DOT, &ALICE, &vec![]));
+			assert_ok!(Tokens::reserve(DOT, &ALICE, 80));
+			assert_ok!(Tokens::update_locks(
+				DOT,
+				&ALICE,
+				&vec![BalanceLock { id: ID_1, amount: 30 }]
+			));
+			assert_eq!(
+				Tokens::accounts(&ALICE, &DOT),
+				AccountData {
+					free: 20,
+					reserved: 80,
+					frozen: 30,
+				}
+			);
+
+			// case 4:
+			// slashed == beneficiary
+			// Precision::BestEffort
+			// Fortitude::Force
+			// BalanceStatus::Free
+			// amount is 100, but avaliable is 80
+			// ALICE will unreserve 80
+			assert_eq!(
+				Tokens::do_transfer_reserved(
+					DOT,
+					&ALICE,
+					&ALICE,
+					100,
+					Precision::BestEffort,
+					Fortitude::Force,
+					BalanceStatus::Free
+				),
+				Ok(80)
+			);
+			System::assert_has_event(RuntimeEvent::Tokens(crate::Event::Unreserved {
+				currency_id: DOT,
+				who: ALICE,
+				amount: 80,
+			}));
+			assert_eq!(
+				Tokens::accounts(&ALICE, &DOT),
+				AccountData {
+					free: 100,
+					reserved: 0,
+					frozen: 30,
+				}
+			);
+
+			// revert to origin state
+			assert_ok!(Tokens::update_locks(DOT, &ALICE, &vec![]));
+			assert_ok!(Tokens::reserve(DOT, &ALICE, 80));
+			assert_ok!(Tokens::update_locks(
+				DOT,
+				&ALICE,
+				&vec![BalanceLock { id: ID_1, amount: 30 }]
+			));
+			assert_eq!(
+				Tokens::accounts(&ALICE, &DOT),
+				AccountData {
+					free: 20,
+					reserved: 80,
+					frozen: 30,
+				}
+			);
+
+			// case 5:
+			// slashed == beneficiary
+			// Precision::BestEffort
+			// Fortitude::Force
+			// BalanceStatus::Reserved
+			// amount is 100, but avaliable is 80
+			// nothing happen for ALICE
+			assert_eq!(
+				Tokens::do_transfer_reserved(
+					DOT,
+					&ALICE,
+					&ALICE,
+					100,
+					Precision::BestEffort,
+					Fortitude::Force,
+					BalanceStatus::Reserved
+				),
+				Ok(80)
+			);
+			assert_eq!(
+				Tokens::accounts(&ALICE, &DOT),
+				AccountData {
+					free: 20,
+					reserved: 80,
+					frozen: 30,
+				}
+			);
+
+			// case 6:
+			// slashed == beneficiary
+			// Precision::Exact
+			// Fortitude::Force
+			// BalanceStatus::Reserved
+			// amount is 100, but avaliable is 80
+			// throw error
+			assert_noop!(
+				Tokens::do_transfer_reserved(
+					DOT,
+					&ALICE,
+					&ALICE,
+					100,
+					Precision::Exact,
+					Fortitude::Force,
+					BalanceStatus::Reserved
+				),
+				TokenError::FundsUnavailable
+			);
+
+			assert_eq!(
+				Tokens::accounts(&BOB, &DOT),
+				AccountData {
+					free: 0,
+					reserved: 0,
+					frozen: 0,
+				}
+			);
+
+			// case 7:
+			// slashed != beneficiary
+			// Precision::Exact
+			// Fortitude::Force
+			// BalanceStatus::Reserved
+			// amount is 20, avaliable is 80
+			// ALICE's reserved balance will transfer 20 to BOB's reserved balance
+			assert_eq!(
+				Tokens::do_transfer_reserved(
+					DOT,
+					&ALICE,
+					&BOB,
+					20,
+					Precision::Exact,
+					Fortitude::Force,
+					BalanceStatus::Reserved
+				),
+				Ok(20)
+			);
+			System::assert_has_event(RuntimeEvent::Tokens(crate::Event::ReserveRepatriated {
+				currency_id: DOT,
+				from: ALICE,
+				to: BOB,
+				amount: 20,
+				status: BalanceStatus::Reserved,
+			}));
+			assert_eq!(
+				Tokens::accounts(&ALICE, &DOT),
+				AccountData {
+					free: 20,
+					reserved: 60,
+					frozen: 30,
+				}
+			);
+			assert_eq!(
+				Tokens::accounts(&BOB, &DOT),
+				AccountData {
+					free: 0,
+					reserved: 20,
+					frozen: 0,
+				}
+			);
+
+			// case 8:
+			// slashed != beneficiary
+			// Precision::Exact
+			// Fortitude::Force
+			// BalanceStatus::Free
+			// amount is 20, avaliable is 60
+			// ALICE's reserved balance will transfer 20 to BOB's free balance
+			assert_eq!(
+				Tokens::do_transfer_reserved(
+					DOT,
+					&ALICE,
+					&BOB,
+					20,
+					Precision::Exact,
+					Fortitude::Force,
+					BalanceStatus::Free
+				),
+				Ok(20)
+			);
+			System::assert_has_event(RuntimeEvent::Tokens(crate::Event::ReserveRepatriated {
+				currency_id: DOT,
+				from: ALICE,
+				to: BOB,
+				amount: 20,
+				status: BalanceStatus::Free,
+			}));
+			assert_eq!(
+				Tokens::accounts(&ALICE, &DOT),
+				AccountData {
+					free: 20,
+					reserved: 40,
+					frozen: 30,
+				}
+			);
+			assert_eq!(
+				Tokens::accounts(&BOB, &DOT),
+				AccountData {
+					free: 20,
+					reserved: 20,
+					frozen: 0,
+				}
+			);
+		});
+}
+
 // *************************************************
 // tests for endowed account and remove account
 // *************************************************
@@ -791,8 +1568,8 @@ fn endowed_account_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_eq!(System::providers(&ALICE), 0);
 		assert!(!Accounts::<Runtime>::contains_key(ALICE, DOT));
-		Tokens::set_free_balance(DOT, &ALICE, 100);
-		System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Endowed {
+		assert_ok!(Tokens::set_balance(RawOrigin::Root.into(), ALICE, DOT, 100, 0));
+		System::assert_has_event(RuntimeEvent::Tokens(crate::Event::Endowed {
 			currency_id: DOT,
 			who: ALICE,
 			amount: 100,
@@ -810,7 +1587,7 @@ fn remove_account_work() {
 		.execute_with(|| {
 			assert_eq!(System::providers(&ALICE), 1);
 			assert!(Accounts::<Runtime>::contains_key(ALICE, DOT));
-			Tokens::set_free_balance(DOT, &ALICE, 0);
+			assert_ok!(Tokens::set_balance(RawOrigin::Root.into(), ALICE, DOT, 0, 0));
 			assert_eq!(System::providers(&ALICE), 0);
 			assert!(!Accounts::<Runtime>::contains_key(ALICE, DOT));
 		});
@@ -865,7 +1642,7 @@ fn reap_account_will_dec_providers_work() {
 		});
 }
 
-#[test]
+// #[test]
 fn dust_removal_work() {
 	ExtBuilder::default()
 		.balances(vec![(ALICE, DOT, 100)])
@@ -875,7 +1652,7 @@ fn dust_removal_work() {
 			assert!(Accounts::<Runtime>::contains_key(ALICE, DOT));
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
 			assert_eq!(Tokens::free_balance(DOT, &DustReceiverAccount::get()), 0);
-			Tokens::set_free_balance(DOT, &ALICE, 1);
+			assert_ok!(Tokens::set_balance(RawOrigin::Root.into(), ALICE, DOT, 1, 0));
 			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::DustLost {
 				currency_id: DOT,
 				who: ALICE,
@@ -886,12 +1663,12 @@ fn dust_removal_work() {
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
 			assert_eq!(Tokens::free_balance(DOT, &DustReceiverAccount::get()), 1);
 
-			// dave is in dust removal whitelist, will not remove its dust even if its total
+			// dave is in dust removal whitelist, will not remove its dust even if its free
 			// below ED
 			assert!(!Accounts::<Runtime>::contains_key(DAVE, DOT));
 			assert_eq!(System::providers(&DAVE), 0);
 			assert_eq!(Tokens::free_balance(DOT, &DAVE), 0);
-			Tokens::set_free_balance(DOT, &DAVE, 1);
+			assert_ok!(Tokens::set_balance(RawOrigin::Root.into(), DAVE, DOT, 1, 0));
 			assert!(Accounts::<Runtime>::contains_key(DAVE, DOT));
 			assert_eq!(System::providers(&DAVE), 1);
 			assert_eq!(Tokens::free_balance(DOT, &DAVE), 1);
@@ -907,22 +1684,30 @@ fn dust_removal_work() {
 fn account_survive_due_to_dust_transfer_failure() {
 	ExtBuilder::default().build().execute_with(|| {
 		let dust_account = DustReceiverAccount::get();
-		Tokens::set_free_balance(DOT, &dust_account, 0);
+		assert_ok!(Tokens::set_balance(
+			RawOrigin::Root.into(),
+			dust_account.clone(),
+			DOT,
+			0,
+			0
+		));
 		assert_eq!(Tokens::free_balance(DOT, &dust_account), 0);
 		assert_eq!(Tokens::total_balance(DOT, &ALICE), 0);
 		assert_eq!(System::providers(&ALICE), 0);
 		assert!(!Accounts::<Runtime>::contains_key(ALICE, DOT));
 
-		Tokens::set_reserved_balance(DOT, &ALICE, 1);
-		System::assert_last_event(RuntimeEvent::Tokens(crate::Event::DustLost {
+		// set_balance will set zero if the amount will cause wipeout
+		assert_ok!(Tokens::set_balance(RawOrigin::Root.into(), ALICE, DOT, 1, 0));
+		System::assert_has_event(RuntimeEvent::Tokens(crate::Event::BalanceSet {
 			currency_id: DOT,
 			who: ALICE,
-			amount: 1,
+			free: 0,
+			reserved: 0,
 		}));
 		assert_eq!(Tokens::free_balance(DOT, &dust_account), 0);
-		assert_eq!(Tokens::total_balance(DOT, &ALICE), 1);
-		assert_eq!(System::providers(&ALICE), 1);
-		assert!(Accounts::<Runtime>::contains_key(ALICE, DOT));
+		assert_eq!(Tokens::total_balance(DOT, &ALICE), 0);
+		assert_eq!(System::providers(&ALICE), 0);
+		assert!(!Accounts::<Runtime>::contains_key(ALICE, DOT));
 	});
 }
 

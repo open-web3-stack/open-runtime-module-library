@@ -73,7 +73,7 @@ mod impl_currency;
 mod impl_fungibles;
 mod impls;
 mod mock;
-// mod tests;
+mod tests;
 // mod tests_currency_adapter;
 // mod tests_events;
 // mod tests_fungibles;
@@ -140,9 +140,8 @@ pub use module::*;
 
 #[frame_support::pallet]
 pub mod module {
-	use orml_traits::currency::MutationHooks;
-
 	use super::*;
+	use orml_traits::currency::MutationHooks;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -660,8 +659,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub(crate) fn wipeout(currency_id: T::CurrencyId, who: &T::AccountId, account: &AccountData<T::Balance>) -> bool {
-		let ed = Self::ed(currency_id);
-		account.free < ed && account.reserved.is_zero() && !Self::in_dust_removal_whitelist(who)
+		account.free < Self::ed(currency_id) && account.reserved.is_zero() && !Self::in_dust_removal_whitelist(who)
 	}
 
 	/// Mutate an account to some new value, or delete it entirely with `None`.
@@ -693,17 +691,18 @@ impl<T: Config> Pallet<T> {
 
 			// Handle any steps needed after mutating an account.
 			//
-			// This includes DustRemoval unbalancing, in the case than the `new` account's total
-			// balance is non-zero but below ED.
-			//
-			// Updates `maybe_account` to `Some` iff the account has sufficient balance.
+			// Updates `maybe_account` to `Some` iff the account shouldn't be removed.
 			// Evaluates `maybe_dust`, which is `Some` containing the dust to be dropped, iff
 			// some dust should be dropped.
 			//
-			// We should never be dropping if reserved is non-zero. Reserved being non-zero
-			// should imply that we have a consumer ref, so this is economically safe.
+			// We should never be dropping if reserved is non-zero or account in DustRemovalWhitelist.
+			// Reserved being non-zero should imply that we have a consumer ref, so this is economically safe.
 			let maybe_dust = if Self::wipeout(currency_id, who, &account) {
-				Some(account.free)
+				if account.total().is_zero() {
+					None
+				} else {
+					Some(account.free)
+				}
 			} else {
 				// update account
 				*maybe_account = Some(account);
@@ -712,8 +711,8 @@ impl<T: Config> Pallet<T> {
 
 			let exists = maybe_account.is_some();
 
-			// TODO: need review new provider and consumer machanism of frame_system to decide
-			// how to handle the providers here!
+			// NOTE: here differs with pallet-balances, best-effort decrease/increase the provider
+			// when remove/insert account data.
 			if !is_new && !exists {
 				// If existed before, decrease account provider.
 				// Ignore the result, because if it failed then there are remaining consumers,
@@ -834,58 +833,59 @@ impl<T: Config> Pallet<T> {
 		let mut total_frozen_prev = Zero::zero();
 		let mut total_frozen_after = Zero::zero();
 
-		// update account data
-		let (_, maybe_dust) = Self::mutate_account(currency_id, who, |account| {
+		// update account data and locks
+		let (_, maybe_dust) = Self::try_mutate_account(currency_id, who, |account, _| -> DispatchResult {
 			total_frozen_prev = account.frozen;
 			account.frozen = Zero::zero();
 			for lock in locks.iter() {
 				account.frozen = account.frozen.max(lock.amount);
 			}
 			total_frozen_after = account.frozen;
-		});
-		debug_assert!(maybe_dust.is_none(), "Not altering main balance; qed");
 
-		// update locks
-		let existed = Locks::<T>::contains_key(who, currency_id);
-		if locks.is_empty() {
-			Locks::<T>::remove(who, currency_id);
-			if existed {
-				// decrease account ref count when destruct lock
-				frame_system::Pallet::<T>::dec_consumers(who);
-			}
-		} else {
-			let bounded_locks: BoundedVec<BalanceLock<T::Balance>, T::MaxLocks> =
-				locks.to_vec().try_into().map_err(|_| Error::<T>::MaxLocksExceeded)?;
-			Locks::<T>::insert(who, currency_id, bounded_locks);
-			if !existed {
-				// increase account ref count when initialize lock
-				if frame_system::Pallet::<T>::inc_consumers(who).is_err() {
-					// No providers for the locks. This is impossible under normal circumstances
-					// since the funds that are under the lock will themselves be stored in the
-					// account and therefore will need a reference.
-					log::warn!(
-						"Warning: Attempt to introduce lock consumer reference, yet no providers. \
-						This is unexpected but should be safe."
-					);
+			// update locks
+			let existed = Locks::<T>::contains_key(who, currency_id);
+			if locks.is_empty() {
+				Locks::<T>::remove(who, currency_id);
+				if existed {
+					// decrease account ref count when destruct lock
+					frame_system::Pallet::<T>::dec_consumers(who);
+				}
+			} else {
+				let bounded_locks: BoundedVec<BalanceLock<T::Balance>, T::MaxLocks> =
+					locks.to_vec().try_into().map_err(|_| Error::<T>::MaxLocksExceeded)?;
+				Locks::<T>::insert(who, currency_id, bounded_locks);
+				if !existed {
+					// increase account ref count when initialize lock
+					if frame_system::Pallet::<T>::inc_consumers(who).is_err() {
+						// No providers for the locks. This is impossible under normal circumstances
+						// since the funds that are under the lock will themselves be stored in the
+						// account and therefore will need a reference.
+						log::warn!(
+							"Warning: Attempt to introduce lock consumer reference, yet no providers. \
+							This is unexpected but should be safe."
+						);
+					}
 				}
 			}
-		}
 
-		if total_frozen_prev < total_frozen_after {
-			let amount = total_frozen_after.saturating_sub(total_frozen_prev);
-			Self::deposit_event(Event::Locked {
-				currency_id,
-				who: who.clone(),
-				amount,
-			});
-		} else if total_frozen_prev > total_frozen_after {
-			let amount = total_frozen_prev.saturating_sub(total_frozen_after);
-			Self::deposit_event(Event::Unlocked {
-				currency_id,
-				who: who.clone(),
-				amount,
-			});
-		}
+			if total_frozen_prev < total_frozen_after {
+				let amount = total_frozen_after.saturating_sub(total_frozen_prev);
+				Self::deposit_event(Event::Locked {
+					currency_id,
+					who: who.clone(),
+					amount,
+				});
+			} else if total_frozen_prev > total_frozen_after {
+				let amount = total_frozen_prev.saturating_sub(total_frozen_after);
+				Self::deposit_event(Event::Unlocked {
+					currency_id,
+					who: who.clone(),
+					amount,
+				});
+			}
+			Ok(())
+		})?;
+		debug_assert!(maybe_dust.is_none(), "Not altering main balance; qed");
 
 		Ok(())
 	}
