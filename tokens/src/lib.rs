@@ -617,7 +617,7 @@ pub mod module {
 
 			Self::deposit_event(Event::BalanceSet {
 				currency_id,
-				who: who.clone(),
+				who,
 				free: new_free,
 				reserved: new_reserved,
 			});
@@ -924,12 +924,12 @@ impl<T: Config> Pallet<T> {
 					.ok_or(Error::<T>::BalanceTooLow)?;
 				to_account.free = to_account.free.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
 
-				let to_wipeout = Self::wipeout(currency_id, to, &to_account);
+				let to_wipeout = Self::wipeout(currency_id, to, to_account);
 				ensure!(!to_wipeout, Error::<T>::ExistentialDeposit);
 
 				let allow_death = existence_requirement == ExistenceRequirement::AllowDeath;
 				let allow_death = allow_death && frame_system::Pallet::<T>::can_dec_provider(from);
-				let keep_alive = !Self::wipeout(currency_id, from, &from_account);
+				let keep_alive = !Self::wipeout(currency_id, from, from_account);
 
 				ensure!(allow_death || keep_alive, Error::<T>::KeepAlive);
 				Ok(())
@@ -975,7 +975,7 @@ impl<T: Config> Pallet<T> {
 		Self::try_mutate_account_handling_dust(currency_id, who, |account, _| -> DispatchResult {
 			account.free = account.free.defensive_saturating_sub(amount);
 
-			let keep_alive = !Self::wipeout(currency_id, who, &account);
+			let keep_alive = !Self::wipeout(currency_id, who, account);
 			ensure!(
 				existence_requirement == ExistenceRequirement::AllowDeath || keep_alive,
 				Error::<T>::KeepAlive

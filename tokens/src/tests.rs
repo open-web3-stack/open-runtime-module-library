@@ -969,7 +969,7 @@ fn do_withdraw_dust_removal_when_allow_death() {
 		});
 }
 
-// #[test]
+#[test]
 fn do_withdraw_report_keep_alive_error_when_ed_is_not_zero() {
 	ExtBuilder::default()
 		.balances(vec![(ALICE, DOT, 100), (DAVE, DOT, 100)])
@@ -995,13 +995,6 @@ fn do_withdraw_report_keep_alive_error_when_ed_is_not_zero() {
 			assert!(Accounts::<Runtime>::contains_key(DAVE, DOT));
 			assert_eq!(Tokens::free_balance(DOT, &DAVE), 1);
 			assert_eq!(Tokens::total_issuance(DOT), 101);
-
-			// even if dave is in dust removal whitelist, but if withdraw all total of it
-			// will still cause account reaped.
-			assert_noop!(
-				Tokens::do_withdraw(DOT, &DAVE, 1, ExistenceRequirement::KeepAlive, true),
-				Error::<Runtime>::KeepAlive
-			);
 		});
 }
 
@@ -1642,7 +1635,7 @@ fn reap_account_will_dec_providers_work() {
 		});
 }
 
-// #[test]
+#[test]
 fn dust_removal_work() {
 	ExtBuilder::default()
 		.balances(vec![(ALICE, DOT, 100)])
@@ -1652,27 +1645,31 @@ fn dust_removal_work() {
 			assert!(Accounts::<Runtime>::contains_key(ALICE, DOT));
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
 			assert_eq!(Tokens::free_balance(DOT, &DustReceiverAccount::get()), 0);
+			assert_eq!(Tokens::total_issuance(DOT), 100);
+
+			// set_balance cannot set free_balance below ED, will set 0
 			assert_ok!(Tokens::set_balance(RawOrigin::Root.into(), ALICE, DOT, 1, 0));
-			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::DustLost {
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::BalanceSet {
 				currency_id: DOT,
 				who: ALICE,
-				amount: 1,
+				free: 0,
+				reserved: 0,
 			}));
 			assert_eq!(System::providers(&ALICE), 0);
 			assert!(!Accounts::<Runtime>::contains_key(ALICE, DOT));
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
-			assert_eq!(Tokens::free_balance(DOT, &DustReceiverAccount::get()), 1);
+			assert_eq!(Tokens::free_balance(DOT, &DustReceiverAccount::get()), 0);
+			assert_eq!(Tokens::total_issuance(DOT), 0);
 
-			// dave is in dust removal whitelist, will not remove its dust even if its free
-			// below ED
-			assert!(!Accounts::<Runtime>::contains_key(DAVE, DOT));
+			// dave is in dust removal whitelist, will not wipeout
 			assert_eq!(System::providers(&DAVE), 0);
+			assert!(!Accounts::<Runtime>::contains_key(DAVE, DOT));
 			assert_eq!(Tokens::free_balance(DOT, &DAVE), 0);
 			assert_ok!(Tokens::set_balance(RawOrigin::Root.into(), DAVE, DOT, 1, 0));
 			assert!(Accounts::<Runtime>::contains_key(DAVE, DOT));
 			assert_eq!(System::providers(&DAVE), 1);
 			assert_eq!(Tokens::free_balance(DOT, &DAVE), 1);
-			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Endowed {
+			System::assert_has_event(RuntimeEvent::Tokens(crate::Event::Endowed {
 				currency_id: DOT,
 				who: DAVE,
 				amount: 1,

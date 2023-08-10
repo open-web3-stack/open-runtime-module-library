@@ -223,15 +223,13 @@ impl<T: Config> fungibles::Unbalanced<T::AccountId> for Pallet<T> {
 			} else {
 				Err(TokenError::BelowMinimum.into())
 			}
+		} else if new_balance == old_balance {
+			Ok(Self::Balance::default())
 		} else {
-			if new_balance == old_balance {
-				Ok(Self::Balance::default())
-			} else {
-				if let Some(dust) = Self::write_balance(asset, who, new_balance)? {
-					Self::handle_dust(fungibles::Dust(asset, dust));
-				}
-				Ok(new_balance.saturating_sub(old_balance))
+			if let Some(dust) = Self::write_balance(asset, who, new_balance)? {
+				Self::handle_dust(fungibles::Dust(asset, dust));
 			}
+			Ok(new_balance.saturating_sub(old_balance))
 		}
 	}
 }
@@ -244,7 +242,7 @@ impl<T: Config> fungibles::Balanced<T::AccountId> for Pallet<T> {
 		Self::deposit_event(Event::<T>::Deposited {
 			currency_id: asset,
 			who: who.clone(),
-			amount: amount,
+			amount,
 		});
 	}
 
@@ -252,7 +250,7 @@ impl<T: Config> fungibles::Balanced<T::AccountId> for Pallet<T> {
 		Self::deposit_event(Event::<T>::Withdrawn {
 			currency_id: asset,
 			who: who.clone(),
-			amount: amount,
+			amount,
 		});
 	}
 
@@ -276,7 +274,7 @@ impl<T: Config> fungibles::Mutate<T::AccountId> for Pallet<T> {
 		Self::deposit_event(Event::<T>::Deposited {
 			currency_id: asset,
 			who: who.clone(),
-			amount: amount,
+			amount,
 		});
 	}
 
@@ -284,7 +282,7 @@ impl<T: Config> fungibles::Mutate<T::AccountId> for Pallet<T> {
 		Self::deposit_event(Event::<T>::Withdrawn {
 			currency_id: asset,
 			who: who.clone(),
-			amount: amount,
+			amount,
 		});
 	}
 
@@ -292,7 +290,7 @@ impl<T: Config> fungibles::Mutate<T::AccountId> for Pallet<T> {
 		Self::deposit_event(Event::<T>::Withdrawn {
 			currency_id: asset,
 			who: who.clone(),
-			amount: amount,
+			amount,
 		});
 	}
 
@@ -300,7 +298,7 @@ impl<T: Config> fungibles::Mutate<T::AccountId> for Pallet<T> {
 		Self::deposit_event(Event::<T>::Deposited {
 			currency_id: asset,
 			who: who.clone(),
-			amount: amount,
+			amount,
 		});
 	}
 
@@ -309,7 +307,7 @@ impl<T: Config> fungibles::Mutate<T::AccountId> for Pallet<T> {
 			currency_id: asset,
 			from: source.clone(),
 			to: dest.clone(),
-			amount: amount,
+			amount,
 		});
 	}
 }
@@ -445,7 +443,7 @@ impl<T: Config> fungibles::MutateHold<T::AccountId> for Pallet<T> {
 			currency_id: asset,
 			from: source.clone(),
 			to: dest.clone(),
-			amount: amount,
+			amount,
 			status: BalanceStatus::Reserved,
 		});
 	}

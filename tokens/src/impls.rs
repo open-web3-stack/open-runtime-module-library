@@ -1,8 +1,7 @@
 use super::*;
 use frame_support::{
 	traits::{
-		tokens::{Balance as BalanceT, Restriction},
-		Currency as PalletCurrency, LockableCurrency as PalletLockableCurrency,
+		tokens::Balance as BalanceT, Currency as PalletCurrency, LockableCurrency as PalletLockableCurrency,
 		NamedReservableCurrency as PalletNamedReservableCurrency, ReservableCurrency as PalletReservableCurrency,
 		SignedImbalance, WithdrawReasons,
 	},
@@ -752,7 +751,7 @@ where
 		Pallet::<T>::deposit_event(Event::<T>::Deposited {
 			currency_id: GetCurrencyId::get(),
 			who: who.clone(),
-			amount: amount,
+			amount,
 		});
 	}
 
@@ -760,7 +759,7 @@ where
 		Pallet::<T>::deposit_event(Event::<T>::Withdrawn {
 			currency_id: GetCurrencyId::get(),
 			who: who.clone(),
-			amount: amount,
+			amount,
 		});
 	}
 
@@ -768,7 +767,7 @@ where
 		Pallet::<T>::deposit_event(Event::<T>::Withdrawn {
 			currency_id: GetCurrencyId::get(),
 			who: who.clone(),
-			amount: amount,
+			amount,
 		});
 	}
 
@@ -776,7 +775,7 @@ where
 		Pallet::<T>::deposit_event(Event::<T>::Deposited {
 			currency_id: GetCurrencyId::get(),
 			who: who.clone(),
-			amount: amount,
+			amount,
 		});
 	}
 
@@ -785,7 +784,7 @@ where
 			currency_id: GetCurrencyId::get(),
 			from: source.clone(),
 			to: dest.clone(),
-			amount: amount,
+			amount,
 		});
 	}
 }
@@ -834,7 +833,7 @@ where
 		Pallet::<T>::deposit_event(Event::<T>::Deposited {
 			currency_id: GetCurrencyId::get(),
 			who: who.clone(),
-			amount: amount,
+			amount,
 		});
 	}
 
@@ -842,7 +841,7 @@ where
 		Pallet::<T>::deposit_event(Event::<T>::Withdrawn {
 			currency_id: GetCurrencyId::get(),
 			who: who.clone(),
-			amount: amount,
+			amount,
 		});
 	}
 
@@ -861,7 +860,6 @@ where
 	}
 }
 
-type ReasonOfFungible<P, T> = <P as fungible::InspectHold<<T as frame_system::Config>::AccountId>>::Reason;
 impl<T, GetCurrencyId> fungible::InspectHold<T::AccountId> for CurrencyAdapter<T, GetCurrencyId>
 where
 	T: Config,
@@ -928,7 +926,7 @@ where
 			currency_id: GetCurrencyId::get(),
 			from: source.clone(),
 			to: dest.clone(),
-			amount: amount,
+			amount,
 			status: BalanceStatus::Reserved,
 		});
 	}

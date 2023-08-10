@@ -241,7 +241,7 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
 			who,
 			amount,
 		);
-		let remaining_slash = Self::mutate_account_handling_dust(currency_id, who, |account| -> Self::Balance {
+		Self::mutate_account_handling_dust(currency_id, who, |account| -> Self::Balance {
 			let free_slashed_amount = account.free.min(amount);
 			account.free = account.free.defensive_saturating_sub(free_slashed_amount);
 
@@ -257,9 +257,7 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
 			});
 
 			amount.saturating_sub(free_slashed_amount)
-		});
-
-		remaining_slash
+		})
 	}
 }
 
@@ -399,7 +397,7 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 			who,
 			value,
 		);
-		let remaining_slash = Self::mutate_account_handling_dust(currency_id, who, |account| -> Self::Balance {
+		Self::mutate_account_handling_dust(currency_id, who, |account| -> Self::Balance {
 			let reserved_slashed_amount = account.reserved.min(value);
 			account.reserved = account.reserved.defensive_saturating_sub(reserved_slashed_amount);
 
@@ -417,9 +415,7 @@ impl<T: Config> MultiReservableCurrency<T::AccountId> for Pallet<T> {
 			});
 
 			value.saturating_sub(reserved_slashed_amount)
-		});
-
-		remaining_slash
+		})
 	}
 
 	fn reserved_balance(currency_id: Self::CurrencyId, who: &T::AccountId) -> Self::Balance {
