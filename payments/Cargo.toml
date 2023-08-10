@@ -12,7 +12,7 @@ readme = "README.md"
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false }
 log = { version = "0.4.17", default-features = false }
-scale-info = { version = "2.1.2", default-features = false, features = ["derive"] }
+scale-info = { version = "2.9.0", default-features = false, features = ["derive"] }
 
 frame-support = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v1.0.0" }
 frame-system = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v1.0.0" }
