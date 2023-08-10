@@ -565,7 +565,7 @@ where
 				// instance that there's no other accounts on the system at all, we might
 				// underflow the issuance and our arithmetic will be off.
 				let ed = T::ExistentialDeposits::get(&currency_id);
-				ensure!(value.saturating_add(account.reserved) >= ed || !is_new, ());
+				ensure!(value >= ed || T::DustRemovalWhitelist::contains(who) || !is_new, ());
 
 				let imbalance = if account.free <= value {
 					SignedImbalance::Positive(PositiveImbalance::new(value.saturating_sub(account.free)))
@@ -748,25 +748,45 @@ where
 	T: Config,
 	GetCurrencyId: Get<T::CurrencyId>,
 {
-	fn mint_into(who: &T::AccountId, amount: Self::Balance) -> Result<Self::Balance, DispatchError> {
-		<Pallet<T> as fungibles::Mutate<_>>::mint_into(GetCurrencyId::get(), who, amount)
-	}
-	fn burn_from(
-		who: &T::AccountId,
-		amount: Self::Balance,
-		precision: Precision,
-		fortitude: Fortitude,
-	) -> Result<Self::Balance, DispatchError> {
-		<Pallet<T> as fungibles::Mutate<_>>::burn_from(GetCurrencyId::get(), who, amount, precision, fortitude)
+	fn done_mint_into(who: &T::AccountId, amount: Self::Balance) {
+		Pallet::<T>::deposit_event(Event::<T>::Deposited {
+			currency_id: GetCurrencyId::get(),
+			who: who.clone(),
+			amount: amount,
+		});
 	}
 
-	fn transfer(
-		source: &T::AccountId,
-		dest: &T::AccountId,
-		amount: T::Balance,
-		preservation: Preservation,
-	) -> Result<T::Balance, DispatchError> {
-		<Pallet<T> as fungibles::Mutate<_>>::transfer(GetCurrencyId::get(), source, dest, amount, preservation)
+	fn done_burn_from(who: &T::AccountId, amount: Self::Balance) {
+		Pallet::<T>::deposit_event(Event::<T>::Withdrawn {
+			currency_id: GetCurrencyId::get(),
+			who: who.clone(),
+			amount: amount,
+		});
+	}
+
+	fn done_shelve(who: &T::AccountId, amount: Self::Balance) {
+		Pallet::<T>::deposit_event(Event::<T>::Withdrawn {
+			currency_id: GetCurrencyId::get(),
+			who: who.clone(),
+			amount: amount,
+		});
+	}
+
+	fn done_restore(who: &T::AccountId, amount: Self::Balance) {
+		Pallet::<T>::deposit_event(Event::<T>::Deposited {
+			currency_id: GetCurrencyId::get(),
+			who: who.clone(),
+			amount: amount,
+		});
+	}
+
+	fn done_transfer(source: &T::AccountId, dest: &T::AccountId, amount: Self::Balance) {
+		Pallet::<T>::deposit_event(Event::<T>::Transfer {
+			currency_id: GetCurrencyId::get(),
+			from: source.clone(),
+			to: dest.clone(),
+			amount: amount,
+		});
 	}
 }
 
@@ -786,6 +806,10 @@ where
 		<Pallet<T> as fungibles::Unbalanced<_>>::write_balance(GetCurrencyId::get(), who, amount)
 	}
 
+	fn set_total_issuance(amount: Self::Balance) {
+		<Pallet<T> as fungibles::Unbalanced<_>>::set_total_issuance(GetCurrencyId::get(), amount)
+	}
+
 	/// NOTE: this impl overrides the default implementation of
 	/// fungible::Unbalanced, because orml-tokens override the default the
 	/// implementation of fungibles::Unbalanced. Here override for consistency.
@@ -796,9 +820,44 @@ where
 	) -> Result<Self::Balance, DispatchError> {
 		<Pallet<T> as fungibles::Unbalanced<_>>::increase_balance(GetCurrencyId::get(), who, amount, precision)
 	}
+}
 
-	fn set_total_issuance(amount: Self::Balance) {
-		<Pallet<T> as fungibles::Unbalanced<_>>::set_total_issuance(GetCurrencyId::get(), amount)
+impl<T, GetCurrencyId> fungible::Balanced<T::AccountId> for CurrencyAdapter<T, GetCurrencyId>
+where
+	T: Config,
+	GetCurrencyId: Get<T::CurrencyId>,
+{
+	type OnDropCredit = fungible::DecreaseIssuance<T::AccountId, Self>;
+	type OnDropDebt = fungible::IncreaseIssuance<T::AccountId, Self>;
+
+	fn done_deposit(who: &T::AccountId, amount: Self::Balance) {
+		Pallet::<T>::deposit_event(Event::<T>::Deposited {
+			currency_id: GetCurrencyId::get(),
+			who: who.clone(),
+			amount: amount,
+		});
+	}
+
+	fn done_withdraw(who: &T::AccountId, amount: Self::Balance) {
+		Pallet::<T>::deposit_event(Event::<T>::Withdrawn {
+			currency_id: GetCurrencyId::get(),
+			who: who.clone(),
+			amount: amount,
+		});
+	}
+
+	fn done_issue(amount: Self::Balance) {
+		Pallet::<T>::deposit_event(Event::Issued {
+			currency_id: GetCurrencyId::get(),
+			amount,
+		});
+	}
+
+	fn done_rescind(amount: Self::Balance) {
+		Pallet::<T>::deposit_event(Event::Rescinded {
+			currency_id: GetCurrencyId::get(),
+			amount,
+		});
 	}
 }
 
@@ -832,36 +891,46 @@ where
 	T: Config,
 	GetCurrencyId: Get<T::CurrencyId>,
 {
-	fn hold(reason: &ReasonOfFungible<Self, T>, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
-		<Pallet<T> as fungibles::MutateHold<_>>::hold(GetCurrencyId::get(), reason, who, amount)
+	fn done_hold(_reason: &Self::Reason, who: &T::AccountId, amount: Self::Balance) {
+		Pallet::<T>::deposit_event(Event::<T>::Reserved {
+			currency_id: GetCurrencyId::get(),
+			who: who.clone(),
+			amount,
+		});
 	}
-	fn release(
-		reason: &ReasonOfFungible<Self, T>,
-		who: &T::AccountId,
-		amount: Self::Balance,
-		precision: Precision,
-	) -> Result<T::Balance, DispatchError> {
-		<Pallet<T> as fungibles::MutateHold<_>>::release(GetCurrencyId::get(), reason, who, amount, precision)
+
+	fn done_release(_reason: &Self::Reason, who: &T::AccountId, amount: Self::Balance) {
+		Pallet::<T>::deposit_event(Event::<T>::Unreserved {
+			currency_id: GetCurrencyId::get(),
+			who: who.clone(),
+			amount,
+		});
 	}
-	fn transfer_on_hold(
-		reason: &ReasonOfFungible<Self, T>,
+
+	fn done_burn_held(_reason: &Self::Reason, who: &T::AccountId, amount: Self::Balance) {
+		Pallet::<T>::deposit_event(Event::<T>::Slashed {
+			currency_id: GetCurrencyId::get(),
+			who: who.clone(),
+			free_amount: Zero::zero(),
+			reserved_amount: amount,
+		});
+	}
+
+	fn done_transfer_on_hold(
+		_reason: &Self::Reason,
 		source: &T::AccountId,
 		dest: &T::AccountId,
 		amount: Self::Balance,
-		precision: Precision,
-		restriction: Restriction,
-		fortitude: Fortitude,
-	) -> Result<Self::Balance, DispatchError> {
-		<Pallet<T> as fungibles::MutateHold<_>>::transfer_on_hold(
-			GetCurrencyId::get(),
-			reason,
-			source,
-			dest,
-			amount,
-			precision,
-			restriction,
-			fortitude,
-		)
+	) {
+		// TODO: fungibles::MutateHold::transfer_on_hold did not pass the mode to this
+		// hook, use `BalanceStatus::Reserved` temporarily, need to fix it
+		Pallet::<T>::deposit_event(Event::<T>::ReserveRepatriated {
+			currency_id: GetCurrencyId::get(),
+			from: source.clone(),
+			to: dest.clone(),
+			amount: amount,
+			status: BalanceStatus::Reserved,
+		});
 	}
 }
 
@@ -872,5 +941,20 @@ where
 {
 	fn set_balance_on_hold(reason: &Self::Reason, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
 		<Pallet<T> as fungibles::UnbalancedHold<_>>::set_balance_on_hold(GetCurrencyId::get(), reason, who, amount)
+	}
+}
+
+impl<T, GetCurrencyId> fungible::BalancedHold<T::AccountId> for CurrencyAdapter<T, GetCurrencyId>
+where
+	T: Config,
+	GetCurrencyId: Get<T::CurrencyId>,
+{
+	fn done_slash(_reason: &Self::Reason, who: &T::AccountId, amount: Self::Balance) {
+		Pallet::<T>::deposit_event(Event::<T>::Slashed {
+			currency_id: GetCurrencyId::get(),
+			who: who.clone(),
+			free_amount: amount,
+			reserved_amount: Zero::zero(),
+		});
 	}
 }

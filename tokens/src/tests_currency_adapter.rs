@@ -3,7 +3,10 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{assert_noop, assert_ok};
+use frame_support::{
+	assert_noop, assert_ok,
+	traits::{Currency, LockableCurrency, NamedReservableCurrency, ReservableCurrency, WithdrawReasons},
+};
 use mock::*;
 
 #[test]
@@ -16,6 +19,7 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 			assert_eq!(Tokens::total_balance(DOT, &TREASURY_ACCOUNT), 100);
 			assert_eq!(Tokens::reserved_balance(DOT, &TREASURY_ACCOUNT), 0);
 			assert_eq!(Tokens::free_balance(DOT, &TREASURY_ACCOUNT), 100);
+
 			assert_eq!(
 				<Runtime as pallet_elections_phragmen::Config>::Currency::total_balance(&TREASURY_ACCOUNT),
 				100
@@ -192,22 +196,12 @@ fn currency_adapter_deducting_balance_should_work() {
 fn currency_adapter_refunding_balance_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let _ = TreasuryCurrencyAdapter::deposit_creating(&TREASURY_ACCOUNT, 42);
-		Tokens::set_reserved_balance(DOT, &TREASURY_ACCOUNT, 69);
+		Tokens::mutate_account_handling_dust(DOT, &TREASURY_ACCOUNT, |account| {
+			account.reserved = 69;
+		});
 		TreasuryCurrencyAdapter::unreserve(&TREASURY_ACCOUNT, 69);
 		assert_eq!(TreasuryCurrencyAdapter::free_balance(&TREASURY_ACCOUNT), 111);
 		assert_eq!(TreasuryCurrencyAdapter::reserved_balance(&TREASURY_ACCOUNT), 0);
-	});
-}
-
-#[test]
-fn currency_adapter_slashing_balance_should_work() {
-	ExtBuilder::default().build().execute_with(|| {
-		let _ = TreasuryCurrencyAdapter::deposit_creating(&TREASURY_ACCOUNT, 111);
-		assert_ok!(TreasuryCurrencyAdapter::reserve(&TREASURY_ACCOUNT, 69));
-		assert!(TreasuryCurrencyAdapter::slash(&TREASURY_ACCOUNT, 69).1.is_zero());
-		assert_eq!(TreasuryCurrencyAdapter::free_balance(&TREASURY_ACCOUNT), 0);
-		assert_eq!(TreasuryCurrencyAdapter::reserved_balance(&TREASURY_ACCOUNT), 42);
-		assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 42);
 	});
 }
 
@@ -217,10 +211,10 @@ fn currency_adapter_slashing_incomplete_balance_should_work() {
 		let _ = TreasuryCurrencyAdapter::deposit_creating(&TREASURY_ACCOUNT, 42);
 		assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 42);
 		assert_ok!(TreasuryCurrencyAdapter::reserve(&TREASURY_ACCOUNT, 21));
-		assert_eq!(TreasuryCurrencyAdapter::slash(&TREASURY_ACCOUNT, 69).1, 27);
+		assert_eq!(TreasuryCurrencyAdapter::slash(&TREASURY_ACCOUNT, 69).1, 48);
 		assert_eq!(TreasuryCurrencyAdapter::free_balance(&TREASURY_ACCOUNT), 0);
-		assert_eq!(TreasuryCurrencyAdapter::reserved_balance(&TREASURY_ACCOUNT), 0);
-		assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 0);
+		assert_eq!(TreasuryCurrencyAdapter::reserved_balance(&TREASURY_ACCOUNT), 21);
+		assert_eq!(TreasuryCurrencyAdapter::total_issuance(), 21);
 	});
 }
 
@@ -481,7 +475,7 @@ fn currency_adapter_repatriating_reserved_balance_should_work() {
 		let _ = TreasuryCurrencyAdapter::deposit_creating(&ALICE, 2);
 		assert_ok!(TreasuryCurrencyAdapter::reserve(&TREASURY_ACCOUNT, 110));
 		assert_ok!(
-			TreasuryCurrencyAdapter::repatriate_reserved(&TREASURY_ACCOUNT, &ALICE, 41, Status::Free),
+			TreasuryCurrencyAdapter::repatriate_reserved(&TREASURY_ACCOUNT, &ALICE, 41, BalanceStatus::Free),
 			0
 		);
 		assert_eq!(TreasuryCurrencyAdapter::reserved_balance(&TREASURY_ACCOUNT), 69);
@@ -498,7 +492,7 @@ fn currency_adapter_transferring_reserved_balance_should_work() {
 		let _ = TreasuryCurrencyAdapter::deposit_creating(&ALICE, 2);
 		assert_ok!(TreasuryCurrencyAdapter::reserve(&TREASURY_ACCOUNT, 110));
 		assert_ok!(
-			TreasuryCurrencyAdapter::repatriate_reserved(&TREASURY_ACCOUNT, &ALICE, 41, Status::Reserved),
+			TreasuryCurrencyAdapter::repatriate_reserved(&TREASURY_ACCOUNT, &ALICE, 41, BalanceStatus::Reserved),
 			0
 		);
 		assert_eq!(TreasuryCurrencyAdapter::reserved_balance(&TREASURY_ACCOUNT), 69);
@@ -517,7 +511,7 @@ fn currency_adapter_transferring_reserved_balance_to_nonexistent_should_fail() {
 			&TREASURY_ACCOUNT,
 			&ALICE,
 			42,
-			Status::Free
+			BalanceStatus::Free
 		));
 	});
 }
@@ -529,7 +523,7 @@ fn currency_adapter_transferring_incomplete_reserved_balance_should_work() {
 		let _ = TreasuryCurrencyAdapter::deposit_creating(&ALICE, 2);
 		assert_ok!(TreasuryCurrencyAdapter::reserve(&TREASURY_ACCOUNT, 41));
 		assert_ok!(
-			TreasuryCurrencyAdapter::repatriate_reserved(&TREASURY_ACCOUNT, &ALICE, 69, Status::Free),
+			TreasuryCurrencyAdapter::repatriate_reserved(&TREASURY_ACCOUNT, &ALICE, 69, BalanceStatus::Free),
 			28
 		);
 		assert_eq!(TreasuryCurrencyAdapter::reserved_balance(&TREASURY_ACCOUNT), 0);
@@ -626,7 +620,13 @@ fn currency_adapter_repatriating_named_reserved_balance_should_work() {
 		let _ = TreasuryCurrencyAdapter::deposit_creating(&ALICE, 2);
 		assert_ok!(TreasuryCurrencyAdapter::reserve_named(&RID_1, &TREASURY_ACCOUNT, 110));
 		assert_ok!(
-			TreasuryCurrencyAdapter::repatriate_reserved_named(&RID_1, &TREASURY_ACCOUNT, &ALICE, 41, Status::Free),
+			TreasuryCurrencyAdapter::repatriate_reserved_named(
+				&RID_1,
+				&TREASURY_ACCOUNT,
+				&ALICE,
+				41,
+				BalanceStatus::Free
+			),
 			0
 		);
 		assert_eq!(

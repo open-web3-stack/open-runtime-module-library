@@ -74,7 +74,9 @@ impl<T: Config> fungibles::Inspect<T::AccountId> for Pallet<T> {
 
 		let account = Self::accounts(who, asset_id);
 		let new_free_balance = match account.free.checked_add(&amount) {
-			Some(x) if x < Self::ed(asset_id) => return DepositConsequence::BelowMinimum,
+			Some(x) if x < Self::ed(asset_id) && !Self::in_dust_removal_whitelist(who) => {
+				return DepositConsequence::BelowMinimum
+			}
 			Some(x) => x,
 			None => return DepositConsequence::Overflow,
 		};
@@ -186,6 +188,11 @@ impl<T: Config> fungibles::Unbalanced<T::AccountId> for Pallet<T> {
 		Ok(maybe_dust)
 	}
 
+	fn set_total_issuance(asset_id: Self::AssetId, amount: Self::Balance) {
+		// Balance is the same type and will not overflow
+		TotalIssuance::<T>::mutate(asset_id, |t| *t = amount);
+	}
+
 	/// Increase the balance of `who` by `amount`.
 	///
 	/// If it cannot be increased by that amount for some reason, return `Err`
@@ -226,11 +233,6 @@ impl<T: Config> fungibles::Unbalanced<T::AccountId> for Pallet<T> {
 				Ok(new_balance.saturating_sub(old_balance))
 			}
 		}
-	}
-
-	fn set_total_issuance(asset_id: Self::AssetId, amount: Self::Balance) {
-		// Balance is the same type and will not overflow
-		TotalIssuance::<T>::mutate(asset_id, |t| *t = amount);
 	}
 }
 
@@ -396,6 +398,57 @@ impl<T: Config> fungibles::UnbalancedHold<T::AccountId> for Pallet<T> {
 	}
 }
 
-impl<T: Config> fungibles::MutateHold<T::AccountId> for Pallet<T> {}
+impl<T: Config> fungibles::BalancedHold<T::AccountId> for Pallet<T> {
+	fn done_slash(asset: Self::AssetId, _reason: &Self::Reason, who: &T::AccountId, amount: Self::Balance) {
+		Self::deposit_event(Event::<T>::Slashed {
+			currency_id: asset,
+			who: who.clone(),
+			free_amount: amount,
+			reserved_amount: Zero::zero(),
+		});
+	}
+}
+
+impl<T: Config> fungibles::MutateHold<T::AccountId> for Pallet<T> {
+	fn done_hold(asset: Self::AssetId, _reason: &Self::Reason, who: &T::AccountId, amount: Self::Balance) {
+		Self::deposit_event(Event::<T>::Reserved {
+			currency_id: asset,
+			who: who.clone(),
+			amount,
+		});
+	}
+	fn done_release(asset: Self::AssetId, _reason: &Self::Reason, who: &T::AccountId, amount: Self::Balance) {
+		Self::deposit_event(Event::<T>::Unreserved {
+			currency_id: asset,
+			who: who.clone(),
+			amount,
+		});
+	}
+	fn done_burn_held(asset: Self::AssetId, _reason: &Self::Reason, who: &T::AccountId, amount: Self::Balance) {
+		Self::deposit_event(Event::<T>::Slashed {
+			currency_id: asset,
+			who: who.clone(),
+			free_amount: Zero::zero(),
+			reserved_amount: amount,
+		});
+	}
+	fn done_transfer_on_hold(
+		asset: Self::AssetId,
+		_reason: &Self::Reason,
+		source: &T::AccountId,
+		dest: &T::AccountId,
+		amount: Self::Balance,
+	) {
+		// TODO: fungibles::MutateHold::transfer_on_hold did not pass the mode to this
+		// hook, use `BalanceStatus::Reserved` temporarily, need to fix it
+		Self::deposit_event(Event::<T>::ReserveRepatriated {
+			currency_id: asset,
+			from: source.clone(),
+			to: dest.clone(),
+			amount: amount,
+			status: BalanceStatus::Reserved,
+		});
+	}
+}
 
 // TODO: impl fungibles::InspectFreeze and fungibles::MutateFreeze

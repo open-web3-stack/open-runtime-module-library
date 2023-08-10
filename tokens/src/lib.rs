@@ -74,10 +74,10 @@ mod impl_fungibles;
 mod impls;
 mod mock;
 mod tests;
-// mod tests_currency_adapter;
-// mod tests_events;
-// mod tests_fungibles;
-// mod tests_multicurrency;
+mod tests_currency_adapter;
+mod tests_events;
+mod tests_fungibles;
+mod tests_multicurrency;
 
 mod weights;
 
