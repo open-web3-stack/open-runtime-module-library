@@ -69,6 +69,7 @@ use orml_traits::{
 	MultiReservableCurrency, NamedMultiReservableCurrency,
 };
 
+mod fungibles_conformance_tests;
 mod impl_currency;
 mod impl_fungibles;
 mod impls;
@@ -77,6 +78,7 @@ mod tests;
 mod tests_currency_adapter;
 mod tests_events;
 mod tests_fungibles;
+mod tests_fungibles_conformance;
 mod tests_multicurrency;
 
 mod weights;
