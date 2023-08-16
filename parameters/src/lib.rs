@@ -1,5 +1,5 @@
 //! # Parameters
-//! Offer a centra place to store and configure parameters.
+//! Offer a central place to store and configure parameters.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
