@@ -98,6 +98,7 @@ _In alphabetical order_
 - [GameDAO Protocol](https://github.com/gamedaoco)
 - [HydraDX](https://github.com/galacticcouncil/hack.HydraDX-node)
 - [Interlay and Kintsugi](https://github.com/interlay/interbtc)
+- [InvArch and Tinkernet](https://github.com/InvArch/InvArch-Node)
 - [KodaDot: MetaPrime Network](https://github.com/kodadot/metaprime.network) 
 - [Laminar Chain](https://github.com/laminar-protocol/laminar-chain)
 - [Libra](https://github.com/atscaletech/libra)

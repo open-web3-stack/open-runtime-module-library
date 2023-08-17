@@ -22,7 +22,6 @@ use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
 use sp_core::H256;
 use sp_runtime::{
-	testing::Header,
 	traits::{AccountIdConversion, Convert, IdentityLookup},
 	AccountId32,
 };
@@ -39,13 +38,12 @@ pub type AccountId = AccountId32;
 impl frame_system::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeCall = RuntimeCall;
-	type Index = u64;
-	type BlockNumber = u64;
+	type Nonce = u64;
 	type Hash = H256;
 	type Hashing = ::sp_runtime::traits::BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
-	type Header = Header;
+	type Block = Block;
 	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = ConstU64<250>;
 	type BlockWeights = ();
@@ -73,7 +71,7 @@ impl pallet_balances::Config for Runtime {
 	type WeightInfo = ();
 	type MaxReserves = ConstU32<50>;
 	type ReserveIdentifier = [u8; 8];
-	type HoldIdentifier = [u8; 8];
+	type RuntimeHoldReason = RuntimeHoldReason;
 	type FreezeIdentifier = [u8; 8];
 	type MaxHolds = ();
 	type MaxFreezes = ();
@@ -121,12 +119,14 @@ impl EnsureOriginWithArg<RuntimeOrigin, Option<u32>> for AssetAuthority {
 	fn try_origin(origin: RuntimeOrigin, asset_id: &Option<u32>) -> Result<Self::Success, RuntimeOrigin> {
 		match asset_id {
 			// We mock an edge case where the asset_id 2 requires a special origin check.
-			Some(2) => EnsureSignedBy::<AdminAssetTwo, AccountId32>::try_origin(origin.clone())
-				.map(|_| ())
-				.map_err(|_| origin),
+			Some(2) => {
+				<EnsureSignedBy<AdminAssetTwo, AccountId32> as EnsureOrigin<RuntimeOrigin>>::try_origin(origin.clone())
+					.map(|_| ())
+					.map_err(|_| origin)
+			}
 
 			// Any other `asset_id` defaults to EnsureRoot
-			_ => EnsureRoot::try_origin(origin),
+			_ => <EnsureRoot<AccountId> as EnsureOrigin<RuntimeOrigin>>::try_origin(origin),
 		}
 	}
 
@@ -253,6 +253,7 @@ impl Config for XcmConfig {
 	type UniversalAliases = Nothing;
 	type CallDispatcher = RuntimeCall;
 	type SafeCallFilter = Everything;
+	type Aliasers = Nothing;
 }
 
 pub struct ChannelInfo;
@@ -383,28 +384,23 @@ impl orml_xcm::Config for Runtime {
 	type SovereignOrigin = EnsureRoot<AccountId>;
 }
 
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 type Block = frame_system::mocking::MockBlock<Runtime>;
 
 construct_runtime!(
-	pub enum Runtime where
-		Block = Block,
-		NodeBlock = Block,
-		UncheckedExtrinsic = UncheckedExtrinsic,
-	{
-		System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
-		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+	pub enum Runtime {
+		System: frame_system,
+		Balances: pallet_balances,
 
-		ParachainInfo: parachain_info::{Pallet, Storage, Config},
-		XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Call, Storage, Event<T>},
-		DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>},
-		CumulusXcm: cumulus_pallet_xcm::{Pallet, Event<T>, Origin},
+		ParachainInfo: parachain_info,
+		XcmpQueue: cumulus_pallet_xcmp_queue,
+		DmpQueue: cumulus_pallet_dmp_queue,
+		CumulusXcm: cumulus_pallet_xcm,
 
-		Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
-		XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>},
-		AssetRegistry: orml_asset_registry::{Pallet, Storage, Call, Event<T>},
+		Tokens: orml_tokens,
+		XTokens: orml_xtokens,
+		AssetRegistry: orml_asset_registry,
 
-		PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Origin},
-		OrmlXcm: orml_xcm::{Pallet, Call, Event<T>},
+		PolkadotXcm: pallet_xcm,
+		OrmlXcm: orml_xcm,
 	}
 );

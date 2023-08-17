@@ -1178,7 +1178,7 @@ fn send_with_insufficient_fee_traps_assets() {
 		assert!(para::System::events().iter().any(|r| {
 			matches!(
 				r.event,
-				para::RuntimeEvent::PolkadotXcm(pallet_xcm::Event::<para::Runtime>::AssetsTrapped(_, _, _))
+				para::RuntimeEvent::PolkadotXcm(pallet_xcm::Event::<para::Runtime>::AssetsTrapped { .. })
 			)
 		}));
 	})
