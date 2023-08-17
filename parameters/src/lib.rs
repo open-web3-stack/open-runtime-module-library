@@ -8,7 +8,7 @@ use frame_support::pallet_prelude::*;
 use frame_system::pallet_prelude::*;
 
 use frame_support::traits::EnsureOriginWithArg;
-use orml_traits::parameters::{AggregratedKeyValue, Key, ParameterStore};
+use orml_traits::parameters::{AggregratedKeyValue, Key, RuntimeParameterStore};
 
 mod mock;
 mod tests;
@@ -77,7 +77,7 @@ pub mod module {
 	}
 }
 
-impl<T: Config> ParameterStore for Pallet<T> {
+impl<T: Config> RuntimeParameterStore for Pallet<T> {
 	type AggregratedKeyValue = T::AggregratedKeyValue;
 
 	fn get<KV, K>(key: K) -> Option<K::Value>
@@ -85,8 +85,8 @@ impl<T: Config> ParameterStore for Pallet<T> {
 		KV: AggregratedKeyValue,
 		K: Key + Into<<KV as AggregratedKeyValue>::AggregratedKey>,
 		<KV as AggregratedKeyValue>::AggregratedKey:
-			Into<<<Self as ParameterStore>::AggregratedKeyValue as AggregratedKeyValue>::AggregratedKey>,
-		<<Self as ParameterStore>::AggregratedKeyValue as AggregratedKeyValue>::AggregratedValue:
+			Into<<<Self as RuntimeParameterStore>::AggregratedKeyValue as AggregratedKeyValue>::AggregratedKey>,
+		<<Self as RuntimeParameterStore>::AggregratedKeyValue as AggregratedKeyValue>::AggregratedValue:
 			TryInto<<KV as AggregratedKeyValue>::AggregratedValue>,
 		<KV as AggregratedKeyValue>::AggregratedValue: TryInto<K::WrappedValue>,
 	{

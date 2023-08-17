@@ -8,7 +8,7 @@ pub use paste;
 #[doc(hidden)]
 pub use scale_info;
 
-pub trait ParameterStore {
+pub trait RuntimeParameterStore {
 	type AggregratedKeyValue: AggregratedKeyValue;
 
 	fn get<KV, K>(key: K) -> Option<K::Value>
@@ -16,8 +16,8 @@ pub trait ParameterStore {
 		KV: AggregratedKeyValue,
 		K: Key + Into<<KV as AggregratedKeyValue>::AggregratedKey>,
 		<KV as AggregratedKeyValue>::AggregratedKey:
-			Into<<<Self as ParameterStore>::AggregratedKeyValue as AggregratedKeyValue>::AggregratedKey>,
-		<<Self as ParameterStore>::AggregratedKeyValue as AggregratedKeyValue>::AggregratedValue:
+			Into<<<Self as RuntimeParameterStore>::AggregratedKeyValue as AggregratedKeyValue>::AggregratedKey>,
+		<<Self as RuntimeParameterStore>::AggregratedKeyValue as AggregratedKeyValue>::AggregratedValue:
 			TryInto<<KV as AggregratedKeyValue>::AggregratedValue>,
 		<KV as AggregratedKeyValue>::AggregratedValue: TryInto<K::WrappedValue>;
 }
@@ -32,6 +32,33 @@ pub trait AggregratedKeyValue: Parameter {
 	type AggregratedValue: Parameter + codec::MaxEncodedLen;
 
 	fn into_parts(self) -> (Self::AggregratedKey, Option<Self::AggregratedValue>);
+}
+
+pub trait ParameterStore<KV: AggregratedKeyValue> {
+	fn get<K>(key: K) -> Option<K::Value>
+	where
+		K: Key + Into<<KV as AggregratedKeyValue>::AggregratedKey>,
+		<KV as AggregratedKeyValue>::AggregratedValue: TryInto<K::WrappedValue>;
+}
+
+pub struct ParameterStoreAdapter<PS, KV>(sp_std::marker::PhantomData<(PS, KV)>);
+
+impl<PS, KV> ParameterStore<KV> for ParameterStoreAdapter<PS, KV>
+where
+	PS: RuntimeParameterStore,
+	KV: AggregratedKeyValue + Into<PS::AggregratedKeyValue>,
+	<KV as AggregratedKeyValue>::AggregratedKey:
+		Into<<<PS as RuntimeParameterStore>::AggregratedKeyValue as AggregratedKeyValue>::AggregratedKey>,
+	<KV as AggregratedKeyValue>::AggregratedValue:
+		From<<<PS as RuntimeParameterStore>::AggregratedKeyValue as AggregratedKeyValue>::AggregratedValue>,
+{
+	fn get<K>(key: K) -> Option<K::Value>
+	where
+		K: Key + Into<<KV as AggregratedKeyValue>::AggregratedKey>,
+		<KV as AggregratedKeyValue>::AggregratedValue: TryInto<K::WrappedValue>,
+	{
+		PS::get::<KV, K>(key)
+	}
 }
 
 /// Define parameters key value types.
@@ -134,7 +161,7 @@ macro_rules! define_parameters {
 					$crate::parameters::frame_support::RuntimeDebug,
 					$crate::parameters::scale_info::TypeInfo
 				)]
-				$vis struct $key_name( $(pub $key_para)? );
+				$vis struct $key_name $( (pub $key_para) )?;
 
 				impl $crate::parameters::Key for $key_name {
 					type Value = $value_type;
@@ -367,7 +394,7 @@ mod tests {
 
 	#[test]
 	fn test_define_parameters_key_convert() {
-		let key1 = pallet1::Key1();
+		let key1 = pallet1::Key1;
 		let parameter_key: pallet1::ParametersKey = key1.clone().into();
 		let key1_2: pallet1::Key1 = parameter_key.clone().try_into().unwrap();
 
@@ -403,10 +430,10 @@ mod tests {
 	fn test_define_parameters_aggregrated_key_value() {
 		use crate::parameters::AggregratedKeyValue;
 
-		let kv1 = pallet1::Parameters::Key1(pallet1::Key1(), None);
+		let kv1 = pallet1::Parameters::Key1(pallet1::Key1, None);
 		let (key1, value1) = kv1.clone().into_parts();
 
-		assert_eq!(key1, pallet1::ParametersKey::Key1(pallet1::Key1()));
+		assert_eq!(key1, pallet1::ParametersKey::Key1(pallet1::Key1));
 		assert_eq!(value1, None);
 
 		let kv2 = pallet1::Parameters::Key2(pallet1::Key2(1), Some(2));
@@ -420,7 +447,7 @@ mod tests {
 	fn test_define_aggregrated_parameters_key_convert() {
 		use codec::Encode;
 
-		let key1 = pallet1::Key1();
+		let key1 = pallet1::Key1;
 		let parameter_key: pallet1::ParametersKey = key1.clone().into();
 		let runtime_key: RuntimeParametersKey = parameter_key.clone().into();
 
@@ -445,12 +472,12 @@ mod tests {
 	fn test_define_aggregrated_parameters_aggregrated_key_value() {
 		use crate::parameters::AggregratedKeyValue;
 
-		let kv1 = RuntimeParameters::Pallet1(pallet1::Parameters::Key1(pallet1::Key1(), None));
+		let kv1 = RuntimeParameters::Pallet1(pallet1::Parameters::Key1(pallet1::Key1, None));
 		let (key1, value1) = kv1.clone().into_parts();
 
 		assert_eq!(
 			key1,
-			RuntimeParametersKey::Pallet1(pallet1::ParametersKey::Key1(pallet1::Key1()))
+			RuntimeParametersKey::Pallet1(pallet1::ParametersKey::Key1(pallet1::Key1))
 		);
 		assert_eq!(value1, None);
 
