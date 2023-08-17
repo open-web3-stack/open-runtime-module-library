@@ -9,25 +9,23 @@ use frame_support::{
 };
 use orml_traits::define_aggregrated_parameters;
 use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup};
+use sp_runtime::{traits::IdentityLookup, BuildStorage};
 
 use super::*;
 
 use crate as parameters;
 
 pub type AccountId = u128;
-pub type BlockNumber = u64;
 
 impl frame_system::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
-	type Index = u64;
-	type BlockNumber = BlockNumber;
 	type RuntimeCall = RuntimeCall;
+	type Nonce = u64;
 	type Hash = H256;
 	type Hashing = ::sp_runtime::traits::BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
-	type Header = Header;
+	type Block = Block;
 	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = ConstU64<250>;
 	type BlockWeights = ();
@@ -101,15 +99,10 @@ impl Config for Runtime {
 	type WeightInfo = ();
 }
 
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 type Block = frame_system::mocking::MockBlock<Runtime>;
 
 construct_runtime!(
-	pub enum Runtime where
-		Block = Block,
-		NodeBlock = Block,
-		UncheckedExtrinsic = UncheckedExtrinsic,
-	{
+	pub enum Runtime {
 		System: frame_system,
 		ModuleParameters: parameters,
 	}
@@ -119,8 +112,8 @@ pub struct ExtBuilder;
 
 impl ExtBuilder {
 	pub fn new() -> sp_io::TestExternalities {
-		let t = frame_system::GenesisConfig::default()
-			.build_storage::<Runtime>()
+		let t = frame_system::GenesisConfig::<Runtime>::default()
+			.build_storage()
 			.unwrap();
 
 		let mut ext = sp_io::TestExternalities::new(t);
