@@ -94,6 +94,7 @@ _In alphabetical order_
 - [Bit.Country](https://github.com/bit-country/Bit-Country-Blockchain)
 - [Centrifuge](https://github.com/centrifuge/centrifuge-chain)
 - [ChainX](https://github.com/chainx-org/ChainX)
+- [Composable](https://github.com/ComposableFi/composable)
 - [Crust](https://github.com/crustio/crust)
 - [GameDAO Protocol](https://github.com/gamedaoco)
 - [HydraDX](https://github.com/galacticcouncil/hack.HydraDX-node)
