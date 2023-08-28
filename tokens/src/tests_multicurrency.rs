@@ -108,7 +108,7 @@ fn multi_lockable_currency_set_lock_work() {
 		.execute_with(|| {
 			assert_ok!(Tokens::set_lock(ID_1, DOT, &ALICE, 10));
 			assert_eq!(Tokens::accounts(&ALICE, DOT).frozen, 10);
-			assert_eq!(Tokens::accounts(&ALICE, DOT).frozen(), 10);
+			assert_eq!(Tokens::accounts(&ALICE, DOT).frozen, 10);
 			assert_eq!(Tokens::locks(ALICE, DOT).len(), 1);
 			assert_ok!(Tokens::set_lock(ID_1, DOT, &ALICE, 50));
 			assert_eq!(Tokens::accounts(&ALICE, DOT).frozen, 50);
@@ -288,12 +288,6 @@ fn multi_reservable_currency_repatriate_reserved_work() {
 				Tokens::repatriate_reserved(DOT, &ALICE, &ALICE, 50, BalanceStatus::Free),
 				Ok(50)
 			);
-			// Repatriating from and to the same account, fund is `unreserved`.
-			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Unreserved {
-				currency_id: DOT,
-				who: ALICE,
-				amount: 0,
-			}));
 
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
 			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 0);
@@ -350,7 +344,7 @@ fn multi_reservable_currency_repatriate_reserved_work() {
 }
 
 #[test]
-fn slash_draw_reserved_correct() {
+fn slash_cannot_draw_reserved() {
 	ExtBuilder::default()
 		.balances(vec![(ALICE, DOT, 100)])
 		.build()
@@ -360,15 +354,15 @@ fn slash_draw_reserved_correct() {
 			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 50);
 			assert_eq!(Tokens::total_issuance(DOT), 100);
 
-			assert_eq!(Tokens::slash(DOT, &ALICE, 80), 0);
+			assert_eq!(Tokens::slash(DOT, &ALICE, 80), 30);
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
-			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 20);
-			assert_eq!(Tokens::total_issuance(DOT), 20);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 50);
+			assert_eq!(Tokens::total_issuance(DOT), 50);
 
-			assert_eq!(Tokens::slash(DOT, &ALICE, 50), 30);
+			assert_eq!(Tokens::slash(DOT, &ALICE, 50), 50);
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
-			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 0);
-			assert_eq!(Tokens::total_issuance(DOT), 0);
+			assert_eq!(Tokens::reserved_balance(DOT, &ALICE), 50);
+			assert_eq!(Tokens::total_issuance(DOT), 50);
 		});
 }
 

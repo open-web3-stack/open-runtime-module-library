@@ -721,7 +721,7 @@ where
 	Currency: PalletLockableCurrency<AccountId>,
 	T: Config,
 {
-	type Moment = Moment;
+	type Moment = BlockNumberFor<T>;
 
 	fn set_lock(lock_id: LockIdentifier, who: &AccountId, amount: Self::Balance) -> DispatchResult {
 		Currency::set_lock(lock_id, who, amount, WithdrawReasons::all());

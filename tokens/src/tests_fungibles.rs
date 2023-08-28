@@ -3,7 +3,7 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{assert_noop, assert_ok};
+use frame_support::{assert_noop, assert_ok, traits::tokens::Restriction};
 use mock::*;
 use sp_runtime::{ArithmeticError, TokenError};
 
@@ -135,7 +135,7 @@ fn fungibles_unbalanced_trait_should_work() {
 					Preservation::Protect,
 					Fortitude::Polite
 				),
-				50
+				48
 			);
 			assert_noop!(
 				<Tokens as fungibles::Unbalanced<_>>::decrease_balance(
@@ -226,7 +226,7 @@ fn fungibles_unbalanced_trait_should_work() {
 					Preservation::Protect,
 					Fortitude::Polite
 				),
-				50
+				48
 			);
 			assert_eq!(
 				<Tokens as fungibles::Unbalanced<_>>::decrease_balance(
@@ -237,16 +237,16 @@ fn fungibles_unbalanced_trait_should_work() {
 					Preservation::Protect,
 					Fortitude::Polite
 				),
-				Ok(50),
+				Ok(48),
 			);
-			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 0);
-			assert_eq!(<Tokens as fungibles::Inspect<_>>::total_balance(DOT, &ALICE), 50);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 2);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::total_balance(DOT, &ALICE), 52);
 			assert_eq!(
 				<Tokens as MultiReservableCurrency<AccountId>>::unreserve(DOT, &ALICE, 50),
 				0
 			);
-			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 50);
-			assert_eq!(<Tokens as fungibles::Inspect<_>>::total_balance(DOT, &ALICE), 50);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 52);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::total_balance(DOT, &ALICE), 52);
 
 			// increase_balance
 			assert_ok!(<Tokens as fungibles::Unbalanced<_>>::write_balance(DOT, &ALICE, 0));
@@ -408,7 +408,7 @@ fn fungibles_mutate_hold_trait_should_work() {
 		.execute_with(|| {
 			assert_noop!(
 				<Tokens as fungibles::MutateHold<_>>::hold(DOT, REASON, &ALICE, 200),
-				Error::<Runtime>::BalanceTooLow
+				TokenError::FundsUnavailable
 			);
 			assert_eq!(
 				<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, REASON, &ALICE),
@@ -416,12 +416,18 @@ fn fungibles_mutate_hold_trait_should_work() {
 			);
 			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 100);
 
-			assert_ok!(<Tokens as fungibles::MutateHold<_>>::hold(DOT, REASON, &ALICE, 100));
+			// must keep free >= ed
+			assert_noop!(
+				<Tokens as fungibles::MutateHold<_>>::hold(DOT, REASON, &ALICE, 100),
+				TokenError::FundsUnavailable
+			);
+
+			assert_ok!(<Tokens as fungibles::MutateHold<_>>::hold(DOT, REASON, &ALICE, 90));
 			assert_eq!(
 				<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, REASON, &ALICE),
-				100
+				90
 			);
-			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 0);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 10);
 
 			assert_eq!(
 				<Tokens as fungibles::MutateHold<_>>::release(DOT, REASON, &ALICE, 40, Precision::Exact),
@@ -429,20 +435,20 @@ fn fungibles_mutate_hold_trait_should_work() {
 			);
 			assert_eq!(
 				<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, REASON, &ALICE),
-				60
+				50
 			);
-			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 40);
+			assert_eq!(<Tokens as fungibles::Inspect<_>>::balance(DOT, &ALICE), 50);
 
 			// exceed hold amount when not in best_effort
 			assert_noop!(
-				<Tokens as fungibles::MutateHold<_>>::release(DOT, REASON, &ALICE, 61, Precision::Exact),
-				Error::<Runtime>::BalanceTooLow
+				<Tokens as fungibles::MutateHold<_>>::release(DOT, REASON, &ALICE, 51, Precision::Exact),
+				TokenError::FundsUnavailable
 			);
 
 			// exceed hold amount when in best_effort
 			assert_eq!(
-				<Tokens as fungibles::MutateHold<_>>::release(DOT, REASON, &ALICE, 61, Precision::BestEffort),
-				Ok(60)
+				<Tokens as fungibles::MutateHold<_>>::release(DOT, REASON, &ALICE, 51, Precision::BestEffort),
+				Ok(50)
 			);
 			assert_eq!(
 				<Tokens as fungibles::InspectHold<_>>::balance_on_hold(DOT, REASON, &ALICE),
@@ -522,7 +528,7 @@ fn fungibles_mutate_hold_trait_should_work() {
 					Restriction::OnHold,
 					Fortitude::Polite
 				),
-				Error::<Runtime>::BalanceTooLow
+				TokenError::Frozen
 			);
 
 			// exceed hold amount when in best_effort

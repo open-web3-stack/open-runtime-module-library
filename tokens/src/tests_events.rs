@@ -3,7 +3,10 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::assert_ok;
+use frame_support::{
+	assert_ok,
+	traits::{tokens::Restriction, Currency as PalletCurrency},
+};
 use mock::*;
 
 const REASON: &() = &();
@@ -43,12 +46,12 @@ fn pallet_multicurrency_deposit_events() {
 			}));
 
 			assert_ok!(<Tokens as MultiReservableCurrency<AccountId>>::reserve(DOT, &ALICE, 50));
-			assert_eq!(<Tokens as MultiCurrency<AccountId>>::slash(DOT, &ALICE, 60), 0);
+			assert_eq!(<Tokens as MultiCurrency<AccountId>>::slash(DOT, &ALICE, 60), 20);
 			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Slashed {
 				currency_id: DOT,
 				who: ALICE,
 				free_amount: 40,
-				reserved_amount: 20,
+				reserved_amount: 0,
 			}));
 		});
 }
@@ -208,31 +211,6 @@ fn pallet_fungibles_transfer_deposit_events() {
 }
 
 #[test]
-fn pallet_fungibles_unbalanced_deposit_events() {
-	ExtBuilder::default()
-		.balances(vec![(ALICE, DOT, 100)])
-		.build()
-		.execute_with(|| {
-			assert_ok!(<Tokens as MultiReservableCurrency<AccountId>>::reserve(DOT, &ALICE, 50));
-			assert_ok!(<Tokens as fungibles::Unbalanced<AccountId>>::write_balance(
-				DOT, &ALICE, 500
-			));
-			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::BalanceSet {
-				currency_id: DOT,
-				who: ALICE,
-				free: 500,
-				reserved: 50,
-			}));
-
-			<Tokens as fungibles::Unbalanced<AccountId>>::set_total_issuance(DOT, 1000);
-			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::TotalIssuanceSet {
-				currency_id: DOT,
-				amount: 1000,
-			}));
-		});
-}
-
-#[test]
 fn pallet_fungibles_mutate_hold_deposit_events() {
 	ExtBuilder::default()
 		.balances(vec![(ALICE, DOT, 100), (BOB, DOT, 100)])
@@ -310,12 +288,12 @@ fn currency_adapter_pallet_currency_deposit_events() {
 			}));
 
 			assert_ok!(<Tokens as MultiReservableCurrency<AccountId>>::reserve(DOT, &BOB, 50));
-			std::mem::forget(<MockCurrencyAdapter as PalletCurrency<AccountId>>::slash(&BOB, 110));
+			std::mem::forget(<MockCurrencyAdapter as PalletCurrency<AccountId>>::slash(&BOB, 100));
 			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Slashed {
 				currency_id: DOT,
 				who: BOB,
 				free_amount: 100,
-				reserved_amount: 10,
+				reserved_amount: 0,
 			}));
 
 			std::mem::forget(<MockCurrencyAdapter as PalletCurrency<AccountId>>::make_free_balance_be(&BOB, 200));
@@ -323,7 +301,7 @@ fn currency_adapter_pallet_currency_deposit_events() {
 				currency_id: DOT,
 				who: BOB,
 				free: 200,
-				reserved: 40,
+				reserved: 50,
 			}));
 		});
 }

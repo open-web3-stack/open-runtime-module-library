@@ -28,7 +28,8 @@ pub const ALICE: AccountId = AccountId32::new([0u8; 32]);
 pub const BOB: AccountId = AccountId32::new([1u8; 32]);
 pub const CHARLIE: AccountId = AccountId32::new([2u8; 32]);
 pub const DAVE: AccountId = AccountId32::new([3u8; 32]);
-pub const TREASURY_ACCOUNT: AccountId = AccountId32::new([4u8; 32]);
+pub const EVE: AccountId = AccountId32::new([4u8; 32]);
+pub const TREASURY_ACCOUNT: AccountId = AccountId32::new([5u8; 32]);
 pub const ID_1: LockIdentifier = *b"1       ";
 pub const ID_2: LockIdentifier = *b"2       ";
 pub const ID_3: LockIdentifier = *b"3       ";
@@ -204,7 +205,7 @@ impl pallet_elections_phragmen::Config for Runtime {
 pub struct MockDustRemovalWhitelist;
 impl Contains<AccountId> for MockDustRemovalWhitelist {
 	fn contains(a: &AccountId) -> bool {
-		*a == DAVE || *a == DustReceiver::get()
+		*a == DAVE || *a == DustReceiverAccount::get()
 	}
 }
 
@@ -289,11 +290,24 @@ where
 }
 
 thread_local! {
+	pub static ON_DUST_CALLS: RefCell<u32> = RefCell::new(0);
 	pub static ON_SLASH_CALLS: RefCell<u32> = RefCell::new(0);
 	pub static ON_DEPOSIT_PREHOOK_CALLS: RefCell<u32> = RefCell::new(0);
 	pub static ON_DEPOSIT_POSTHOOK_CALLS: RefCell<u32> = RefCell::new(0);
 	pub static ON_TRANSFER_PREHOOK_CALLS: RefCell<u32> = RefCell::new(0);
 	pub static ON_TRANSFER_POSTHOOK_CALLS: RefCell<u32> = RefCell::new(0);
+}
+
+pub struct OnDustHook<T>(marker::PhantomData<T>);
+impl<T: Config> OnDust<T::AccountId, T::CurrencyId, T::Balance> for OnDustHook<T> {
+	fn on_dust(_currency_id: T::CurrencyId, _account_id: &T::AccountId, _amount: T::Balance) {
+		ON_DUST_CALLS.with(|cell| *cell.borrow_mut() += 1);
+	}
+}
+impl<T: Config> OnDustHook<T> {
+	pub fn calls() -> u32 {
+		ON_SLASH_CALLS.with(|accounts| *accounts.borrow())
+	}
 }
 
 pub struct OnSlashHook<T>(marker::PhantomData<T>);
@@ -382,17 +396,13 @@ impl<T: Config> PostTransfer<T> {
 	}
 }
 
-parameter_types! {
-	pub DustReceiver: AccountId = PalletId(*b"orml/dst").into_account_truncating();
-}
-
 pub struct CurrencyHooks<T>(marker::PhantomData<T>);
 impl<T: Config> MutationHooks<T::AccountId, T::CurrencyId, T::Balance> for CurrencyHooks<T>
 where
 	T::AccountId: From<AccountId32> + Into<AccountId32>,
 	T::CurrencyId: From<u32> + Into<u32>,
 {
-	type OnDust = TransferDust<T, DustReceiver>;
+	type OnDust = OnDustHook<T>;
 	type OnSlash = OnSlashHook<T>;
 	type PreDeposit = PreDeposit<T>;
 	type PostDeposit = PostDeposit<T>;
@@ -400,6 +410,11 @@ where
 	type PostTransfer = PostTransfer<T>;
 	type OnNewTokenAccount = TrackCreatedAccounts<T>;
 	type OnKilledTokenAccount = TrackKilledAccounts<T>;
+}
+
+parameter_types! {
+	pub DustReceiverAccount: AccountId = PalletId(*b"orml/dst").into_account_truncating();
+	pub static GetDustReceiverAccount: Option<AccountId> = Some(DustReceiverAccount::get());
 }
 
 impl Config for Runtime {
@@ -414,6 +429,7 @@ impl Config for Runtime {
 	type MaxReserves = ConstU32<2>;
 	type ReserveIdentifier = ReserveIdentifier;
 	type DustRemovalWhitelist = MockDustRemovalWhitelist;
+	type DustRemoval = DustReceiver<Runtime, GetDustReceiverAccount>;
 }
 pub type TreasuryCurrencyAdapter = <Runtime as pallet_treasury::Config>::Currency;
 

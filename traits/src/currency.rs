@@ -638,11 +638,11 @@ pub trait NamedBasicReservableCurrency<AccountId, ReserveIdentifier>: BasicReser
 
 /// Handler for account which has dust, need to burn or recycle it
 pub trait OnDust<AccountId, CurrencyId, Balance> {
-	fn on_dust(who: &AccountId, currency_id: CurrencyId, amount: Balance);
+	fn on_dust(currency_id: CurrencyId, who: &AccountId, amount: Balance);
 }
 
 impl<AccountId, CurrencyId, Balance> OnDust<AccountId, CurrencyId, Balance> for () {
-	fn on_dust(_: &AccountId, _: CurrencyId, _: Balance) {}
+	fn on_dust(_: CurrencyId, _: &AccountId, _: Balance) {}
 }
 
 pub trait TransferAll<AccountId> {
@@ -692,7 +692,7 @@ impl<AccountId, CurrencyId, Balance> OnTransfer<AccountId, CurrencyId, Balance> 
 }
 
 pub trait MutationHooks<AccountId, CurrencyId, Balance> {
-	/// Handler to burn or transfer account's dust.
+	/// Handler to when account's dust lost.
 	type OnDust: OnDust<AccountId, CurrencyId, Balance>;
 
 	/// Hook to run before slashing an account.
