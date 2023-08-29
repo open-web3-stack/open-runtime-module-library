@@ -1328,9 +1328,18 @@ impl<T: Config> MultiLockableCurrency<T::AccountId> for Pallet<T> {
 			.into_iter()
 			.filter_map(|lock| {
 				if lock.id == lock_id {
-					new_lock.take().map(|nl| BalanceLock {
-						id: lock.id,
-						amount: lock.amount.max(nl.amount),
+					new_lock.take().map(|nl| {
+						let new_amount = lock.amount.max(nl.amount);
+						Self::deposit_event(Event::LockSet {
+							lock_id,
+							currency_id,
+							who: who.clone(),
+							amount: new_amount,
+						});
+						BalanceLock {
+							id: lock.id,
+							amount: new_amount,
+						}
 					})
 				} else {
 					Some(lock)
@@ -1338,6 +1347,12 @@ impl<T: Config> MultiLockableCurrency<T::AccountId> for Pallet<T> {
 			})
 			.collect::<Vec<_>>();
 		if let Some(lock) = new_lock {
+			Self::deposit_event(Event::LockSet {
+				lock_id,
+				currency_id,
+				who: who.clone(),
+				amount: lock.amount,
+			});
 			locks.push(lock)
 		}
 		Self::update_locks(currency_id, who, &locks[..])
