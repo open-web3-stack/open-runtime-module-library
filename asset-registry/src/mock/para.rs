@@ -2,7 +2,7 @@ use super::{Amount, Balance, CurrencyId, CurrencyIdConvert, ParachainXcmRouter};
 
 use crate as orml_asset_registry;
 
-use codec::{Decode, Encode};
+use codec::{Decode, Encode, MaxEncodedLen};
 use cumulus_primitives_core::{ChannelStatus, GetChannelInfo, ParaId};
 use frame_support::traits::{EnsureOrigin, EnsureOriginWithArg};
 use frame_support::{
@@ -101,7 +101,7 @@ impl orml_tokens::Config for Runtime {
 	type DustRemovalWhitelist = Nothing;
 }
 
-#[derive(scale_info::TypeInfo, Encode, Decode, Clone, Eq, PartialEq, Debug)]
+#[derive(scale_info::TypeInfo, Encode, Decode, Clone, Eq, PartialEq, Debug, MaxEncodedLen)]
 pub struct CustomMetadata {
 	pub fee_per_second: u128,
 }
@@ -138,6 +138,10 @@ impl EnsureOriginWithArg<RuntimeOrigin, Option<u32>> for AssetAuthority {
 
 pub type ParaAssetId = u32;
 
+parameter_types! {
+	pub const StringLimit: u32 = 50;
+}
+
 impl orml_asset_registry::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
@@ -145,6 +149,7 @@ impl orml_asset_registry::Config for Runtime {
 	type AuthorityOrigin = AssetAuthority;
 	type CustomMetadata = CustomMetadata;
 	type AssetProcessor = orml_asset_registry::SequentialId<Runtime>;
+	type StringLimit = StringLimit;
 	type WeightInfo = ();
 }
 

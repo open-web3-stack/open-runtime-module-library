@@ -18,7 +18,8 @@ use xcm_builder::TakeRevenue;
 use xcm_executor::{traits::WeightTrader, Assets};
 
 /// Alias for AssetMetadata to improve readability (and to placate clippy)
-pub type DefaultAssetMetadata<T> = AssetMetadata<<T as Config>::Balance, <T as Config>::CustomMetadata>;
+pub type DefaultAssetMetadata<T> =
+	AssetMetadata<<T as Config>::Balance, <T as Config>::CustomMetadata, <T as Config>::StringLimit>;
 
 /// An AssetProcessor that assigns a sequential ID
 pub struct SequentialId<T>(PhantomData<T>);
@@ -177,16 +178,19 @@ impl<T: Config> Inspect for Pallet<T> {
 	type AssetId = T::AssetId;
 	type Balance = T::Balance;
 	type CustomMetadata = T::CustomMetadata;
+	type StringLimit = T::StringLimit;
 
 	fn asset_id(location: &MultiLocation) -> Option<Self::AssetId> {
 		Pallet::<T>::location_to_asset_id(location)
 	}
 
-	fn metadata(id: &Self::AssetId) -> Option<AssetMetadata<Self::Balance, Self::CustomMetadata>> {
+	fn metadata(id: &Self::AssetId) -> Option<AssetMetadata<Self::Balance, Self::CustomMetadata, Self::StringLimit>> {
 		Pallet::<T>::metadata(id)
 	}
 
-	fn metadata_by_location(location: &MultiLocation) -> Option<AssetMetadata<Self::Balance, Self::CustomMetadata>> {
+	fn metadata_by_location(
+		location: &MultiLocation,
+	) -> Option<AssetMetadata<Self::Balance, Self::CustomMetadata, Self::StringLimit>> {
 		Pallet::<T>::fetch_metadata_by_location(location)
 	}
 
@@ -198,7 +202,7 @@ impl<T: Config> Inspect for Pallet<T> {
 impl<T: Config> Mutate for Pallet<T> {
 	fn register_asset(
 		asset_id: Option<Self::AssetId>,
-		metadata: AssetMetadata<Self::Balance, Self::CustomMetadata>,
+		metadata: AssetMetadata<Self::Balance, Self::CustomMetadata, Self::StringLimit>,
 	) -> DispatchResult {
 		Pallet::<T>::do_register_asset(metadata, asset_id)
 	}
@@ -206,8 +210,8 @@ impl<T: Config> Mutate for Pallet<T> {
 	fn update_asset(
 		asset_id: Self::AssetId,
 		decimals: Option<u32>,
-		name: Option<Vec<u8>>,
-		symbol: Option<Vec<u8>>,
+		name: Option<BoundedVec<u8, Self::StringLimit>>,
+		symbol: Option<BoundedVec<u8, Self::StringLimit>>,
 		existential_deposit: Option<Self::Balance>,
 		location: Option<Option<VersionedMultiLocation>>,
 		additional: Option<Self::CustomMetadata>,

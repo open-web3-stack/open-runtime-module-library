@@ -182,10 +182,10 @@ decl_test_parachain! {
 		new_ext = para_ext(4, Some((
 			vec![(
 				4,
-				AssetMetadata::<Balance, para::CustomMetadata>::encode(&AssetMetadata {
+				AssetMetadata::<Balance, para::CustomMetadata, para::StringLimit>::encode(&AssetMetadata {
 				decimals: 12,
-				name: "para G native token".as_bytes().to_vec(),
-				symbol: "paraG".as_bytes().to_vec(),
+				name: BoundedVec::truncate_from("para G native token".as_bytes().to_vec()),
+				symbol: BoundedVec::truncate_from("paraG".as_bytes().to_vec()),
 				existential_deposit: 0,
 				location: None,
 				additional: para::CustomMetadata {
@@ -194,10 +194,10 @@ decl_test_parachain! {
 			})),
 			(
 				5,
-				AssetMetadata::<Balance, para::CustomMetadata>::encode(&AssetMetadata {
+				AssetMetadata::<Balance, para::CustomMetadata, para::StringLimit>::encode(&AssetMetadata {
 				decimals: 12,
-				name: "para G foreign token".as_bytes().to_vec(),
-				symbol: "paraF".as_bytes().to_vec(),
+				name: BoundedVec::truncate_from("para G foreign token".as_bytes().to_vec()),
+				symbol: BoundedVec::truncate_from("paraF".as_bytes().to_vec()),
 				existential_deposit: 0,
 				location: None,
 				additional: para::CustomMetadata {
