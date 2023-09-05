@@ -12,6 +12,6 @@ pub trait WeightInfo {
 
 impl WeightInfo for () {
 	fn set_parameter() -> Weight {
-		Weight::zero()
+		RocksDbWeight::get().reads_writes(2, 1)
 	}
 }
