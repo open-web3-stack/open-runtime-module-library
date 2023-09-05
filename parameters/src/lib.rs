@@ -8,7 +8,7 @@ use frame_support::pallet_prelude::*;
 use frame_system::pallet_prelude::*;
 
 use frame_support::traits::EnsureOriginWithArg;
-use orml_traits::parameters::{AggregratedKeyValue, Key, RuntimeParameterStore};
+use orml_traits::parameters::{AggregratedKeyValue, Into2, Key, RuntimeParameterStore, TryInto2};
 
 mod mock;
 mod tests;
@@ -85,15 +85,15 @@ impl<T: Config> RuntimeParameterStore for Pallet<T> {
 		KV: AggregratedKeyValue,
 		K: Key + Into<<KV as AggregratedKeyValue>::AggregratedKey>,
 		<KV as AggregratedKeyValue>::AggregratedKey:
-			Into<<<Self as RuntimeParameterStore>::AggregratedKeyValue as AggregratedKeyValue>::AggregratedKey>,
+			Into2<<<Self as RuntimeParameterStore>::AggregratedKeyValue as AggregratedKeyValue>::AggregratedKey>,
 		<<Self as RuntimeParameterStore>::AggregratedKeyValue as AggregratedKeyValue>::AggregratedValue:
-			TryInto<<KV as AggregratedKeyValue>::AggregratedValue>,
+			TryInto2<<KV as AggregratedKeyValue>::AggregratedValue>,
 		<KV as AggregratedKeyValue>::AggregratedValue: TryInto<K::WrappedValue>,
 	{
 		let key: <KV as AggregratedKeyValue>::AggregratedKey = key.into();
-		let val = Parameters::<T>::get(key.into());
+		let val = Parameters::<T>::get(key.into2());
 		val.and_then(|v| {
-			let val: <KV as AggregratedKeyValue>::AggregratedValue = v.try_into().ok()?;
+			let val: <KV as AggregratedKeyValue>::AggregratedValue = v.try_into2().ok()?;
 			let val: K::WrappedValue = val.try_into().ok()?;
 			let val = val.into();
 			Some(val)
