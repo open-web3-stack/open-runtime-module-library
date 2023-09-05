@@ -1,5 +1,3 @@
-//! Mocks for the gradually-update module.
-
 #![cfg(test)]
 
 use frame_support::traits::EnsureOriginWithArg;
