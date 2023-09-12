@@ -3,8 +3,6 @@ members = [
 	"asset-registry",
 	"auction",
 	"authority",
-	"bencher",
-	"bencher/test",
 	"benchmarking",
 	"currencies",
 	"gradually-update",
@@ -24,13 +22,9 @@ members = [
 	"xcm-support",
 	"unknown-tokens",
 	"build-script-utils",
-	"weight-gen",
-	"weight-meter",
 	"payments",
 	"parameters",
 ]
-
-exclude = ["bencher/test"]
 
 resolver = "2"
 
