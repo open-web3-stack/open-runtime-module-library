@@ -289,13 +289,13 @@ macro_rules! benchmarks_iter {
 									>:: [< new_call_variant_ $dispatch >] (
 								$($arg),*
 							);
-						let __benchmarked_call_encoded = $crate::frame_support::codec::Encode::encode(
+						let __benchmarked_call_encoded = codec::Encode::encode(
 							&__call
 						);
 					}: {
 						let __call_decoded = <
 								$pallet::Call::<$runtime $(, $instance )?>
-								as $crate::frame_support::codec::Decode
+								as codec::Decode
 								>::decode(&mut &__benchmarked_call_encoded[..])
 							.expect("call is encoded above, encoding must be correct");
 						let __origin = $crate::to_origin!($origin $(, $origin_type)?);

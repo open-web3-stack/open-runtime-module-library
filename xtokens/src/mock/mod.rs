@@ -314,7 +314,7 @@ impl WeightTrader for AllTokensAreCreatedEqualToWeight {
 		Self(MultiLocation::parent())
 	}
 
-	fn buy_weight(&mut self, weight: Weight, payment: Assets) -> Result<Assets, XcmError> {
+	fn buy_weight(&mut self, weight: Weight, payment: Assets, _context: &XcmContext) -> Result<Assets, XcmError> {
 		let asset_id = payment
 			.fungible
 			.iter()
@@ -338,7 +338,7 @@ impl WeightTrader for AllTokensAreCreatedEqualToWeight {
 		Ok(unused)
 	}
 
-	fn refund_weight(&mut self, weight: Weight) -> Option<MultiAsset> {
+	fn refund_weight(&mut self, weight: Weight, _context: &XcmContext) -> Option<MultiAsset> {
 		if weight.is_zero() {
 			None
 		} else {

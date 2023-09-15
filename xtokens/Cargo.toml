@@ -9,6 +9,7 @@ edition = "2021"
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false }
+log = { version = "0.4.20", default-features = false }
 scale-info = { version = "2.9.0", default-features = false, features = ["derive"] }
 serde = { version = "1.0.136", optional = true }
 
@@ -24,8 +25,8 @@ cumulus-primitives-core = { default-features = false , git = "https://github.com
 
 # polkadot
 pallet-xcm = { git = "https://github.com/paritytech/polkadot", default-features = false , branch = "release-v1.0.0" }
-xcm = { git = "https://github.com/paritytech/polkadot", default-features = false , branch = "release-v1.0.0" }
-xcm-executor = { git = "https://github.com/paritytech/polkadot", default-features = false , branch = "release-v1.0.0" }
+xcm = { package = "staging-xcm", git = "https://github.com/paritytech/polkadot", default-features = false , branch = "release-v1.0.0" }
+xcm-executor = { package = "staging-xcm-executor", git = "https://github.com/paritytech/polkadot", default-features = false , branch = "release-v1.0.0" }
 
 # orml
 orml-traits = { path = "../traits", default-features = false}
@@ -47,7 +48,7 @@ parachain-info = { git = "https://github.com/paritytech/cumulus", branch = "polk
 # polkadot
 polkadot-parachain = { git = "https://github.com/paritytech/polkadot", branch = "release-v1.0.0" }
 polkadot-runtime-parachains = { git = "https://github.com/paritytech/polkadot", branch = "release-v1.0.0" }
-xcm-builder = { git = "https://github.com/paritytech/polkadot", branch = "release-v1.0.0" }
+xcm-builder = { package = "staging-xcm-builder", git = "https://github.com/paritytech/polkadot", branch = "release-v1.0.0" }
 xcm-simulator = { git = "https://github.com/paritytech/polkadot", branch = "release-v1.0.0" }
 
 # orml

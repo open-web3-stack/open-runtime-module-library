@@ -9,11 +9,11 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 
-use frame_support::{
-	dispatch::{DispatchError, DispatchResult},
-	traits::ContainsPair,
+use frame_support::{dispatch::DispatchResult, traits::ContainsPair};
+use sp_runtime::{
+	traits::{CheckedConversion, Convert},
+	DispatchError,
 };
-use sp_runtime::traits::{CheckedConversion, Convert};
 use sp_std::marker::PhantomData;
 
 use xcm::v3::prelude::*;

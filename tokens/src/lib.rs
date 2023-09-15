@@ -42,7 +42,7 @@ pub use crate::imbalances::{NegativeImbalance, PositiveImbalance};
 
 use codec::MaxEncodedLen;
 use frame_support::{
-	ensure, log,
+	ensure,
 	pallet_prelude::*,
 	traits::{
 		tokens::{
