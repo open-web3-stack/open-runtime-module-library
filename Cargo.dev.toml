@@ -29,7 +29,7 @@ resolver = "2"
 [profile.dev]
 split-debuginfo = "unpacked"
 
-[patch.'https://github.com/paritytech/substrate']
+[patch.'https://github.com/moonbeam-foundation/polkadot-sdk']
 frame-benchmarking = { git = "https://github.com/paritytech//polkadot-sdk", branch = "release-polkadot-v1.1.0" }
 frame-support = { git = "https://github.com/paritytech//polkadot-sdk", branch = "release-polkadot-v1.1.0" }
 frame-system = { git = "https://github.com/paritytech//polkadot-sdk", branch = "release-polkadot-v1.1.0" }
@@ -80,15 +80,11 @@ sp-wasm-interface = { git = "https://github.com/paritytech//polkadot-sdk", branc
 sp-tracing = { git = "https://github.com/paritytech//polkadot-sdk", branch = "release-polkadot-v1.1.0" }
 sp-maybe-compressed-blob = { git = "https://github.com/paritytech//polkadot-sdk", branch = "release-polkadot-v1.1.0" }
 sp-weights = { git = "https://github.com/paritytech//polkadot-sdk", branch = "release-polkadot-v1.1.0" }
-
-[patch.'https://github.com/paritytech/cumulus']
 cumulus-primitives-core = { git = "https://github.com/paritytech//polkadot-sdk", branch = "release-polkadot-v1.1.0" }
 cumulus-pallet-dmp-queue = { git = "https://github.com/paritytech//polkadot-sdk", branch = "release-polkadot-v1.1.0" }
 cumulus-pallet-xcmp-queue = { git = "https://github.com/paritytech//polkadot-sdk", branch = "release-polkadot-v1.1.0" }
 cumulus-pallet-xcm = { git = "https://github.com/paritytech//polkadot-sdk", branch = "release-polkadot-v1.1.0" }
 parachain-info = { git = "https://github.com/paritytech//polkadot-sdk", branch = "release-polkadot-v1.1.0" }
-
-[patch.'https://github.com/paritytech/polkadot']
 pallet-xcm = { git = "https://github.com/paritytech//polkadot-sdk", branch = "release-polkadot-v1.1.0" }
 polkadot-core-primitives = { git = "https://github.com/paritytech//polkadot-sdk", branch = "release-polkadot-v1.1.0" }
 polkadot-runtime-parachains = { git = "https://github.com/paritytech//polkadot-sdk", branch = "release-polkadot-v1.1.0" }
