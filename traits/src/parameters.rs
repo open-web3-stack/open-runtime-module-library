@@ -2,6 +2,8 @@
 pub use codec;
 #[doc(hidden)]
 pub use frame_support;
+#[doc(hidden)]
+pub use sp_runtime;
 use frame_support::Parameter;
 #[doc(hidden)]
 pub use paste;
@@ -141,7 +143,7 @@ macro_rules! define_parameters {
 				$crate::parameters::codec::Encode,
 				$crate::parameters::codec::Decode,
 				$crate::parameters::codec::MaxEncodedLen,
-				$crate::parameters::frame_support::RuntimeDebug,
+				$crate::parameters::sp_runtime::RuntimeDebug,
 				$crate::parameters::scale_info::TypeInfo
 			)]
 			$vis enum $name {
@@ -158,7 +160,7 @@ macro_rules! define_parameters {
 				$crate::parameters::codec::Encode,
 				$crate::parameters::codec::Decode,
 				$crate::parameters::codec::MaxEncodedLen,
-				$crate::parameters::frame_support::RuntimeDebug,
+				$crate::parameters::sp_runtime::RuntimeDebug,
 				$crate::parameters::scale_info::TypeInfo
 			)]
 			$vis enum [<$name Key>] {
@@ -175,7 +177,7 @@ macro_rules! define_parameters {
 				$crate::parameters::codec::Encode,
 				$crate::parameters::codec::Decode,
 				$crate::parameters::codec::MaxEncodedLen,
-				$crate::parameters::frame_support::RuntimeDebug,
+				$crate::parameters::sp_runtime::RuntimeDebug,
 				$crate::parameters::scale_info::TypeInfo
 			)]
 			$vis enum [<$name Value>] {
@@ -206,7 +208,7 @@ macro_rules! define_parameters {
 					$crate::parameters::codec::Encode,
 					$crate::parameters::codec::Decode,
 					$crate::parameters::codec::MaxEncodedLen,
-					$crate::parameters::frame_support::RuntimeDebug,
+					$crate::parameters::sp_runtime::RuntimeDebug,
 					$crate::parameters::scale_info::TypeInfo
 				)]
 				$vis struct $key_name $( (pub $key_para) )?;
@@ -237,7 +239,7 @@ macro_rules! define_parameters {
 					Clone,
 					PartialEq,
 					Eq,
-					$crate::parameters::frame_support::RuntimeDebug
+					$crate::parameters::sp_runtime::RuntimeDebug
 				)]
 				$vis struct [<$key_name Value>](pub $value_type);
 
@@ -331,7 +333,7 @@ macro_rules! define_aggregrated_parameters {
 				$crate::parameters::codec::Encode,
 				$crate::parameters::codec::Decode,
 				$crate::parameters::codec::MaxEncodedLen,
-				$crate::parameters::frame_support::RuntimeDebug,
+				$crate::parameters::sp_runtime::RuntimeDebug,
 				$crate::parameters::scale_info::TypeInfo
 			)]
 			$vis enum $name {
@@ -348,7 +350,7 @@ macro_rules! define_aggregrated_parameters {
 				$crate::parameters::codec::Encode,
 				$crate::parameters::codec::Decode,
 				$crate::parameters::codec::MaxEncodedLen,
-				$crate::parameters::frame_support::RuntimeDebug,
+				$crate::parameters::sp_runtime::RuntimeDebug,
 				$crate::parameters::scale_info::TypeInfo
 			)]
 			$vis enum [<$name Key>] {
@@ -365,7 +367,7 @@ macro_rules! define_aggregrated_parameters {
 				$crate::parameters::codec::Encode,
 				$crate::parameters::codec::Decode,
 				$crate::parameters::codec::MaxEncodedLen,
-				$crate::parameters::frame_support::RuntimeDebug,
+				$crate::parameters::sp_runtime::RuntimeDebug,
 				$crate::parameters::scale_info::TypeInfo
 			)]
 			$vis enum [<$name Value>] {
