@@ -1,17 +1,16 @@
 [package]
-name = "orml-tokens-rpc-runtime-api"
-description = "orml tokens rpc interface."
-license = "Apache-2.0"
+name = "orml-tokens-runtime-api"
 version = "0.4.1-dev"
 authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2021"
+license = "Apache-2.0"
+description = "Runtime API module for orml-tokens."
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive"] }
 frame-support = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v1.0.0" }
 sp-api = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v1.0.0" }
 sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v1.0.0" }
-orml-tokens = { default-features = false, path = "../../../tokens" }
 
 [features]
 default = ["std"]
@@ -20,5 +19,4 @@ std = [
 	"frame-support/std",
 	"sp-api/std",
 	"sp-runtime/std",
-	"orml-tokens/std",
 ]
