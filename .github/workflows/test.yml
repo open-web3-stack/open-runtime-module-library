@@ -22,7 +22,7 @@ jobs:
   build:
     runs-on: [self-hosted]
     env:
-      SCCACHE_CACHE_SIZE: "50G"
+      SCCACHE_CACHE_SIZE: "60G"
     steps:
     - uses: actions/checkout@v3
     - name: Install toolchain
