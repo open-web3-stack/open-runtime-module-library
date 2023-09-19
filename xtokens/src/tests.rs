@@ -697,7 +697,7 @@ fn sending_sibling_asset_to_reserve_sibling_with_relay_fee_works() {
 
 	ParaC::execute_with(|| {
 		assert_eq!(
-			fee_amount - dest_weight * 3,
+			fee_amount - dest_weight * 4,
 			ParaTeleportTokens::free_balance(CurrencyId::R, &sibling_a_account())
 		);
 

@@ -7,10 +7,11 @@ use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 use sp_io::TestExternalities;
 use sp_runtime::{AccountId32, BoundedVec, BuildStorage};
-use xcm_executor::traits::WeightTrader;
+use xcm_builder::{CreateMatcher, MatchXcm};
+use xcm_executor::traits::{ShouldExecute, WeightTrader};
 use xcm_executor::Assets;
 
-use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain, TestExt};
+use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain, ProcessMessageError, TestExt};
 
 pub mod para;
 pub mod para_relative_view;
@@ -344,5 +345,54 @@ impl WeightTrader for AllTokensAreCreatedEqualToWeight {
 		} else {
 			Some((self.0.clone(), weight.ref_time() as u128).into())
 		}
+	}
+}
+
+/// Allows execution from all origins taking payment into account.
+///
+/// Only allows for `TeleportAsset`, `WithdrawAsset`, `ClaimAsset` and
+/// `ReserveAssetDeposit` XCMs because they are the only ones that place assets
+/// in the Holding Register to pay for execution. This is almost equal to
+/// [`xcm_builder::AllowTopLevelPaidExecutionFrom<T>`] except that it allows for
+/// multiple assets and is not generic to allow all origins.
+pub struct AllowTopLevelPaidExecution;
+impl ShouldExecute for AllowTopLevelPaidExecution {
+	fn should_execute<RuntimeCall>(
+		_origin: &MultiLocation,
+		instructions: &mut [Instruction<RuntimeCall>],
+		max_weight: Weight,
+		_properties: &mut xcm_executor::traits::Properties,
+	) -> Result<(), ProcessMessageError> {
+		let end = instructions.len().min(5);
+		instructions[..end]
+			.matcher()
+			.match_next_inst(|inst| match inst {
+				ReceiveTeleportedAsset(..) | ReserveAssetDeposited(..) => Ok(()),
+				WithdrawAsset(..) => Ok(()),
+				ClaimAsset { .. } => Ok(()),
+				_ => Err(ProcessMessageError::BadFormat),
+			})?
+			.skip_inst_while(|inst| matches!(inst, ClearOrigin))?
+			.match_next_inst(|inst| {
+				let res = match inst {
+					BuyExecution {
+						weight_limit: Limited(ref mut weight),
+						..
+					} if weight.all_gte(max_weight) => {
+						*weight = max_weight;
+						Ok(())
+					}
+					BuyExecution {
+						ref mut weight_limit, ..
+					} if weight_limit == &Unlimited => {
+						*weight_limit = Limited(max_weight);
+						Ok(())
+					}
+					_ => Err(ProcessMessageError::Overweight(max_weight)),
+				};
+				res
+			})?;
+
+		Ok(())
 	}
 }
