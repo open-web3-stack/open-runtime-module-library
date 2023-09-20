@@ -1,10 +1,10 @@
 [package]
-name = "orml-oracle-rpc-runtime-api"
+name = "orml-oracle-runtime-api"
 version = "0.4.1-dev"
 authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2021"
 license = "Apache-2.0"
-description = "Runtime API module for orml-oracle-rpc."
+description = "Runtime API module for orml-oracle."
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive"] }
