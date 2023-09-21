@@ -2,13 +2,13 @@
 pub use codec;
 #[doc(hidden)]
 pub use frame_support;
-#[doc(hidden)]
-pub use sp_runtime;
 use frame_support::Parameter;
 #[doc(hidden)]
 pub use paste;
 #[doc(hidden)]
 pub use scale_info;
+#[doc(hidden)]
+pub use sp_runtime;
 
 pub trait RuntimeParameterStore {
 	type AggregratedKeyValue: AggregratedKeyValue;

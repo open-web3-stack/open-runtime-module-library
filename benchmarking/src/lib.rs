@@ -5,6 +5,8 @@
 
 mod tests;
 
+#[doc(hidden)]
+pub use codec;
 pub use frame_benchmarking::{
 	benchmarking, whitelisted_caller, BenchmarkBatch, BenchmarkConfig, BenchmarkError, BenchmarkList,
 	BenchmarkMetadata, BenchmarkParameter, BenchmarkResult, Benchmarking, BenchmarkingSetup,
@@ -289,13 +291,13 @@ macro_rules! benchmarks_iter {
 									>:: [< new_call_variant_ $dispatch >] (
 								$($arg),*
 							);
-						let __benchmarked_call_encoded = codec::Encode::encode(
+						let __benchmarked_call_encoded = $crate::codec::Encode::encode(
 							&__call
 						);
 					}: {
 						let __call_decoded = <
 								$pallet::Call::<$runtime $(, $instance )?>
-								as codec::Decode
+								as $crate::codec::Decode
 								>::decode(&mut &__benchmarked_call_encoded[..])
 							.expect("call is encoded above, encoding must be correct");
 						let __origin = $crate::to_origin!($origin $(, $origin_type)?);
