@@ -16,17 +16,15 @@ on:
 env:
   TARPAULIN_VERSION: 0.19.1
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     name: Coverage Report
     runs-on: [self-hosted]
     steps:
-      - name: Cancel Previous Runs
-        # Only cancel non-master branch runs
-        if: ${{ github.ref != 'refs/heads/master' }}
-        uses: styfle/cancel-workflow-action@0.11.0
-        with:
-          access_token: ${{ github.token }}
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
@@ -34,7 +32,7 @@ jobs:
       - name: Install toolchain
         uses: dtolnay/rust-toolchain@nightly
         with:
-          toolchain: nightly-2023-03-04
+          toolchain: nightly-2023-04-15
           components: rustfmt
           target: wasm32-unknown-unknown
       - name: Generate code coverage

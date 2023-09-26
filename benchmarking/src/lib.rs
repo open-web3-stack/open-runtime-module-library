@@ -5,6 +5,8 @@
 
 mod tests;
 
+#[doc(hidden)]
+pub use codec;
 pub use frame_benchmarking::{
 	benchmarking, whitelisted_caller, BenchmarkBatch, BenchmarkConfig, BenchmarkError, BenchmarkList,
 	BenchmarkMetadata, BenchmarkParameter, BenchmarkResult, Benchmarking, BenchmarkingSetup,
@@ -289,13 +291,13 @@ macro_rules! benchmarks_iter {
 									>:: [< new_call_variant_ $dispatch >] (
 								$($arg),*
 							);
-						let __benchmarked_call_encoded = $crate::frame_support::codec::Encode::encode(
+						let __benchmarked_call_encoded = $crate::codec::Encode::encode(
 							&__call
 						);
 					}: {
 						let __call_decoded = <
 								$pallet::Call::<$runtime $(, $instance )?>
-								as $crate::frame_support::codec::Decode
+								as $crate::codec::Decode
 								>::decode(&mut &__benchmarked_call_encoded[..])
 							.expect("call is encoded above, encoding must be correct");
 						let __origin = $crate::to_origin!($origin $(, $origin_type)?);
@@ -1244,7 +1246,7 @@ pub fn show_benchmark_debug_info(
 /// For example:
 ///
 /// ```
-/// use frame_benchmarking::TrackedStorageKey;
+/// use sp_storage::TrackedStorageKey;
 /// let whitelist: Vec<TrackedStorageKey> = vec![
 ///     // Block Number
 ///     hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef702a5c1b19ab7a04f536c519aca4983ac").to_vec().into(),

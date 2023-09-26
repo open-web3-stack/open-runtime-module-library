@@ -33,7 +33,6 @@
 #![allow(clippy::too_many_arguments)]
 
 use frame_support::{
-	log,
 	pallet_prelude::*,
 	require_transactional,
 	traits::{Contains, Get},
@@ -192,7 +191,7 @@ pub mod module {
 	}
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);

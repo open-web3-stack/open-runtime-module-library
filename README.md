@@ -47,14 +47,8 @@ The Open Runtime Module Library (ORML) is a community maintained collection of S
 	- Used by multiple parachains for their XCM token transfer implementation.
 
 #### Benchmarking
-- [bencher](https://github.com/open-web3-stack/open-runtime-module-library/tree/master/bencher)
-	- Benchmarking tool using cargo bench for benchmarking
 - [benchmarking](https://github.com/open-web3-stack/open-runtime-module-library/tree/master/benchmarking)
 	- Fork of frame-benchmarking in Substrate to allow implement runtime specific benchmarks
-- [weight-gen](https://github.com/open-web3-stack/open-runtime-module-library/tree/master/weight-gen)
-	- Weight meter file generation
-- [weight-meter](https://github.com/open-web3-stack/open-runtime-module-library/tree/master/weight-meter)
-	- A low overhead dynamic weight meter
 
 ## Example
 
@@ -94,11 +88,13 @@ _In alphabetical order_
 - [Bit.Country](https://github.com/bit-country/Bit-Country-Blockchain)
 - [Centrifuge](https://github.com/centrifuge/centrifuge-chain)
 - [ChainX](https://github.com/chainx-org/ChainX)
+- [Composable](https://github.com/ComposableFi/composable)
 - [Crust](https://github.com/crustio/crust)
 - [GameDAO Protocol](https://github.com/gamedaoco)
 - [HydraDX](https://github.com/galacticcouncil/hack.HydraDX-node)
 - [Interlay and Kintsugi](https://github.com/interlay/interbtc)
-- [KodaDot: MetaPrime Network](https://github.com/kodadot/metaprime.network) 
+- [InvArch and Tinkernet](https://github.com/InvArch/InvArch-Node)
+- [KodaDot: MetaPrime Network](https://github.com/kodadot/metaprime.network)
 - [Laminar Chain](https://github.com/laminar-protocol/laminar-chain)
 - [Libra](https://github.com/atscaletech/libra)
 - [Listen](https://github.com/listenofficial)

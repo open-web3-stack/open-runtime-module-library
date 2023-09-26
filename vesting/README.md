@@ -7,3 +7,7 @@ Vesting module provides a means of scheduled balance lock on an account. It uses
 ### Vesting Schedule
 
 The schedule of a vesting is described by data structure `VestingSchedule`: from the block number of `start`, for every `period` amount of blocks, `per_period` amount of balance would unlocked, until number of periods `period_count` reached. Note in vesting schedules, *time* is measured by block number. All `VestingSchedule`s under an account could be queried in chain state.
+
+### Locks
+
+The implementation uses locks which allow tokens to be locked by other pallets that's also using locks, for example, the conviction-voting pallet.

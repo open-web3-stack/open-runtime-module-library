@@ -74,10 +74,6 @@ pub trait MultiTokenReservableCurrency<AccountId>: MultiTokenCurrency<AccountId>
 	) -> result::Result<Self::Balance, DispatchError>;
 }
 
-/// An identifier for a lock. Used for disambiguating different locks so that
-/// they can be individually replaced or removed.
-pub type LockIdentifier = [u8; 8];
-
 pub trait MultiTokenCurrencyExtended<AccountId>: MultiTokenCurrency<AccountId> {
 	fn create(address: &AccountId, amount: Self::Balance) -> sp_std::result::Result<Self::CurrencyId, DispatchError>;
 	fn mint(currency_id: Self::CurrencyId, address: &AccountId, amount: Self::Balance) -> DispatchResult;

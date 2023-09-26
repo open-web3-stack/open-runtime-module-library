@@ -35,6 +35,7 @@ pub mod get_by_key;
 pub mod location;
 pub mod multi_asset;
 pub mod nft;
+pub mod parameters;
 pub mod price;
 pub mod rewards;
 pub mod xcm_transfer;

@@ -692,7 +692,7 @@ impl<AccountId, CurrencyId, Balance> OnTransfer<AccountId, CurrencyId, Balance> 
 }
 
 pub trait MutationHooks<AccountId, CurrencyId, Balance> {
-	/// Handler to burn or transfer account's dust
+	/// Handler to burn or transfer account's dust.
 	type OnDust: OnDust<AccountId, CurrencyId, Balance>;
 
 	/// Hook to run before slashing an account.
@@ -710,10 +710,10 @@ pub trait MutationHooks<AccountId, CurrencyId, Balance> {
 	/// Hook to run after transferring from an account to another.
 	type PostTransfer: OnTransfer<AccountId, CurrencyId, Balance>;
 
-	/// Handler for when an account was created
+	/// Handler for when an account was created.
 	type OnNewTokenAccount: Happened<(AccountId, CurrencyId)>;
 
-	/// Handler for when an account was created
+	/// Handler for when an account was killed.
 	type OnKilledTokenAccount: Happened<(AccountId, CurrencyId)>;
 }
 

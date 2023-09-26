@@ -261,7 +261,7 @@ fn currency_adapter_lock_removal_should_work() {
 		.balances(vec![(TREASURY_ACCOUNT, DOT, 100)])
 		.build()
 		.execute_with(|| {
-			TreasuryCurrencyAdapter::set_lock(ID_1, &TREASURY_ACCOUNT, u64::max_value(), WithdrawReasons::all());
+			TreasuryCurrencyAdapter::set_lock(ID_1, &TREASURY_ACCOUNT, Balance::max_value(), WithdrawReasons::all());
 			TreasuryCurrencyAdapter::remove_lock(ID_1, &TREASURY_ACCOUNT);
 			assert_ok!(TreasuryCurrencyAdapter::transfer(
 				&TREASURY_ACCOUNT,
@@ -278,7 +278,7 @@ fn currency_adapter_lock_replacement_should_work() {
 		.balances(vec![(TREASURY_ACCOUNT, DOT, 100)])
 		.build()
 		.execute_with(|| {
-			TreasuryCurrencyAdapter::set_lock(ID_1, &TREASURY_ACCOUNT, u64::max_value(), WithdrawReasons::all());
+			TreasuryCurrencyAdapter::set_lock(ID_1, &TREASURY_ACCOUNT, Balance::max_value(), WithdrawReasons::all());
 			TreasuryCurrencyAdapter::set_lock(ID_1, &TREASURY_ACCOUNT, 5, WithdrawReasons::all());
 			assert_ok!(TreasuryCurrencyAdapter::transfer(
 				&TREASURY_ACCOUNT,
@@ -313,7 +313,7 @@ fn currency_adapter_combination_locking_should_work() {
 		.build()
 		.execute_with(|| {
 			// withdrawReasons not work
-			TreasuryCurrencyAdapter::set_lock(ID_1, &TREASURY_ACCOUNT, u64::max_value(), WithdrawReasons::empty());
+			TreasuryCurrencyAdapter::set_lock(ID_1, &TREASURY_ACCOUNT, Balance::max_value(), WithdrawReasons::empty());
 			TreasuryCurrencyAdapter::set_lock(ID_2, &TREASURY_ACCOUNT, 0, WithdrawReasons::all());
 			assert_noop!(
 				TreasuryCurrencyAdapter::transfer(&TREASURY_ACCOUNT, &ALICE, 2, ExistenceRequirement::AllowDeath),
@@ -542,14 +542,14 @@ fn currency_adapter_transferring_incomplete_reserved_balance_should_work() {
 #[test]
 fn currency_adapter_transferring_too_high_value_should_not_panic() {
 	ExtBuilder::default().build().execute_with(|| {
-		TreasuryCurrencyAdapter::make_free_balance_be(&TREASURY_ACCOUNT, u64::max_value());
+		TreasuryCurrencyAdapter::make_free_balance_be(&TREASURY_ACCOUNT, Balance::max_value());
 		TreasuryCurrencyAdapter::make_free_balance_be(&ALICE, 2);
 
 		assert_noop!(
 			TreasuryCurrencyAdapter::transfer(
 				&TREASURY_ACCOUNT,
 				&ALICE,
-				u64::max_value(),
+				Balance::max_value(),
 				ExistenceRequirement::AllowDeath
 			),
 			ArithmeticError::Overflow,
@@ -557,7 +557,7 @@ fn currency_adapter_transferring_too_high_value_should_not_panic() {
 
 		assert_eq!(
 			TreasuryCurrencyAdapter::free_balance(&TREASURY_ACCOUNT),
-			u64::max_value()
+			Balance::max_value(),
 		);
 		assert_eq!(TreasuryCurrencyAdapter::free_balance(&ALICE), 2);
 	});

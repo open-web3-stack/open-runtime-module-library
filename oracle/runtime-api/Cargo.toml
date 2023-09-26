@@ -1,15 +1,15 @@
 [package]
-name = "orml-oracle-rpc-runtime-api"
+name = "orml-oracle-runtime-api"
 version = "0.4.1-dev"
 authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2021"
 license = "Apache-2.0"
-description = "Runtime API module for orml-oracle-rpc."
+description = "Runtime API module for orml-oracle."
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive"] }
-sp-api = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.42" }
-sp-std = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.42" }
+sp-api = { git = "https://github.com/mangata-finance/polkadot-sdk", default-features = false , branch = "develop" }
+sp-std = { git = "https://github.com/mangata-finance/polkadot-sdk", default-features = false , branch = "develop" }
 
 [features]
 default = ["std"]
