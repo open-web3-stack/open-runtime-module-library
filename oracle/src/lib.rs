@@ -186,7 +186,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 	pub fn read_raw_values(key: &T::OracleKey) -> Vec<TimestampedValueOf<T, I>> {
 		T::Members::sorted_members()
 			.iter()
-			.chain(vec![T::RootOperatorAccountId::get()].iter())
+			.chain([T::RootOperatorAccountId::get()].iter())
 			.filter_map(|x| Self::raw_values(x, key))
 			.collect()
 	}
