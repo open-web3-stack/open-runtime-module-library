@@ -59,6 +59,7 @@ use frame_support::{
 };
 use frame_system::{ensure_root, ensure_signed, pallet_prelude::*};
 use scale_info::TypeInfo;
+use sp_core::U256;
 use sp_runtime::{
 	traits::{
 		AtLeast32BitUnsigned, Bounded, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, One, Saturating,
@@ -199,6 +200,8 @@ pub mod module {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		/// The balance type
+		/// use Into<128> to supportd current impl of mangata-node pallets which
+		/// rely on U256::from(value: u128) for arithemtics
 		type Balance: Parameter
 			+ Member
 			+ AtLeast32BitUnsigned
@@ -207,7 +210,9 @@ pub mod module {
 			+ MaybeSerializeDeserialize
 			+ MaxEncodedLen
 			+ TypeInfo
-			+ FixedPointOperand;
+			+ FixedPointOperand
+			+ Into<u128>
+			+ TryFrom<U256>;
 
 		/// The amount type, should be signed version of `Balance`
 		type Amount: Signed

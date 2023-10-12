@@ -16,6 +16,7 @@ serde = { version = "1.0.136", optional = true }
 frame-support = { git = "https://github.com/mangata-finance/polkadot-sdk", default-features = false , branch = "develop" }
 frame-system = { git = "https://github.com/mangata-finance/polkadot-sdk", default-features = false , branch = "develop" }
 sp-arithmetic = { git = "https://github.com/mangata-finance/polkadot-sdk", default-features = false , branch = "develop" }
+sp-core = { git = "https://github.com/mangata-finance/polkadot-sdk", default-features = false, branch = "develop" }
 sp-runtime = { git = "https://github.com/mangata-finance/polkadot-sdk", default-features = false , branch = "develop" }
 sp-std = { git = "https://github.com/mangata-finance/polkadot-sdk", default-features = false , branch = "develop" }
 frame-benchmarking = {  git = "https://github.com/mangata-finance/polkadot-sdk", branch = "develop", default-features = false, optional = true }
@@ -25,7 +26,6 @@ orml-traits = { path = "../traits", version = "0.4.1-dev", default-features = fa
 [dev-dependencies]
 pallet-elections-phragmen = { git = "https://github.com/mangata-finance/polkadot-sdk", branch = "develop" }
 pallet-treasury = { git = "https://github.com/mangata-finance/polkadot-sdk", branch = "develop" }
-sp-core = { git = "https://github.com/mangata-finance/polkadot-sdk", branch = "develop" }
 sp-io = { git = "https://github.com/mangata-finance/polkadot-sdk", branch = "develop" }
 sp-staking = { git = "https://github.com/mangata-finance/polkadot-sdk", branch = "develop" }
 
