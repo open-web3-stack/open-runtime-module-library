@@ -355,6 +355,8 @@ impl WeightTrader for AllTokensAreCreatedEqualToWeight {
 /// in the Holding Register to pay for execution. This is almost equal to
 /// [`xcm_builder::AllowTopLevelPaidExecutionFrom<T>`] except that it allows for
 /// multiple assets and is not generic to allow all origins.
+/// This is necessary after the change in `polkadot-sdk` which prevents
+/// multicurrency transfers. Here is the relevant issue: https://github.com/paritytech/polkadot-sdk/issues/1638
 pub struct AllowTopLevelPaidExecution;
 impl ShouldExecute for AllowTopLevelPaidExecution {
 	fn should_execute<RuntimeCall>(
