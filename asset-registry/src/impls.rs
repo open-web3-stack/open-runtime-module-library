@@ -1,5 +1,5 @@
 use crate::module::*;
-use frame_support::{log, pallet_prelude::*, weights::constants::WEIGHT_REF_TIME_PER_SECOND};
+use frame_support::{pallet_prelude::*, weights::constants::WEIGHT_REF_TIME_PER_SECOND};
 use orml_traits::{
 	asset_registry::{
 		AssetMetadata, AssetProcessor, FixedConversionRateProvider, Inspect, Mutate, WeightToFeeConverter,
@@ -90,7 +90,7 @@ impl<W: WeightToFeeConverter, R: TakeRevenue> WeightTrader for AssetRegistryTrad
 		}
 	}
 
-	fn buy_weight(&mut self, weight: XcmWeight, payment: Assets) -> Result<Assets, XcmError> {
+	fn buy_weight(&mut self, weight: XcmWeight, payment: Assets, _context: &XcmContext) -> Result<Assets, XcmError> {
 		log::trace!(
 			target: "xcm::weight",
 			"AssetRegistryTrader::buy_weight weight: {:?}, payment: {:?}",
@@ -132,7 +132,7 @@ impl<W: WeightToFeeConverter, R: TakeRevenue> WeightTrader for AssetRegistryTrad
 		Err(XcmError::TooExpensive)
 	}
 
-	fn refund_weight(&mut self, weight: XcmWeight) -> Option<MultiAsset> {
+	fn refund_weight(&mut self, weight: XcmWeight, _context: &XcmContext) -> Option<MultiAsset> {
 		log::trace!(target: "xcm::weight", "AssetRegistryTrader::refund_weight weight: {:?}", weight);
 
 		match self.bought_weight {
