@@ -22,7 +22,7 @@ sp-std = { workspace = true }
 [dev-dependencies]
 pallet-preimage = { workspace = true, features = ["std"] }
 pallet-scheduler = { workspace = true, features = ["std"] }
-pallet-root-testing = { workspace = true, features = ["std"] }
+# pallet-root-testing = { workspace = true, features = ["std"] }
 sp-io = { workspace = true, features = ["std"] }
 
 [features]
