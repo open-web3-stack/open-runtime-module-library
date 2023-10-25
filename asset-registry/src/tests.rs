@@ -11,7 +11,7 @@ use frame_support::{
 };
 use mock::{para::RuntimeCall, *};
 use orml_traits::MultiCurrency;
-use polkadot_parachain::primitives::Sibling;
+use polkadot_parachain_primitives::primitives::Sibling;
 
 use sp_runtime::{
 	traits::{AccountIdConversion, BadOrigin, Dispatchable},

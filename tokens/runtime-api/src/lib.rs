@@ -6,7 +6,7 @@
 // The `unnecessary_mut_passed` warning originates from `decl_runtime_apis` macro.
 #![allow(clippy::unnecessary_mut_passed)]
 
-use codec::Codec;
+use parity_scale_codec::Codec;
 
 sp_api::decl_runtime_apis! {
 	pub trait TokensApi<CurrencyId, Balance> where

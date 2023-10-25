@@ -3,7 +3,6 @@
 #![cfg(test)]
 
 use super::*;
-use codec::MaxEncodedLen;
 use frame_support::{
 	assert_noop, assert_ok,
 	dispatch::DispatchErrorWithPostInfo,
@@ -14,6 +13,7 @@ use mock::{
 	authority, run_to_block, Authority, BlockNumber, ExtBuilder, MockAsOriginId, OriginCaller, Runtime, RuntimeCall,
 	RuntimeOrigin, System,
 };
+use parity_scale_codec::MaxEncodedLen;
 use sp_io::hashing::blake2_256;
 use sp_runtime::{traits::BadOrigin, Perbill};
 

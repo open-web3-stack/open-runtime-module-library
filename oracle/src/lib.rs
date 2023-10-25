@@ -19,7 +19,7 @@
 #![allow(clippy::string_lit_as_bytes)]
 #![allow(clippy::unused_unit)]
 
-use codec::{Decode, Encode, MaxEncodedLen};
+use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
 
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};

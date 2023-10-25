@@ -21,9 +21,9 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 
-use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{ensure, pallet_prelude::*, traits::Get, BoundedVec, Parameter};
 use frame_system::pallet_prelude::*;
+use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, One, Zero},

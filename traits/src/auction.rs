@@ -1,6 +1,5 @@
 use crate::Change;
-use codec::FullCodec;
-use codec::{Decode, Encode, MaxEncodedLen};
+use parity_scale_codec::{Decode, Encode, FullCodec, MaxEncodedLen};
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AtLeast32Bit, Bounded, MaybeSerializeDeserialize},
