@@ -26,7 +26,6 @@
 #![allow(clippy::borrowed_box)]
 #![allow(clippy::unused_unit)]
 
-use codec::MaxEncodedLen;
 use frame_support::{
 	dispatch::PostDispatchInfo,
 	dispatch::{DispatchClass, GetDispatchInfo, Pays},
@@ -37,6 +36,7 @@ use frame_support::{
 	},
 };
 use frame_system::{pallet_prelude::*, EnsureRoot, EnsureSigned};
+use parity_scale_codec::MaxEncodedLen;
 use scale_info::TypeInfo;
 use sp_core::defer;
 use sp_runtime::{

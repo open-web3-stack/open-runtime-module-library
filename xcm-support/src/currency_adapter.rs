@@ -1,5 +1,5 @@
-use codec::FullCodec;
 use frame_support::traits::Get;
+use parity_scale_codec::FullCodec;
 use sp_runtime::{
 	traits::{Convert, MaybeSerializeDeserialize, SaturatedConversion},
 	DispatchError,

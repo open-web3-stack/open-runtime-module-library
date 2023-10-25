@@ -3,9 +3,9 @@
 #![cfg(test)]
 
 use super::*;
-use codec::Encode;
 use frame_support::{assert_noop, assert_ok};
 use mock::*;
+use parity_scale_codec::Encode;
 use sp_runtime::{FixedPointNumber, FixedU128, Permill};
 
 fn storage_set(key: &[u8], value: &[u8]) {

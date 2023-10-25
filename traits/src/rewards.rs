@@ -1,4 +1,4 @@
-use codec::FullCodec;
+use parity_scale_codec::FullCodec;
 use sp_runtime::traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize};
 use sp_std::fmt::Debug;
 
