@@ -148,7 +148,7 @@ macro_rules! define_parameters {
 			)]
 			$vis enum $name {
 				$(
-					#[parity_scale_codec(index = $index)]
+					#[codec(index = $index)]
 					$key_name($key_name, Option<$value_type>),
 				)*
 			}
@@ -165,7 +165,7 @@ macro_rules! define_parameters {
 			)]
 			$vis enum [<$name Key>] {
 				$(
-					#[parity_scale_codec(index = $index)]
+					#[codec(index = $index)]
 					$key_name($key_name),
 				)*
 			}
@@ -182,7 +182,7 @@ macro_rules! define_parameters {
 			)]
 			$vis enum [<$name Value>] {
 				$(
-					#[parity_scale_codec(index = $index)]
+					#[codec(index = $index)]
 					$key_name($value_type),
 				)*
 			}
@@ -338,7 +338,7 @@ macro_rules! define_aggregrated_parameters {
 			)]
 			$vis enum $name {
 				$(
-					#[parity_scale_codec(index = $index)]
+					#[codec(index = $index)]
 					$parameter_name($parameter_type),
 				)*
 			}
@@ -355,7 +355,7 @@ macro_rules! define_aggregrated_parameters {
 			)]
 			$vis enum [<$name Key>] {
 				$(
-					#[parity_scale_codec(index = $index)]
+					#[codec(index = $index)]
 					$parameter_name(<$parameter_type as $crate::parameters::AggregratedKeyValue>::AggregratedKey),
 				)*
 			}
@@ -372,7 +372,7 @@ macro_rules! define_aggregrated_parameters {
 			)]
 			$vis enum [<$name Value>] {
 				$(
-					#[parity_scale_codec(index = $index)]
+					#[codec(index = $index)]
 					$parameter_name(<$parameter_type as $crate::parameters::AggregratedKeyValue>::AggregratedValue),
 				)*
 			}

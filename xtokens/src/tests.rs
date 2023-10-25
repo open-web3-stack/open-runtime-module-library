@@ -6,7 +6,7 @@ use frame_support::{assert_err, assert_noop, assert_ok, traits::Currency};
 use mock::*;
 use orml_traits::{ConcreteFungibleAsset, MultiCurrency};
 use parity_scale_codec::Encode;
-use polkadot_parachain::primitives::Sibling;
+use polkadot_parachain_primitives::primitives::Sibling;
 use sp_runtime::{traits::AccountIdConversion, AccountId32};
 use xcm::{v3::OriginKind::SovereignAccount, VersionedXcm};
 use xcm_simulator::TestExt;
