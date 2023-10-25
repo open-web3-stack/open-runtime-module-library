@@ -1,4 +1,4 @@
-use codec::FullCodec;
+use parity_scale_codec::Fullparity_scale_codec;
 use sp_runtime::traits::{Convert, MaybeSerializeDeserialize, SaturatedConversion};
 use sp_std::{
 	cmp::{Eq, PartialEq},
@@ -72,7 +72,7 @@ impl<
 		Match: MatchesFungible<MultiCurrency::Balance>,
 		AccountId: sp_std::fmt::Debug + Clone,
 		AccountIdConvert: ConvertLocation<AccountId>,
-		CurrencyId: FullCodec + Eq + PartialEq + Copy + MaybeSerializeDeserialize + Debug,
+		CurrencyId: Fullparity_scale_codec + Eq + PartialEq + Copy + MaybeSerializeDeserialize + Debug,
 		CurrencyIdConvert: Convert<MultiAsset, Option<CurrencyId>>,
 		DepositFailureHandler: OnDepositFail<CurrencyId, AccountId, MultiCurrency::Balance>,
 	> TransactAsset

@@ -2,7 +2,6 @@ use super::{Amount, Balance, CurrencyId, CurrencyIdConvert, ParachainXcmRouter};
 
 use crate as orml_asset_registry;
 
-use codec::{Decode, Encode, MaxEncodedLen};
 use cumulus_primitives_core::{ChannelStatus, GetChannelInfo, ParaId};
 use frame_support::traits::{EnsureOrigin, EnsureOriginWithArg};
 use frame_support::{
@@ -19,6 +18,7 @@ use orml_traits::{
 };
 use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
 use pallet_xcm::XcmPassthrough;
+use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
 use polkadot_parachain::primitives::Sibling;
 use sp_core::H256;
 use sp_runtime::{

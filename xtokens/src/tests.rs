@@ -1,11 +1,11 @@
 #![cfg(test)]
 
 use super::*;
-use codec::Encode;
 use cumulus_primitives_core::ParaId;
 use frame_support::{assert_err, assert_noop, assert_ok, traits::Currency};
 use mock::*;
 use orml_traits::{ConcreteFungibleAsset, MultiCurrency};
+use parity_scale_codec::Encode;
 use polkadot_parachain::primitives::Sibling;
 use sp_runtime::{traits::AccountIdConversion, AccountId32};
 use xcm::{v3::OriginKind::SovereignAccount, VersionedXcm};

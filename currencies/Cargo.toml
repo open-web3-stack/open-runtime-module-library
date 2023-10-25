@@ -3,36 +3,36 @@ name = "orml-currencies"
 description = "Provide `MultiCurrency` implementation using `pallet-balances` and `orml-tokens` module."
 repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/currencies"
 license = "Apache-2.0"
-version = "0.4.1-dev"
+version = "0.5.0-dev"
 authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2021"
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false }
+parity-scale-codec = {  version = "3.0.0", default-features = false }
 scale-info = { version = "2.9.0", default-features = false, features = ["derive"] }
 serde = { version = "1.0.136", optional = true }
 
-frame-support = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "release-polkadot-v1.1.0" }
-frame-system = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "release-polkadot-v1.1.0" }
-sp-io = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "release-polkadot-v1.1.0" }
-sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "release-polkadot-v1.1.0" }
-sp-std = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false , branch = "release-polkadot-v1.1.0" }
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+sp-io = { workspace = true }
+sp-runtime = { workspace = true }
+sp-std = { workspace = true }
 
-orml-traits = { path = "../traits", version = "0.4.1-dev", default-features = false }
-orml-utilities = { path = "../utilities", version = "0.4.1-dev", default-features = false }
+orml-traits = { path = "../traits", version = "0.5.0-dev", default-features = false }
+orml-utilities = { path = "../utilities", version = "0.5.0-dev", default-features = false }
 
 [dev-dependencies]
-pallet-balances = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
-sp-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
+pallet-balances = { workspace = true, features = ["std"] }
+sp-core = { workspace = true, features = ["std"] }
 
-orml_tokens = { package = "orml-tokens", path = "../tokens", version = "0.4.1-dev" }
+orml_tokens = { package = "orml-tokens", path = "../tokens", version = "0.5.0-dev" }
 
 [features]
 default = ["std"]
 std = [
 	"serde",
 
-	"codec/std",
+	"parity-scale-codec/std",
 	"frame-support/std",
 	"frame-system/std",
 	"orml-traits/std",

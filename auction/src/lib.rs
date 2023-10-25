@@ -13,10 +13,10 @@
 #![allow(clippy::string_lit_as_bytes)]
 #![allow(clippy::unused_unit)]
 
-use codec::MaxEncodedLen;
 use frame_support::pallet_prelude::*;
 use frame_system::{ensure_signed, pallet_prelude::*};
 use orml_traits::{Auction, AuctionHandler, AuctionInfo, Change};
+use parity_scale_codec::MaxEncodedLen;
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, Bounded, CheckedAdd, MaybeSerializeDeserialize, Member, One, Zero},
 	DispatchError, DispatchResult,
@@ -54,8 +54,8 @@ pub mod module {
 			+ Copy
 			+ MaybeSerializeDeserialize
 			+ Bounded
-			+ codec::FullCodec
-			+ codec::MaxEncodedLen;
+			+ parity_scale_codec::FullCodec
+			+ parity_scale_codec::MaxEncodedLen;
 
 		/// The `AuctionHandler` that allow custom bidding logic and handles
 		/// auction result.
