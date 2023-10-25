@@ -8,7 +8,7 @@ authors = ["Acala Developers"]
 edition = "2021"
 
 [dependencies]
-parity-scale-codec = {  version = "3.0.0", default-features = false }
+parity-scale-codec = { workspace = true }
 scale-info = { version = "2.9.0", default-features = false, features = ["derive"] }
 
 frame-support = { workspace = true }
