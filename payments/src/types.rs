@@ -1,6 +1,7 @@
 #![allow(unused_qualifications)]
 use crate::{pallet, AssetIdOf, BalanceOf};
-use codec::{Decode, Encode, HasCompact, MaxEncodedLen};
+use frame_system::pallet_prelude::*;
+use parity_scale_codec::{Decode, Encode, HasCompact, MaxEncodedLen};
 use scale_info::TypeInfo;
 use sp_runtime::{DispatchResult, Percent};
 
@@ -44,7 +45,7 @@ pub enum PaymentState<T: pallet::Config> {
 	/// A judge needs to review and release manually
 	NeedsReview,
 	/// The user has requested refund and will be processed by `BlockNumber`
-	RefundRequested { cancel_block: T::BlockNumber },
+	RefundRequested { cancel_block: BlockNumberFor<T> },
 	/// The recipient of this transaction has created a request
 	PaymentRequested,
 }

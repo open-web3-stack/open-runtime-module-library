@@ -3,37 +3,37 @@ name = "orml-benchmarking"
 description = "Provide macro to benchmark Substrate runtime."
 repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/benchmarking"
 license = "Apache-2.0"
-version = "0.4.1-dev"
+version = "0.5.0-dev"
 authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2021"
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false }
-log = { version = "0.4.17", default-features = false }
+parity-scale-codec = { workspace = true }
+log = { workspace = true }
 paste = "1.0.7"
-scale-info = { version = "2.1.2", default-features = false, features = ["derive"] }
-serde = { version = "1.0.136", optional = true }
+scale-info = { version = "2.9.0", default-features = false, features = ["derive"] }
+serde = { workspace = true, optional = true }
 
-frame-benchmarking = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.42" }
-frame-support = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.42" }
-sp-api = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.42" }
-sp-io = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.42" }
-sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.42" }
-sp-runtime-interface = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.42" }
-sp-std = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.42" }
-sp-storage = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.42" }
+frame-benchmarking = { workspace = true }
+frame-support = { workspace = true }
+sp-api = { workspace = true }
+sp-io = { workspace = true }
+sp-runtime = { workspace = true }
+sp-runtime-interface = { workspace = true }
+sp-std = { workspace = true }
+sp-storage = { workspace = true }
 
 [dev-dependencies]
-hex-literal = "0.3.4"
+hex-literal = "0.4.1"
 
-frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.42" }
+frame-system = { workspace = true, features = ["std"] }
 
 [features]
 default = [ "std" ]
 std = [
 	"serde",
 
-	"codec/std",
+	"parity-scale-codec/std",
 	"frame-benchmarking/std",
 	"frame-support/std",
 	"log/std",

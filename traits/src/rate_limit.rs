@@ -1,10 +1,9 @@
-use codec::Encode;
-use frame_support::{Parameter, RuntimeDebug};
-use sp_runtime::traits::Member;
+use frame_support::Parameter;
+use parity_scale_codec::Encode;
+use sp_runtime::{traits::Member, RuntimeDebug};
 
 #[derive(PartialEq, Eq, RuntimeDebug)]
 pub enum RateLimiterError {
-	NotDefined,
 	ExceedLimit,
 }
 
@@ -17,12 +16,36 @@ pub trait RateLimiter {
 	/// `key`.
 	fn is_whitelist(limiter_id: Self::RateLimiterId, key: impl Encode) -> bool;
 
-	/// Check whether the `value` can be passed the limit of `limit_key`.
-	fn is_allowed(limiter_id: Self::RateLimiterId, limit_key: impl Encode, value: u128)
-		-> Result<(), RateLimiterError>;
+	/// Check whether the `value` can be consumed under the limit of
+	/// `limit_key`.
+	fn can_consume(
+		limiter_id: Self::RateLimiterId,
+		limit_key: impl Encode,
+		value: u128,
+	) -> Result<(), RateLimiterError>;
 
-	/// The handler function after allowed.
-	fn record(limiter_id: Self::RateLimiterId, limit_key: impl Encode, value: u128);
+	/// The handler function to consume quota.
+	fn consume(limiter_id: Self::RateLimiterId, limit_key: impl Encode, value: u128);
+
+	/// Try consume quota.
+	fn try_consume(
+		limiter_id: Self::RateLimiterId,
+		limit_key: impl Encode + Copy,
+		value: u128,
+		whitelist_check: Option<impl Encode>,
+	) -> Result<(), RateLimiterError> {
+		let need_consume = match whitelist_check {
+			Some(whitelist_key) => !Self::is_whitelist(limiter_id, whitelist_key),
+			None => true,
+		};
+
+		if need_consume {
+			Self::can_consume(limiter_id, limit_key, value)?;
+			Self::consume(limiter_id, limit_key, value);
+		}
+
+		Ok(())
+	}
 }
 
 impl RateLimiter for () {
@@ -32,9 +55,9 @@ impl RateLimiter for () {
 		true
 	}
 
-	fn is_allowed(_: Self::RateLimiterId, _: impl Encode, _: u128) -> Result<(), RateLimiterError> {
+	fn can_consume(_: Self::RateLimiterId, _: impl Encode, _: u128) -> Result<(), RateLimiterError> {
 		Ok(())
 	}
 
-	fn record(_: Self::RateLimiterId, _: impl Encode, _: u128) {}
+	fn consume(_: Self::RateLimiterId, _: impl Encode, _: u128) {}
 }

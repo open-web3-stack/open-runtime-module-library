@@ -1,0 +1,22 @@
+[package]
+name = "orml-tokens-runtime-api"
+version = "0.5.0-dev"
+authors = ["Laminar Developers <hello@laminar.one>"]
+edition = "2021"
+license = "Apache-2.0"
+description = "Runtime API module for orml-tokens."
+
+[dependencies]
+parity-scale-codec = {  version = "3.0.0", default-features = false, features = ["derive"] }
+frame-support = { workspace = true }
+sp-api = { workspace = true }
+sp-runtime = { workspace = true }
+
+[features]
+default = ["std"]
+std = [
+	"parity-scale-codec/std",
+	"frame-support/std",
+	"sp-api/std",
+	"sp-runtime/std",
+]

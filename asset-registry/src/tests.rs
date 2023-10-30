@@ -11,7 +11,7 @@ use frame_support::{
 };
 use mock::{para::RuntimeCall, *};
 use orml_traits::MultiCurrency;
-use polkadot_parachain::primitives::Sibling;
+use polkadot_parachain_primitives::primitives::Sibling;
 
 use sp_runtime::{
 	traits::{AccountIdConversion, BadOrigin, Dispatchable},
@@ -49,11 +49,15 @@ fn print_events<Runtime: frame_system::Config>(name: &'static str) {
 		.for_each(|r| println!("> {:?}", r.event));
 }
 
-fn dummy_metadata() -> AssetMetadata<<para::Runtime as orml_asset_registry::Config>::Balance, CustomMetadata> {
+fn dummy_metadata() -> AssetMetadata<
+	<para::Runtime as orml_asset_registry::Config>::Balance,
+	CustomMetadata,
+	<para::Runtime as orml_asset_registry::Config>::StringLimit,
+> {
 	AssetMetadata {
 		decimals: 12,
-		name: "para A native token".as_bytes().to_vec(),
-		symbol: "paraA".as_bytes().to_vec(),
+		name: BoundedVec::truncate_from("para A native token".as_bytes().to_vec()),
+		symbol: BoundedVec::truncate_from("paraA".as_bytes().to_vec()),
 		existential_deposit: 0,
 		location: Some(
 			MultiLocation::new(
@@ -75,8 +79,8 @@ fn genesis_issuance_should_work() {
 	ParaG::execute_with(|| {
 		let metadata1 = AssetMetadata {
 			decimals: 12,
-			name: "para G native token".as_bytes().to_vec(),
-			symbol: "paraG".as_bytes().to_vec(),
+			name: BoundedVec::truncate_from("para G native token".as_bytes().to_vec()),
+			symbol: BoundedVec::truncate_from("paraG".as_bytes().to_vec()),
 			existential_deposit: 0,
 			location: None,
 			additional: CustomMetadata {
@@ -85,8 +89,8 @@ fn genesis_issuance_should_work() {
 		};
 		let metadata2 = AssetMetadata {
 			decimals: 12,
-			name: "para G foreign token".as_bytes().to_vec(),
-			symbol: "paraF".as_bytes().to_vec(),
+			name: BoundedVec::truncate_from("para G foreign token".as_bytes().to_vec()),
+			symbol: BoundedVec::truncate_from("paraF".as_bytes().to_vec()),
 			existential_deposit: 0,
 			location: None,
 			additional: CustomMetadata {
@@ -265,8 +269,8 @@ fn test_sequential_id_normal_behavior() {
 		let metadata1 = dummy_metadata();
 
 		let metadata2 = AssetMetadata {
-			name: "para A native token 2".as_bytes().to_vec(),
-			symbol: "paraA2".as_bytes().to_vec(),
+			name: BoundedVec::truncate_from("para A native token 2".as_bytes().to_vec()),
+			symbol: BoundedVec::truncate_from("paraA2".as_bytes().to_vec()),
 			location: Some(
 				MultiLocation::new(
 					1,
@@ -463,8 +467,8 @@ fn test_update_metadata_works() {
 
 		let new_metadata = AssetMetadata {
 			decimals: 11,
-			name: "para A native token2".as_bytes().to_vec(),
-			symbol: "paraA2".as_bytes().to_vec(),
+			name: BoundedVec::truncate_from("para A native token2".as_bytes().to_vec()),
+			symbol: BoundedVec::truncate_from("paraA2".as_bytes().to_vec()),
 			existential_deposit: 1,
 			location: Some(
 				MultiLocation::new(
@@ -709,5 +713,60 @@ fn from_unversioned_to_v2_storage() {
 
 		// Assert further calls are no-op
 		assert_eq!(crate::Migration::<para::Runtime>::on_runtime_upgrade(), Weight::zero());
+	});
+}
+
+#[test]
+fn test_decode_bounded_vec() {
+	TestNet::reset();
+
+	pub mod unbounded {
+		use super::*;
+
+		#[frame_support::storage_alias]
+		pub type Metadata<T: orml_asset_registry::Config> = StorageMap<
+			orml_asset_registry::Pallet<T>,
+			Twox64Concat,
+			<T as orml_asset_registry::Config>::AssetId,
+			AssetMetadata<
+				<T as orml_asset_registry::Config>::Balance,
+				<T as orml_asset_registry::Config>::CustomMetadata,
+			>,
+			OptionQuery,
+		>;
+
+		#[derive(TypeInfo, Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
+		pub struct AssetMetadata<Balance, CustomMetadata: Parameter + Member + TypeInfo> {
+			pub decimals: u32,
+			pub name: Vec<u8>,
+			pub symbol: Vec<u8>,
+			pub existential_deposit: Balance,
+			pub location: Option<VersionedMultiLocation>,
+			pub additional: CustomMetadata,
+		}
+	}
+
+	ParaA::execute_with(|| {
+		let para_name = "para A native token".as_bytes().to_vec();
+		let para_symbol = "paraA".as_bytes().to_vec();
+		unbounded::Metadata::<para::Runtime>::insert(
+			0,
+			unbounded::AssetMetadata {
+				decimals: 12,
+				name: para_name.clone(),
+				symbol: para_symbol.clone(),
+				existential_deposit: 0,
+				location: None,
+				additional: CustomMetadata {
+					fee_per_second: 1_000_000_000_000,
+				},
+			},
+		);
+
+		let asset_metadata = Metadata::<para::Runtime>::get(0);
+		assert_eq!(
+			asset_metadata.map(|m| (m.name.to_vec(), m.symbol.to_vec())),
+			Some((para_name, para_symbol))
+		);
 	});
 }

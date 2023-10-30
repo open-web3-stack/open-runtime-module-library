@@ -1,4 +1,3 @@
-use frame_support::dispatch::DispatchError;
 use frame_support::traits::tokens::{Fortitude, Precision, Preservation, Provenance};
 use frame_support::traits::{
 	fungible, fungibles,
@@ -6,6 +5,7 @@ use frame_support::traits::{
 	Contains, Get,
 };
 use sp_arithmetic::{traits::Bounded, ArithmeticError};
+use sp_runtime::DispatchError;
 
 pub struct Combiner<AccountId, TestKey, A, B>(sp_std::marker::PhantomData<(AccountId, TestKey, A, B)>);
 

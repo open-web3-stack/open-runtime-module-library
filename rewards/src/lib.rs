@@ -5,9 +5,9 @@
 mod mock;
 mod tests;
 
-use codec::{FullCodec, HasCompact};
 use frame_support::pallet_prelude::*;
 use orml_traits::RewardHandler;
+use parity_scale_codec::{FullCodec, HasCompact};
 use scale_info::TypeInfo;
 use sp_core::U256;
 use sp_runtime::{
@@ -114,12 +114,6 @@ pub mod module {
 	#[pallet::pallet]
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
-
-	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
-
-	#[pallet::call]
-	impl<T: Config> Pallet<T> {}
 }
 
 impl<T: Config> Pallet<T> {

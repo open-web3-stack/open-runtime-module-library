@@ -6,10 +6,10 @@ use super::*;
 use frame_support::traits::{ConstU32, ConstU64, Everything};
 use frame_system::EnsureRoot;
 use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup, AccountId32};
+use sp_runtime::{traits::IdentityLookup, AccountId32, BuildStorage};
 
+type Block = frame_system::mocking::MockBlock<Runtime>;
 pub type AccountId = AccountId32;
-pub type BlockNumber = u64;
 pub type CurrencyId = u32;
 pub type Moment = u64;
 pub type RateLimiterId = u8;
@@ -29,14 +29,13 @@ use crate as rate_limit;
 
 impl frame_system::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
+	type Nonce = u64;
 	type RuntimeCall = RuntimeCall;
-	type Index = u64;
-	type BlockNumber = BlockNumber;
 	type Hash = H256;
 	type Hashing = ::sp_runtime::traits::BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
-	type Header = Header;
+	type Block = Block;
 	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = ConstU64<250>;
 	type BlockWeights = ();
@@ -67,21 +66,15 @@ impl Config for Runtime {
 	type RateLimiterId = RateLimiterId;
 	type MaxWhitelistFilterCount = ConstU32<3>;
 	type UnixTime = Timestamp;
+	type BlockNumberProvider = System;
 	type WeightInfo = ();
 }
 
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
-type Block = frame_system::mocking::MockBlock<Runtime>;
-
 frame_support::construct_runtime!(
-	pub enum Runtime where
-		Block = Block,
-		NodeBlock = Block,
-		UncheckedExtrinsic = UncheckedExtrinsic
-	{
-		System: frame_system::{Pallet, Call, Config, Event<T>},
-		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
-		RateLimit: rate_limit::{Pallet, Storage, Call, Event<T>},
+	pub enum Runtime {
+		System: frame_system,
+		Timestamp: pallet_timestamp,
+		RateLimit: rate_limit,
 	}
 );
 
@@ -95,8 +88,8 @@ impl Default for ExtBuilder {
 
 impl ExtBuilder {
 	pub fn build(self) -> sp_io::TestExternalities {
-		let t = frame_system::GenesisConfig::default()
-			.build_storage::<Runtime>()
+		let t = frame_system::GenesisConfig::<Runtime>::default()
+			.build_storage()
 			.unwrap();
 
 		let mut ext = sp_io::TestExternalities::new(t);

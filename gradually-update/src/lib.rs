@@ -21,7 +21,6 @@
 #![allow(clippy::string_lit_as_bytes)]
 #![allow(clippy::unused_unit)]
 
-use codec::MaxEncodedLen;
 use frame_support::{
 	ensure,
 	pallet_prelude::*,
@@ -30,6 +29,7 @@ use frame_support::{
 	BoundedVec,
 };
 use frame_system::pallet_prelude::*;
+use parity_scale_codec::MaxEncodedLen;
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{SaturatedConversion, Saturating},
@@ -73,7 +73,7 @@ pub mod module {
 
 		/// The frequency of updating values between blocks
 		#[pallet::constant]
-		type UpdateFrequency: Get<Self::BlockNumber>;
+		type UpdateFrequency: Get<BlockNumberFor<Self>>;
 
 		/// The origin that can schedule an update
 		type DispatchOrigin: EnsureOrigin<Self::RuntimeOrigin>;
@@ -122,7 +122,7 @@ pub mod module {
 		GraduallyUpdateCancelled { key: StorageKeyBytes<T> },
 		/// Gradually update applied.
 		Updated {
-			block_number: T::BlockNumber,
+			block_number: BlockNumberFor<T>,
 			key: StorageKeyBytes<T>,
 			target_value: StorageValueBytes<T>,
 		},
@@ -137,15 +137,15 @@ pub mod module {
 	/// The last updated block number
 	#[pallet::storage]
 	#[pallet::getter(fn last_updated_at)]
-	pub(crate) type LastUpdatedAt<T: Config> = StorageValue<_, T::BlockNumber, ValueQuery>;
+	pub(crate) type LastUpdatedAt<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>;
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		/// `on_initialize` to return the weight used in `on_finalize`.
-		fn on_initialize(now: T::BlockNumber) -> Weight {
+		fn on_initialize(now: BlockNumberFor<T>) -> Weight {
 			if Self::_need_update(now) {
 				T::WeightInfo::on_finalize(GraduallyUpdates::<T>::get().len() as u32)
 			} else {
@@ -154,7 +154,7 @@ pub mod module {
 		}
 
 		/// Update gradually_update to adjust numeric parameter.
-		fn on_finalize(now: T::BlockNumber) {
+		fn on_finalize(now: BlockNumberFor<T>) {
 			Self::_on_finalize(now);
 		}
 	}
@@ -224,11 +224,11 @@ pub mod module {
 }
 
 impl<T: Config> Pallet<T> {
-	fn _need_update(now: T::BlockNumber) -> bool {
+	fn _need_update(now: BlockNumberFor<T>) -> bool {
 		now >= Self::last_updated_at().saturating_add(T::UpdateFrequency::get())
 	}
 
-	fn _on_finalize(now: T::BlockNumber) {
+	fn _on_finalize(now: BlockNumberFor<T>) {
 		if !Self::_need_update(now) {
 			return;
 		}

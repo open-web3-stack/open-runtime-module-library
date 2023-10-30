@@ -220,7 +220,7 @@ fn pallet_fungibles_unbalanced_deposit_events() {
 			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::BalanceSet {
 				currency_id: DOT,
 				who: ALICE,
-				free: 450,
+				free: 500,
 				reserved: 50,
 			}));
 
@@ -421,4 +421,37 @@ fn pallet_change_locks_events() {
 			amount: 1
 		})));
 	});
+}
+
+#[test]
+fn pallet_multi_lockable_currency_extend_lock_events() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			// lock already exists
+			assert_ok!(Tokens::set_lock(ID_1, DOT, &ALICE, 10));
+			assert_ok!(Tokens::extend_lock(ID_1, DOT, &ALICE, 20));
+			assert!(events().contains(&RuntimeEvent::Tokens(crate::Event::LockSet {
+				lock_id: ID_1,
+				currency_id: DOT,
+				who: ALICE,
+				amount: 20,
+			})));
+			// lock doesn't exist
+			assert_ok!(Tokens::extend_lock(ID_2, DOT, &ALICE, 10));
+			assert!(events().contains(&RuntimeEvent::Tokens(crate::Event::LockSet {
+				lock_id: ID_2,
+				currency_id: DOT,
+				who: ALICE,
+				amount: 10,
+			})));
+			assert_ok!(Tokens::extend_lock(ID_2, DOT, &ALICE, 20));
+			assert!(events().contains(&RuntimeEvent::Tokens(crate::Event::LockSet {
+				lock_id: ID_2,
+				currency_id: DOT,
+				who: ALICE,
+				amount: 20,
+			})));
+		});
 }

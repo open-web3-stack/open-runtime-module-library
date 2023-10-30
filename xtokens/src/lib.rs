@@ -33,7 +33,6 @@
 #![allow(clippy::too_many_arguments)]
 
 use frame_support::{
-	log,
 	pallet_prelude::*,
 	require_transactional,
 	traits::{Contains, Get},
@@ -200,7 +199,7 @@ pub mod module {
 	}
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
@@ -560,14 +559,9 @@ pub mod module {
 
 				let rate_limiter_id = T::RateLimiterId::get();
 
-				// check if the asset transfer from `who` can bypass the rate limiter.
-				if !T::RateLimiter::is_whitelist(rate_limiter_id, &who) {
-					// ensure the asset transfer be allowed by the rate limiter.
-					T::RateLimiter::is_allowed(rate_limiter_id, asset.id, amount)
-						.map_err(|_| Error::<T>::RateLimited)?;
-
-					T::RateLimiter::record(rate_limiter_id, asset.id, amount);
-				}
+				// try consume quota of the rate limiter.
+				T::RateLimiter::try_consume(rate_limiter_id, asset.id, amount, Some(who.clone()))
+					.map_err(|_| Error::<T>::RateLimited)?;
 			}
 
 			let fee_reserve = T::ReserveProvider::reserve(&fee);
@@ -751,14 +745,12 @@ pub mod module {
 		) -> Result<Xcm<T::RuntimeCall>, DispatchError> {
 			let mut reanchored_dest = dest;
 			if reserve == MultiLocation::parent() {
-				match dest {
-					MultiLocation {
-						parents,
-						interior: X1(Parachain(id)),
-					} if parents == 1 => {
-						reanchored_dest = Parachain(id).into();
-					}
-					_ => {}
+				if let MultiLocation {
+					parents: 1,
+					interior: X1(Parachain(id)),
+				} = dest
+				{
+					reanchored_dest = Parachain(id).into();
 				}
 			}
 

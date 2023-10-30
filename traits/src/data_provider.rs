@@ -2,9 +2,9 @@ use sp_runtime::DispatchResult;
 use sp_std::vec::Vec;
 
 /// Data provider with ability to provide data with no-op, and provide all data.
-pub trait DataFeeder<Key, Value, AccountId>: DataProvider<Key, Value> {
+pub trait DataFeeder<Key, Value, AccountId> {
 	/// Provide a new value for a given key from an operator
-	fn feed_value(who: AccountId, key: Key, value: Value) -> DispatchResult;
+	fn feed_value(who: Option<AccountId>, key: Key, value: Value) -> DispatchResult;
 }
 
 /// A simple trait to provide data

@@ -13,10 +13,10 @@
 #![allow(clippy::string_lit_as_bytes)]
 #![allow(clippy::unused_unit)]
 
-use codec::MaxEncodedLen;
 use frame_support::pallet_prelude::*;
 use frame_system::{ensure_signed, pallet_prelude::*};
 use orml_traits::{Auction, AuctionHandler, AuctionInfo, Change};
+use parity_scale_codec::MaxEncodedLen;
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, Bounded, CheckedAdd, MaybeSerializeDeserialize, Member, One, Zero},
 	DispatchError, DispatchResult,
@@ -54,12 +54,12 @@ pub mod module {
 			+ Copy
 			+ MaybeSerializeDeserialize
 			+ Bounded
-			+ codec::FullCodec
-			+ codec::MaxEncodedLen;
+			+ parity_scale_codec::FullCodec
+			+ parity_scale_codec::MaxEncodedLen;
 
 		/// The `AuctionHandler` that allow custom bidding logic and handles
 		/// auction result.
-		type Handler: AuctionHandler<Self::AccountId, Self::Balance, Self::BlockNumber, Self::AuctionId>;
+		type Handler: AuctionHandler<Self::AccountId, Self::Balance, BlockNumberFor<Self>, Self::AuctionId>;
 
 		/// Weight information for extrinsics in this module.
 		type WeightInfo: WeightInfo;
@@ -88,8 +88,13 @@ pub mod module {
 	/// Stores on-going and future auctions. Closed auction are removed.
 	#[pallet::storage]
 	#[pallet::getter(fn auctions)]
-	pub type Auctions<T: Config> =
-		StorageMap<_, Twox64Concat, T::AuctionId, AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>, OptionQuery>;
+	pub type Auctions<T: Config> = StorageMap<
+		_,
+		Twox64Concat,
+		T::AuctionId,
+		AuctionInfo<T::AccountId, T::Balance, BlockNumberFor<T>>,
+		OptionQuery,
+	>;
 
 	/// Track the next auction ID.
 	#[pallet::storage]
@@ -100,18 +105,18 @@ pub mod module {
 	#[pallet::storage]
 	#[pallet::getter(fn auction_end_time)]
 	pub type AuctionEndTime<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, T::BlockNumber, Blake2_128Concat, T::AuctionId, (), OptionQuery>;
+		StorageDoubleMap<_, Twox64Concat, BlockNumberFor<T>, Blake2_128Concat, T::AuctionId, (), OptionQuery>;
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-		fn on_initialize(now: T::BlockNumber) -> Weight {
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+		fn on_initialize(now: BlockNumberFor<T>) -> Weight {
 			T::WeightInfo::on_finalize(AuctionEndTime::<T>::iter_prefix(now).count() as u32)
 		}
 
-		fn on_finalize(now: T::BlockNumber) {
+		fn on_finalize(now: BlockNumberFor<T>) {
 			for (auction_id, _) in AuctionEndTime::<T>::drain_prefix(now) {
 				if let Some(auction) = Auctions::<T>::take(auction_id) {
 					T::Handler::on_auction_ended(auction_id, auction.bid);
@@ -132,7 +137,7 @@ pub mod module {
 			let from = ensure_signed(origin)?;
 
 			Auctions::<T>::try_mutate_exists(id, |auction| -> DispatchResult {
-				let mut auction = auction.as_mut().ok_or(Error::<T>::AuctionNotExist)?;
+				let auction = auction.as_mut().ok_or(Error::<T>::AuctionNotExist)?;
 
 				let block_number = <frame_system::Pallet<T>>::block_number();
 
@@ -174,17 +179,17 @@ pub mod module {
 	}
 }
 
-impl<T: Config> Auction<T::AccountId, T::BlockNumber> for Pallet<T> {
+impl<T: Config> Auction<T::AccountId, BlockNumberFor<T>> for Pallet<T> {
 	type AuctionId = T::AuctionId;
 	type Balance = T::Balance;
 
-	fn auction_info(id: Self::AuctionId) -> Option<AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber>> {
+	fn auction_info(id: Self::AuctionId) -> Option<AuctionInfo<T::AccountId, Self::Balance, BlockNumberFor<T>>> {
 		Self::auctions(id)
 	}
 
 	fn update_auction(
 		id: Self::AuctionId,
-		info: AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber>,
+		info: AuctionInfo<T::AccountId, Self::Balance, BlockNumberFor<T>>,
 	) -> DispatchResult {
 		let auction = Auctions::<T>::get(id).ok_or(Error::<T>::AuctionNotExist)?;
 		if let Some(old_end) = auction.end {
@@ -198,8 +203,8 @@ impl<T: Config> Auction<T::AccountId, T::BlockNumber> for Pallet<T> {
 	}
 
 	fn new_auction(
-		start: T::BlockNumber,
-		end: Option<T::BlockNumber>,
+		start: BlockNumberFor<T>,
+		end: Option<BlockNumberFor<T>>,
 	) -> sp_std::result::Result<Self::AuctionId, DispatchError> {
 		let auction = AuctionInfo { bid: None, start, end };
 		let auction_id =

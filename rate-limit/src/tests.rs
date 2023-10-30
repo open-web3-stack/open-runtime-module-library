@@ -41,8 +41,8 @@ fn update_rate_limit_rule_work() {
 				RuntimeOrigin::root(),
 				0,
 				DOT.encode(),
-				Some(RateLimitRule::PerBlocks {
-					blocks_count: 0,
+				Some(RateLimitRule::PerPeriod {
+					period: Period::Blocks(0),
 					quota: 1,
 				}),
 			),
@@ -53,8 +53,32 @@ fn update_rate_limit_rule_work() {
 				RuntimeOrigin::root(),
 				0,
 				DOT.encode(),
-				Some(RateLimitRule::PerSeconds {
-					secs_count: 1,
+				Some(RateLimitRule::PerPeriod {
+					period: Period::Blocks(1),
+					quota: 0,
+				}),
+			),
+			Error::<Runtime>::InvalidRateLimitRule
+		);
+		assert_noop!(
+			RateLimit::update_rate_limit_rule(
+				RuntimeOrigin::root(),
+				0,
+				DOT.encode(),
+				Some(RateLimitRule::PerPeriod {
+					period: Period::Seconds(0),
+					quota: 1,
+				}),
+			),
+			Error::<Runtime>::InvalidRateLimitRule
+		);
+		assert_noop!(
+			RateLimit::update_rate_limit_rule(
+				RuntimeOrigin::root(),
+				0,
+				DOT.encode(),
+				Some(RateLimitRule::PerPeriod {
+					period: Period::Seconds(1),
 					quota: 0,
 				}),
 			),
@@ -66,9 +90,74 @@ fn update_rate_limit_rule_work() {
 				0,
 				DOT.encode(),
 				Some(RateLimitRule::TokenBucket {
-					blocks_count: 100,
+					period: Period::Blocks(0),
+					quota_increment: 1000,
+					max_quota: 10000,
+				}),
+			),
+			Error::<Runtime>::InvalidRateLimitRule
+		);
+		assert_noop!(
+			RateLimit::update_rate_limit_rule(
+				RuntimeOrigin::root(),
+				0,
+				DOT.encode(),
+				Some(RateLimitRule::TokenBucket {
+					period: Period::Seconds(0),
+					quota_increment: 1000,
+					max_quota: 10000,
+				}),
+			),
+			Error::<Runtime>::InvalidRateLimitRule
+		);
+		assert_noop!(
+			RateLimit::update_rate_limit_rule(
+				RuntimeOrigin::root(),
+				0,
+				DOT.encode(),
+				Some(RateLimitRule::TokenBucket {
+					period: Period::Blocks(100),
 					quota_increment: 1000,
 					max_quota: 0,
+				}),
+			),
+			Error::<Runtime>::InvalidRateLimitRule
+		);
+		assert_noop!(
+			RateLimit::update_rate_limit_rule(
+				RuntimeOrigin::root(),
+				0,
+				DOT.encode(),
+				Some(RateLimitRule::TokenBucket {
+					period: Period::Seconds(100),
+					quota_increment: 1000,
+					max_quota: 0,
+				}),
+			),
+			Error::<Runtime>::InvalidRateLimitRule
+		);
+		assert_noop!(
+			RateLimit::update_rate_limit_rule(
+				RuntimeOrigin::root(),
+				0,
+				DOT.encode(),
+				Some(RateLimitRule::TokenBucket {
+					period: Period::Blocks(100),
+					quota_increment: 0,
+					max_quota: 10000,
+				}),
+			),
+			Error::<Runtime>::InvalidRateLimitRule
+		);
+		assert_noop!(
+			RateLimit::update_rate_limit_rule(
+				RuntimeOrigin::root(),
+				0,
+				DOT.encode(),
+				Some(RateLimitRule::TokenBucket {
+					period: Period::Seconds(100),
+					quota_increment: 0,
+					max_quota: 10000,
 				}),
 			),
 			Error::<Runtime>::InvalidRateLimitRule
@@ -82,7 +171,7 @@ fn update_rate_limit_rule_work() {
 			0,
 			DOT.encode(),
 			Some(RateLimitRule::TokenBucket {
-				blocks_count: 100,
+				period: Period::Blocks(100),
 				quota_increment: 1000,
 				max_quota: 10000,
 			}),
@@ -91,7 +180,7 @@ fn update_rate_limit_rule_work() {
 			rate_limiter_id: 0,
 			encoded_key: DOT.encode(),
 			update: Some(RateLimitRule::TokenBucket {
-				blocks_count: 100,
+				period: Period::Blocks(100),
 				quota_increment: 1000,
 				max_quota: 10000,
 			}),
@@ -99,7 +188,7 @@ fn update_rate_limit_rule_work() {
 		assert_eq!(
 			RateLimit::rate_limit_rules(0, DOT.encode()),
 			Some(RateLimitRule::TokenBucket {
-				blocks_count: 100,
+				period: Period::Blocks(100),
 				quota_increment: 1000,
 				max_quota: 10000,
 			})
@@ -360,8 +449,8 @@ fn access_remainer_quota_after_update_per_blocks() {
 		// current - last_updated >= blocks_count, will update RateLimitQuota firstly
 		assert_eq!(
 			RateLimit::access_remainer_quota_after_update(
-				RateLimitRule::PerBlocks {
-					blocks_count: 30,
+				RateLimitRule::PerPeriod {
+					period: Period::Blocks(30),
 					quota: 500,
 				},
 				&0,
@@ -378,8 +467,8 @@ fn access_remainer_quota_after_update_per_blocks() {
 		// current - last_updated < blocks_count, will not update RateLimitQuota
 		assert_eq!(
 			RateLimit::access_remainer_quota_after_update(
-				RateLimitRule::PerBlocks {
-					blocks_count: 30,
+				RateLimitRule::PerPeriod {
+					period: Period::Blocks(30),
 					quota: 5000,
 				},
 				&0,
@@ -395,8 +484,8 @@ fn access_remainer_quota_after_update_per_blocks() {
 		// current - last_updated < blocks_count, will not update RateLimitQuota
 		assert_eq!(
 			RateLimit::access_remainer_quota_after_update(
-				RateLimitRule::PerBlocks {
-					blocks_count: 20,
+				RateLimitRule::PerPeriod {
+					period: Period::Blocks(20),
 					quota: 100,
 				},
 				&0,
@@ -412,8 +501,8 @@ fn access_remainer_quota_after_update_per_blocks() {
 		// current - last_updated > blocks_count, will reset remainer_quota
 		assert_eq!(
 			RateLimit::access_remainer_quota_after_update(
-				RateLimitRule::PerBlocks {
-					blocks_count: 20,
+				RateLimitRule::PerPeriod {
+					period: Period::Blocks(20),
 					quota: 100,
 				},
 				&0,
@@ -435,8 +524,8 @@ fn access_remainer_quota_after_update_per_seconds() {
 		// current - last_updated >= secs_count, will update RateLimitQuota firstly
 		assert_eq!(
 			RateLimit::access_remainer_quota_after_update(
-				RateLimitRule::PerSeconds {
-					secs_count: 30,
+				RateLimitRule::PerPeriod {
+					period: Period::Seconds(30),
 					quota: 500,
 				},
 				&0,
@@ -453,8 +542,8 @@ fn access_remainer_quota_after_update_per_seconds() {
 		// current - last_updated < secs_count, will not update RateLimitQuota
 		assert_eq!(
 			RateLimit::access_remainer_quota_after_update(
-				RateLimitRule::PerSeconds {
-					secs_count: 30,
+				RateLimitRule::PerPeriod {
+					period: Period::Seconds(30),
 					quota: 5000,
 				},
 				&0,
@@ -470,8 +559,8 @@ fn access_remainer_quota_after_update_per_seconds() {
 		// current - last_updated < secs_count, will not update RateLimitQuota
 		assert_eq!(
 			RateLimit::access_remainer_quota_after_update(
-				RateLimitRule::PerSeconds {
-					secs_count: 20,
+				RateLimitRule::PerPeriod {
+					period: Period::Seconds(20),
 					quota: 100,
 				},
 				&0,
@@ -487,8 +576,8 @@ fn access_remainer_quota_after_update_per_seconds() {
 		// current - last_updated > secs_count, will reset remainer_quota
 		assert_eq!(
 			RateLimit::access_remainer_quota_after_update(
-				RateLimitRule::PerSeconds {
-					secs_count: 20,
+				RateLimitRule::PerPeriod {
+					period: Period::Seconds(20),
 					quota: 100,
 				},
 				&0,
@@ -511,7 +600,7 @@ fn access_remainer_quota_after_update_token_bucket() {
 		assert_eq!(
 			RateLimit::access_remainer_quota_after_update(
 				RateLimitRule::TokenBucket {
-					blocks_count: 30,
+					period: Period::Blocks(30),
 					quota_increment: 500,
 					max_quota: 1500,
 				},
@@ -533,7 +622,7 @@ fn access_remainer_quota_after_update_token_bucket() {
 		assert_eq!(
 			RateLimit::access_remainer_quota_after_update(
 				RateLimitRule::TokenBucket {
-					blocks_count: 30,
+					period: Period::Blocks(30),
 					quota_increment: 500,
 					max_quota: 1500,
 				},
@@ -552,7 +641,7 @@ fn access_remainer_quota_after_update_token_bucket() {
 		assert_eq!(
 			RateLimit::access_remainer_quota_after_update(
 				RateLimitRule::TokenBucket {
-					blocks_count: 30,
+					period: Period::Blocks(30),
 					quota_increment: 500,
 					max_quota: 1500,
 				},
@@ -571,7 +660,7 @@ fn access_remainer_quota_after_update_token_bucket() {
 		assert_eq!(
 			RateLimit::access_remainer_quota_after_update(
 				RateLimitRule::TokenBucket {
-					blocks_count: 30,
+					period: Period::Blocks(30),
 					quota_increment: 500,
 					max_quota: 200,
 				},
@@ -619,14 +708,14 @@ fn access_remainer_quota_after_update_when_not_allowed_or_unlimited() {
 }
 
 #[test]
-fn record_work() {
+fn consume_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(RateLimit::update_rate_limit_rule(
 			RuntimeOrigin::root(),
 			0,
 			DOT.encode(),
-			Some(RateLimitRule::PerBlocks {
-				blocks_count: 30,
+			Some(RateLimitRule::PerPeriod {
+				period: Period::Blocks(30),
 				quota: 500,
 			}),
 		));
@@ -640,8 +729,8 @@ fn record_work() {
 			RuntimeOrigin::root(),
 			1,
 			ETH.encode(),
-			Some(RateLimitRule::PerBlocks {
-				blocks_count: 30,
+			Some(RateLimitRule::PerPeriod {
+				period: Period::Blocks(30),
 				quota: 500,
 			}),
 		));
@@ -656,32 +745,32 @@ fn record_work() {
 		assert_eq!(RateLimit::rate_limit_quota(1, ETH.encode()), (0, 1000));
 
 		// will consume
-		RateLimit::record(0, DOT, 1000);
-		RateLimit::record(1, ETH, 500);
+		RateLimit::consume(0, DOT, 1000);
+		RateLimit::consume(1, ETH, 500);
 		assert_eq!(RateLimit::rate_limit_quota(0, DOT.encode()), (0, 9000));
 		assert_eq!(RateLimit::rate_limit_quota(1, ETH.encode()), (0, 500));
 
 		// will not consume
-		RateLimit::record(0, BTC, 100);
-		RateLimit::record(0, ETH, 500);
+		RateLimit::consume(0, BTC, 100);
+		RateLimit::consume(0, ETH, 500);
 		assert_eq!(RateLimit::rate_limit_quota(0, BTC.encode()), (0, 100));
 		assert_eq!(RateLimit::rate_limit_quota(0, ETH.encode()), (0, 1000));
 
 		// consume when vaule > remainer_quota
-		RateLimit::record(1, ETH, 1000);
+		RateLimit::consume(1, ETH, 1000);
 		assert_eq!(RateLimit::rate_limit_quota(1, ETH.encode()), (0, 0));
 	});
 }
 
 #[test]
-fn is_allowed_work() {
+fn can_consume_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(RateLimit::update_rate_limit_rule(
 			RuntimeOrigin::root(),
 			0,
 			DOT.encode(),
-			Some(RateLimitRule::PerBlocks {
-				blocks_count: 30,
+			Some(RateLimitRule::PerPeriod {
+				period: Period::Blocks(30),
 				quota: 500,
 			}),
 		));
@@ -690,7 +779,7 @@ fn is_allowed_work() {
 			1,
 			DOT.encode(),
 			Some(RateLimitRule::TokenBucket {
-				blocks_count: 30,
+				period: Period::Blocks(30),
 				quota_increment: 500,
 				max_quota: 1000,
 			}),
@@ -709,45 +798,45 @@ fn is_allowed_work() {
 		));
 
 		assert_eq!(RateLimit::rate_limit_quota(0, DOT.encode()), (0, 0));
-		assert_ok!(RateLimit::is_allowed(0, DOT, 0));
-		assert_eq!(RateLimit::is_allowed(0, DOT, 500), Err(RateLimiterError::ExceedLimit),);
+		assert_ok!(RateLimit::can_consume(0, DOT, 0));
+		assert_eq!(RateLimit::can_consume(0, DOT, 500), Err(RateLimiterError::ExceedLimit),);
 		assert_eq!(RateLimit::rate_limit_quota(0, DOT.encode()), (0, 0));
 
 		assert_eq!(RateLimit::rate_limit_quota(1, DOT.encode()), (0, 0));
-		assert_ok!(RateLimit::is_allowed(1, DOT, 0));
-		assert_eq!(RateLimit::is_allowed(1, DOT, 501), Err(RateLimiterError::ExceedLimit),);
+		assert_ok!(RateLimit::can_consume(1, DOT, 0));
+		assert_eq!(RateLimit::can_consume(1, DOT, 501), Err(RateLimiterError::ExceedLimit),);
 		assert_eq!(RateLimit::rate_limit_quota(1, DOT.encode()), (0, 0));
 
 		System::set_block_number(100);
 		assert_eq!(System::block_number(), 100);
 
 		assert_eq!(RateLimit::rate_limit_quota(0, DOT.encode()), (0, 0));
-		assert_ok!(RateLimit::is_allowed(0, DOT, 500));
+		assert_ok!(RateLimit::can_consume(0, DOT, 500));
 		assert_eq!(RateLimit::rate_limit_quota(0, DOT.encode()), (100, 500));
-		assert_eq!(RateLimit::is_allowed(0, DOT, 501), Err(RateLimiterError::ExceedLimit),);
+		assert_eq!(RateLimit::can_consume(0, DOT, 501), Err(RateLimiterError::ExceedLimit),);
 		assert_eq!(RateLimit::rate_limit_quota(0, DOT.encode()), (100, 500));
 
 		assert_eq!(RateLimit::rate_limit_quota(1, DOT.encode()), (0, 0));
-		assert_ok!(RateLimit::is_allowed(1, DOT, 501));
+		assert_ok!(RateLimit::can_consume(1, DOT, 501));
 		assert_eq!(RateLimit::rate_limit_quota(1, DOT.encode()), (100, 1000));
-		assert_eq!(RateLimit::is_allowed(1, DOT, 1001), Err(RateLimiterError::ExceedLimit),);
+		assert_eq!(RateLimit::can_consume(1, DOT, 1001), Err(RateLimiterError::ExceedLimit),);
 		assert_eq!(RateLimit::rate_limit_quota(1, DOT.encode()), (100, 1000));
 
 		// NotAllowed always return error, even if value is 0
 		RateLimitQuota::<Runtime>::mutate(0, BTC.encode(), |(_, remainer_quota)| *remainer_quota = 10000);
 		assert_eq!(RateLimit::rate_limit_quota(0, BTC.encode()), (0, 10000));
-		assert_eq!(RateLimit::is_allowed(0, BTC, 0), Err(RateLimiterError::ExceedLimit),);
-		assert_eq!(RateLimit::is_allowed(0, BTC, 100), Err(RateLimiterError::ExceedLimit),);
+		assert_eq!(RateLimit::can_consume(0, BTC, 0), Err(RateLimiterError::ExceedLimit),);
+		assert_eq!(RateLimit::can_consume(0, BTC, 100), Err(RateLimiterError::ExceedLimit),);
 
 		// Unlimited always return true
 		assert_eq!(RateLimit::rate_limit_quota(1, BTC.encode()), (0, 0));
-		assert_ok!(RateLimit::is_allowed(1, BTC, 0));
-		assert_ok!(RateLimit::is_allowed(1, BTC, 10000));
-		assert_ok!(RateLimit::is_allowed(1, BTC, u128::MAX));
+		assert_ok!(RateLimit::can_consume(1, BTC, 0));
+		assert_ok!(RateLimit::can_consume(1, BTC, 10000));
+		assert_ok!(RateLimit::can_consume(1, BTC, u128::MAX));
 
 		// if dosen't config rule, always return true
 		assert_eq!(RateLimitRules::<Runtime>::contains_key(0, ETH.encode()), false);
-		assert_ok!(RateLimit::is_allowed(0, ETH, 10000));
-		assert_ok!(RateLimit::is_allowed(0, ETH, u128::MAX));
+		assert_ok!(RateLimit::can_consume(0, ETH, 10000));
+		assert_ok!(RateLimit::can_consume(0, ETH, u128::MAX));
 	});
 }

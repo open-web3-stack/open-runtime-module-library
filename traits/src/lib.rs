@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::{Decode, Encode, MaxEncodedLen};
 use impl_trait_for_tuples::impl_for_tuples;
+use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
 use sp_runtime::{DispatchResult, RuntimeDebug};
 use sp_std::{
 	cmp::{Eq, PartialEq},
@@ -36,6 +36,7 @@ pub mod get_by_key;
 pub mod location;
 pub mod multi_asset;
 pub mod nft;
+pub mod parameters;
 pub mod price;
 pub mod rate_limit;
 pub mod rewards;

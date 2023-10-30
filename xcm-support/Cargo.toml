@@ -3,26 +3,26 @@ name = "orml-xcm-support"
 description = "Supporting module for XCM integration."
 repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/xcm-support"
 license = "Apache-2.0"
-version = "0.4.1-dev"
+version = "0.5.0-dev"
 authors = ["Acala Developers"]
 edition = "2021"
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false }
+parity-scale-codec = { workspace = true }
 
-frame-support = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.42" }
-sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.42" }
-sp-std = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.42" }
+frame-support = { workspace = true }
+sp-runtime = { workspace = true }
+sp-std = { workspace = true }
 
-xcm = { git = "https://github.com/paritytech/polkadot", default-features = false , branch = "release-v0.9.42" }
-xcm-executor = { git = "https://github.com/paritytech/polkadot", default-features = false , branch = "release-v0.9.42" }
+xcm = { workspace = true }
+xcm-executor = { workspace = true }
 
-orml-traits = { path = "../traits", version = "0.4.1-dev", default-features = false }
+orml-traits = { path = "../traits", version = "0.5.0-dev", default-features = false }
 
 [features]
 default = ["std"]
 std = [
-	"codec/std",
+	"parity-scale-codec/std",
 	"frame-support/std",
 	"orml-traits/std",
 	"sp-runtime/std",
