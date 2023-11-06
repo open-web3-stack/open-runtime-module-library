@@ -105,7 +105,7 @@ impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> Imbalance<T::Balance> for Pos
 
 	fn extract(&mut self, amount: T::Balance) -> Self {
 		let new: T::Balance = self.0.min(amount);
-		self.0 = self.0 - new;
+		self.0 -= new;
 		Self::new(new)
 	}
 }
@@ -166,7 +166,7 @@ impl<T: Config, GetCurrencyId: Get<T::CurrencyId>> Imbalance<T::Balance> for Neg
 
 	fn extract(&mut self, amount: T::Balance) -> Self {
 		let new: T::Balance = self.0.min(amount);
-		self.0 = self.0 - new;
+		self.0 -= new;
 		Self::new(new)
 	}
 }
