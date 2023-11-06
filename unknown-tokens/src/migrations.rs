@@ -26,7 +26,7 @@ mod v2 {
 		let mut weight: Weight = Weight::zero();
 
 		// ConcreteFungibleBalances
-		let module_prefix = ConcreteFungibleBalances::<T>::module_prefix();
+		let module_prefix = ConcreteFungibleBalances::<T>::pallet_prefix();
 		let storage_prefix = ConcreteFungibleBalances::<T>::storage_prefix();
 
 		weight.saturating_accrue(T::DbWeight::get().reads(1));
@@ -54,7 +54,7 @@ mod v2 {
 		}
 
 		// AbstractFungibleBalances
-		let module_prefix = AbstractFungibleBalances::<T>::module_prefix();
+		let module_prefix = AbstractFungibleBalances::<T>::pallet_prefix();
 		let storage_prefix = AbstractFungibleBalances::<T>::storage_prefix();
 
 		weight.saturating_accrue(T::DbWeight::get().reads(1));
