@@ -8,8 +8,8 @@ description = "Runtime API module for orml-oracle."
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive"] }
-sp-api = { git = "https://github.com/mangata-finance/polkadot-sdk", default-features = false , branch = "develop" }
-sp-std = { git = "https://github.com/mangata-finance/polkadot-sdk", default-features = false , branch = "develop" }
+sp-api = { git = "https://github.com/mangata-finance/polkadot-sdk", default-features = false , branch = "release-mangata-v1.1.0" }
+sp-std = { git = "https://github.com/mangata-finance/polkadot-sdk", default-features = false , branch = "release-mangata-v1.1.0" }
 
 [features]
 default = ["std"]

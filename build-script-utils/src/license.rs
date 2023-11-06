@@ -5,7 +5,7 @@ use walkdir::{DirEntry, WalkDir};
 // source file.
 pub fn check_file_licenses<P: AsRef<Path>>(path: P, expected_license_text: &[u8], exclude_paths: &[&str]) {
 	// The following directories will be excluded from the license scan.
-	let skips = vec!["artifacts", "corpus", "target", "fuzz_targets"];
+	let skips = ["artifacts", "corpus", "target", "fuzz_targets"];
 
 	let path = path.as_ref();
 
