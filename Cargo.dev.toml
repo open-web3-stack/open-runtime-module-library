@@ -36,6 +36,7 @@ serde = { version = "1.0.189" }
 parity-scale-codec = { version = "3.6.5", default-features = false, features = ["max-encoded-len"] }
 
 cumulus-pallet-dmp-queue = { version = "0.4.0", default-features = false }
+cumulus-pallet-parachain-system = { version = "0.4.0", default-features = false }
 cumulus-pallet-xcm = { version = "0.4.0", default-features = false }
 cumulus-pallet-xcmp-queue = { version = "0.4.0", default-features = false }
 cumulus-primitives-core = { version = "0.4.0", default-features = false }
@@ -62,6 +63,7 @@ parachain-info = { package = "staging-parachain-info", version = "0.4.0", defaul
 polkadot-core-primitives = { version = "4.0.0", default-features = false }
 polkadot-parachain-primitives = { version = "3.0.0", default-features = false }
 polkadot-primitives = { version = "4.0.0", default-features = false }
+polkadot-runtime-common = { version = "4.0.0", default-features = false }
 polkadot-runtime-parachains = { version = "4.0.0", default-features = false }
 sp-api = { version = "23.0.0", default-features = false }
 sp-application-crypto = { version = "27.0.0", default-features = false }

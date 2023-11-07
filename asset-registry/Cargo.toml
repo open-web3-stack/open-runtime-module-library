@@ -41,11 +41,13 @@ cumulus-primitives-core = { workspace = true, features = ["std"] }
 cumulus-pallet-dmp-queue = { workspace = true, features = ["std"] }
 cumulus-pallet-xcmp-queue = { workspace = true, features = ["std"] }
 cumulus-pallet-xcm = { workspace = true, features = ["std"] }
+cumulus-pallet-parachain-system = { workspace = true, features = ["std"] }
 parachain-info = { workspace = true, features = ["std"] }
 
 # polkadot
 polkadot-parachain-primitives = { workspace = true, features = ["std"] }
 polkadot-runtime-parachains = { workspace = true, features = ["std"] }
+polkadot-runtime-common = { workspace = true, features = ["std"] }
 xcm-simulator = { workspace = true }
 
 # orml
@@ -78,6 +80,7 @@ runtime-benchmarks = [
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
+	"polkadot-runtime-parachains/runtime-benchmarks",
 ]
 try-runtime = [
 	"frame-support/try-runtime",

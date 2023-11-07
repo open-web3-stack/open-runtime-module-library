@@ -5,7 +5,10 @@
 use super::*;
 use frame_support::{
 	construct_runtime, parameter_types,
-	traits::{ChangeMembers, ConstU32, ConstU64, ContainsLengthBound, Everything, SortedMembers},
+	traits::{
+		tokens::{PayFromAccount, UnityAssetBalanceConversion},
+		ChangeMembers, ConstU32, ConstU64, ContainsLengthBound, Everything, SortedMembers,
+	},
 	PalletId,
 };
 use orml_traits::parameter_type_with_key;
@@ -106,6 +109,7 @@ parameter_types! {
 	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
 	pub const GetTokenId: CurrencyId = DOT;
 	pub const MaxApprovals: u32 = 100;
+	pub TreasuryAccount: AccountId = Treasury::account_id();
 }
 
 pub type MockCurrencyAdapter = CurrencyAdapter<Runtime, GetTokenId>;
@@ -117,15 +121,21 @@ impl pallet_treasury::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type OnSlash = ();
 	type ProposalBond = ProposalBond;
-	type ProposalBondMinimum = ProposalBondMinimum;
-	type ProposalBondMaximum = ProposalBondMaximum;
-	type SpendPeriod = SpendPeriod;
+	type ProposalBondMinimum = ConstU64<1>;
+	type ProposalBondMaximum = ();
+	type SpendPeriod = ConstU64<2>;
 	type Burn = Burn;
-	type BurnDestination = ();
-	type SpendFunds = ();
+	type BurnDestination = (); // Just gets burned.
 	type WeightInfo = ();
-	type MaxApprovals = MaxApprovals;
-	type SpendOrigin = frame_support::traits::NeverEnsureOrigin<Balance>;
+	type SpendFunds = ();
+	type MaxApprovals = ConstU32<100>;
+	type SpendOrigin = frame_support::traits::NeverEnsureOrigin<u64>;
+	type AssetKind = ();
+	type Beneficiary = Self::AccountId;
+	type BeneficiaryLookup = IdentityLookup<Self::Beneficiary>;
+	type Paymaster = PayFromAccount<MockCurrencyAdapter, TreasuryAccount>;
+	type BalanceConverter = UnityAssetBalanceConversion;
+	type PayoutPeriod = ConstU64<10>;
 }
 
 thread_local! {
