@@ -1209,7 +1209,7 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
 
 		// slash free balance
 		if !free_slashed_amount.is_zero() {
-			// Cannot underflow becuase free_slashed_amount can never be greater than
+			// Cannot underflow because free_slashed_amount can never be greater than
 			// account.free but just to be defensive here.
 			Self::set_free_balance(
 				currency_id,

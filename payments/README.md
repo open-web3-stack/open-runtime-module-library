@@ -8,7 +8,7 @@ This pallet allows users to create secure reversible payments that keep funds lo
 - NeedsReview: The payment has bee disputed and is awaiting settlement by a judge.
 - IncentivePercentage: A small share of the payment amount is held in escrow until a payment is completed/cancelled. The Incentive Percentage represents this value.
 - Resolver Account: A resolver account is assigned to every payment created, this account has the privilege to cancel/release a payment that has been disputed.
-- Remark: The pallet allows to create payments by optionally providing some extra(limited) amount of bytes, this is reffered to as Remark. This can be used by a marketplace to seperate/tag payments.
+- Remark: The pallet allows to create payments by optionally providing some extra(limited) amount of bytes, this is referred to as Remark. This can be used by a marketplace to separate/tag payments.
 - CancelBufferBlockLength: This is the time window where the recipient can dispute a cancellation request from the payment creator.
 
 ## Interface
