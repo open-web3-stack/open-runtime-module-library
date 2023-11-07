@@ -9,7 +9,7 @@ edition = "2021"
 
 [dependencies]
 parity-scale-codec = { workspace = true }
-scale-info = { version = "2.9.0", default-features = false, features = ["derive"] }
+scale-info = { workspace = true }
 serde = { workspace = true, optional = true }
 
 frame-support = { workspace = true }
