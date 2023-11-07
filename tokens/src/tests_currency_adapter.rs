@@ -137,6 +137,40 @@ fn currency_adapter_ensure_currency_adapter_should_work() {
 }
 
 #[test]
+fn currency_adapter_imbalances_extract_works() {
+	ExtBuilder::default()
+		.balances(vec![(TREASURY_ACCOUNT, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			let init_total_issuance = TreasuryCurrencyAdapter::total_issuance();
+
+			let mut imbalance = TreasuryCurrencyAdapter::burn(10);
+
+			let imbalance2 = imbalance.extract(3);
+
+			drop(imbalance);
+
+			assert_eq!(TreasuryCurrencyAdapter::total_issuance(), init_total_issuance - 3);
+
+			drop(imbalance2);
+
+			assert_eq!(TreasuryCurrencyAdapter::total_issuance(), init_total_issuance);
+
+			let mut imbalance = TreasuryCurrencyAdapter::issue(10);
+
+			let imbalance2 = imbalance.extract(3);
+
+			drop(imbalance);
+
+			assert_eq!(TreasuryCurrencyAdapter::total_issuance(), init_total_issuance + 3);
+
+			drop(imbalance2);
+
+			assert_eq!(TreasuryCurrencyAdapter::total_issuance(), init_total_issuance);
+		});
+}
+
+#[test]
 fn currency_adapter_burn_must_work() {
 	ExtBuilder::default()
 		.balances(vec![(TREASURY_ACCOUNT, DOT, 100)])
