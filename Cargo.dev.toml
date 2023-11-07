@@ -46,6 +46,7 @@ pallet-timestamp = { git = "https://github.com/mangata-finance//polkadot-sdk", b
 pallet-treasury = { git = "https://github.com/mangata-finance//polkadot-sdk", branch = "release-mangata-v1.1.0" }
 pallet-vesting = { git = "https://github.com/mangata-finance//polkadot-sdk", branch = "release-mangata-v1.1.0" }
 pallet-transaction-payment = { git = "https://github.com/mangata-finance//polkadot-sdk", branch = "release-mangata-v1.1.0" }
+mangata-support = { git = "https://github.com/mangata-finance//polkadot-sdk", branch = "release-mangata-v1.1.0" }
 sc-client-api = { git = "https://github.com/mangata-finance//polkadot-sdk", branch = "release-mangata-v1.1.0" }
 sc-client-db = { git = "https://github.com/mangata-finance//polkadot-sdk", branch = "release-mangata-v1.1.0" }
 sc-executor = { git = "https://github.com/mangata-finance//polkadot-sdk", branch = "release-mangata-v1.1.0" }
