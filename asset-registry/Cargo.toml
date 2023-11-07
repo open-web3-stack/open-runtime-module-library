@@ -81,6 +81,7 @@ runtime-benchmarks = [
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"polkadot-runtime-parachains/runtime-benchmarks",
+	"polkadot-runtime-common/runtime-benchmarks",
 ]
 try-runtime = [
 	"frame-support/try-runtime",
