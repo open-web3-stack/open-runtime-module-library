@@ -145,7 +145,7 @@ impl<
 		DepositFailureHandler,
 	>
 {
-	fn deposit_asset(asset: &MultiAsset, location: &MultiLocation, _context: &XcmContext) -> Result {
+	fn deposit_asset(asset: &MultiAsset, location: &MultiLocation, _context: Option<&XcmContext>) -> Result {
 		match (
 			AccountIdConvert::convert_location(location),
 			CurrencyIdConvert::convert(asset.clone()),

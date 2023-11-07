@@ -57,8 +57,7 @@ impl pallet_preimage::Config for Runtime {
 	type WeightInfo = ();
 	type Currency = ();
 	type ManagerOrigin = EnsureRoot<u128>;
-	type BaseDeposit = ();
-	type ByteDeposit = ();
+	type Consideration = ();
 }
 
 parameter_types! {

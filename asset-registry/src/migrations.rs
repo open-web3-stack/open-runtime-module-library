@@ -22,7 +22,7 @@ mod v2 {
 
 	pub(crate) fn migrate<T: Config>() -> Weight {
 		let mut weight: Weight = Weight::zero();
-		let module_prefix = LocationToAssetId::<T>::module_prefix();
+		let module_prefix = LocationToAssetId::<T>::pallet_prefix();
 		let storage_prefix = LocationToAssetId::<T>::storage_prefix();
 
 		weight.saturating_accrue(T::DbWeight::get().reads(1));
