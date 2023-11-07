@@ -11,7 +11,7 @@ edition = "2021"
 parity-scale-codec = { workspace = true }
 log = { workspace = true }
 paste = "1.0.7"
-scale-info = { version = "2.9.0", default-features = false, features = ["derive"] }
+scale-info = { workspace = true }
 serde = { workspace = true, optional = true }
 
 frame-benchmarking = { workspace = true }

@@ -10,7 +10,7 @@ edition = "2021"
 [dependencies]
 parity-scale-codec = { workspace = true }
 log = { workspace = true }
-scale-info = { version = "2.9.0", default-features = false, features = ["derive"] }
+scale-info = { workspace = true }
 serde = { workspace = true, optional = true }
 
 # substrate
@@ -29,8 +29,8 @@ xcm = { workspace = true }
 xcm-executor = { workspace = true }
 
 # orml
-orml-traits = { path = "../traits", default-features = false}
-orml-xcm-support = { path = "../xcm-support", default-features = false }
+orml-traits = { path = "../traits", version = "0.5.0-dev", default-features = false}
+orml-xcm-support = { path = "../xcm-support", version = "0.5.0-dev", default-features = false }
 
 [dev-dependencies]
 # substrate
@@ -54,8 +54,8 @@ xcm-builder = { workspace = true, features = ["std"] }
 xcm-simulator = { workspace = true }
 
 # orml
-orml-tokens = { path = "../tokens" }
-orml-xcm = { path = "../xcm" }
+orml-tokens = { path = "../tokens", version = "0.5.0-dev" }
+orml-xcm = { path = "../xcm", version = "0.5.0-dev" }
 
 [features]
 default = [ "std" ]
