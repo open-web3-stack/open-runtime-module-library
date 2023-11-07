@@ -27,7 +27,7 @@ serde = "1.0.136"
 sp-core = { workspace = true }
 sp-io = { workspace = true }
 
-orml-tokens = { path = "../tokens", version = "0.5.0-dev", default-features = false }
+orml-tokens = { path = "../tokens", default-features = false }
 
 [features]
 default = [ 'std' ]
