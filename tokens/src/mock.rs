@@ -102,13 +102,9 @@ impl ContainsLengthBound for TenToFourteen {
 
 parameter_types! {
 	pub const ProposalBond: Permill = Permill::from_percent(5);
-	pub const ProposalBondMinimum: u64 = 1;
-	pub const ProposalBondMaximum: u64 = 5;
-	pub const SpendPeriod: u64 = 2;
 	pub const Burn: Permill = Permill::from_percent(50);
 	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
 	pub const GetTokenId: CurrencyId = DOT;
-	pub const MaxApprovals: u32 = 100;
 	pub TreasuryAccount: AccountId = Treasury::account_id();
 }
 
