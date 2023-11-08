@@ -45,5 +45,5 @@ help:
     It looks like at least one check failed; please see the console output. You can try to automatically address them by running `zepter`.
     Otherwise please ask directly in the Merge Request, GitHub Discussions or on Matrix Chat, thank you.
   links:
-    - TODO link to the MR
+    - "https://github.com/open-web3-stack/open-runtime-module-library/pull/964"
     - "https://github.com/ggwpez/zepter"
