@@ -28,16 +28,17 @@ sp-core = { workspace = true, features = ["std"] }
 orml_tokens = { package = "orml-tokens", path = "../tokens", version = "0.5.0-dev" }
 
 [features]
-default = ["std"]
+default = [ "std" ]
 std = [
-	"serde",
-
-	"parity-scale-codec/std",
 	"frame-support/std",
 	"frame-system/std",
 	"orml-traits/std",
 	"orml-utilities/std",
+	"pallet-balances/std",
+	"parity-scale-codec/std",
 	"scale-info/std",
+	"serde",
+	"sp-core/std",
 	"sp-io/std",
 	"sp-runtime/std",
 	"sp-std/std",
@@ -45,4 +46,7 @@ std = [
 try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
+	"orml_tokens/try-runtime",
+	"pallet-balances/try-runtime",
+	"sp-runtime/try-runtime",
 ]
