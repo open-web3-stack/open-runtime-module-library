@@ -43,5 +43,5 @@ jobs:
       run: make dev-test
     - name: Check Rust features
       run: |
-        cargo install zepter --version 0.13.2 --locked -q -f --no-default-features && zepter --version
+        cargo install zepter --version 0.14.0 --locked -q -f --no-default-features && zepter --version
         zepter run check
