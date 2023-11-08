@@ -11,15 +11,15 @@ edition = "2021"
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false }
 scale-info = { version = "2.9.0", default-features = false, features = ["derive"] }
 
-frame-support = { git = "https://github.com/mangata-finance/polkadot-sdk", default-features = false , branch = "develop" }
-frame-system = { git = "https://github.com/mangata-finance/polkadot-sdk", default-features = false , branch = "develop" }
-sp-std = { git = "https://github.com/mangata-finance/polkadot-sdk", default-features = false , branch = "develop" }
+frame-support = { git = "https://github.com/mangata-finance/polkadot-sdk", default-features = false , branch = "release-mangata-v1.1.0" }
+frame-system = { git = "https://github.com/mangata-finance/polkadot-sdk", default-features = false , branch = "release-mangata-v1.1.0" }
+sp-std = { git = "https://github.com/mangata-finance/polkadot-sdk", default-features = false , branch = "release-mangata-v1.1.0" }
 
-pallet-xcm = { git = "https://github.com/mangata-finance/polkadot-sdk", default-features = false , branch = "develop" }
-xcm = { package = "staging-xcm", git = "https://github.com/mangata-finance/polkadot-sdk", default-features = false , branch = "develop" }
+pallet-xcm = { git = "https://github.com/mangata-finance/polkadot-sdk", default-features = false , branch = "release-mangata-v1.1.0" }
+xcm = { package = "staging-xcm", git = "https://github.com/mangata-finance/polkadot-sdk", default-features = false , branch = "release-mangata-v1.1.0" }
 
 [dev-dependencies]
-xcm-executor  = { package = "staging-xcm-executor", git = "https://github.com/mangata-finance/polkadot-sdk", branch = "develop" }
+xcm-executor  = { package = "staging-xcm-executor", git = "https://github.com/mangata-finance/polkadot-sdk", branch = "release-mangata-v1.1.0" }
 
 [features]
 default = ["std"]
