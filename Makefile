@@ -34,9 +34,11 @@ Cargo.toml: Cargo.dev.toml
 
 dev-format: Cargo.toml
 	cargo fmt --all
+	zepter format features --fix
 
 dev-format-check: Cargo.toml
 	cargo fmt --all -- --check
+	zepter format features
 
 # needs to use run.sh to check individual projects because
 #   --no-default-features is not allowed in the root of a virtual workspace
