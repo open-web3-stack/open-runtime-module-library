@@ -29,6 +29,8 @@ jobs:
       uses: dtolnay/rust-toolchain@nightly
     - name: Install Wasm toolchain
       run: rustup target add wasm32-unknown-unknown
+    - name: Install Zepter
+      run: cargo install zepter --version 0.14.0 --locked -q -f --no-default-features && zepter --version
     - name: Check format
       run: make dev-format-check
     - name: Install clippy
@@ -42,6 +44,4 @@ jobs:
     - name: Run tests
       run: make dev-test
     - name: Check Rust features
-      run: |
-        cargo install zepter --version 0.14.0 --locked -q -f --no-default-features && zepter --version
-        zepter run check
+      run: zepter run check
