@@ -34,11 +34,9 @@ Cargo.toml: Cargo.dev.toml
 
 dev-format: Cargo.toml
 	cargo fmt --all
-	zepter format features --fix
 
 dev-format-check: Cargo.toml
 	cargo fmt --all -- --check
-	zepter format features
 
 # needs to use run.sh to check individual projects because
 #   --no-default-features is not allowed in the root of a virtual workspace
@@ -49,6 +47,22 @@ dev-check-tests: Cargo.toml
 
 dev-test: Cargo.toml
 	cargo test --all --features=runtime-benchmarks
+
+# Check feature formatting and propagation.
+dev-features-check:
+	zepter run check
+
+# Try to automatically fix all features.
+dev-features-fix:
+	zepter run default
+
+# Check whether all features are formatted.
+dev-features-format-check:
+	zepter format features
+
+# Formats all features in all manifest files of the workspace.
+dev-features-format:
+	zepter format features --fix
 
 # run benchmarks via Acala node
 benchmark-all:
