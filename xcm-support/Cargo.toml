@@ -20,11 +20,11 @@ xcm-executor = { workspace = true }
 orml-traits = { path = "../traits", version = "0.5.0-dev", default-features = false }
 
 [features]
-default = ["std"]
+default = [ "std" ]
 std = [
-	"parity-scale-codec/std",
 	"frame-support/std",
 	"orml-traits/std",
+	"parity-scale-codec/std",
 	"sp-runtime/std",
 	"sp-std/std",
 	"xcm-executor/std",

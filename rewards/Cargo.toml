@@ -25,15 +25,14 @@ orml-traits = { path = "../traits", version = "0.5.0-dev", default-features = fa
 sp-core = { workspace = true, features = ["std"] }
 
 [features]
-default = ["std"]
+default = [ "std" ]
 std = [
-	"serde",
-
-	"parity-scale-codec/std",
 	"frame-support/std",
 	"frame-system/std",
 	"orml-traits/std",
+	"parity-scale-codec/std",
 	"scale-info/std",
+	"serde",
 	"sp-core/std",
 	"sp-io/std",
 	"sp-runtime/std",
@@ -42,4 +41,5 @@ std = [
 try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
+	"sp-runtime/try-runtime",
 ]

@@ -48,6 +48,22 @@ dev-check-tests: Cargo.toml
 dev-test: Cargo.toml
 	cargo test --all --features=runtime-benchmarks
 
+# Check feature formatting and propagation.
+dev-features-check:
+	zepter run check
+
+# Try to automatically fix all features.
+dev-features-fix:
+	zepter run default
+
+# Check whether all features are formatted.
+dev-features-format-check:
+	zepter format features
+
+# Formats all features in all manifest files of the workspace.
+dev-features-format:
+	zepter format features --fix
+
 # run benchmarks via Acala node
 benchmark-all:
 	cargo run --release --bin=acala --features=runtime-benchmarks -- benchmark --chain=dev --steps=50 --repeat=20 --pallet=orml_auction --extrinsic="*" --wasm-execution=compiled --heap-pages=4096 --output=./auction/src/weights.rs --template ../templates/orml-weight-template.hbs

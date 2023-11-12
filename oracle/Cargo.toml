@@ -26,17 +26,17 @@ orml-utilities = { path = "../utilities", version = "0.5.0-dev", default-feature
 sp-core = { workspace = true }
 
 [features]
-default = ["std"]
+default = [ "std" ]
 std = [
-	"serde",
-
-	"parity-scale-codec/std",
 	"frame-support/std",
 	"frame-system/std",
 	"orml-traits/std",
 	"orml-utilities/std",
+	"parity-scale-codec/std",
 	"scale-info/std",
+	"serde",
 	"sp-application-crypto/std",
+	"sp-core/std",
 	"sp-io/std",
 	"sp-runtime/std",
 	"sp-std/std",
@@ -44,4 +44,5 @@ std = [
 try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
+	"sp-runtime/try-runtime",
 ]
