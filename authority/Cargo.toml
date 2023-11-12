@@ -26,14 +26,16 @@ pallet-root-testing = { workspace = true, features = ["std"] }
 sp-io = { workspace = true, features = ["std"] }
 
 [features]
-default = ["std"]
+default = [ "std" ]
 std = [
-	"serde",
-
-	"parity-scale-codec/std",
 	"frame-support/std",
 	"frame-system/std",
+	"pallet-preimage/std",
+	"pallet-root-testing/std",
+	"pallet-scheduler/std",
+	"parity-scale-codec/std",
 	"scale-info/std",
+	"serde",
 	"sp-core/std",
 	"sp-io/std",
 	"sp-runtime/std",
@@ -42,9 +44,15 @@ std = [
 runtime-benchmarks = [
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
+	"pallet-preimage/runtime-benchmarks",
+	"pallet-scheduler/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 ]
 try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
+	"pallet-preimage/try-runtime",
+	"pallet-root-testing/try-runtime",
+	"pallet-scheduler/try-runtime",
+	"sp-runtime/try-runtime",
 ]

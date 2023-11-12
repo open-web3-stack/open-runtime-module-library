@@ -27,19 +27,22 @@ sp-runtime = { workspace = true, features = ["std"] }
 hex-literal = "0.4.1"
 
 [features]
-default = ["std"]
+default = [ "std" ]
 std = [
-	"serde",
-
-	"parity-scale-codec/std",
 	"frame-support/std",
 	"frame-system/std",
 	"orml-xcm-support/std",
+	"parity-scale-codec/std",
 	"scale-info/std",
+	"serde",
+	"sp-core/std",
+	"sp-io/std",
+	"sp-runtime/std",
 	"sp-std/std",
 	"xcm/std",
 ]
 try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
+	"sp-runtime/try-runtime",
 ]

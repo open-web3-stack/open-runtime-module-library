@@ -24,13 +24,15 @@ serde_json = "1.0.64"
 frame-system = { workspace = true, features = ["std"] }
 
 [features]
-default = ["std"]
+default = [ "std" ]
 std = [
-	"serde",
+	"frame-support/std",
+	"frame-system/std",
 	"parity-scale-codec/std",
 	"scale-info/std",
-	"frame-support/std",
+	"serde",
+	"sp-core/std",
+	"sp-io/std",
 	"sp-runtime/std",
 	"sp-std/std",
-	"sp-io/std",
 ]

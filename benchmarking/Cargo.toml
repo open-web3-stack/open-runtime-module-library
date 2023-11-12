@@ -31,13 +31,13 @@ frame-system = { workspace = true, features = ["std"] }
 [features]
 default = [ "std" ]
 std = [
-	"serde",
-
-	"parity-scale-codec/std",
 	"frame-benchmarking/std",
 	"frame-support/std",
+	"frame-system/std",
 	"log/std",
+	"parity-scale-codec/std",
 	"scale-info/std",
+	"serde",
 	"sp-api/std",
 	"sp-io/std",
 	"sp-runtime-interface/std",

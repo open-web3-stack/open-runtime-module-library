@@ -14,10 +14,10 @@ sp-api = { workspace = true }
 sp-runtime = { workspace = true }
 
 [features]
-default = ["std"]
+default = [ "std" ]
 std = [
-	"parity-scale-codec/std",
 	"frame-support/std",
+	"parity-scale-codec/std",
 	"sp-api/std",
 	"sp-runtime/std",
 ]

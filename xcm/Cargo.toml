@@ -22,14 +22,15 @@ xcm = { workspace = true }
 xcm-executor  = { workspace = true, features = ["std"] }
 
 [features]
-default = ["std"]
+default = [ "std" ]
 std = [
-	"parity-scale-codec/std",
 	"frame-support/std",
 	"frame-system/std",
 	"pallet-xcm/std",
+	"parity-scale-codec/std",
 	"scale-info/std",
 	"sp-std/std",
+	"xcm-executor/std",
 	"xcm/std",
 ]
 try-runtime = [
