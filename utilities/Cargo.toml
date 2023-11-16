@@ -27,7 +27,6 @@ frame-system = { workspace = true, features = ["std"] }
 default = [ "std" ]
 std = [
 	"frame-support/std",
-	"frame-system/std",
 	"parity-scale-codec/std",
 	"scale-info/std",
 	"serde",
