@@ -520,6 +520,13 @@ pub mod module {
 				T::MultiLocationsFilter::contains(&dest),
 				Error::<T>::NotSupportedMultiLocation
 			);
+
+			// Fee payment can only be made by using the non-zero amount of fungibles
+			ensure!(
+				matches!(fee.fun, Fungibility::Fungible(x) if !x.is_zero()),
+				Error::<T>::InvalidAsset
+			);
+
 			let origin_location = T::AccountIdToMultiLocation::convert(who.clone());
 
 			let mut non_fee_reserve: Option<MultiLocation> = None;
@@ -527,33 +534,23 @@ pub mod module {
 			for i in 0..asset_len {
 				let asset = assets.get(i).ok_or(Error::<T>::AssetIndexNonExistent)?;
 
-				if fee == *asset {
-					// Fee payment can only be made by using fungibles
+				match asset.fun {
+					Fungibility::Fungible(x) => ensure!(!x.is_zero(), Error::<T>::InvalidAsset),
+					Fungibility::NonFungible(AssetInstance::Undefined) => return Err(Error::<T>::InvalidAsset.into()),
+					_ => {}
+				}
+
+				// `assets` includes fee, the reserve location is decided by non fee asset
+				if non_fee_reserve.is_none() && asset.id != fee.id {
+					non_fee_reserve = T::ReserveProvider::reserve(asset);
+				}
+
+				// make sure all non fee assets share the same reserve
+				if non_fee_reserve.is_some() {
 					ensure!(
-						matches!(asset.fun, Fungibility::Fungible(x) if !x.is_zero()),
-						Error::<T>::InvalidAsset
+						non_fee_reserve == T::ReserveProvider::reserve(asset),
+						Error::<T>::DistinctReserveForAssetAndFee
 					);
-				} else {
-					match asset.fun {
-						Fungibility::Fungible(x) => ensure!(!x.is_zero(), Error::<T>::InvalidAsset),
-						Fungibility::NonFungible(AssetInstance::Undefined) => {
-							return Err(Error::<T>::InvalidAsset.into())
-						}
-						_ => {}
-					}
-
-					// `assets` includes fee, the reserve location is decided by non fee asset
-					if non_fee_reserve.is_none() {
-						non_fee_reserve = T::ReserveProvider::reserve(asset);
-					}
-
-					// make sure all non fee assets share the same reserve
-					if non_fee_reserve.is_some() {
-						ensure!(
-							non_fee_reserve == T::ReserveProvider::reserve(asset),
-							Error::<T>::DistinctReserveForAssetAndFee
-						);
-					}
 				}
 			}
 
