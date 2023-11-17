@@ -1721,3 +1721,100 @@ fn send_with_insufficient_weight_limit() {
 		assert_eq!(ParaTokens::free_balance(CurrencyId::A, &BOB), 0);
 	});
 }
+
+#[test]
+fn send_multiasset_with_zero_fee_should_yield_an_error() {
+	TestNet::reset();
+
+	let asset_id: AssetId = X1(Junction::from(BoundedVec::try_from(b"A".to_vec()).unwrap())).into();
+	ParaA::execute_with(|| {
+		assert_noop!(
+			ParaXTokens::transfer_multiasset_with_fee(
+				Some(ALICE).into(),
+				Box::new((asset_id, 100).into()),
+				Box::new((asset_id, Fungibility::Fungible(0)).into()),
+				Box::new(
+					MultiLocation::new(
+						1,
+						X2(
+							Parachain(2),
+							Junction::AccountId32 {
+								network: None,
+								id: BOB.into()
+							},
+						)
+					)
+					.into()
+				),
+				WeightLimit::Unlimited,
+			),
+			Error::<para::Runtime>::InvalidAsset
+		);
+	});
+}
+
+#[test]
+fn send_undefined_nft_should_yield_an_error() {
+	TestNet::reset();
+
+	let fee_id: AssetId = X1(Junction::from(BoundedVec::try_from(b"A".to_vec()).unwrap())).into();
+	let nft_id: AssetId = X1(Junction::GeneralIndex(42)).into();
+
+	ParaA::execute_with(|| {
+		assert_noop!(
+			ParaXTokens::transfer_multiasset_with_fee(
+				Some(ALICE).into(),
+				Box::new((nft_id, Undefined).into()),
+				Box::new((fee_id, 100).into()),
+				Box::new(
+					MultiLocation::new(
+						1,
+						X2(
+							Parachain(2),
+							Junction::AccountId32 {
+								network: None,
+								id: BOB.into()
+							},
+						)
+					)
+					.into()
+				),
+				WeightLimit::Unlimited,
+			),
+			Error::<para::Runtime>::InvalidAsset
+		);
+	});
+}
+
+#[test]
+fn nfts_cannot_be_fee_assets() {
+	TestNet::reset();
+
+	let asset_id: AssetId = X1(Junction::from(BoundedVec::try_from(b"A".to_vec()).unwrap())).into();
+	let nft_id: AssetId = X1(Junction::GeneralIndex(42)).into();
+
+	ParaA::execute_with(|| {
+		assert_noop!(
+			ParaXTokens::transfer_multiasset_with_fee(
+				Some(ALICE).into(),
+				Box::new((asset_id, 100).into()),
+				Box::new((nft_id, Index(1)).into()),
+				Box::new(
+					MultiLocation::new(
+						1,
+						X2(
+							Parachain(2),
+							Junction::AccountId32 {
+								network: None,
+								id: BOB.into()
+							},
+						)
+					)
+					.into()
+				),
+				WeightLimit::Unlimited,
+			),
+			Error::<para::Runtime>::InvalidAsset
+		);
+	});
+}
