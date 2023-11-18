@@ -29,6 +29,9 @@ xcm-executor = { workspace = true }
 # orml
 orml-traits = { path = "../traits", version = "0.5.0-dev", default-features = false }
 
+# for runtime-benchmarks
+polkadot-runtime-common = { workspace = true, optional = true }
+
 [dev-dependencies]
 # substrate
 pallet-balances = { workspace = true, features = ["std"] }
@@ -53,7 +56,7 @@ xcm-simulator = { workspace = true }
 # orml
 orml-tokens = { path = "../tokens" }
 orml-xcm = { path = "../xcm" }
-orml-xcm-support = { path = "../xcm-support", default-features = false }
+orml-xcm-support = { path = "../xcm-support" }
 orml-xtokens = { path = "../xtokens" }
 
 [features]
@@ -81,6 +84,7 @@ runtime-benchmarks = [
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
+	"polkadot-runtime-common/runtime-benchmarks",
 ]
 try-runtime = [
 	"frame-support/try-runtime",
