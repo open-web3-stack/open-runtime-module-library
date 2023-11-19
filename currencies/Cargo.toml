@@ -34,11 +34,9 @@ std = [
 	"frame-system/std",
 	"orml-traits/std",
 	"orml-utilities/std",
-	"pallet-balances/std",
 	"parity-scale-codec/std",
 	"scale-info/std",
 	"serde",
-	"sp-core/std",
 	"sp-io/std",
 	"sp-runtime/std",
 	"sp-std/std",
@@ -46,7 +44,5 @@ std = [
 try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
-	"orml_tokens/try-runtime",
-	"pallet-balances/try-runtime",
 	"sp-runtime/try-runtime",
 ]
