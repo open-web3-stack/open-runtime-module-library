@@ -6,7 +6,7 @@ version:
   format: 1
   # Minimum version of the binary that is expected to work. This is just for printing a nice error
   # message when someone tries to use an older version.
-  binary: 0.13.2
+  binary: 0.15.0
 
 # The examples in this file assume crate `A` to have a dependency on crate `B`.
 workflows:
@@ -18,6 +18,8 @@ workflows:
         'propagate-feature',
         # These are the features to check:
         '--features=try-runtime,runtime-benchmarks,std',
+        # Ignore the features of dependencies that are exclusively used as dev or build.
+        '--dep-kinds=normal:check,dev:ignore,build:ignore',
         # Do not try to add a new section into `[features]` of `A` only because `B` expose that feature. There are edge-cases where this is still needed, but we can add them manually.
         '--left-side-feature-missing=ignore',
         # Ignore the case that `A` it outside of the workspace. Otherwise it will report errors in external dependencies that we have no influence on.

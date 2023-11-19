@@ -29,6 +29,9 @@ xcm-executor = { workspace = true }
 # orml
 orml-traits = { path = "../traits", version = "0.5.0-dev", default-features = false }
 
+# for runtime-benchmarks
+polkadot-runtime-common = { workspace = true, optional = true }
+
 [dev-dependencies]
 # substrate
 pallet-balances = { workspace = true, features = ["std"] }
@@ -53,33 +56,21 @@ xcm-simulator = { workspace = true }
 # orml
 orml-tokens = { path = "../tokens" }
 orml-xcm = { path = "../xcm" }
-orml-xcm-support = { path = "../xcm-support", default-features = false }
+orml-xcm-support = { path = "../xcm-support" }
 orml-xtokens = { path = "../xtokens" }
 
 [features]
 default = [ "std" ]
 std = [
-	"cumulus-pallet-dmp-queue/std",
-	"cumulus-pallet-parachain-system/std",
-	"cumulus-pallet-xcm/std",
-	"cumulus-pallet-xcmp-queue/std",
-	"cumulus-primitives-core/std",
 	"frame-support/std",
 	"frame-system/std",
 	"log/std",
 	"orml-traits/std",
-	"orml-xcm-support/std",
-	"pallet-balances/std",
-	"pallet-message-queue/std",
 	"pallet-xcm/std",
-	"parachain-info/std",
 	"parity-scale-codec/std",
-	"polkadot-parachain-primitives/std",
-	"polkadot-runtime-common/std",
-	"polkadot-runtime-parachains/std",
+	"polkadot-runtime-common?/std",
 	"scale-info/std",
 	"serde",
-	"sp-core/std",
 	"sp-io/std",
 	"sp-runtime/std",
 	"sp-std/std",
@@ -88,37 +79,18 @@ std = [
 	"xcm/std",
 ]
 runtime-benchmarks = [
-	"cumulus-pallet-parachain-system/runtime-benchmarks",
-	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
-	"orml-tokens/runtime-benchmarks",
-	"orml-xtokens/runtime-benchmarks",
-	"pallet-balances/runtime-benchmarks",
-	"pallet-message-queue/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
-	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
-	"polkadot-runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 ]
 try-runtime = [
-	"cumulus-pallet-dmp-queue/try-runtime",
-	"cumulus-pallet-parachain-system/try-runtime",
-	"cumulus-pallet-xcm/try-runtime",
-	"cumulus-pallet-xcmp-queue/try-runtime",
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
-	"orml-tokens/try-runtime",
-	"orml-xcm/try-runtime",
-	"orml-xtokens/try-runtime",
-	"pallet-balances/try-runtime",
-	"pallet-message-queue/try-runtime",
 	"pallet-xcm/try-runtime",
-	"parachain-info/try-runtime",
-	"polkadot-runtime-common/try-runtime",
-	"polkadot-runtime-parachains/try-runtime",
+	"polkadot-runtime-common?/try-runtime",
 	"sp-runtime/try-runtime",
 ]
