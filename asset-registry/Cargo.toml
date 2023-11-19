@@ -68,6 +68,7 @@ std = [
 	"orml-traits/std",
 	"pallet-xcm/std",
 	"parity-scale-codec/std",
+	"polkadot-runtime-common?/std",
 	"scale-info/std",
 	"serde",
 	"sp-io/std",
@@ -81,14 +82,15 @@ runtime-benchmarks = [
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
+	"polkadot-runtime-common/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
-	"polkadot-runtime-common/runtime-benchmarks",
 ]
 try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
 	"pallet-xcm/try-runtime",
+	"polkadot-runtime-common?/try-runtime",
 	"sp-runtime/try-runtime",
 ]
