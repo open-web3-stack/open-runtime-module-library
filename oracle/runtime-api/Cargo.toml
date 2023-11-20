@@ -1,10 +1,11 @@
 [package]
 name = "orml-oracle-runtime-api"
-version = "0.5.0-dev"
+version = "0.6.1"
 authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2021"
 license = "Apache-2.0"
 description = "Runtime API module for orml-oracle."
+repository = "https://github.com/open-web3-stack/open-runtime-module-library"
 
 [dependencies]
 parity-scale-codec = {  version = "3.0.0", default-features = false, features = ["derive"] }
