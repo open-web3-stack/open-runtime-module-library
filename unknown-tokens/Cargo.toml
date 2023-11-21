@@ -3,13 +3,13 @@ name = "orml-unknown-tokens"
 description = "Unknown tokens module that implements `UnknownAsset` trait."
 repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/unknown-tokens"
 license = "Apache-2.0"
-version = "0.5.0-dev"
+version = "0.6.1"
 authors = ["Acala Developers"]
 edition = "2021"
 
 [dependencies]
 parity-scale-codec = { workspace = true }
-scale-info = { version = "2.9.0", default-features = false, features = ["derive"] }
+scale-info = { workspace = true }
 serde = { workspace = true, optional = true }
 
 frame-support = { workspace = true }
@@ -18,7 +18,7 @@ sp-std = { workspace = true }
 
 xcm = { workspace = true }
 
-orml-xcm-support = { path = "../xcm-support", default-features = false }
+orml-xcm-support = { path = "../xcm-support", version = "0.6.1", default-features = false }
 
 [dev-dependencies]
 sp-core = { workspace = true, features = ["std"] }
@@ -27,19 +27,15 @@ sp-runtime = { workspace = true, features = ["std"] }
 hex-literal = "0.4.1"
 
 [features]
-default = ["std"]
+default = [ "std" ]
 std = [
-	"serde",
-
-	"parity-scale-codec/std",
 	"frame-support/std",
 	"frame-system/std",
 	"orml-xcm-support/std",
+	"parity-scale-codec/std",
 	"scale-info/std",
+	"serde",
 	"sp-std/std",
 	"xcm/std",
 ]
-try-runtime = [
-	"frame-support/try-runtime",
-	"frame-system/try-runtime",
-]
+try-runtime = [ "frame-support/try-runtime", "frame-system/try-runtime" ]

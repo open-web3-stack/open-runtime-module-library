@@ -3,13 +3,13 @@ name = "orml-currencies"
 description = "Provide `MultiCurrency` implementation using `pallet-balances` and `orml-tokens` module."
 repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/currencies"
 license = "Apache-2.0"
-version = "0.5.0-dev"
+version = "0.6.1"
 authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2021"
 
 [dependencies]
 parity-scale-codec = { workspace = true }
-scale-info = { version = "2.9.0", default-features = false, features = ["derive"] }
+scale-info = { workspace = true }
 serde = { workspace = true, optional = true }
 
 frame-support = { workspace = true }
@@ -18,26 +18,25 @@ sp-io = { workspace = true }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 
-orml-traits = { path = "../traits", version = "0.5.0-dev", default-features = false }
-orml-utilities = { path = "../utilities", version = "0.5.0-dev", default-features = false }
+orml-traits = { path = "../traits", version = "0.6.1", default-features = false }
+orml-utilities = { path = "../utilities", version = "0.6.1", default-features = false }
 
 [dev-dependencies]
 pallet-balances = { workspace = true, features = ["std"] }
 sp-core = { workspace = true, features = ["std"] }
 
-orml_tokens = { package = "orml-tokens", path = "../tokens", version = "0.5.0-dev" }
+orml_tokens = { package = "orml-tokens", path = "../tokens" }
 
 [features]
-default = ["std"]
+default = [ "std" ]
 std = [
-	"serde",
-
-	"parity-scale-codec/std",
 	"frame-support/std",
 	"frame-system/std",
 	"orml-traits/std",
 	"orml-utilities/std",
+	"parity-scale-codec/std",
 	"scale-info/std",
+	"serde",
 	"sp-io/std",
 	"sp-runtime/std",
 	"sp-std/std",
@@ -45,4 +44,5 @@ std = [
 try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
+	"sp-runtime/try-runtime",
 ]

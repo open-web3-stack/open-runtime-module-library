@@ -3,14 +3,14 @@ name = "orml-tokens"
 description = "Fungible tokens module that implements `MultiCurrency` trait."
 repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/tokens"
 license = "Apache-2.0"
-version = "0.5.0-dev"
+version = "0.6.1"
 authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2021"
 
 [dependencies]
 parity-scale-codec = {  version = "3.0.0", default-features = false, features = ["max-encoded-len"] }
 log = { workspace = true }
-scale-info = { version = "2.9.0", default-features = false, features = ["derive"] }
+scale-info = { workspace = true }
 serde = { workspace = true, optional = true }
 
 frame-support = { workspace = true }
@@ -19,7 +19,7 @@ sp-arithmetic = { workspace = true }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 
-orml-traits = { path = "../traits", version = "0.5.0-dev", default-features = false }
+orml-traits = { path = "../traits", version = "0.6.1", default-features = false }
 
 [dev-dependencies]
 pallet-elections-phragmen = { workspace = true, features = ["std"] }
@@ -29,15 +29,16 @@ sp-io = { workspace = true, features = ["std"] }
 sp-staking = { workspace = true, features = ["std"] }
 
 [features]
-default = ["std"]
+default = [ "std" ]
 std = [
-	"serde",
-
-	"parity-scale-codec/std",
 	"frame-support/std",
 	"frame-system/std",
+	"log/std",
 	"orml-traits/std",
+	"parity-scale-codec/std",
 	"scale-info/std",
+	"serde",
+	"sp-arithmetic/std",
 	"sp-runtime/std",
 	"sp-std/std",
 ]
@@ -49,4 +50,5 @@ runtime-benchmarks = [
 try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
+	"sp-runtime/try-runtime",
 ]

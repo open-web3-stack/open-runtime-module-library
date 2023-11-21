@@ -1,4 +1,5 @@
 use crate::{arithmetic, Happened};
+use frame_support::traits::tokens::Balance;
 pub use frame_support::{
 	traits::{BalanceStatus, DefensiveSaturating, LockIdentifier},
 	transactional,
@@ -27,14 +28,7 @@ pub trait MultiCurrency<AccountId> {
 		+ MaxEncodedLen;
 
 	/// The balance of an account.
-	type Balance: AtLeast32BitUnsigned
-		+ FullCodec
-		+ Copy
-		+ MaybeSerializeDeserialize
-		+ Debug
-		+ Default
-		+ scale_info::TypeInfo
-		+ MaxEncodedLen;
+	type Balance: Balance;
 
 	// Public immutables
 

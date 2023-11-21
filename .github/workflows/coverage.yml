@@ -31,10 +31,6 @@ jobs:
           submodules: recursive
       - name: Install toolchain
         uses: dtolnay/rust-toolchain@nightly
-        with:
-          toolchain: nightly-2023-04-15
-          components: rustfmt
-          target: wasm32-unknown-unknown
       - name: Generate code coverage
         run: |
           wget https://github.com/xd009642/tarpaulin/releases/download/${{ env.TARPAULIN_VERSION }}/cargo-tarpaulin-${{ env.TARPAULIN_VERSION }}-travis.tar.gz

@@ -72,7 +72,7 @@ macro_rules! whitelist_account {
 /// benchmark. Using the simple syntax, the associated dispatchable function
 /// maps 1:1 with the benchmark and the name of the benchmark is the same as
 /// that of the associated function. However, extended syntax allows
-/// for arbitrary expresions to be evaluated in a benchmark (including for
+/// for arbitrary expression to be evaluated in a benchmark (including for
 /// example, `on_initialize`).
 ///
 /// Note that the ranges are *inclusive* on both sides. This is in contrast to

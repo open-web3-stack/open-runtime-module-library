@@ -3,13 +3,13 @@ name = "orml-xcm"
 description = "XCM message helpers."
 repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/xcm"
 license = "Apache-2.0"
-version = "0.5.0-dev"
+version = "0.6.1"
 authors = ["Acala Developers"]
 edition = "2021"
 
 [dependencies]
 parity-scale-codec = { workspace = true }
-scale-info = { version = "2.9.0", default-features = false, features = ["derive"] }
+scale-info = { workspace = true }
 
 frame-support = { workspace = true }
 frame-system = { workspace = true }
@@ -22,12 +22,12 @@ xcm = { workspace = true }
 xcm-executor  = { workspace = true, features = ["std"] }
 
 [features]
-default = ["std"]
+default = [ "std" ]
 std = [
-	"parity-scale-codec/std",
 	"frame-support/std",
 	"frame-system/std",
 	"pallet-xcm/std",
+	"parity-scale-codec/std",
 	"scale-info/std",
 	"sp-std/std",
 	"xcm/std",

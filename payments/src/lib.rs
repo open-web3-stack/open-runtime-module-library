@@ -16,8 +16,8 @@
 //!   this account has the privilege to cancel/release a payment that has been
 //!   disputed.
 //! - Remark: The pallet allows to create payments by optionally providing some
-//!   extra(limited) amount of bytes, this is reffered to as Remark. This can be
-//!   used by a marketplace to seperate/tag payments.
+//!   extra(limited) amount of bytes, this is referred to as Remark. This can be
+//!   used by a marketplace to separate/tag payments.
 //! - CancelBufferBlockLength: This is the time window where the recipient can
 //!   dispute a cancellation request from the payment creator.
 
@@ -109,7 +109,7 @@ pub mod pallet {
 		type DisputeResolver: DisputeResolver<Self::AccountId>;
 		/// Fee handler trait
 		type FeeHandler: FeeHandler<Self>;
-		/// Incentive percentage - amount witheld from sender
+		/// Incentive percentage - amount withheld from sender
 		#[pallet::constant]
 		type IncentivePercentage: Get<Percent>;
 		/// Maximum permitted size of `Remark`
@@ -392,7 +392,7 @@ pub mod pallet {
 
 		/// Allow the creator of a payment to initiate a refund that will return
 		/// the funds after a configured amount of time that the reveiver has to
-		/// react and opose the request
+		/// react and oppose the request
 		#[pallet::call_index(4)]
 		#[pallet::weight(T::WeightInfo::request_refund())]
 		pub fn request_refund(origin: OriginFor<T>, recipient: T::AccountId) -> DispatchResultWithPostInfo {

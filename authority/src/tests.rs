@@ -641,7 +641,7 @@ fn trigger_call_should_be_free_and_operational() {
 			})
 		);
 
-		// successfull call doesn't pay fee
+		// successful call doesn't pay fee
 		assert_eq!(
 			trigger_call.dispatch(RuntimeOrigin::signed(1)),
 			Ok(PostDispatchInfo {

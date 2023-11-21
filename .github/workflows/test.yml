@@ -27,10 +27,6 @@ jobs:
     - uses: actions/checkout@v3
     - name: Install toolchain
       uses: dtolnay/rust-toolchain@nightly
-      with:
-        toolchain: nightly-2023-04-15
-        components: rustfmt
-        target: wasm32-unknown-unknown
     - name: Install Wasm toolchain
       run: rustup target add wasm32-unknown-unknown
     - name: Check format
@@ -43,5 +39,9 @@ jobs:
       run: cargo clippy -- -D warnings
     - name: Check for Wasm
       run: make dev-check
+    - name: Install Zepter
+      run: cargo install zepter --version 0.15.0 --locked -q -f --no-default-features && zepter --version
+    - name: Check Rust features
+      run: make dev-features-check
     - name: Run tests
       run: make dev-test
