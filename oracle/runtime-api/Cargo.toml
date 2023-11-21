@@ -1,6 +1,6 @@
 [package]
 name = "orml-oracle-runtime-api"
-version = "0.6.6"
+version = "0.6.7"
 authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2021"
 license = "Apache-2.0"
