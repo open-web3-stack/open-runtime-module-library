@@ -106,6 +106,7 @@ _In alphabetical order_
 - [Parallel Finance](https://github.com/parallel-finance/)
 - [PolkaFoundry Network](https://github.com/PolkaFoundry)
 - [Setheum Network](https://github.com/Setheum-Labs/Setheum)
+- [Titan Network](https://github.com/titan-foundation/titan)
 - [Valiu Liquidity Network](https://github.com/valibre-org/vln-node)
 - [Zeitgeist](https://github.com/zeitgeistpm/zeitgeist)
 - [ZERO Network](https://github.com/playzero/subzero)
