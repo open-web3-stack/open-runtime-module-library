@@ -25,7 +25,7 @@ jobs:
         with:
           access_token: ${{ github.token }}
   build:
-    runs-on: [self-hosted]
+    runs-on: ubuntu-latest
     env:
       SCCACHE_CACHE_SIZE: "50G"
     needs: cancel
