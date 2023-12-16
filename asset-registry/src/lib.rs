@@ -255,21 +255,26 @@ pub mod module {
 		pub fn update_l1_asset_data(
 			origin: OriginFor<T>,
 			asset_id: T::AssetId,
-			external_erc_20_id: ExternalErc20Id
+			external_erc_20_id: Option<ExternalErc20Id>
 		) -> DispatchResult {
 			T::L1AssetAuthority::ensure_origin(origin)?;
 
-			let old_external_erc_20_id = AssetIdToL1IdMap::<T>::get(&asset_id);
-			Self::do_update_l1_asset_hash_to_id_map(
-				asset_id.clone(), old_external_erc_20_id.and_then(
-					|old_id|
-					Some(<T as module::Config>::Hashing::hash(&old_id.encode()[..]))
-				)
-				, Some(<T as module::Config>::Hashing::hash(&external_erc_20_id.encode()[..]))
-			)?;
-			AssetIdToL1IdMap::<T>::insert(asset_id, external_erc_20_id);
+			AssetIdToL1IdMap::<T>::try_mutate_exists(&asset_id, |id| {
 
-			Ok(())
+				Self::do_update_l1_asset_hash_to_id_map(
+					asset_id.clone(),
+					id.clone().and_then(
+						|old_id|
+						Some(<T as module::Config>::Hashing::hash(&old_id.encode()[..]))
+					)
+					, external_erc_20_id.clone().and_then(
+						|new_id|
+						Some(<T as module::Config>::Hashing::hash(&new_id.encode()[..]))
+					) 
+				)?;
+				*id = external_erc_20_id;
+				Ok(())
+			})
 		}
 
 	}
