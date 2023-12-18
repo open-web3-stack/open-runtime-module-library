@@ -103,7 +103,7 @@ pub mod module {
 		ConflictingAssetId,
 		/// Name or symbol is too long.
 		InvalidAssetString,
-		ConflictingL1AssetHash
+		ConflictingL1Asset
 	}
 
 	#[pallet::event]
@@ -137,16 +137,16 @@ pub mod module {
 	pub type LocationToAssetId<T: Config> = StorageMap<_, Twox64Concat, MultiLocation, T::AssetId, OptionQuery>;
 
 
-	/// Maps a asset id to an l1 id (ExternalErc20) - useful when processing l1 assets
+	/// Maps a asset id to an L1Asset - useful when processing l1 assets
 	#[pallet::storage]
 	#[pallet::getter(fn asset_id_to_l1_id)]
-	pub type AssetIdToL1IdMap<T: Config> = StorageMap<_, Twox64Concat, T::AssetId, ExternalErc20Id, OptionQuery>;
+	pub type IdToL1Asset<T: Config> = StorageMap<_, Twox64Concat, T::AssetId, L1Asset, OptionQuery>;
 
 
-	/// Maps a l1 id (ExternalErc20) hash to an asset id - useful when processing l1 assets
+	/// Maps a L1Asset to an asset id - useful when processing l1 assets
 	#[pallet::storage]
-	#[pallet::getter(fn l1_asset_hash_to_id)]
-	pub type L1AssetHashToId<T: Config> = StorageMap<_, Twox64Concat, <T as module::Config>::Hash, T::AssetId, OptionQuery>;
+	#[pallet::getter(fn l1_asset_to_id)]
+	pub type L1AssetToId<T: Config> = StorageMap<_, Blake2_128Concat, L1Asset, T::AssetId, OptionQuery>;
 
 	#[derive(
 		Clone,
@@ -160,7 +160,7 @@ pub mod module {
 		TypeInfo,
 		MaxEncodedLen
 	)]
-	pub enum ExternalErc20Id {
+	pub enum L1Asset {
 		Ethereum([u8;20])
 	}
 
@@ -239,14 +239,14 @@ pub mod module {
 			origin: OriginFor<T>,
 			metadata: AssetMetadata<T::Balance, T::CustomMetadata, T::StringLimit>,
 			asset_id: Option<T::AssetId>,
-			external_erc_20_id: ExternalErc20Id
+			l1_asset: L1Asset
 		) -> DispatchResult {
 			T::L1AssetAuthority::ensure_origin(origin)?;
 
 			let (asset_id, metadata) = Self::do_register_asset(metadata, asset_id)?;
 
-			Self::do_insert_l1_asset_hash(asset_id.clone(), <T as module::Config>::Hashing::hash(&external_erc_20_id.encode()[..]))?;
-			AssetIdToL1IdMap::<T>::insert(asset_id, external_erc_20_id);
+			Self::do_insert_l1_asset(asset_id.clone(), l1_asset.clone())?;
+			IdToL1Asset::<T>::insert(asset_id, l1_asset);
 			Ok(())
 		}
 
@@ -255,24 +255,18 @@ pub mod module {
 		pub fn update_l1_asset_data(
 			origin: OriginFor<T>,
 			asset_id: T::AssetId,
-			external_erc_20_id: Option<ExternalErc20Id>
+			l1_asset: Option<L1Asset>
 		) -> DispatchResult {
 			T::L1AssetAuthority::ensure_origin(origin)?;
 
-			AssetIdToL1IdMap::<T>::try_mutate_exists(&asset_id, |id| {
+			IdToL1Asset::<T>::try_mutate_exists(&asset_id, |l| {
 
-				Self::do_update_l1_asset_hash_to_id_map(
+				Self::do_update_l1_asset_to_id(
 					asset_id.clone(),
-					id.clone().and_then(
-						|old_id|
-						Some(<T as module::Config>::Hashing::hash(&old_id.encode()[..]))
-					)
-					, external_erc_20_id.clone().and_then(
-						|new_id|
-						Some(<T as module::Config>::Hashing::hash(&new_id.encode()[..]))
-					) 
+					l.clone(),
+					l1_asset.clone()
 				)?;
-				*id = external_erc_20_id;
+				*l = l1_asset;
 				Ok(())
 			})
 		}
@@ -357,12 +351,6 @@ impl<T: Config> Pallet<T> {
 				metadata.additional = additional;
 			}
 
-			// if let Some(external_erc_20) = external_erc_20 {
-			// 	Self::do_update_l1_asset_hash_to_id_map(asset_id.clone(), calculate_hash(metadata.external_erc_20.clone()), calculate_hash(external_erc_20.clone()))?;
-			// 	metadata.external_erc_20 = external_erc_20;
-			// 	metadata = inject_l1_asset_hash(metadata).map_err(Error::<T>::L1AssetHashInjectionFailed)?;
-			// }
-
 			Self::deposit_event(Event::<T>::UpdatedAsset {
 				asset_id: asset_id.clone(),
 				metadata: metadata.clone(),
@@ -425,32 +413,32 @@ impl<T: Config> Pallet<T> {
 		})
 	}
 
-	/// update L1AssetHashToId if l1_asset_hash has changed
-	fn do_update_l1_asset_hash_to_id_map(
+	/// update L1AssetToId if l1_asset_hash has changed
+	fn do_update_l1_asset_to_id(
 		asset_id: T::AssetId,
-		old_l1_asset_hash: Option<<T as module::Config>::Hash>,
-		new_l1_asset_hash: Option<<T as module::Config>::Hash>,
+		old_l1_asset: Option<L1Asset>,
+		new_l1_asset: Option<L1Asset>,
 	) -> DispatchResult {
-		// Update `L1AssetHashToId` only if location changed
-		if new_l1_asset_hash != old_l1_asset_hash {
+		// Update `L1AssetToId` only if location changed
+		if new_l1_asset != old_l1_asset {
 			// remove the old location lookup if it exists
-			if let Some(ref old_l1_asset_hash) = old_l1_asset_hash {
-				L1AssetHashToId::<T>::remove(old_l1_asset_hash);
+			if let Some(ref old_l1_asset) = old_l1_asset {
+				L1AssetToId::<T>::remove(old_l1_asset);
 			}
 
 			// insert new location
-			if let Some(ref new_l1_asset_hash) = new_l1_asset_hash {
-				Self::do_insert_l1_asset_hash(asset_id, new_l1_asset_hash.clone())?;
+			if let Some(ref new_l1_asset) = new_l1_asset {
+				Self::do_insert_l1_asset(asset_id, new_l1_asset.clone())?;
 			}
 		}
 
 		Ok(())
 	}
 
-	/// insert l1_asset_hash into the L1AssetHashToId
-	fn do_insert_l1_asset_hash(asset_id: T::AssetId, new_l1_asset_hash: <T as module::Config>::Hash) -> DispatchResult {
-		L1AssetHashToId::<T>::try_mutate(new_l1_asset_hash, |maybe_asset_id| {
-			ensure!(maybe_asset_id.is_none(), Error::<T>::ConflictingL1AssetHash);
+	/// insert l1_asset_hash into the L1AssetToId
+	fn do_insert_l1_asset(asset_id: T::AssetId, new_l1_asset: L1Asset) -> DispatchResult {
+		L1AssetToId::<T>::try_mutate(new_l1_asset, |maybe_asset_id| {
+			ensure!(maybe_asset_id.is_none(), Error::<T>::ConflictingL1Asset);
 			*maybe_asset_id = Some(asset_id);
 			Ok(())
 		})
