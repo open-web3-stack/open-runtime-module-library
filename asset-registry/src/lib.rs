@@ -17,6 +17,7 @@ use sp_std::prelude::*;
 use sp_std::{fmt::Debug};
 // use sp_core::H256;
 use xcm::{v3::prelude::*, VersionedMultiLocation};
+use mangata_types::assets::L1Asset;
 
 pub use impls::*;
 pub use module::*;
@@ -148,22 +149,6 @@ pub mod module {
 	#[pallet::getter(fn l1_asset_to_id)]
 	pub type L1AssetToId<T: Config> = StorageMap<_, Blake2_128Concat, L1Asset, T::AssetId, OptionQuery>;
 
-	#[derive(
-		Clone,
-		PartialOrd,
-		Ord,
-		PartialEq,
-		Eq,
-		Debug,
-		Encode,
-		Decode,
-		TypeInfo,
-		MaxEncodedLen
-	)]
-	pub enum L1Asset {
-		Ethereum([u8;20])
-	}
-
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub assets: Vec<(T::AssetId, Vec<u8>)>,
@@ -243,10 +228,8 @@ pub mod module {
 		) -> DispatchResult {
 			T::L1AssetAuthority::ensure_origin(origin)?;
 
-			let (asset_id, metadata) = Self::do_register_asset(metadata, asset_id)?;
+			let _ = Self::do_register_l1_asset(metadata, asset_id, l1_asset)?;
 
-			Self::do_insert_l1_asset(asset_id.clone(), l1_asset.clone())?;
-			IdToL1Asset::<T>::insert(asset_id, l1_asset);
 			Ok(())
 		}
 
@@ -275,6 +258,21 @@ pub mod module {
 }
 
 impl<T: Config> Pallet<T> {
+	
+	/// Register a new l1 asset
+	pub fn do_register_l1_asset(
+		metadata: AssetMetadata<T::Balance, T::CustomMetadata, T::StringLimit>,
+		asset_id: Option<T::AssetId>,
+		l1_asset: L1Asset
+	) -> Result<T::AssetId, DispatchError> {
+		
+		let (asset_id, metadata) = Self::do_register_asset(metadata, asset_id)?;
+
+		Self::do_insert_l1_asset(asset_id.clone(), l1_asset.clone())?;
+		IdToL1Asset::<T>::insert(asset_id.clone(), l1_asset);
+		Ok(asset_id)
+	}
+
 	/// Register a new asset
 	pub fn do_register_asset(
 		metadata: AssetMetadata<T::Balance, T::CustomMetadata, T::StringLimit>,

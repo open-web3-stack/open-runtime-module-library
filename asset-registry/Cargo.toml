@@ -27,6 +27,7 @@ pallet-xcm = { git = "https://github.com/mangata-finance/polkadot-sdk", default-
 xcm = { package = "staging-xcm", git = "https://github.com/mangata-finance/polkadot-sdk", default-features = false , branch = "release-mangata-v1.1.0" }
 xcm-builder = { package = "staging-xcm-builder", git = "https://github.com/mangata-finance/polkadot-sdk", default-features = false , branch = "release-mangata-v1.1.0" }
 xcm-executor = { package = "staging-xcm-executor", git = "https://github.com/mangata-finance/polkadot-sdk", default-features = false , branch = "release-mangata-v1.1.0" }
+mangata-types = { git = "https://github.com/mangata-finance/polkadot-sdk", default-features = false , branch = "release-mangata-v1.1.0" }
 
 # orml
 orml-traits = { path = "../traits", version = "0.4.1-dev", default-features = false }
@@ -75,6 +76,7 @@ std = [
 	"xcm-executor/std",
 	"xcm/std",
 	"sp-core/std",
+	"mangata-types/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
