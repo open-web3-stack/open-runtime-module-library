@@ -3,12 +3,7 @@
 use super::*;
 use crate as orml_asset_registry;
 use crate::tests::para::{AdminAssetTwo, AssetRegistry, CustomMetadata, RuntimeOrigin, Tokens, TreasuryAccount};
-use frame_support::{
-	assert_noop, assert_ok,
-	storage::migration::{get_storage_value, put_storage_value},
-	traits::OnRuntimeUpgrade,
-	StorageHasher,
-};
+use frame_support::{assert_noop, assert_ok, traits::OnRuntimeUpgrade, StorageHasher};
 use mock::{para::RuntimeCall, *};
 use orml_traits::MultiCurrency;
 use polkadot_parachain_primitives::primitives::Sibling;
@@ -592,128 +587,6 @@ fn test_v2_to_v3_incompatible_multilocation() {
 		)
 		.encode() != MultiLocation::new(0, X1(Junction::from(BoundedVec::try_from(vec![0]).unwrap()))).encode()
 	);
-}
-
-#[test]
-fn from_unversioned_to_v2_storage() {
-	TestNet::reset();
-
-	ParaA::execute_with(|| {
-		let module_prefix = b"AssetRegistry";
-		let storage_prefix = b"LocationToAssetId";
-
-		// StorageVersion is 0 before migration
-		assert_eq!(StorageVersion::get::<Pallet<para::Runtime>>(), 0);
-
-		// V2 storage
-		let old_multilocation_0 = xcm::v2::MultiLocation::new(
-			0,
-			xcm::v2::Junctions::X1(xcm::v2::Junction::GeneralKey(vec![0].try_into().unwrap())),
-		);
-		let old_multilocation_1 = xcm::v2::MultiLocation::new(
-			1,
-			xcm::v2::Junctions::X2(
-				xcm::v2::Junction::Parachain(2096),
-				xcm::v2::Junction::GeneralKey(vec![0, 0, 0, 0, 0, 0, 0, 0, 0].try_into().unwrap()),
-			),
-		);
-		let old_multilocation_2 = xcm::v2::MultiLocation::new(
-			1,
-			xcm::v2::Junctions::X2(
-				xcm::v2::Junction::Parachain(2096),
-				xcm::v2::Junction::GeneralKey(vec![1, 1].try_into().unwrap()),
-			),
-		);
-
-		let asset_id_0: para::ParaAssetId = 5u32;
-		let asset_id_1: para::ParaAssetId = 6u32;
-		let asset_id_2: para::ParaAssetId = 7u32;
-
-		// Store raw xcm::v2 data
-		put_storage_value(
-			module_prefix,
-			storage_prefix,
-			&Twox64Concat::hash(&old_multilocation_0.encode()),
-			asset_id_0,
-		);
-		put_storage_value(
-			module_prefix,
-			storage_prefix,
-			&Twox64Concat::hash(&old_multilocation_1.encode()),
-			asset_id_1,
-		);
-		put_storage_value(
-			module_prefix,
-			storage_prefix,
-			&Twox64Concat::hash(&old_multilocation_2.encode()),
-			asset_id_2,
-		);
-
-		// V3 storage key
-		let new_multilocation_0 = MultiLocation::new(0, X1(Junction::from(BoundedVec::try_from(vec![0]).unwrap())));
-		let new_multilocation_1 = MultiLocation::new(
-			1,
-			X2(
-				Parachain(2096),
-				Junction::from(BoundedVec::try_from(vec![0, 0, 0, 0, 0, 0, 0, 0, 0]).unwrap()),
-			),
-		);
-		let new_multilocation_2 = MultiLocation::new(
-			1,
-			X2(
-				Parachain(2096),
-				Junction::from(BoundedVec::try_from(vec![1, 1]).unwrap()),
-			),
-		);
-
-		// Assert new StorageKey still does not exist
-		assert_eq!(AssetRegistry::location_to_asset_id(new_multilocation_0), None);
-		assert_eq!(AssetRegistry::location_to_asset_id(new_multilocation_1), None);
-		assert_eq!(AssetRegistry::location_to_asset_id(new_multilocation_2), None);
-
-		// Run StorageKey migration
-		crate::Migration::<para::Runtime>::on_runtime_upgrade();
-
-		// StorageVersion is 2 after migration
-		assert_eq!(StorageVersion::get::<Pallet<para::Runtime>>(), 2);
-
-		// Assert the StorageKey exists and has been migrated to xcm::v3
-		assert_eq!(
-			AssetRegistry::location_to_asset_id(new_multilocation_0),
-			Some(asset_id_0)
-		);
-		assert_eq!(
-			AssetRegistry::location_to_asset_id(new_multilocation_1),
-			Some(asset_id_1)
-		);
-		assert_eq!(
-			AssetRegistry::location_to_asset_id(new_multilocation_2),
-			Some(asset_id_2)
-		);
-
-		// Assert the old key does not exist anymore
-		assert!(get_storage_value::<para::ParaAssetId>(
-			module_prefix,
-			storage_prefix,
-			&Twox64Concat::hash(&old_multilocation_0.encode()),
-		)
-		.is_none());
-		assert!(get_storage_value::<para::ParaAssetId>(
-			module_prefix,
-			storage_prefix,
-			&Twox64Concat::hash(&old_multilocation_1.encode()),
-		)
-		.is_none());
-		assert!(get_storage_value::<para::ParaAssetId>(
-			module_prefix,
-			storage_prefix,
-			&Twox64Concat::hash(&old_multilocation_2.encode()),
-		)
-		.is_none());
-
-		// Assert further calls are no-op
-		assert_eq!(crate::Migration::<para::Runtime>::on_runtime_upgrade(), Weight::zero());
-	});
 }
 
 #[test]

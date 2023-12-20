@@ -12,9 +12,6 @@ pub use module::*;
 mod mock;
 mod tests;
 
-mod migrations;
-pub use migrations::Migration;
-
 #[frame_support::pallet]
 pub mod module {
 	use super::*;
