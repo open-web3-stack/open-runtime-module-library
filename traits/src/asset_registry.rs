@@ -17,6 +17,7 @@ pub trait AssetProcessor<AssetId, Metadata> {
 	fn post_register(_id: AssetId, _asset_metadata: Metadata) -> Result<(), DispatchError> {
 		Ok(())
 	}
+	// fn inject_l1_asset_hash(asset_metadata: Metadata) -> Result<Metadata, DispatchError>;
 }
 
 /// Data describing the asset properties.

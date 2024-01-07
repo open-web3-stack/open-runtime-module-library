@@ -27,7 +27,7 @@ use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
 use sp_core::H256;
 use sp_runtime::{
-	traits::{AccountIdConversion, Convert, IdentityLookup},
+	traits::{AccountIdConversion, Convert, IdentityLookup, Keccak256},
 	AccountId32, DispatchError,
 };
 use xcm::v3::{prelude::*, Weight};
@@ -177,6 +177,9 @@ impl orml_asset_registry::Config for Runtime {
 	type CustomMetadata = CustomMetadata;
 	type AssetProcessor = SequentialIdWithCreation<Runtime>;
 	type StringLimit = StringLimit;
+	type Hash = H256;
+	type Hashing = Keccak256;
+	type L1AssetAuthority = EnsureRoot<AccountId>;
 	type WeightInfo = ();
 }
 

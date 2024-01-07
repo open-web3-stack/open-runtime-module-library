@@ -10,10 +10,12 @@ pub use orml_traits::asset_registry::AssetMetadata;
 use orml_traits::asset_registry::AssetProcessor;
 use scale_info::TypeInfo;
 use sp_runtime::{
-	traits::{AtLeast32BitUnsigned, Member},
+	traits::{AtLeast32BitUnsigned, Member, Hash, MaybeDisplay, SimpleBitOps, CheckEqual},
 	DispatchResult,
 };
 use sp_std::prelude::*;
+use sp_std::{fmt::Debug};
+// use sp_core::H256;
 use xcm::{v3::prelude::*, VersionedMultiLocation};
 
 pub use impls::*;
@@ -63,6 +65,25 @@ pub mod module {
 		#[pallet::constant]
 		type StringLimit: Get<u32>;
 
+		type Hash: Parameter
+			+ Member
+			+ MaybeSerializeDeserialize
+			+ Debug
+			+ MaybeDisplay
+			+ SimpleBitOps
+			+ Ord
+			+ Default
+			+ Copy
+			+ CheckEqual
+			+ sp_std::hash::Hash
+			+ AsRef<[u8]>
+			+ AsMut<[u8]>
+			+ MaxEncodedLen;
+
+		type Hashing: Hash<Output = <Self as module::Config>::Hash> + TypeInfo;
+		
+		type L1AssetAuthority: EnsureOrigin<Self::RuntimeOrigin>;
+
 		/// Weight information for extrinsics in this module.
 		type WeightInfo: WeightInfo;
 	}
@@ -82,6 +103,7 @@ pub mod module {
 		ConflictingAssetId,
 		/// Name or symbol is too long.
 		InvalidAssetString,
+		ConflictingL1Asset
 	}
 
 	#[pallet::event]
@@ -113,6 +135,34 @@ pub mod module {
 	#[pallet::storage]
 	#[pallet::getter(fn location_to_asset_id)]
 	pub type LocationToAssetId<T: Config> = StorageMap<_, Twox64Concat, MultiLocation, T::AssetId, OptionQuery>;
+
+
+	/// Maps a asset id to an L1Asset - useful when processing l1 assets
+	#[pallet::storage]
+	#[pallet::getter(fn asset_id_to_l1_id)]
+	pub type IdToL1Asset<T: Config> = StorageMap<_, Twox64Concat, T::AssetId, L1Asset, OptionQuery>;
+
+
+	/// Maps a L1Asset to an asset id - useful when processing l1 assets
+	#[pallet::storage]
+	#[pallet::getter(fn l1_asset_to_id)]
+	pub type L1AssetToId<T: Config> = StorageMap<_, Blake2_128Concat, L1Asset, T::AssetId, OptionQuery>;
+
+	#[derive(
+		Clone,
+		PartialOrd,
+		Ord,
+		PartialEq,
+		Eq,
+		Debug,
+		Encode,
+		Decode,
+		TypeInfo,
+		MaxEncodedLen
+	)]
+	pub enum L1Asset {
+		Ethereum([u8;20])
+	}
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
@@ -152,7 +202,8 @@ pub mod module {
 		) -> DispatchResult {
 			T::AuthorityOrigin::ensure_origin(origin, &asset_id)?;
 
-			Self::do_register_asset(metadata, asset_id)
+			let _ = Self::do_register_asset(metadata, asset_id)?;
+			Ok(())
 		}
 
 		#[pallet::call_index(1)]
@@ -181,6 +232,45 @@ pub mod module {
 
 			Ok(())
 		}
+
+		#[pallet::call_index(2)]
+		#[pallet::weight(T::WeightInfo::register_asset())]
+		pub fn register_l1_asset(
+			origin: OriginFor<T>,
+			metadata: AssetMetadata<T::Balance, T::CustomMetadata, T::StringLimit>,
+			asset_id: Option<T::AssetId>,
+			l1_asset: L1Asset
+		) -> DispatchResult {
+			T::L1AssetAuthority::ensure_origin(origin)?;
+
+			let (asset_id, metadata) = Self::do_register_asset(metadata, asset_id)?;
+
+			Self::do_insert_l1_asset(asset_id.clone(), l1_asset.clone())?;
+			IdToL1Asset::<T>::insert(asset_id, l1_asset);
+			Ok(())
+		}
+
+		#[pallet::call_index(3)]
+		#[pallet::weight(T::WeightInfo::update_asset())]
+		pub fn update_l1_asset_data(
+			origin: OriginFor<T>,
+			asset_id: T::AssetId,
+			l1_asset: Option<L1Asset>
+		) -> DispatchResult {
+			T::L1AssetAuthority::ensure_origin(origin)?;
+
+			IdToL1Asset::<T>::try_mutate_exists(&asset_id, |l| {
+
+				Self::do_update_l1_asset_to_id(
+					asset_id.clone(),
+					l.clone(),
+					l1_asset.clone()
+				)?;
+				*l = l1_asset;
+				Ok(())
+			})
+		}
+
 	}
 }
 
@@ -189,14 +279,14 @@ impl<T: Config> Pallet<T> {
 	pub fn do_register_asset(
 		metadata: AssetMetadata<T::Balance, T::CustomMetadata, T::StringLimit>,
 		asset_id: Option<T::AssetId>,
-	) -> DispatchResult {
+	) -> Result<(T::AssetId, AssetMetadata<T::Balance, T::CustomMetadata, T::StringLimit>), DispatchError> {
 		let (asset_id, metadata) = T::AssetProcessor::pre_register(asset_id, metadata)?;
 
 		Self::do_register_asset_without_asset_processor(metadata.clone(), asset_id.clone())?;
 
-		T::AssetProcessor::post_register(asset_id, metadata)?;
+		T::AssetProcessor::post_register(asset_id.clone(), metadata.clone())?;
 
-		Ok(())
+		Ok((asset_id, metadata))
 	}
 
 	/// Like do_register_asset, but without calling pre_register and
@@ -322,4 +412,36 @@ impl<T: Config> Pallet<T> {
 			Ok(())
 		})
 	}
+
+	/// update L1AssetToId if l1_asset_hash has changed
+	fn do_update_l1_asset_to_id(
+		asset_id: T::AssetId,
+		old_l1_asset: Option<L1Asset>,
+		new_l1_asset: Option<L1Asset>,
+	) -> DispatchResult {
+		// Update `L1AssetToId` only if location changed
+		if new_l1_asset != old_l1_asset {
+			// remove the old location lookup if it exists
+			if let Some(ref old_l1_asset) = old_l1_asset {
+				L1AssetToId::<T>::remove(old_l1_asset);
+			}
+
+			// insert new location
+			if let Some(ref new_l1_asset) = new_l1_asset {
+				Self::do_insert_l1_asset(asset_id, new_l1_asset.clone())?;
+			}
+		}
+
+		Ok(())
+	}
+
+	/// insert l1_asset_hash into the L1AssetToId
+	fn do_insert_l1_asset(asset_id: T::AssetId, new_l1_asset: L1Asset) -> DispatchResult {
+		L1AssetToId::<T>::try_mutate(new_l1_asset, |maybe_asset_id| {
+			ensure!(maybe_asset_id.is_none(), Error::<T>::ConflictingL1Asset);
+			*maybe_asset_id = Some(asset_id);
+			Ok(())
+		})
+	}
+
 }
