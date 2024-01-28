@@ -20,9 +20,6 @@ sp-io = { workspace = true }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 
-# cumulus
-cumulus-primitives-core = { default-features = false , workspace = true }
-
 # polkadot
 pallet-xcm = { workspace = true }
 xcm = { workspace = true }
