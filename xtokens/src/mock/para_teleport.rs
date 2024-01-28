@@ -73,11 +73,10 @@ impl orml_tokens::Config for Runtime {
 }
 
 parameter_types! {
-	pub const RelayLocation: MultiLocation = MultiLocation::parent();
 	pub const RelayNetwork: NetworkId = NetworkId::Kusama;
 	pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
 	pub UniversalLocation: InteriorMultiLocation =
-	X2(GlobalConsensus(RelayNetwork::get()), Parachain(MsgQueue::get().into()));
+		X2(GlobalConsensus(RelayNetwork::get()), Parachain(MsgQueue::get().into()));
 }
 
 pub type LocationToAccountId = (
