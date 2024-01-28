@@ -24,17 +24,16 @@ cumulus-primitives-core = { workspace = true }
 [dev-dependencies]
 
 [features]
-default = ["std"]
+default = [ "std" ]
 std = [
-	"parity-scale-codec/std",
-	"scale-info/std",
-
 	"cumulus-primitives-core/std",
 	"frame-support/std",
 	"frame-system/std",
+	"parity-scale-codec/std",
 	"polkadot-parachain-primitives/std",
-	"sp-runtime/std",
+	"scale-info/std",
 	"sp-io/std",
+	"sp-runtime/std",
 	"sp-std/std",
 	"xcm/std",
 ]
