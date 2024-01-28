@@ -6,6 +6,7 @@ use cumulus_primitives_core::{ParaId, XcmpMessageFormat, XcmpMessageHandler};
 use frame_support::pallet_prelude::*;
 use parity_scale_codec::{Decode, Encode};
 use polkadot_parachain_primitives::primitives::DmpMessageHandler;
+use sp_std::prelude::*;
 use xcm::{
 	v3::{prelude::*, Weight},
 	VersionedXcm,
