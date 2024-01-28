@@ -49,19 +49,19 @@ dev-test: Cargo.toml
 	cargo test --all --features=runtime-benchmarks
 
 # Check feature formatting and propagation.
-dev-features-check:
+dev-features-check: Cargo.toml
 	zepter run check
 
 # Try to automatically fix all features.
-dev-features-fix:
+dev-features-fix: Cargo.toml
 	zepter run default
 
 # Check whether all features are formatted.
-dev-features-format-check:
+dev-features-format-check: Cargo.toml
 	zepter format features
 
 # Formats all features in all manifest files of the workspace.
-dev-features-format:
+dev-features-format: Cargo.toml
 	zepter format features --fix
 
 # run benchmarks via Acala node
