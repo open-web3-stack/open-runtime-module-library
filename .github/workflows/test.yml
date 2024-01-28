@@ -39,9 +39,5 @@ jobs:
       run: cargo clippy -- -D warnings
     - name: Check for Wasm
       run: make dev-check
-    - name: Install Zepter
-      run: cargo install zepter --version 0.15.0 --locked -q -f --no-default-features && zepter --version
-    - name: Check Rust features
-      run: make dev-features-check
     - name: Run tests
       run: make dev-test

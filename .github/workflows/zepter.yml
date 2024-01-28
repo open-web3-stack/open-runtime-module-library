@@ -1,0 +1,31 @@
+name: Test
+
+on:
+  pull_request:
+    branches:
+      - master
+      - polkadot-**
+    paths-ignore:
+      - '**/README.md'
+  push:
+    branches:
+      - master
+      - polkadot-**
+    paths-ignore:
+      - '**/README.md'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install toolchain
+      uses: dtolnay/rust-toolchain@nightly
+    - name: Install Zepter
+      run: cargo install zepter --version 0.15.0 --locked -q -f --no-default-features && zepter --version
+    - name: Check Rust features
+      run: make dev-features-check
