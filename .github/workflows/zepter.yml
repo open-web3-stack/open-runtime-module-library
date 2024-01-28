@@ -1,4 +1,4 @@
-name: Test
+name: Zepter
 
 on:
   pull_request:
