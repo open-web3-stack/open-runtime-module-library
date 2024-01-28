@@ -13,12 +13,10 @@ use polkadot_runtime_parachains::{
 };
 use sp_runtime::{traits::IdentityLookup, AccountId32};
 use xcm::v3::prelude::*;
-#[allow(deprecated)]
-use xcm_builder::CurrencyAdapter as XcmCurrencyAdapter;
 use xcm_builder::{
 	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, ChildParachainAsNative, ChildParachainConvertsVia,
-	FixedWeightBounds, IsConcrete, SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation,
-	TakeWeightCredit, UsingComponents,
+	FixedWeightBounds, FungibleAdapter, IsConcrete, SignedAccountId32AsNative, SignedToAccountId32,
+	SovereignSignedViaLocation, TakeWeightCredit, UsingComponents,
 };
 use xcm_executor::{Config, XcmExecutor};
 
@@ -67,9 +65,7 @@ pub type SovereignAccountOf = (
 	AccountId32Aliases<KusamaNetwork, AccountId>,
 );
 
-#[allow(deprecated)]
-pub type LocalAssetTransactor =
-	XcmCurrencyAdapter<Balances, IsConcrete<KsmLocation>, SovereignAccountOf, AccountId, ()>;
+pub type LocalAssetTransactor = FungibleAdapter<Balances, IsConcrete<KsmLocation>, SovereignAccountOf, AccountId, ()>;
 
 type LocalOriginConverter = (
 	SovereignSignedViaLocation<SovereignAccountOf, RuntimeOrigin>,
