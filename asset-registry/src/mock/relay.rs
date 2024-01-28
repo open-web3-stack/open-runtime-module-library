@@ -1,8 +1,8 @@
 use crate::Weight;
 use cumulus_primitives_core::ParaId;
 use frame_support::{
-	construct_runtime, parameter_types,
-	traits::{ConstU128, ConstU32, ConstU64, Everything, Nothing, ProcessMessage, ProcessMessageError},
+	construct_runtime, derive_impl, parameter_types,
+	traits::{ConstU128, ConstU32, Everything, Nothing, ProcessMessage, ProcessMessageError},
 	weights::{IdentityFee, WeightMeter},
 };
 use frame_system::EnsureRoot;
@@ -11,43 +11,27 @@ use polkadot_runtime_parachains::{
 	inclusion::{AggregateMessageOrigin, UmpQueueId},
 	origin, shared,
 };
-use sp_core::H256;
 use sp_runtime::{traits::IdentityLookup, AccountId32};
 use xcm::v3::prelude::*;
+#[allow(deprecated)]
+use xcm_builder::CurrencyAdapter as XcmCurrencyAdapter;
 use xcm_builder::{
 	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, ChildParachainAsNative, ChildParachainConvertsVia,
-	CurrencyAdapter as XcmCurrencyAdapter, FixedWeightBounds, IsConcrete, SignedAccountId32AsNative,
-	SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, UsingComponents,
+	FixedWeightBounds, IsConcrete, SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation,
+	TakeWeightCredit, UsingComponents,
 };
 use xcm_executor::{Config, XcmExecutor};
 
 pub type AccountId = AccountId32;
 pub type Balance = u128;
 
+#[derive_impl(frame_system::config_preludes::TestDefaultConfig as frame_system::DefaultConfig)]
 impl frame_system::Config for Runtime {
-	type RuntimeOrigin = RuntimeOrigin;
-	type RuntimeCall = RuntimeCall;
 	type Nonce = u64;
-	type Hash = H256;
-	type Hashing = ::sp_runtime::traits::BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Block = Block;
-	type RuntimeEvent = RuntimeEvent;
-	type BlockHashCount = ConstU64<250>;
-	type BlockWeights = ();
-	type BlockLength = ();
-	type Version = ();
-	type PalletInfo = PalletInfo;
 	type AccountData = pallet_balances::AccountData<Balance>;
-	type OnNewAccount = ();
-	type OnKilledAccount = ();
-	type DbWeight = ();
-	type BaseCallFilter = Everything;
-	type SystemWeightInfo = ();
-	type SS58Prefix = ();
-	type OnSetCode = ();
-	type MaxConsumers = ConstU32<16>;
 }
 
 impl pallet_balances::Config for Runtime {
@@ -84,6 +68,7 @@ pub type SovereignAccountOf = (
 	AccountId32Aliases<KusamaNetwork, AccountId>,
 );
 
+#[allow(deprecated)]
 pub type LocalAssetTransactor =
 	XcmCurrencyAdapter<Balances, IsConcrete<KsmLocation>, SovereignAccountOf, AccountId, ()>;
 

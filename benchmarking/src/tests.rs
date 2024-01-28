@@ -4,16 +4,9 @@
 
 use super::*;
 use frame_benchmarking::account;
-use frame_support::{
-	assert_err, assert_ok, construct_runtime, ensure,
-	traits::{ConstU32, Everything},
-};
+use frame_support::{assert_err, assert_ok, construct_runtime, derive_impl, ensure};
 use frame_system::RawOrigin;
-use sp_runtime::{
-	testing::{Header, H256},
-	traits::{BlakeTwo256, IdentityLookup},
-	BuildStorage,
-};
+use sp_runtime::{testing::Header, traits::IdentityLookup, BuildStorage};
 use sp_std::prelude::*;
 pub use test::*;
 
@@ -53,30 +46,12 @@ pub mod test {
 
 type AccountId = u128;
 
+#[derive_impl(frame_system::config_preludes::TestDefaultConfig as frame_system::DefaultConfig)]
 impl frame_system::Config for Test {
-	type RuntimeOrigin = RuntimeOrigin;
 	type Nonce = u64;
-	type Hash = H256;
-	type RuntimeCall = RuntimeCall;
-	type Hashing = BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Block = Block;
-	type RuntimeEvent = RuntimeEvent;
-	type BlockHashCount = ();
-	type DbWeight = ();
-	type BlockWeights = ();
-	type BlockLength = ();
-	type Version = ();
-	type PalletInfo = PalletInfo;
-	type AccountData = ();
-	type OnNewAccount = ();
-	type OnKilledAccount = ();
-	type BaseCallFilter = Everything;
-	type SystemWeightInfo = ();
-	type SS58Prefix = ();
-	type OnSetCode = ();
-	type MaxConsumers = ConstU32<16>;
 }
 
 impl Config for Test {}

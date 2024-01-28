@@ -1,17 +1,14 @@
 use crate as payment;
 use crate::PaymentDetail;
 use frame_support::{
+	derive_impl,
 	dispatch::DispatchClass,
 	parameter_types,
-	traits::{ConstU32, Contains, Everything, Hooks, OnFinalize},
+	traits::{ConstU32, Contains, Hooks, OnFinalize},
 };
 use frame_system as system;
 use orml_traits::parameter_type_with_key;
-use sp_core::H256;
-use sp_runtime::{
-	traits::{BlakeTwo256, IdentityLookup},
-	BuildStorage, Percent,
-};
+use sp_runtime::{traits::IdentityLookup, BuildStorage, Percent};
 
 type Block = frame_system::mocking::MockBlock<Test>;
 pub type Balance = u128;
@@ -42,30 +39,11 @@ parameter_types! {
 	pub const SS58Prefix: u8 = 42;
 }
 
+#[derive_impl(frame_system::config_preludes::TestDefaultConfig as frame_system::DefaultConfig)]
 impl system::Config for Test {
-	type BaseCallFilter = Everything;
-	type BlockWeights = ();
-	type BlockLength = ();
-	type DbWeight = ();
-	type RuntimeOrigin = RuntimeOrigin;
-	type RuntimeCall = RuntimeCall;
-	type Nonce = u64;
-	type Hash = H256;
-	type Hashing = BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Block = Block;
-	type RuntimeEvent = RuntimeEvent;
-	type BlockHashCount = BlockHashCount;
-	type Version = ();
-	type PalletInfo = PalletInfo;
-	type AccountData = ();
-	type OnNewAccount = ();
-	type OnKilledAccount = ();
-	type SystemWeightInfo = ();
-	type SS58Prefix = SS58Prefix;
-	type OnSetCode = ();
-	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
 parameter_type_with_key! {
