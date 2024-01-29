@@ -425,7 +425,9 @@ pub mod module {
 
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
-			GenesisConfig { balances: vec![] }
+			GenesisConfig {
+				balances: Default::default(),
+			}
 		}
 	}
 

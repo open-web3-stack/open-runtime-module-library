@@ -3,7 +3,7 @@
 use super::*;
 use crate as orml_asset_registry;
 use crate::tests::para::{AdminAssetTwo, AssetRegistry, CustomMetadata, RuntimeOrigin, Tokens, TreasuryAccount};
-use frame_support::{assert_noop, assert_ok, traits::OnRuntimeUpgrade, StorageHasher};
+use frame_support::{assert_noop, assert_ok};
 use mock::{para::RuntimeCall, *};
 use orml_traits::MultiCurrency;
 use polkadot_parachain_primitives::primitives::Sibling;

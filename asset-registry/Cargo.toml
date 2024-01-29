@@ -41,11 +41,7 @@ pallet-message-queue = { workspace = true, features = ["std"] }
 
 # cumulus
 cumulus-primitives-core = { workspace = true, features = ["std"] }
-cumulus-pallet-dmp-queue = { workspace = true, features = ["std"] }
-cumulus-pallet-xcmp-queue = { workspace = true, features = ["std"] }
 cumulus-pallet-xcm = { workspace = true, features = ["std"] }
-cumulus-pallet-parachain-system = { workspace = true, features = ["std"] }
-parachain-info = { workspace = true, features = ["std"] }
 
 # polkadot
 polkadot-parachain-primitives = { workspace = true, features = ["std"] }
@@ -58,6 +54,7 @@ orml-tokens = { path = "../tokens" }
 orml-xcm = { path = "../xcm" }
 orml-xcm-support = { path = "../xcm-support" }
 orml-xtokens = { path = "../xtokens" }
+orml-xcm-mock-message-queue = { path = "../xcm-mock-message-queue" }
 
 [features]
 default = [ "std" ]

@@ -5,7 +5,7 @@
 use super::*;
 use mock::*;
 
-use frame_support::{assert_err, assert_ok, storage::unhashed::put_raw, traits::OnRuntimeUpgrade};
+use frame_support::{assert_err, assert_ok};
 
 const MOCK_RECIPIENT: MultiLocation = MultiLocation::parent();
 const MOCK_CONCRETE_FUNGIBLE_ID: MultiLocation = MultiLocation::parent();
