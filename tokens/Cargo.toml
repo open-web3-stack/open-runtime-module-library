@@ -3,7 +3,7 @@ name = "orml-tokens"
 description = "Fungible tokens module that implements `MultiCurrency` trait."
 repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/tokens"
 license = "Apache-2.0"
-version = "0.6.7"
+version = "0.7.0"
 authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2021"
 
@@ -19,7 +19,7 @@ sp-arithmetic = { workspace = true }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 
-orml-traits = { path = "../traits", version = "0.6.7", default-features = false }
+orml-traits = { path = "../traits", version = "0.7.0", default-features = false }
 
 [dev-dependencies]
 pallet-elections-phragmen = { workspace = true, features = ["std"] }
