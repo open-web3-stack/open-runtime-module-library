@@ -19,6 +19,8 @@ jobs:
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-release
+      - run: make Cargo.toml
+      - run: cargo update
       - uses: chainguard-dev/actions/setup-gitsign@main
       - uses: cargo-bins/release-pr@v2
         with:
