@@ -14,7 +14,7 @@ use sp_runtime::{
 };
 use xcm_simulator::TestExt;
 
-type OldMultiLocation = xcm::v2::MultiLocation;
+type OldLocation = xcm::v2::MultiLocation;
 type OldJunctions = xcm::v2::Junctions;
 type OldJunction = xcm::v2::Junction;
 
@@ -55,9 +55,9 @@ fn dummy_metadata() -> AssetMetadata<
 		symbol: BoundedVec::truncate_from("paraA".as_bytes().to_vec()),
 		existential_deposit: 0,
 		location: Some(
-			MultiLocation::new(
+			Location::new(
 				1,
-				X2(Parachain(1), Junction::from(BoundedVec::try_from(vec![0]).unwrap())),
+				[Parachain(1), Junction::from(BoundedVec::try_from(vec![0]).unwrap())],
 			)
 			.into(),
 		),
@@ -110,8 +110,7 @@ fn send_self_parachain_asset_to_sibling() {
 	});
 
 	ParaA::execute_with(|| {
-		metadata.location =
-			Some(MultiLocation::new(0, X1(Junction::from(BoundedVec::try_from(vec![0]).unwrap()))).into());
+		metadata.location = Some(Location::new(0, [Junction::from(BoundedVec::try_from(vec![0]).unwrap())]).into());
 		AssetRegistry::register_asset(RuntimeOrigin::root(), metadata, None).unwrap();
 
 		assert_ok!(ParaTokens::deposit(CurrencyId::RegisteredAsset(1), &ALICE, 1_000));
@@ -121,15 +120,15 @@ fn send_self_parachain_asset_to_sibling() {
 			CurrencyId::RegisteredAsset(1),
 			500,
 			Box::new(
-				MultiLocation::new(
+				Location::new(
 					1,
-					X2(
+					[
 						Parachain(2),
 						Junction::AccountId32 {
 							network: None,
 							id: BOB.into(),
 						}
-					)
+					]
 				)
 				.into()
 			),
@@ -164,9 +163,9 @@ fn send_sibling_asset_to_non_reserve_sibling() {
 			RuntimeOrigin::root(),
 			AssetMetadata {
 				location: Some(
-					MultiLocation::new(
+					Location::new(
 						1,
-						X2(Parachain(2), Junction::from(BoundedVec::try_from(vec![0]).unwrap())),
+						[Parachain(2), Junction::from(BoundedVec::try_from(vec![0]).unwrap())],
 					)
 					.into(),
 				),
@@ -182,9 +181,7 @@ fn send_sibling_asset_to_non_reserve_sibling() {
 		AssetRegistry::register_asset(
 			RuntimeOrigin::root(),
 			AssetMetadata {
-				location: Some(
-					MultiLocation::new(0, X1(Junction::from(BoundedVec::try_from(vec![0]).unwrap()))).into(),
-				),
+				location: Some(Location::new(0, [Junction::from(BoundedVec::try_from(vec![0]).unwrap())]).into()),
 				..dummy_metadata()
 			},
 			None,
@@ -202,9 +199,9 @@ fn send_sibling_asset_to_non_reserve_sibling() {
 			RuntimeOrigin::root(),
 			AssetMetadata {
 				location: Some(
-					MultiLocation::new(
+					Location::new(
 						1,
-						X2(Parachain(2), Junction::from(BoundedVec::try_from(vec![0]).unwrap())),
+						[Parachain(2), Junction::from(BoundedVec::try_from(vec![0]).unwrap())],
 					)
 					.into(),
 				),
@@ -221,15 +218,15 @@ fn send_sibling_asset_to_non_reserve_sibling() {
 			CurrencyId::RegisteredAsset(1),
 			500,
 			Box::new(
-				MultiLocation::new(
+				Location::new(
 					1,
-					X2(
+					[
 						Parachain(3),
 						Junction::AccountId32 {
 							network: None,
 							id: BOB.into(),
 						}
-					)
+					]
 				)
 				.into()
 			),
@@ -267,9 +264,9 @@ fn test_sequential_id_normal_behavior() {
 			name: BoundedVec::truncate_from("para A native token 2".as_bytes().to_vec()),
 			symbol: BoundedVec::truncate_from("paraA2".as_bytes().to_vec()),
 			location: Some(
-				MultiLocation::new(
+				Location::new(
 					1,
-					X2(Parachain(1), Junction::from(BoundedVec::try_from(vec![1]).unwrap())),
+					[Parachain(1), Junction::from(BoundedVec::try_from(vec![1]).unwrap())],
 				)
 				.into(),
 			),
@@ -313,7 +310,7 @@ fn test_fixed_rate_asset_trader() {
 
 	ParaA::execute_with(|| {
 		let para_a_metadata = AssetMetadata {
-			location: Some(MultiLocation::new(0, X1(Junction::from(BoundedVec::try_from(vec![0]).unwrap()))).into()),
+			location: Some(Location::new(0, [Junction::from(BoundedVec::try_from(vec![0]).unwrap())]).into()),
 			..metadata.clone()
 		};
 		AssetRegistry::register_asset(RuntimeOrigin::root(), para_a_metadata, None).unwrap();
@@ -325,15 +322,15 @@ fn test_fixed_rate_asset_trader() {
 			CurrencyId::RegisteredAsset(1),
 			500,
 			Box::new(
-				MultiLocation::new(
+				Location::new(
 					1,
-					X2(
+					[
 						Parachain(2),
 						Junction::AccountId32 {
 							network: None,
 							id: BOB.into(),
 						}
-					)
+					]
 				)
 				.into()
 			),
@@ -376,15 +373,15 @@ fn test_fixed_rate_asset_trader() {
 			CurrencyId::RegisteredAsset(1),
 			500,
 			Box::new(
-				MultiLocation::new(
+				Location::new(
 					1,
-					X2(
+					[
 						Parachain(2),
 						Junction::AccountId32 {
 							network: None,
 							id: BOB.into(),
 						}
-					)
+					]
 				)
 				.into()
 			),
@@ -466,9 +463,9 @@ fn test_update_metadata_works() {
 			symbol: BoundedVec::truncate_from("paraA2".as_bytes().to_vec()),
 			existential_deposit: 1,
 			location: Some(
-				MultiLocation::new(
+				Location::new(
 					1,
-					X2(Parachain(1), Junction::from(BoundedVec::try_from(vec![1]).unwrap())),
+					[Parachain(1), Junction::from(BoundedVec::try_from(vec![1]).unwrap())],
 				)
 				.into(),
 			),
@@ -487,8 +484,8 @@ fn test_update_metadata_works() {
 			Some(new_metadata.additional.clone())
 		));
 
-		let old_location: MultiLocation = old_metadata.location.unwrap().try_into().unwrap();
-		let new_location: MultiLocation = new_metadata.location.clone().unwrap().try_into().unwrap();
+		let old_location: Location = old_metadata.location.unwrap().try_into().unwrap();
+		let new_location: Location = new_metadata.location.clone().unwrap().try_into().unwrap();
 
 		// check that the old location was removed and the new one added
 		assert_eq!(AssetRegistry::location_to_asset_id(old_location), None);
@@ -579,13 +576,13 @@ fn test_asset_authority() {
 
 #[test]
 fn test_v2_to_v3_incompatible_multilocation() {
-	// Assert that V2 and V3 Multilocation both are encoded differently
+	// Assert that V2 and V3 Location both are encoded differently
 	assert!(
-		OldMultiLocation::new(
+		OldLocation::new(
 			0,
 			OldJunctions::X1(OldJunction::GeneralKey(vec![0].try_into().unwrap()))
 		)
-		.encode() != MultiLocation::new(0, X1(Junction::from(BoundedVec::try_from(vec![0]).unwrap()))).encode()
+		.encode() != Location::new(0, [Junction::from(BoundedVec::try_from(vec![0]).unwrap())]).encode()
 	);
 }
 
@@ -614,7 +611,7 @@ fn test_decode_bounded_vec() {
 			pub name: Vec<u8>,
 			pub symbol: Vec<u8>,
 			pub existential_deposit: Balance,
-			pub location: Option<VersionedMultiLocation>,
+			pub location: Option<VersionedLocation>,
 			pub additional: CustomMetadata,
 		}
 	}

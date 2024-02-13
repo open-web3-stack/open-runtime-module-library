@@ -51,8 +51,8 @@ pub enum CurrencyId {
 }
 
 pub struct CurrencyIdConvert;
-impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
-	fn convert(id: CurrencyId) -> Option<MultiLocation> {
+impl Convert<CurrencyId, Option<Location>> for CurrencyIdConvert {
+	fn convert(id: CurrencyId) -> Option<Location> {
 		match id {
 			CurrencyId::R => Some(Parent.into()),
 			CurrencyId::A => Some(
@@ -103,38 +103,38 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
 				)
 					.into(),
 			),
-			CurrencyId::RegisteredAsset(id) => AssetRegistry::multilocation(&id).unwrap_or_default(),
+			CurrencyId::RegisteredAsset(id) => AssetRegistry::location(&id).unwrap_or_default(),
 		}
 	}
 }
-impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
-	fn convert(l: MultiLocation) -> Option<CurrencyId> {
+impl Convert<Location, Option<CurrencyId>> for CurrencyIdConvert {
+	fn convert(l: Location) -> Option<CurrencyId> {
 		let a: Vec<u8> = "A".into();
 		let a1: Vec<u8> = "A1".into();
 		let b: Vec<u8> = "B".into();
 		let b1: Vec<u8> = "B1".into();
 		let b2: Vec<u8> = "B2".into();
 		let d: Vec<u8> = "D".into();
-		if l == MultiLocation::parent() {
+		if l == Location::parent() {
 			return Some(CurrencyId::R);
 		}
-		let currency_id = match l.clone() {
-			MultiLocation { parents, interior } if parents == 1 => match interior {
-				X2(Parachain(1), GeneralKey { data, .. }) if data.to_vec() == a => Some(CurrencyId::A),
-				X2(Parachain(1), GeneralKey { data, .. }) if data.to_vec() == a1 => Some(CurrencyId::A1),
-				X2(Parachain(2), GeneralKey { data, .. }) if data.to_vec() == b => Some(CurrencyId::B),
-				X2(Parachain(2), GeneralKey { data, .. }) if data.to_vec() == b1 => Some(CurrencyId::B1),
-				X2(Parachain(2), GeneralKey { data, .. }) if data.to_vec() == b2 => Some(CurrencyId::B2),
-				X2(Parachain(4), GeneralKey { data, .. }) if data.to_vec() == d => Some(CurrencyId::D),
+		let currency_id = match l.clone().unpack() {
+			(parents, interior) if parents == 1 => match interior {
+				[Parachain(1), GeneralKey { data, .. }] if data.to_vec() == a => Some(CurrencyId::A),
+				[Parachain(1), GeneralKey { data, .. }] if data.to_vec() == a1 => Some(CurrencyId::A1),
+				[Parachain(2), GeneralKey { data, .. }] if data.to_vec() == b => Some(CurrencyId::B),
+				[Parachain(2), GeneralKey { data, .. }] if data.to_vec() == b1 => Some(CurrencyId::B1),
+				[Parachain(2), GeneralKey { data, .. }] if data.to_vec() == b2 => Some(CurrencyId::B2),
+				[Parachain(4), GeneralKey { data, .. }] if data.to_vec() == d => Some(CurrencyId::D),
 				_ => None,
 			},
-			MultiLocation { parents, interior } if parents == 0 => match interior {
-				X1(GeneralKey { data, .. }) if data.to_vec() == a => Some(CurrencyId::A),
-				X1(GeneralKey { data, .. }) if data.to_vec() == b => Some(CurrencyId::B),
-				X1(GeneralKey { data, .. }) if data.to_vec() == a1 => Some(CurrencyId::A1),
-				X1(GeneralKey { data, .. }) if data.to_vec() == b1 => Some(CurrencyId::B1),
-				X1(GeneralKey { data, .. }) if data.to_vec() == b2 => Some(CurrencyId::B2),
-				X1(GeneralKey { data, .. }) if data.to_vec() == d => Some(CurrencyId::D),
+			(parents, interior) if parents == 0 => match interior {
+				[GeneralKey { data, .. }] if data.to_vec() == a => Some(CurrencyId::A),
+				[GeneralKey { data, .. }] if data.to_vec() == b => Some(CurrencyId::B),
+				[GeneralKey { data, .. }] if data.to_vec() == a1 => Some(CurrencyId::A1),
+				[GeneralKey { data, .. }] if data.to_vec() == b1 => Some(CurrencyId::B1),
+				[GeneralKey { data, .. }] if data.to_vec() == b2 => Some(CurrencyId::B2),
+				[GeneralKey { data, .. }] if data.to_vec() == d => Some(CurrencyId::D),
 				_ => None,
 			},
 			_ => None,
@@ -142,11 +142,11 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
 		currency_id.or_else(|| AssetRegistry::location_to_asset_id(&l).map(CurrencyId::RegisteredAsset))
 	}
 }
-impl Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert {
-	fn convert(a: MultiAsset) -> Option<CurrencyId> {
-		if let MultiAsset {
+impl Convert<Asset, Option<CurrencyId>> for CurrencyIdConvert {
+	fn convert(a: Asset) -> Option<CurrencyId> {
+		if let Asset {
 			fun: Fungible(_),
-			id: Concrete(id),
+			id: AssetId(id),
 		} = a
 		{
 			Self::convert(id)
