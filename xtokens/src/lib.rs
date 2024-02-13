@@ -15,15 +15,15 @@
 //! ### Dispatchable functions
 //!
 //! - `transfer`: Transfer local assets with given `CurrencyId` and `Amount`.
-//! - `transfer_multiasset`: Transfer `MultiAsset` assets.
+//! - `transfer_multiasset`: Transfer `Asset` assets.
 //! - `transfer_with_fee`: Transfer native currencies specifying the fee and
 //!   amount as separate.
-//! - `transfer_multiasset_with_fee`: Transfer `MultiAsset` specifying the fee
-//!   and amount as separate.
+//! - `transfer_multiasset_with_fee`: Transfer `Asset` specifying the fee and
+//!   amount as separate.
 //! - `transfer_multicurrencies`: Transfer several currencies specifying the
 //!   item to be used as fee.
-//! - `transfer_multiassets`: Transfer several `MultiAsset` specifying the item
-//!   to be used as fee.
+//! - `transfer_multiassets`: Transfer several `Asset` specifying the item to be
+//!   used as fee.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::from_over_into)]
