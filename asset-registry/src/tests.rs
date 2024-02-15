@@ -3,20 +3,19 @@
 use super::*;
 use crate as orml_asset_registry;
 use crate::tests::para::{AdminAssetTwo, AssetRegistry, CustomMetadata, RuntimeOrigin, Tokens, TreasuryAccount};
+use frame_support::migration::put_storage_value;
 use frame_support::{assert_noop, assert_ok};
 use mock::{para::RuntimeCall, *};
 use orml_traits::MultiCurrency;
 use polkadot_parachain_primitives::primitives::Sibling;
 
+use sp_runtime::traits::MaybeEquivalence;
 use sp_runtime::{
 	traits::{AccountIdConversion, BadOrigin, Dispatchable},
 	AccountId32,
 };
+use xcm_builder::V4V3LocationConverter;
 use xcm_simulator::TestExt;
-
-type OldLocation = xcm::v2::MultiLocation;
-type OldJunctions = xcm::v2::Junctions;
-type OldJunction = xcm::v2::Junction;
 
 fn treasury_account() -> AccountId32 {
 	TreasuryAccount::get()
@@ -578,11 +577,15 @@ fn test_asset_authority() {
 fn test_v2_to_v3_incompatible_multilocation() {
 	// Assert that V2 and V3 Location both are encoded differently
 	assert!(
-		OldLocation::new(
+		xcm::v2::MultiLocation::new(
 			0,
-			OldJunctions::X1(OldJunction::GeneralKey(vec![0].try_into().unwrap()))
+			xcm::v2::Junctions::X1(xcm::v2::Junction::GeneralKey(vec![0].try_into().unwrap()))
 		)
-		.encode() != Location::new(0, [Junction::from(BoundedVec::try_from(vec![0]).unwrap())]).encode()
+		.encode() != xcm::v3::MultiLocation::new(
+			0,
+			xcm::v3::Junctions::X1(xcm::v3::Junction::from(BoundedVec::try_from(vec![0]).unwrap()))
+		)
+		.encode()
 	);
 }
 
@@ -638,5 +641,83 @@ fn test_decode_bounded_vec() {
 			asset_metadata.map(|m| (m.name.to_vec(), m.symbol.to_vec())),
 			Some((para_name, para_symbol))
 		);
+	});
+}
+
+#[test]
+fn validate_xcmv3v4_location_compatibility() {
+	TestNet::reset();
+
+	ParaA::execute_with(|| {
+		let pallet_prefix = b"AssetRegistry";
+		let storage_prefix = b"LocationToAssetId";
+
+		let parents = 0;
+
+		// xcm::v3 storage keys
+		let v3_keys = vec![
+			xcm::v3::MultiLocation::new(
+				parents,
+				xcm::v3::Junctions::X8(
+					xcm::v3::Junction::AccountId32 {
+						network: None,
+						id: [0; 32],
+					},
+					xcm::v3::Junction::AccountIndex64 {
+						network: None,
+						index: 0,
+					},
+					xcm::v3::Junction::AccountKey20 {
+						network: None,
+						key: [0; 20],
+					},
+					xcm::v3::Junction::GeneralIndex(10),
+					xcm::v3::Junction::GeneralKey {
+						length: 10,
+						data: [0; 32],
+					},
+					xcm::v3::Junction::GlobalConsensus(xcm::v3::NetworkId::Polkadot),
+					xcm::v3::Junction::OnlyChild,
+					xcm::v3::Junction::PalletInstance(10),
+				),
+			),
+			xcm::v3::MultiLocation::new(
+				parents,
+				xcm::v3::Junctions::X2(
+					xcm::v3::Junction::Parachain(1000),
+					xcm::v3::Junction::Plurality {
+						id: xcm_simulator::BodyId::Index(1),
+						part: xcm_simulator::BodyPart::Members { count: 1 },
+					},
+				),
+			),
+		];
+		// xcm::v4 storage keys
+		let v4_keys: Vec<Location> = v3_keys
+			.iter()
+			.map(|key| V4V3LocationConverter::convert_back(key).unwrap())
+			.collect();
+
+		let asset_id: para::ParaAssetId = 10u32;
+
+		// Verify that there is nothing stored yet
+		v4_keys
+			.iter()
+			.for_each(|key| assert_eq!(AssetRegistry::location_to_asset_id(key.clone()), None));
+
+		// Store raw xcm::v3 data
+		v3_keys.iter().for_each(|key| {
+			put_storage_value(
+				pallet_prefix,
+				storage_prefix,
+				&<Twox64Concat as frame_support::StorageHasher>::hash(&key.encode()),
+				asset_id,
+			)
+		});
+
+		// Verify that (xcm::v3) and (xcm::v4) are equivalent
+		v4_keys
+			.iter()
+			.for_each(|key| assert_eq!(AssetRegistry::location_to_asset_id(key.clone()), Some(asset_id.clone())));
 	});
 }
