@@ -142,6 +142,7 @@ impl Config for XcmConfig {
 	type CallDispatcher = RuntimeCall;
 	type SafeCallFilter = Everything;
 	type Aliasers = ();
+	type TransactionalProcessor = ();
 }
 
 impl cumulus_pallet_xcm::Config for Runtime {
