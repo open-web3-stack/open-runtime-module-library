@@ -12,8 +12,11 @@ use sp_runtime::{
 	ArithmeticError, FixedU128,
 };
 use sp_std::prelude::*;
-use xcm::v4::{prelude::*, Weight as XcmWeight};
 use xcm::VersionedLocation;
+use xcm::{
+	v3,
+	v4::{prelude::*, Weight as XcmWeight},
+};
 use xcm_builder::TakeRevenue;
 use xcm_executor::{traits::WeightTrader, AssetsInHolding};
 
@@ -185,7 +188,7 @@ impl<T: Config> Inspect for Pallet<T> {
 	type StringLimit = T::StringLimit;
 
 	fn asset_id(location: &Location) -> Option<Self::AssetId> {
-		Pallet::<T>::location_to_asset_id(location)
+		Pallet::<T>::location_to_asset_id(v3::Location::try_from(location.clone()).ok()?)
 	}
 
 	fn metadata(id: &Self::AssetId) -> Option<AssetMetadata<Self::Balance, Self::CustomMetadata, Self::StringLimit>> {
@@ -195,11 +198,11 @@ impl<T: Config> Inspect for Pallet<T> {
 	fn metadata_by_location(
 		location: &Location,
 	) -> Option<AssetMetadata<Self::Balance, Self::CustomMetadata, Self::StringLimit>> {
-		Pallet::<T>::fetch_metadata_by_location(location)
+		Pallet::<T>::fetch_metadata_by_location(&v3::Location::try_from(location.clone()).ok()?)
 	}
 
 	fn location(asset_id: &Self::AssetId) -> Result<Option<Location>, DispatchError> {
-		Pallet::<T>::location(asset_id)
+		Pallet::<T>::location(asset_id).map(|l| l.and_then(|l| l.try_into().ok()))
 	}
 }
 
