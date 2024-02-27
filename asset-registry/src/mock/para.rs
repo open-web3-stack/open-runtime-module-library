@@ -193,7 +193,7 @@ pub type AssetRegistryWeightTrader =
 pub struct MyFixedConversionRateProvider;
 impl FixedConversionRateProvider for MyFixedConversionRateProvider {
 	fn get_fee_per_second(location: &Location) -> Option<u128> {
-		let metadata = AssetRegistry::fetch_metadata_by_location(location)?;
+		let metadata = AssetRegistry::fetch_metadata_by_location(&location.clone().try_into().unwrap())?;
 		Some(metadata.additional.fee_per_second)
 	}
 }

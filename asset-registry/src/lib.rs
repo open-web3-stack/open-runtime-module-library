@@ -16,8 +16,8 @@ use sp_runtime::{
 use sp_std::prelude::*;
 use xcm::{v3::prelude::*, VersionedLocation};
 
-pub use impls::*;
-pub use module::*;
+use impls::*;
+use module::*;
 pub use weights::WeightInfo;
 
 mod impls;

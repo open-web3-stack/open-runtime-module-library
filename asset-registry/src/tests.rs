@@ -1,17 +1,23 @@
 #![cfg(test)]
 
-use super::*;
+use super::mock;
 use crate as orml_asset_registry;
-use crate::tests::para::{AdminAssetTwo, AssetRegistry, CustomMetadata, RuntimeOrigin, Tokens, TreasuryAccount};
-use frame_support::{assert_noop, assert_ok};
+use crate::{
+	tests::para::{AdminAssetTwo, AssetRegistry, CustomMetadata, RuntimeOrigin, Tokens, TreasuryAccount},
+	Error, LastAssetId, Metadata,
+};
+use frame_support::{assert_noop, assert_ok, pallet_prelude::*};
 use mock::{para::RuntimeCall, *};
+use orml_traits::asset_registry::AssetMetadata;
 use orml_traits::MultiCurrency;
 use polkadot_parachain_primitives::primitives::Sibling;
+use scale_info::TypeInfo;
 
 use sp_runtime::{
 	traits::{AccountIdConversion, BadOrigin, Dispatchable},
 	AccountId32,
 };
+use xcm::{v3, v4::prelude::*, VersionedLocation};
 use xcm_simulator::TestExt;
 
 type OldLocation = xcm::v2::MultiLocation;
@@ -49,18 +55,17 @@ fn dummy_metadata() -> AssetMetadata<
 	CustomMetadata,
 	<para::Runtime as orml_asset_registry::Config>::StringLimit,
 > {
+	let loc: VersionedLocation = Location::new(
+		1,
+		[Parachain(1), Junction::from(BoundedVec::try_from(vec![0]).unwrap())],
+	)
+	.into();
 	AssetMetadata {
 		decimals: 12,
 		name: BoundedVec::truncate_from("para A native token".as_bytes().to_vec()),
 		symbol: BoundedVec::truncate_from("paraA".as_bytes().to_vec()),
 		existential_deposit: 0,
-		location: Some(
-			Location::new(
-				1,
-				[Parachain(1), Junction::from(BoundedVec::try_from(vec![0]).unwrap())],
-			)
-			.into(),
-		),
+		location: Some(loc),
 		additional: CustomMetadata {
 			fee_per_second: 1_000_000_000_000,
 		},
@@ -110,7 +115,10 @@ fn send_self_parachain_asset_to_sibling() {
 	});
 
 	ParaA::execute_with(|| {
-		metadata.location = Some(Location::new(0, [Junction::from(BoundedVec::try_from(vec![0]).unwrap())]).into());
+		metadata.location = Some(Into::<VersionedLocation>::into(Location::new(
+			0,
+			[Junction::from(BoundedVec::try_from(vec![0]).unwrap())],
+		)));
 		AssetRegistry::register_asset(RuntimeOrigin::root(), metadata, None).unwrap();
 
 		assert_ok!(ParaTokens::deposit(CurrencyId::RegisteredAsset(1), &ALICE, 1_000));
@@ -484,8 +492,8 @@ fn test_update_metadata_works() {
 			Some(new_metadata.additional.clone())
 		));
 
-		let old_location: Location = old_metadata.location.unwrap().try_into().unwrap();
-		let new_location: Location = new_metadata.location.clone().unwrap().try_into().unwrap();
+		let old_location: v3::Location = old_metadata.location.unwrap().try_into().unwrap();
+		let new_location: v3::Location = new_metadata.location.clone().unwrap().try_into().unwrap();
 
 		// check that the old location was removed and the new one added
 		assert_eq!(AssetRegistry::location_to_asset_id(old_location), None);

@@ -8,6 +8,10 @@ use serde::{Deserialize, Serialize};
 use sp_core::bounded::BoundedVec;
 use sp_io::TestExternalities;
 use sp_runtime::{traits::Convert, AccountId32, BuildStorage};
+use xcm::{
+	v3,
+	v4::{Asset, Location},
+};
 use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain, TestExt};
 
 pub mod para;
@@ -53,8 +57,8 @@ pub enum CurrencyId {
 pub struct CurrencyIdConvert;
 impl Convert<CurrencyId, Option<Location>> for CurrencyIdConvert {
 	fn convert(id: CurrencyId) -> Option<Location> {
-		match id {
-			CurrencyId::R => Some(Parent.into()),
+		let loc: Option<v3::Location> = match id {
+			CurrencyId::R => Some(Parent.try_into().unwrap()),
 			CurrencyId::A => Some(
 				(
 					Parent,
@@ -104,11 +108,14 @@ impl Convert<CurrencyId, Option<Location>> for CurrencyIdConvert {
 					.into(),
 			),
 			CurrencyId::RegisteredAsset(id) => AssetRegistry::location(&id).unwrap_or_default(),
-		}
+		};
+		loc.and_then(|l| l.try_into().ok())
 	}
 }
 impl Convert<Location, Option<CurrencyId>> for CurrencyIdConvert {
 	fn convert(l: Location) -> Option<CurrencyId> {
+		use xcm::v4::Junction::*;
+
 		let a: Vec<u8> = "A".into();
 		let a1: Vec<u8> = "A1".into();
 		let b: Vec<u8> = "B".into();
@@ -139,11 +146,15 @@ impl Convert<Location, Option<CurrencyId>> for CurrencyIdConvert {
 			},
 			_ => None,
 		};
-		currency_id.or_else(|| AssetRegistry::location_to_asset_id(&l).map(CurrencyId::RegisteredAsset))
+		currency_id.or_else(|| {
+			let loc = v3::Location::try_from(l.clone()).ok()?;
+			AssetRegistry::location_to_asset_id(&loc).map(CurrencyId::RegisteredAsset)
+		})
 	}
 }
 impl Convert<Asset, Option<CurrencyId>> for CurrencyIdConvert {
 	fn convert(a: Asset) -> Option<CurrencyId> {
+		use xcm::v4::prelude::*;
 		if let Asset {
 			fun: Fungible(_),
 			id: AssetId(id),
