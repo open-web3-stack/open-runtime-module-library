@@ -3,7 +3,7 @@ name = "orml-authority"
 description = "Utility pallet to perform ROOT calls in a PoA network"
 repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/auction"
 license = "Apache-2.0"
-version = "0.6.7"
+version = "0.7.0"
 authors = ["Acala Developers"]
 edition = "2021"
 

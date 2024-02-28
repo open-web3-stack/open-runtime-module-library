@@ -1,7 +1,7 @@
 [package]
-name = "orml-xcm"
-description = "XCM message helpers."
-repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/xcm"
+name = "orml-xcm-mock-message-queue"
+description = "XCM Mock Message Qeueu for XCM Simulator tests"
+repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/xcm-mock-message-queue"
 license = "Apache-2.0"
 version = "0.7.0"
 authors = ["Acala Developers"]
@@ -13,27 +13,27 @@ scale-info = { workspace = true }
 
 frame-support = { workspace = true }
 frame-system = { workspace = true }
+sp-io = { workspace = true }
+sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 
-pallet-xcm = { workspace = true }
 xcm = { workspace = true }
+polkadot-parachain-primitives = { workspace = true }
+cumulus-primitives-core = { workspace = true }
 
 [dev-dependencies]
-xcm-executor  = { workspace = true, features = ["std"] }
 
 [features]
 default = [ "std" ]
 std = [
+	"cumulus-primitives-core/std",
 	"frame-support/std",
 	"frame-system/std",
-	"pallet-xcm/std",
 	"parity-scale-codec/std",
+	"polkadot-parachain-primitives/std",
 	"scale-info/std",
+	"sp-io/std",
+	"sp-runtime/std",
 	"sp-std/std",
 	"xcm/std",
-]
-try-runtime = [
-	"frame-support/try-runtime",
-	"frame-system/try-runtime",
-	"pallet-xcm/try-runtime",
 ]

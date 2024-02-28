@@ -184,8 +184,8 @@ pub type Amount = i128;
 decl_test_parachain! {
 	pub struct ParaA {
 		Runtime = para::Runtime,
-		XcmpMessageHandler = para::XcmpQueue,
-		DmpMessageHandler = para::DmpQueue,
+		XcmpMessageHandler = para::MsgQueue,
+		DmpMessageHandler = para::MsgQueue,
 		new_ext = para_ext(1),
 	}
 }
@@ -193,8 +193,8 @@ decl_test_parachain! {
 decl_test_parachain! {
 	pub struct ParaB {
 		Runtime = para::Runtime,
-		XcmpMessageHandler = para::XcmpQueue,
-		DmpMessageHandler = para::DmpQueue,
+		XcmpMessageHandler = para::MsgQueue,
+		DmpMessageHandler = para::MsgQueue,
 		new_ext = para_ext(2),
 	}
 }
@@ -202,8 +202,8 @@ decl_test_parachain! {
 decl_test_parachain! {
 	pub struct ParaC {
 		Runtime = para_teleport::Runtime,
-		XcmpMessageHandler = para_teleport::XcmpQueue,
-		DmpMessageHandler = para_teleport::DmpQueue,
+		XcmpMessageHandler = para_teleport::MsgQueue,
+		DmpMessageHandler = para_teleport::MsgQueue,
 		new_ext = para_teleport_ext(3),
 	}
 }
@@ -213,8 +213,8 @@ decl_test_parachain! {
 decl_test_parachain! {
 	pub struct ParaD {
 		Runtime = para_relative_view::Runtime,
-		XcmpMessageHandler = para::XcmpQueue,
-		DmpMessageHandler = para::DmpQueue,
+		XcmpMessageHandler = para::MsgQueue,
+		DmpMessageHandler = para::MsgQueue,
 		new_ext = para_ext(4),
 	}
 }
@@ -253,17 +253,11 @@ pub type ParaRelativeXTokens = orml_xtokens::Pallet<para_relative_view::Runtime>
 pub type ParaTeleportTokens = orml_tokens::Pallet<para_teleport::Runtime>;
 
 pub fn para_ext(para_id: u32) -> TestExternalities {
-	use para::{Runtime, System};
+	use para::{MsgQueue, Runtime, System};
 
 	let mut t = frame_system::GenesisConfig::<Runtime>::default()
 		.build_storage()
 		.unwrap();
-
-	let parachain_info_config = parachain_info::GenesisConfig::<Runtime> {
-		_config: Default::default(),
-		parachain_id: para_id.into(),
-	};
-	parachain_info_config.assimilate_storage(&mut t).unwrap();
 
 	orml_tokens::GenesisConfig::<Runtime> {
 		balances: vec![(ALICE, CurrencyId::R, 1_000)],
@@ -272,22 +266,19 @@ pub fn para_ext(para_id: u32) -> TestExternalities {
 	.unwrap();
 
 	let mut ext = TestExternalities::new(t);
-	ext.execute_with(|| System::set_block_number(1));
+	ext.execute_with(|| {
+		System::set_block_number(1);
+		MsgQueue::set_para_id(para_id.into());
+	});
 	ext
 }
 
 pub fn para_teleport_ext(para_id: u32) -> TestExternalities {
-	use para_teleport::{Runtime, System};
+	use para_teleport::{MsgQueue, Runtime, System};
 
 	let mut t = frame_system::GenesisConfig::<Runtime>::default()
 		.build_storage()
 		.unwrap();
-
-	let parachain_info_config = parachain_info::GenesisConfig::<Runtime> {
-		_config: Default::default(),
-		parachain_id: para_id.into(),
-	};
-	parachain_info_config.assimilate_storage(&mut t).unwrap();
 
 	orml_tokens::GenesisConfig::<Runtime> {
 		balances: vec![(ALICE, CurrencyId::R, 1_000)],
@@ -296,7 +287,10 @@ pub fn para_teleport_ext(para_id: u32) -> TestExternalities {
 	.unwrap();
 
 	let mut ext = TestExternalities::new(t);
-	ext.execute_with(|| System::set_block_number(1));
+	ext.execute_with(|| {
+		System::set_block_number(1);
+		MsgQueue::set_para_id(para_id.into());
+	});
 	ext
 }
 

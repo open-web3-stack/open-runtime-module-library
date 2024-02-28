@@ -3,7 +3,7 @@ name = "orml-asset-registry"
 description = "Registry for (foreign) assets"
 repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/asset-registry"
 license = "Apache-2.0"
-version = "0.6.7"
+version = "0.7.0"
 authors = ["Interlay Ltd, etc"]
 edition = "2021"
 
@@ -27,7 +27,7 @@ xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }
 
 # orml
-orml-traits = { path = "../traits", version = "0.6.7", default-features = false }
+orml-traits = { path = "../traits", version = "0.7.0", default-features = false }
 
 # for runtime-benchmarks
 polkadot-runtime-common = { workspace = true, optional = true }
@@ -41,11 +41,7 @@ pallet-message-queue = { workspace = true, features = ["std"] }
 
 # cumulus
 cumulus-primitives-core = { workspace = true, features = ["std"] }
-cumulus-pallet-dmp-queue = { workspace = true, features = ["std"] }
-cumulus-pallet-xcmp-queue = { workspace = true, features = ["std"] }
 cumulus-pallet-xcm = { workspace = true, features = ["std"] }
-cumulus-pallet-parachain-system = { workspace = true, features = ["std"] }
-parachain-info = { workspace = true, features = ["std"] }
 
 # polkadot
 polkadot-parachain-primitives = { workspace = true, features = ["std"] }
@@ -58,6 +54,7 @@ orml-tokens = { path = "../tokens" }
 orml-xcm = { path = "../xcm" }
 orml-xcm-support = { path = "../xcm-support" }
 orml-xtokens = { path = "../xtokens" }
+orml-xcm-mock-message-queue = { path = "../xcm-mock-message-queue" }
 
 [features]
 default = [ "std" ]

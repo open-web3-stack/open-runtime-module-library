@@ -3,14 +3,9 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{
-	parameter_types,
-	traits::{ConstU64, EqualPrivilegeOnly, Everything},
-	weights::Weight,
-};
+use frame_support::{derive_impl, parameter_types, traits::EqualPrivilegeOnly, weights::Weight};
 use frame_system::{ensure_root, ensure_signed, EnsureRoot};
 use parity_scale_codec::{Decode, Encode};
-use sp_core::H256;
 use sp_runtime::{
 	traits::{BadOrigin, IdentityLookup},
 	BuildStorage, Perbill,
@@ -26,30 +21,12 @@ parameter_types! {
 			frame_system::limits::BlockWeights::simple_max(Weight::from_parts(2_000_000_000_000, 0).set_proof_size(u64::MAX));
 }
 
+#[derive_impl(frame_system::config_preludes::TestDefaultConfig as frame_system::DefaultConfig)]
 impl frame_system::Config for Runtime {
-	type RuntimeOrigin = RuntimeOrigin;
 	type Nonce = u64;
-	type RuntimeCall = RuntimeCall;
-	type Hash = H256;
-	type Hashing = ::sp_runtime::traits::BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Block = Block;
-	type RuntimeEvent = RuntimeEvent;
-	type BlockHashCount = ConstU64<250>;
-	type BlockWeights = BlockWeights;
-	type BlockLength = ();
-	type Version = ();
-	type PalletInfo = PalletInfo;
-	type AccountData = ();
-	type OnNewAccount = ();
-	type OnKilledAccount = ();
-	type DbWeight = ();
-	type BaseCallFilter = Everything;
-	type SystemWeightInfo = ();
-	type SS58Prefix = ();
-	type OnSetCode = ();
-	type MaxConsumers = ConstU32<16>;
 }
 
 impl pallet_preimage::Config for Runtime {
@@ -76,7 +53,9 @@ impl pallet_scheduler::Config for Runtime {
 	type Preimages = Preimage;
 }
 
-impl pallet_root_testing::Config for Runtime {}
+impl pallet_root_testing::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+}
 
 #[derive(Clone, Encode, Decode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
 pub enum MockAsOriginId {

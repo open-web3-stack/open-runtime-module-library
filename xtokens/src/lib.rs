@@ -571,7 +571,7 @@ pub mod module {
 				let rate_limiter_id = T::RateLimiterId::get();
 
 				// try consume quota of the rate limiter.
-				T::RateLimiter::try_consume(rate_limiter_id, asset.id, amount, Some(who.clone()))
+				T::RateLimiter::try_consume(rate_limiter_id, asset.id, amount, Some(&who))
 					.map_err(|_| Error::<T>::RateLimited)?;
 			}
 

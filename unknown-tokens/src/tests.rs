@@ -5,14 +5,7 @@
 use super::*;
 use mock::*;
 
-use frame_support::{
-	assert_err, assert_ok,
-	storage::{
-		migration::{get_storage_value, put_storage_value},
-		unhashed::put_raw,
-	},
-	traits::OnRuntimeUpgrade,
-};
+use frame_support::{assert_err, assert_ok};
 
 const MOCK_RECIPIENT: MultiLocation = MultiLocation::parent();
 const MOCK_CONCRETE_FUNGIBLE_ID: MultiLocation = MultiLocation::parent();
@@ -156,109 +149,5 @@ fn withdraw_unhandled_asset_should_fail() {
 			),
 			Error::<Runtime>::UnhandledAsset
 		);
-	});
-}
-
-#[test]
-fn from_unversioned_to_v2_storage() {
-	ExtBuilder.build().execute_with(|| {
-		fn blake2_128_concat(d: &[u8]) -> Vec<u8> {
-			let mut v = sp_io::hashing::blake2_128(d).to_vec();
-			v.extend_from_slice(d);
-			v
-		}
-
-		// StorageVersion is 0 before migration
-		assert_eq!(StorageVersion::get::<Pallet<Runtime>>(), 0);
-
-		// V2 `ConcreteFungibleBalances` key
-		let mut old_concrete_key = Vec::new();
-		old_concrete_key.extend_from_slice(
-			&xcm::v2::MultiLocation::new(
-				0,
-				xcm::v2::Junctions::X1(xcm::v2::Junction::GeneralKey(vec![0].try_into().unwrap())),
-			)
-			.using_encoded(blake2_128_concat),
-		);
-		old_concrete_key.extend_from_slice(&xcm::v2::MultiLocation::here().using_encoded(blake2_128_concat));
-
-		let balance = 55u128;
-
-		put_storage_value(
-			b"UnknownTokens",
-			b"ConcreteFungibleBalances",
-			&old_concrete_key,
-			balance,
-		);
-
-		// V2 `AbstractFungibleBalances` key
-		let mut old_abstract_key = Vec::new();
-		old_abstract_key.extend_from_slice(
-			&xcm::v2::MultiLocation::new(
-				0,
-				xcm::v2::Junctions::X1(xcm::v2::Junction::GeneralKey(vec![0].try_into().unwrap())),
-			)
-			.using_encoded(blake2_128_concat),
-		);
-		old_abstract_key.extend_from_slice(&vec![1].using_encoded(blake2_128_concat));
-
-		let balance = 77u128;
-
-		put_storage_value(
-			b"UnknownTokens",
-			b"AbstractFungibleBalances",
-			&old_abstract_key,
-			balance,
-		);
-
-		// V3 storage keys
-		let new_concrete_k1 = MultiLocation::new(0, X1(Junction::from(BoundedVec::try_from(vec![0]).unwrap())));
-		let new_concrete_k2 = MultiLocation::here();
-		let new_abstract_k1 = MultiLocation::new(0, X1(Junction::from(BoundedVec::try_from(vec![0]).unwrap())));
-		let new_abstract_k2 = vec![1];
-
-		// Assert new StorageKey still does not exist
-		assert_eq!(
-			UnknownTokens::concrete_fungible_balances(new_concrete_k1, new_concrete_k2),
-			0
-		);
-		assert_eq!(
-			UnknownTokens::abstract_fungible_balances(new_abstract_k1, new_abstract_k2.clone()),
-			0
-		);
-
-		// Migrate
-		crate::Migration::<Runtime>::on_runtime_upgrade();
-
-		// StorageVersion is 2 after migration
-		assert_eq!(StorageVersion::get::<Pallet<Runtime>>(), 2);
-
-		// Assert the StorageKey exists and has been migrated to xcm::v3
-		assert_eq!(
-			UnknownTokens::concrete_fungible_balances(new_concrete_k1, new_concrete_k2),
-			55
-		);
-		assert_eq!(
-			UnknownTokens::abstract_fungible_balances(new_abstract_k1, new_abstract_k2),
-			77
-		);
-
-		// Assert the old concrete key does not exist anymore
-		assert!(get_storage_value::<u128>(b"UnknownTokens", b"ConcreteFungibleBalances", &old_concrete_key,).is_none());
-
-		// Assert the old abstract key does not exist anymore
-		assert!(get_storage_value::<u128>(b"UnknownTokens", b"AbstractFungibleBalances", &old_concrete_key,).is_none());
-
-		// Assert further calls are no-op
-		assert_eq!(crate::Migration::<Runtime>::on_runtime_upgrade(), Weight::zero());
-	});
-}
-
-#[test]
-fn migrate_should_not_panic() {
-	ExtBuilder.build().execute_with(|| {
-		put_raw(&hex_literal::hex!["8d4649c9ee31ba6b2d10c66f5fcc252e76391a415c3fca956dccff701fe02e98082b3a7e1c0db7de23c07c6f14cc6c51000100411f728d113b5f9fee983dba4cbb22827c05000106080081"], &hex_literal::hex!["0b2493d4010000000000000000000000"]);
-
-		crate::Migration::<Runtime>::on_runtime_upgrade();
 	});
 }
