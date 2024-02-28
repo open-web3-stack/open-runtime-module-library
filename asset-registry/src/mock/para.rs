@@ -2,6 +2,7 @@ use super::{Amount, Balance, CurrencyId, CurrencyIdConvert, ParachainXcmRouter};
 
 use crate as orml_asset_registry;
 
+use crate::impls::{AssetRegistryTrader, FixedRateAssetRegistryTrader};
 use cumulus_primitives_core::AggregateMessageOrigin;
 use frame_support::{
 	construct_runtime, derive_impl, ord_parameter_types, parameter_types,
@@ -9,7 +10,6 @@ use frame_support::{
 	PalletId,
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
-use orml_asset_registry::{AssetRegistryTrader, FixedRateAssetRegistryTrader};
 use orml_traits::{
 	location::{AbsoluteReserveProvider, RelativeReserveProvider},
 	parameter_type_with_key, FixedConversionRateProvider, MultiCurrency,
