@@ -8,6 +8,10 @@ use serde::{Deserialize, Serialize};
 use sp_core::bounded::BoundedVec;
 use sp_io::TestExternalities;
 use sp_runtime::{traits::Convert, AccountId32, BuildStorage};
+use xcm::{
+	v3,
+	v4::{Asset, Location},
+};
 use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain, TestExt};
 
 pub mod para;
@@ -51,10 +55,10 @@ pub enum CurrencyId {
 }
 
 pub struct CurrencyIdConvert;
-impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
-	fn convert(id: CurrencyId) -> Option<MultiLocation> {
-		match id {
-			CurrencyId::R => Some(Parent.into()),
+impl Convert<CurrencyId, Option<Location>> for CurrencyIdConvert {
+	fn convert(id: CurrencyId) -> Option<Location> {
+		let loc: Option<v3::Location> = match id {
+			CurrencyId::R => Some(Parent.try_into().unwrap()),
 			CurrencyId::A => Some(
 				(
 					Parent,
@@ -103,50 +107,57 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
 				)
 					.into(),
 			),
-			CurrencyId::RegisteredAsset(id) => AssetRegistry::multilocation(&id).unwrap_or_default(),
-		}
+			CurrencyId::RegisteredAsset(id) => AssetRegistry::location(&id).unwrap_or_default(),
+		};
+		loc.and_then(|l| l.try_into().ok())
 	}
 }
-impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
-	fn convert(l: MultiLocation) -> Option<CurrencyId> {
+impl Convert<Location, Option<CurrencyId>> for CurrencyIdConvert {
+	fn convert(l: Location) -> Option<CurrencyId> {
+		use xcm::v4::Junction::*;
+
 		let a: Vec<u8> = "A".into();
 		let a1: Vec<u8> = "A1".into();
 		let b: Vec<u8> = "B".into();
 		let b1: Vec<u8> = "B1".into();
 		let b2: Vec<u8> = "B2".into();
 		let d: Vec<u8> = "D".into();
-		if l == MultiLocation::parent() {
+		if l == Location::parent() {
 			return Some(CurrencyId::R);
 		}
-		let currency_id = match l.clone() {
-			MultiLocation { parents, interior } if parents == 1 => match interior {
-				X2(Parachain(1), GeneralKey { data, .. }) if data.to_vec() == a => Some(CurrencyId::A),
-				X2(Parachain(1), GeneralKey { data, .. }) if data.to_vec() == a1 => Some(CurrencyId::A1),
-				X2(Parachain(2), GeneralKey { data, .. }) if data.to_vec() == b => Some(CurrencyId::B),
-				X2(Parachain(2), GeneralKey { data, .. }) if data.to_vec() == b1 => Some(CurrencyId::B1),
-				X2(Parachain(2), GeneralKey { data, .. }) if data.to_vec() == b2 => Some(CurrencyId::B2),
-				X2(Parachain(4), GeneralKey { data, .. }) if data.to_vec() == d => Some(CurrencyId::D),
+		let currency_id = match l.clone().unpack() {
+			(parents, interior) if parents == 1 => match interior {
+				[Parachain(1), GeneralKey { data, .. }] if data.to_vec() == a => Some(CurrencyId::A),
+				[Parachain(1), GeneralKey { data, .. }] if data.to_vec() == a1 => Some(CurrencyId::A1),
+				[Parachain(2), GeneralKey { data, .. }] if data.to_vec() == b => Some(CurrencyId::B),
+				[Parachain(2), GeneralKey { data, .. }] if data.to_vec() == b1 => Some(CurrencyId::B1),
+				[Parachain(2), GeneralKey { data, .. }] if data.to_vec() == b2 => Some(CurrencyId::B2),
+				[Parachain(4), GeneralKey { data, .. }] if data.to_vec() == d => Some(CurrencyId::D),
 				_ => None,
 			},
-			MultiLocation { parents, interior } if parents == 0 => match interior {
-				X1(GeneralKey { data, .. }) if data.to_vec() == a => Some(CurrencyId::A),
-				X1(GeneralKey { data, .. }) if data.to_vec() == b => Some(CurrencyId::B),
-				X1(GeneralKey { data, .. }) if data.to_vec() == a1 => Some(CurrencyId::A1),
-				X1(GeneralKey { data, .. }) if data.to_vec() == b1 => Some(CurrencyId::B1),
-				X1(GeneralKey { data, .. }) if data.to_vec() == b2 => Some(CurrencyId::B2),
-				X1(GeneralKey { data, .. }) if data.to_vec() == d => Some(CurrencyId::D),
+			(parents, interior) if parents == 0 => match interior {
+				[GeneralKey { data, .. }] if data.to_vec() == a => Some(CurrencyId::A),
+				[GeneralKey { data, .. }] if data.to_vec() == b => Some(CurrencyId::B),
+				[GeneralKey { data, .. }] if data.to_vec() == a1 => Some(CurrencyId::A1),
+				[GeneralKey { data, .. }] if data.to_vec() == b1 => Some(CurrencyId::B1),
+				[GeneralKey { data, .. }] if data.to_vec() == b2 => Some(CurrencyId::B2),
+				[GeneralKey { data, .. }] if data.to_vec() == d => Some(CurrencyId::D),
 				_ => None,
 			},
 			_ => None,
 		};
-		currency_id.or_else(|| AssetRegistry::location_to_asset_id(&l).map(CurrencyId::RegisteredAsset))
+		currency_id.or_else(|| {
+			let loc = v3::Location::try_from(l.clone()).ok()?;
+			AssetRegistry::location_to_asset_id(&loc).map(CurrencyId::RegisteredAsset)
+		})
 	}
 }
-impl Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert {
-	fn convert(a: MultiAsset) -> Option<CurrencyId> {
-		if let MultiAsset {
+impl Convert<Asset, Option<CurrencyId>> for CurrencyIdConvert {
+	fn convert(a: Asset) -> Option<CurrencyId> {
+		use xcm::v4::prelude::*;
+		if let Asset {
 			fun: Fungible(_),
-			id: Concrete(id),
+			id: AssetId(id),
 		} = a
 		{
 			Self::convert(id)

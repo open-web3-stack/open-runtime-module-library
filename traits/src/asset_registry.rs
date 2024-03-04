@@ -1,15 +1,15 @@
 use frame_support::pallet_prelude::*;
 use sp_runtime::DispatchResult;
 use sp_std::fmt::Debug;
-use xcm::v3::prelude::*;
-use xcm::VersionedMultiLocation;
+use xcm::v4::prelude::*;
+use xcm::VersionedLocation;
 
 pub trait WeightToFeeConverter {
-	fn convert_weight_to_fee(location: &MultiLocation, weight: Weight) -> Option<u128>;
+	fn convert_weight_to_fee(location: &Location, weight: Weight) -> Option<u128>;
 }
 
 pub trait FixedConversionRateProvider {
-	fn get_fee_per_second(location: &MultiLocation) -> Option<u128>;
+	fn get_fee_per_second(location: &Location) -> Option<u128>;
 }
 
 pub trait AssetProcessor<AssetId, Metadata> {
@@ -33,7 +33,7 @@ where
 	pub name: BoundedVec<u8, StringLimit>,
 	pub symbol: BoundedVec<u8, StringLimit>,
 	pub existential_deposit: Balance,
-	pub location: Option<VersionedMultiLocation>,
+	pub location: Option<VersionedLocation>,
 	pub additional: CustomMetadata,
 }
 
@@ -47,14 +47,14 @@ pub trait Inspect {
 	/// Name and symbol string limit
 	type StringLimit: Get<u32>;
 
-	fn asset_id(location: &MultiLocation) -> Option<Self::AssetId>;
+	fn asset_id(location: &Location) -> Option<Self::AssetId>;
 	fn metadata(
 		asset_id: &Self::AssetId,
 	) -> Option<AssetMetadata<Self::Balance, Self::CustomMetadata, Self::StringLimit>>;
 	fn metadata_by_location(
-		location: &MultiLocation,
+		location: &Location,
 	) -> Option<AssetMetadata<Self::Balance, Self::CustomMetadata, Self::StringLimit>>;
-	fn location(asset_id: &Self::AssetId) -> Result<Option<MultiLocation>, DispatchError>;
+	fn location(asset_id: &Self::AssetId) -> Result<Option<Location>, DispatchError>;
 }
 
 pub trait Mutate: Inspect {
@@ -69,7 +69,7 @@ pub trait Mutate: Inspect {
 		name: Option<BoundedVec<u8, Self::StringLimit>>,
 		symbol: Option<BoundedVec<u8, Self::StringLimit>>,
 		existential_deposit: Option<Self::Balance>,
-		location: Option<Option<VersionedMultiLocation>>,
+		location: Option<Option<VersionedLocation>>,
 		additional: Option<Self::CustomMetadata>,
 	) -> DispatchResult;
 }

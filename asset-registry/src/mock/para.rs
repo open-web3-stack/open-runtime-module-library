@@ -2,14 +2,14 @@ use super::{Amount, Balance, CurrencyId, CurrencyIdConvert, ParachainXcmRouter};
 
 use crate as orml_asset_registry;
 
+use crate::impls::{AssetRegistryTrader, FixedRateAssetRegistryTrader};
 use cumulus_primitives_core::AggregateMessageOrigin;
 use frame_support::{
-	construct_runtime, derive_impl, match_types, ord_parameter_types, parameter_types,
-	traits::{ConstU128, ConstU32, EnsureOrigin, EnsureOriginWithArg, Everything, Nothing},
+	construct_runtime, derive_impl, ord_parameter_types, parameter_types,
+	traits::{ConstU128, ConstU32, Contains, EnsureOrigin, EnsureOriginWithArg, Everything, Nothing},
 	PalletId,
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
-use orml_asset_registry::{AssetRegistryTrader, FixedRateAssetRegistryTrader};
 use orml_traits::{
 	location::{AbsoluteReserveProvider, RelativeReserveProvider},
 	parameter_type_with_key, FixedConversionRateProvider, MultiCurrency,
@@ -23,7 +23,7 @@ use sp_runtime::{
 	traits::{AccountIdConversion, Convert, IdentityLookup},
 	AccountId32,
 };
-use xcm::v3::{prelude::*, Weight};
+use xcm::v4::{prelude::*, Weight};
 use xcm_builder::{
 	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin, FixedWeightBounds, ParentIsPreset,
 	RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
@@ -54,7 +54,6 @@ impl pallet_balances::Config for Runtime {
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type RuntimeFreezeReason = RuntimeFreezeReason;
 	type FreezeIdentifier = [u8; 8];
-	type MaxHolds = ();
 	type MaxFreezes = ();
 }
 
@@ -137,8 +136,8 @@ impl orml_asset_registry::Config for Runtime {
 parameter_types! {
 	pub const RelayNetwork: NetworkId = NetworkId::Kusama;
 	pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
-	pub UniversalLocation: InteriorMultiLocation =
-		X2(GlobalConsensus(RelayNetwork::get()), Parachain(MsgQueue::get().into()));
+	pub UniversalLocation: InteriorLocation =
+		[GlobalConsensus(RelayNetwork::get()), Parachain(MsgQueue::get().into())].into();
 }
 
 pub type LocationToAccountId = (
@@ -175,9 +174,9 @@ parameter_types! {
 
 pub struct ToTreasury;
 impl TakeRevenue for ToTreasury {
-	fn take_revenue(revenue: MultiAsset) {
-		if let MultiAsset {
-			id: Concrete(location),
+	fn take_revenue(revenue: Asset) {
+		if let Asset {
+			id: AssetId(location),
 			fun: Fungible(amount),
 		} = revenue
 		{
@@ -193,8 +192,8 @@ pub type AssetRegistryWeightTrader =
 
 pub struct MyFixedConversionRateProvider;
 impl FixedConversionRateProvider for MyFixedConversionRateProvider {
-	fn get_fee_per_second(location: &MultiLocation) -> Option<u128> {
-		let metadata = AssetRegistry::fetch_metadata_by_location(location)?;
+	fn get_fee_per_second(location: &Location) -> Option<u128> {
+		let metadata = AssetRegistry::fetch_metadata_by_location(&location.clone().try_into().unwrap())?;
 		Some(metadata.additional.fee_per_second)
 	}
 }
@@ -244,7 +243,7 @@ impl cumulus_pallet_xcm::Config for Runtime {
 pub type LocalOriginToLocation = SignedToAccountId32<RuntimeOrigin, AccountId, RelayNetwork>;
 
 parameter_types! {
-	pub SelfLocation: MultiLocation = MultiLocation::here();
+	pub SelfLocation: Location = Location::here();
 	pub const MaxAssetsForTransfer: usize = 3;
 }
 
@@ -274,31 +273,35 @@ impl pallet_xcm::Config for Runtime {
 	type RemoteLockConsumerIdentifier = ();
 }
 
-pub struct AccountIdToMultiLocation;
-impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
-	fn convert(account: AccountId) -> MultiLocation {
-		X1(Junction::AccountId32 {
+pub struct AccountIdToLocation;
+impl Convert<AccountId, Location> for AccountIdToLocation {
+	fn convert(account: AccountId) -> Location {
+		[Junction::AccountId32 {
 			network: None,
 			id: account.into(),
-		})
+		}]
 		.into()
 	}
 }
 
-match_types! {
-	pub type ParentOrParachains: impl Contains<MultiLocation> = {
-		MultiLocation { parents: 0, interior: X1(Junction::AccountId32 { .. }) } |
-		MultiLocation { parents: 1, interior: X1(Junction::AccountId32 { .. }) } |
-		MultiLocation { parents: 1, interior: X2(Parachain(1), Junction::AccountId32 { .. }) } |
-		MultiLocation { parents: 1, interior: X2(Parachain(2), Junction::AccountId32 { .. }) } |
-		MultiLocation { parents: 1, interior: X2(Parachain(3), Junction::AccountId32 { .. }) } |
-		MultiLocation { parents: 1, interior: X2(Parachain(4), Junction::AccountId32 { .. }) } |
-		MultiLocation { parents: 1, interior: X2(Parachain(100), Junction::AccountId32 { .. }) }
-	};
+pub struct ParentOrParachains;
+impl Contains<Location> for ParentOrParachains {
+	fn contains(location: &Location) -> bool {
+		matches!(
+			location.unpack(),
+			(0, [Junction::AccountId32 { .. }])
+				| (1, [Junction::AccountId32 { .. }])
+				| (1, [Parachain(1), Junction::AccountId32 { .. }])
+				| (1, [Parachain(2), Junction::AccountId32 { .. }])
+				| (1, [Parachain(3), Junction::AccountId32 { .. }])
+				| (1, [Parachain(4), Junction::AccountId32 { .. }])
+				| (1, [Parachain(100), Junction::AccountId32 { .. }])
+		)
+	}
 }
 
 parameter_type_with_key! {
-	pub ParachainMinFee: |location: MultiLocation| -> Option<u128> {
+	pub ParachainMinFee: |location: Location| -> Option<u128> {
 		#[allow(clippy::match_ref_pats)] // false positive
 		match (location.parents, location.first_interior()) {
 			(1, Some(Parachain(2))) => Some(40),
@@ -312,9 +315,9 @@ impl orml_xtokens::Config for Runtime {
 	type Balance = Balance;
 	type CurrencyId = CurrencyId;
 	type CurrencyIdConvert = CurrencyIdConvert;
-	type AccountIdToMultiLocation = AccountIdToMultiLocation;
+	type AccountIdToLocation = AccountIdToLocation;
 	type SelfLocation = SelfLocation;
-	type MultiLocationsFilter = ParentOrParachains;
+	type LocationsFilter = ParentOrParachains;
 	type MinXcmFee = ParachainMinFee;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;

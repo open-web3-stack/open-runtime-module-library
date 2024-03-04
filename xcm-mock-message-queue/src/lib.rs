@@ -8,7 +8,7 @@ use parity_scale_codec::{Decode, Encode};
 use polkadot_parachain_primitives::primitives::DmpMessageHandler;
 use sp_std::prelude::*;
 use xcm::{
-	v3::{prelude::*, Weight},
+	v4::{prelude::*, Weight},
 	VersionedXcm,
 };
 
@@ -96,11 +96,11 @@ pub mod module {
 						max_weight,
 						Weight::zero(),
 					) {
-						Outcome::Error(error) => (Err(error), Event::Fail(Some(hash), error)),
-						Outcome::Complete(used) => (Ok(used), Event::Success(Some(hash))),
+						Outcome::Error { error } => (Err(error), Event::Fail(Some(hash), error)),
+						Outcome::Complete { used } => (Ok(used), Event::Success(Some(hash))),
 						// As far as the caller is concerned, this was dispatched without error, so
 						// we just report the weight used.
-						Outcome::Incomplete(used, error) => (Ok(used), Event::Fail(Some(hash), error)),
+						Outcome::Incomplete { used, error } => (Ok(used), Event::Fail(Some(hash), error)),
 					}
 				}
 				Err(()) => (Err(XcmError::UnhandledXcmVersion), Event::BadVersion(Some(hash))),

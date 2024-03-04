@@ -12,10 +12,10 @@ use sp_std::{
 	result,
 };
 
-use xcm::v3::{prelude::*, Error as XcmError, MultiAsset, MultiLocation, Result};
+use xcm::v4::{prelude::*, Asset, Error as XcmError, Location, Result};
 use xcm_executor::{
 	traits::{ConvertLocation, MatchesFungible, TransactAsset},
-	Assets,
+	AssetsInHolding,
 };
 
 use crate::UnknownAsset as UnknownAssetT;
@@ -24,7 +24,7 @@ use crate::UnknownAsset as UnknownAssetT;
 enum Error {
 	/// Failed to match fungible.
 	FailedToMatchFungible,
-	/// `MultiLocation` to `AccountId` Conversion failed.
+	/// `Location` to `AccountId` Conversion failed.
 	AccountIdConversionFailed,
 	/// `CurrencyId` conversion failed.
 	CurrencyIdConversionFailed,
@@ -52,7 +52,7 @@ pub trait OnDepositFail<CurrencyId, AccountId, Balance> {
 	) -> Result;
 
 	/// Called on unknown asset deposit errors.
-	fn on_deposit_unknown_asset_fail(err: DispatchError, _asset: &MultiAsset, _location: &MultiLocation) -> Result {
+	fn on_deposit_unknown_asset_fail(err: DispatchError, _asset: &Asset, _location: &Location) -> Result {
 		Err(XcmError::FailedToTransactAsset(err.into()))
 	}
 }
@@ -93,7 +93,7 @@ impl<
 	}
 }
 
-/// The `TransactAsset` implementation, to handle `MultiAsset` deposit/withdraw.
+/// The `TransactAsset` implementation, to handle `Asset` deposit/withdraw.
 /// Note that teleport related functions are unimplemented.
 ///
 /// Methods of `DepositFailureHandler` would be called on multi-currency deposit
@@ -131,7 +131,7 @@ impl<
 		AccountId: sp_std::fmt::Debug + Clone,
 		AccountIdConvert: ConvertLocation<AccountId>,
 		CurrencyId: FullCodec + Eq + PartialEq + Copy + MaybeSerializeDeserialize + Debug,
-		CurrencyIdConvert: Convert<MultiAsset, Option<CurrencyId>>,
+		CurrencyIdConvert: Convert<Asset, Option<CurrencyId>>,
 		DepositFailureHandler: OnDepositFail<CurrencyId, AccountId, MultiCurrency::Balance>,
 	> TransactAsset
 	for MultiCurrencyAdapter<
@@ -145,7 +145,7 @@ impl<
 		DepositFailureHandler,
 	>
 {
-	fn deposit_asset(asset: &MultiAsset, location: &MultiLocation, _context: Option<&XcmContext>) -> Result {
+	fn deposit_asset(asset: &Asset, location: &Location, _context: Option<&XcmContext>) -> Result {
 		match (
 			AccountIdConvert::convert_location(location),
 			CurrencyIdConvert::convert(asset.clone()),
@@ -161,10 +161,10 @@ impl<
 	}
 
 	fn withdraw_asset(
-		asset: &MultiAsset,
-		location: &MultiLocation,
+		asset: &Asset,
+		location: &Location,
 		_maybe_context: Option<&XcmContext>,
-	) -> result::Result<Assets, XcmError> {
+	) -> result::Result<AssetsInHolding, XcmError> {
 		UnknownAsset::withdraw(asset, location).or_else(|_| {
 			let who = AccountIdConvert::convert_location(location)
 				.ok_or_else(|| XcmError::from(Error::AccountIdConversionFailed))?;
@@ -180,11 +180,11 @@ impl<
 	}
 
 	fn transfer_asset(
-		asset: &MultiAsset,
-		from: &MultiLocation,
-		to: &MultiLocation,
+		asset: &Asset,
+		from: &Location,
+		to: &Location,
 		_context: &XcmContext,
-	) -> result::Result<Assets, XcmError> {
+	) -> result::Result<AssetsInHolding, XcmError> {
 		let from_account =
 			AccountIdConvert::convert_location(from).ok_or_else(|| XcmError::from(Error::AccountIdConversionFailed))?;
 		let to_account =
