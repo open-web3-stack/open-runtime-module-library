@@ -20,6 +20,7 @@ pub use get_by_key::GetByKey;
 pub use multi_asset::ConcreteFungibleAsset;
 pub use nft::InspectExtended;
 pub use price::{DefaultPriceProvider, PriceProvider};
+pub use rate_limit::{RateLimiter, RateLimiterError};
 pub use rewards::RewardHandler;
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
@@ -37,6 +38,7 @@ pub mod multi_asset;
 pub mod nft;
 pub mod parameters;
 pub mod price;
+pub mod rate_limit;
 pub mod rewards;
 pub mod xcm_transfer;
 

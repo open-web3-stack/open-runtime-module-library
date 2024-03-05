@@ -55,7 +55,7 @@ pub use module::*;
 use orml_traits::{
 	location::{Parse, Reserve},
 	xcm_transfer::{Transferred, XtokensWeightInfo},
-	GetByKey, XcmTransfer,
+	GetByKey, RateLimiter, XcmTransfer,
 };
 
 mod mock;
@@ -130,6 +130,13 @@ pub mod module {
 		/// The way to retreave the reserve of a Asset. This can be
 		/// configured to accept absolute or relative paths for self tokens
 		type ReserveProvider: Reserve;
+
+		/// The rate limiter used to limit the cross-chain transfer asset.
+		type RateLimiter: RateLimiter;
+
+		/// The id of the RateLimiter.
+		#[pallet::constant]
+		type RateLimiterId: Get<<Self::RateLimiter as RateLimiter>::RateLimiterId>;
 	}
 
 	#[pallet::event]
@@ -187,6 +194,8 @@ pub mod module {
 		NotSupportedLocation,
 		/// MinXcmFee not registered for certain reserve location
 		MinXcmFeeNotDefined,
+		/// Asset transfer is limited by RateLimiter.
+		RateLimited,
 	}
 
 	#[pallet::hooks]
@@ -540,6 +549,18 @@ pub mod module {
 						Error::<T>::DistinctReserveForAssetAndFee
 					);
 				}
+
+				// per asset check
+				let amount = match asset.fun {
+					Fungibility::Fungible(amount) => amount,
+					Fungibility::NonFungible(_) => 1,
+				};
+
+				let rate_limiter_id = T::RateLimiterId::get();
+
+				// try consume quota of the rate limiter.
+				T::RateLimiter::try_consume(rate_limiter_id, asset.id.clone(), amount, Some(&who))
+					.map_err(|_| Error::<T>::RateLimited)?;
 			}
 
 			let fee_reserve = T::ReserveProvider::reserve(&fee);

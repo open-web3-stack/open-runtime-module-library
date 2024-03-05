@@ -12,6 +12,7 @@ members = [
 	"oracle/runtime-api",
 	"parameters",
 	"payments",
+	"rate-limit",
 	"rewards",
 	"tokens",
 	"tokens/runtime-api",
@@ -47,6 +48,7 @@ pallet-message-queue = { version = "32.0.0", default-features = false }
 pallet-preimage = { version = "29.0.0", default-features = false }
 pallet-root-testing = { version = "5.0.0", default-features = false }
 pallet-scheduler = { version = "30.0.0", default-features = false }
+pallet-timestamp = { version = "28.0.0", default-features = false }
 pallet-treasury = { version = "28.0.0", default-features = false }
 pallet-xcm = { version = "8.0.0", default-features = false }
 polkadot-parachain-primitives = { version = "7.0.0", default-features = false }
