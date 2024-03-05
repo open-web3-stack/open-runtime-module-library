@@ -30,7 +30,7 @@ pub trait RateLimiter {
 	/// Try consume quota.
 	fn try_consume(
 		limiter_id: Self::RateLimiterId,
-		limit_key: impl Encode + Copy,
+		limit_key: impl Encode + Clone,
 		value: u128,
 		whitelist_check: Option<impl Encode>,
 	) -> Result<(), RateLimiterError> {
@@ -40,7 +40,7 @@ pub trait RateLimiter {
 		};
 
 		if need_consume {
-			Self::can_consume(limiter_id, limit_key, value)?;
+			Self::can_consume(limiter_id, limit_key.clone(), value)?;
 			Self::consume(limiter_id, limit_key, value);
 		}
 

@@ -2,8 +2,8 @@ use super::{Amount, Balance, CurrencyId, CurrencyIdConvert, ParachainXcmRouter};
 use crate as orml_xtokens;
 
 use frame_support::{
-	construct_runtime, derive_impl, match_types, parameter_types,
-	traits::{ConstU128, ConstU32, Everything, Get, Nothing},
+	construct_runtime, derive_impl, parameter_types,
+	traits::{ConstU128, ConstU32, Contains, Everything, Get, Nothing},
 };
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
@@ -12,7 +12,7 @@ use sp_runtime::{
 	traits::{Convert, IdentityLookup},
 	AccountId32, BoundedVec,
 };
-use xcm::v3::{prelude::*, Weight};
+use xcm::v4::{prelude::*, Weight};
 use xcm_builder::{
 	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin, FixedWeightBounds, ParentIsPreset,
 	RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
@@ -50,7 +50,6 @@ impl pallet_balances::Config for Runtime {
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type RuntimeFreezeReason = RuntimeFreezeReason;
 	type FreezeIdentifier = [u8; 8];
-	type MaxHolds = ();
 	type MaxFreezes = ();
 }
 
@@ -77,8 +76,8 @@ impl orml_tokens::Config for Runtime {
 parameter_types! {
 	pub const RelayNetwork: NetworkId = NetworkId::Kusama;
 	pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
-	pub UniversalLocation: InteriorMultiLocation =
-		X2(GlobalConsensus(RelayNetwork::get()), Parachain(MsgQueue::get().into()));
+	pub UniversalLocation: InteriorLocation =
+		[GlobalConsensus(RelayNetwork::get()), Parachain(MsgQueue::get().into())].into();
 }
 
 pub type LocationToAccountId = (
@@ -178,20 +177,20 @@ impl pallet_xcm::Config for Runtime {
 	type RemoteLockConsumerIdentifier = ();
 }
 
-pub struct AccountIdToMultiLocation;
-impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
-	fn convert(account: AccountId) -> MultiLocation {
-		X1(Junction::AccountId32 {
+pub struct AccountIdToLocation;
+impl Convert<AccountId, Location> for AccountIdToLocation {
+	fn convert(account: AccountId) -> Location {
+		[Junction::AccountId32 {
 			network: None,
 			id: account.into(),
-		})
+		}]
 		.into()
 	}
 }
 
 pub struct RelativeCurrencyIdConvert;
-impl Convert<CurrencyId, Option<MultiLocation>> for RelativeCurrencyIdConvert {
-	fn convert(id: CurrencyId) -> Option<MultiLocation> {
+impl Convert<CurrencyId, Option<Location>> for RelativeCurrencyIdConvert {
+	fn convert(id: CurrencyId) -> Option<Location> {
 		match id {
 			CurrencyId::R => Some(Parent.into()),
 			CurrencyId::A => Some(
@@ -246,8 +245,8 @@ impl Convert<CurrencyId, Option<MultiLocation>> for RelativeCurrencyIdConvert {
 		}
 	}
 }
-impl Convert<MultiLocation, Option<CurrencyId>> for RelativeCurrencyIdConvert {
-	fn convert(l: MultiLocation) -> Option<CurrencyId> {
+impl Convert<Location, Option<CurrencyId>> for RelativeCurrencyIdConvert {
+	fn convert(l: Location) -> Option<CurrencyId> {
 		let mut a: Vec<u8> = "A".into();
 		a.resize(32, 0);
 		let mut a1: Vec<u8> = "A1".into();
@@ -264,41 +263,41 @@ impl Convert<MultiLocation, Option<CurrencyId>> for RelativeCurrencyIdConvert {
 		d.resize(32, 0);
 
 		let self_para_id: u32 = MsgQueue::get().into();
-		if l == MultiLocation::parent() {
+		if l == Location::parent() {
 			return Some(CurrencyId::R);
 		}
-		match l {
-			MultiLocation { parents, interior } if parents == 1 => match interior {
-				X2(Parachain(1), GeneralKey { data, .. }) if data.to_vec() == a => Some(CurrencyId::A),
-				X2(Parachain(1), GeneralKey { data, .. }) if data.to_vec() == a1 => Some(CurrencyId::A1),
-				X2(Parachain(2), GeneralKey { data, .. }) if data.to_vec() == b => Some(CurrencyId::B),
-				X2(Parachain(2), GeneralKey { data, .. }) if data.to_vec() == b1 => Some(CurrencyId::B1),
-				X2(Parachain(2), GeneralKey { data, .. }) if data.to_vec() == b2 => Some(CurrencyId::B2),
-				X2(Parachain(3), GeneralKey { data, .. }) if data.to_vec() == c => Some(CurrencyId::C),
-				X2(Parachain(para_id), GeneralKey { data, .. }) if data.to_vec() == d && para_id == self_para_id => {
+		match l.unpack() {
+			(parents, interior) if parents == 1 => match interior {
+				[Parachain(1), GeneralKey { data, .. }] if data.to_vec() == a => Some(CurrencyId::A),
+				[Parachain(1), GeneralKey { data, .. }] if data.to_vec() == a1 => Some(CurrencyId::A1),
+				[Parachain(2), GeneralKey { data, .. }] if data.to_vec() == b => Some(CurrencyId::B),
+				[Parachain(2), GeneralKey { data, .. }] if data.to_vec() == b1 => Some(CurrencyId::B1),
+				[Parachain(2), GeneralKey { data, .. }] if data.to_vec() == b2 => Some(CurrencyId::B2),
+				[Parachain(3), GeneralKey { data, .. }] if data.to_vec() == c => Some(CurrencyId::C),
+				[Parachain(para_id), GeneralKey { data, .. }] if data.to_vec() == d && *para_id == self_para_id => {
 					Some(CurrencyId::D)
 				}
 				_ => None,
 			},
-			MultiLocation { parents, interior } if parents == 0 => match interior {
-				X1(GeneralKey { data, .. }) if data.to_vec() == a => Some(CurrencyId::A),
-				X1(GeneralKey { data, .. }) if data.to_vec() == b => Some(CurrencyId::B),
-				X1(GeneralKey { data, .. }) if data.to_vec() == a1 => Some(CurrencyId::A1),
-				X1(GeneralKey { data, .. }) if data.to_vec() == b1 => Some(CurrencyId::B1),
-				X1(GeneralKey { data, .. }) if data.to_vec() == b2 => Some(CurrencyId::B2),
-				X1(GeneralKey { data, .. }) if data.to_vec() == c => Some(CurrencyId::C),
-				X1(GeneralKey { data, .. }) if data.to_vec() == d => Some(CurrencyId::D),
+			(parents, interior) if parents == 0 => match interior {
+				[GeneralKey { data, .. }] if data.to_vec() == a => Some(CurrencyId::A),
+				[GeneralKey { data, .. }] if data.to_vec() == b => Some(CurrencyId::B),
+				[GeneralKey { data, .. }] if data.to_vec() == a1 => Some(CurrencyId::A1),
+				[GeneralKey { data, .. }] if data.to_vec() == b1 => Some(CurrencyId::B1),
+				[GeneralKey { data, .. }] if data.to_vec() == b2 => Some(CurrencyId::B2),
+				[GeneralKey { data, .. }] if data.to_vec() == c => Some(CurrencyId::C),
+				[GeneralKey { data, .. }] if data.to_vec() == d => Some(CurrencyId::D),
 				_ => None,
 			},
 			_ => None,
 		}
 	}
 }
-impl Convert<MultiAsset, Option<CurrencyId>> for RelativeCurrencyIdConvert {
-	fn convert(a: MultiAsset) -> Option<CurrencyId> {
-		if let MultiAsset {
+impl Convert<Asset, Option<CurrencyId>> for RelativeCurrencyIdConvert {
+	fn convert(a: Asset) -> Option<CurrencyId> {
+		if let Asset {
 			fun: Fungible(_),
-			id: Concrete(id),
+			id: AssetId(id),
 		} = a
 		{
 			Self::convert(id)
@@ -309,24 +308,28 @@ impl Convert<MultiAsset, Option<CurrencyId>> for RelativeCurrencyIdConvert {
 }
 
 parameter_types! {
-	pub SelfLocation: MultiLocation = MultiLocation::here();
+	pub SelfLocation: Location = Location::here();
 	pub const MaxAssetsForTransfer: usize = 2;
 }
 
-match_types! {
-	pub type ParentOrParachains: impl Contains<MultiLocation> = {
-		MultiLocation { parents: 0, interior: X1(Junction::AccountId32 { .. }) } |
-		MultiLocation { parents: 1, interior: X1(Junction::AccountId32 { .. }) } |
-		MultiLocation { parents: 1, interior: X2(Parachain(1), Junction::AccountId32 { .. }) } |
-		MultiLocation { parents: 1, interior: X2(Parachain(2), Junction::AccountId32 { .. }) } |
-		MultiLocation { parents: 1, interior: X2(Parachain(3), Junction::AccountId32 { .. }) } |
-		MultiLocation { parents: 1, interior: X2(Parachain(4), Junction::AccountId32 { .. }) } |
-		MultiLocation { parents: 1, interior: X2(Parachain(100), Junction::AccountId32 { .. }) }
-	};
+pub struct ParentOrParachains;
+impl Contains<Location> for ParentOrParachains {
+	fn contains(location: &Location) -> bool {
+		matches!(
+			location.unpack(),
+			(0, [Junction::AccountId32 { .. }])
+				| (1, [Junction::AccountId32 { .. }])
+				| (1, [Parachain(1), Junction::AccountId32 { .. }])
+				| (1, [Parachain(2), Junction::AccountId32 { .. }])
+				| (1, [Parachain(3), Junction::AccountId32 { .. }])
+				| (1, [Parachain(4), Junction::AccountId32 { .. }])
+				| (1, [Parachain(100), Junction::AccountId32 { .. }])
+		)
+	}
 }
 
 parameter_type_with_key! {
-	pub ParachainMinFee: |location: MultiLocation| -> Option<u128> {
+	pub ParachainMinFee: |location: Location| -> Option<u128> {
 		#[allow(clippy::match_ref_pats)] // false positive
 		match (location.parents, location.first_interior()) {
 			(1, Some(Parachain(2))) => Some(40),
@@ -341,9 +344,9 @@ impl orml_xtokens::Config for Runtime {
 	type Balance = Balance;
 	type CurrencyId = CurrencyId;
 	type CurrencyIdConvert = RelativeCurrencyIdConvert;
-	type AccountIdToMultiLocation = AccountIdToMultiLocation;
+	type AccountIdToLocation = AccountIdToLocation;
 	type SelfLocation = SelfLocation;
-	type MultiLocationsFilter = ParentOrParachains;
+	type LocationsFilter = ParentOrParachains;
 	type MinXcmFee = ParachainMinFee;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;

@@ -8,7 +8,7 @@ use orml_traits::{ConcreteFungibleAsset, MultiCurrency};
 use parity_scale_codec::Encode;
 use polkadot_parachain_primitives::primitives::Sibling;
 use sp_runtime::{traits::AccountIdConversion, AccountId32};
-use xcm::{v3::OriginKind::SovereignAccount, VersionedXcm};
+use xcm::{v4::OriginKind::SovereignAccount, VersionedXcm};
 use xcm_simulator::TestExt;
 
 fn para_a_account() -> AccountId32 {
@@ -63,12 +63,12 @@ fn send_relay_chain_asset_to_relay_chain() {
 			CurrencyId::R,
 			500,
 			Box::new(
-				MultiLocation::new(
+				Location::new(
 					1,
-					X1(Junction::AccountId32 {
+					[Junction::AccountId32 {
 						network: None,
 						id: BOB.into(),
-					})
+					}]
 				)
 				.into()
 			),
@@ -98,12 +98,12 @@ fn send_relay_chain_asset_to_relay_chain_with_fee() {
 			450,
 			50,
 			Box::new(
-				MultiLocation::new(
+				Location::new(
 					1,
-					X1(Junction::AccountId32 {
+					[Junction::AccountId32 {
 						network: None,
 						id: BOB.into(),
-					})
+					}]
 				)
 				.into()
 			),
@@ -164,15 +164,15 @@ fn send_relay_chain_asset_to_sibling() {
 			CurrencyId::R,
 			500,
 			Box::new(
-				MultiLocation::new(
+				Location::new(
 					1,
-					X2(
+					[
 						Parachain(2),
 						Junction::AccountId32 {
 							network: None,
 							id: BOB.into(),
 						}
-					)
+					]
 				)
 				.into()
 			),
@@ -206,15 +206,15 @@ fn send_relay_chain_asset_to_sibling_with_fee() {
 			410,
 			90,
 			Box::new(
-				MultiLocation::new(
+				Location::new(
 					1,
-					X2(
+					[
 						Parachain(2),
 						Junction::AccountId32 {
 							network: None,
 							id: BOB.into(),
 						}
-					)
+					]
 				)
 				.into()
 			),
@@ -453,15 +453,15 @@ fn send_sibling_asset_to_non_reserve_sibling() {
 			CurrencyId::B,
 			500,
 			Box::new(
-				MultiLocation::new(
+				Location::new(
 					1,
-					X2(
+					[
 						Parachain(3),
 						Junction::AccountId32 {
 							network: None,
 							id: BOB.into(),
 						}
-					)
+					]
 				)
 				.into()
 			),
@@ -500,15 +500,15 @@ fn send_sibling_asset_to_non_reserve_sibling_with_fee() {
 			410,
 			90,
 			Box::new(
-				MultiLocation::new(
+				Location::new(
 					1,
-					X2(
+					[
 						Parachain(3),
 						Junction::AccountId32 {
 							network: None,
 							id: BOB.into(),
 						}
-					)
+					]
 				)
 				.into()
 			),
@@ -542,15 +542,15 @@ fn send_self_parachain_asset_to_sibling() {
 			CurrencyId::A,
 			500,
 			Box::new(
-				MultiLocation::new(
+				Location::new(
 					1,
-					X2(
+					[
 						Parachain(2),
 						Junction::AccountId32 {
 							network: None,
 							id: BOB.into(),
 						}
-					)
+					]
 				)
 				.into()
 			),
@@ -579,15 +579,15 @@ fn send_self_parachain_asset_to_sibling_with_fee() {
 			450,
 			50,
 			Box::new(
-				MultiLocation::new(
+				Location::new(
 					1,
-					X2(
+					[
 						Parachain(2),
 						Junction::AccountId32 {
 							network: None,
 							id: BOB.into(),
 						}
-					)
+					]
 				)
 				.into()
 			),
@@ -617,15 +617,15 @@ fn send_self_parachain_asset_to_sibling_with_distinct_fee() {
 			vec![(CurrencyId::A, 450), (CurrencyId::A1, 50)],
 			1,
 			Box::new(
-				MultiLocation::new(
+				Location::new(
 					1,
-					X2(
+					[
 						Parachain(2),
 						Junction::AccountId32 {
 							network: None,
 							id: BOB.into(),
 						}
-					)
+					]
 				)
 				.into()
 			),
@@ -936,7 +936,7 @@ fn transfer_no_reserve_assets_fails() {
 	TestNet::reset();
 
 	ParaA::execute_with(|| {
-		let asset_id: AssetId = X1(Junction::from(BoundedVec::try_from(b"B".to_vec()).unwrap())).into();
+		let asset_id: AssetId = [Junction::from(BoundedVec::try_from(b"B".to_vec()).unwrap())].into();
 		assert_noop!(
 			ParaXTokens::transfer_multiasset(
 				Some(ALICE).into(),
@@ -967,17 +967,17 @@ fn transfer_to_self_chain_fails() {
 		assert_noop!(
 			ParaXTokens::transfer_multiasset(
 				Some(ALICE).into(),
-				Box::new(MultiAsset::sibling_parachain_asset(1, b"A".to_vec().try_into().unwrap(), 100).into()),
+				Box::new(Asset::sibling_parachain_asset(1, b"A".to_vec().try_into().unwrap(), 100).into()),
 				Box::new(
-					MultiLocation::new(
+					Location::new(
 						1,
-						X2(
+						[
 							Parachain(1),
 							Junction::AccountId32 {
 								network: None,
 								id: BOB.into()
 							}
-						)
+						]
 					)
 					.into()
 				),
@@ -996,14 +996,14 @@ fn transfer_to_invalid_dest_fails() {
 		assert_noop!(
 			ParaXTokens::transfer_multiasset(
 				Some(ALICE).into(),
-				Box::new(MultiAsset::sibling_parachain_asset(1, b"A".to_vec().try_into().unwrap(), 100).into()),
+				Box::new(Asset::sibling_parachain_asset(1, b"A".to_vec().try_into().unwrap(), 100).into()),
 				Box::new(
-					MultiLocation::new(
+					Location::new(
 						0,
-						X1(Junction::AccountId32 {
+						[Junction::AccountId32 {
 							network: None,
 							id: BOB.into()
-						})
+						}]
 					)
 					.into()
 				),
@@ -1026,7 +1026,7 @@ fn send_as_sovereign() {
 		let call = relay::RuntimeCall::System(frame_system::Call::<relay::Runtime>::remark_with_event {
 			remark: vec![1, 1, 1],
 		});
-		let assets: MultiAsset = (Here, 1_000_000_000_000u128).into();
+		let assets: Asset = (Here, 1_000_000_000_000u128).into();
 		assert_ok!(para::OrmlXcm::send_as_sovereign(
 			para::RuntimeOrigin::root(),
 			Box::new(Parent.into()),
@@ -1067,7 +1067,7 @@ fn send_as_sovereign_fails_if_bad_origin() {
 		let call = relay::RuntimeCall::System(frame_system::Call::<relay::Runtime>::remark_with_event {
 			remark: vec![1, 1, 1],
 		});
-		let assets: MultiAsset = (Here, 1_000_000_000_000u128).into();
+		let assets: Asset = (Here, 1_000_000_000_000u128).into();
 		assert_err!(
 			para::OrmlXcm::send_as_sovereign(
 				para::RuntimeOrigin::signed(ALICE),
@@ -1123,15 +1123,15 @@ fn send_with_zero_fee_should_yield_an_error() {
 				450,
 				0,
 				Box::new(
-					MultiLocation::new(
+					Location::new(
 						1,
-						X2(
+						[
 							Parachain(2),
 							Junction::AccountId32 {
 								network: None,
 								id: BOB.into(),
 							}
-						)
+						]
 					)
 					.into()
 				),
@@ -1157,15 +1157,15 @@ fn send_with_insufficient_fee_traps_assets() {
 			450,
 			30,
 			Box::new(
-				MultiLocation::new(
+				Location::new(
 					1,
-					X2(
+					[
 						Parachain(2),
 						Junction::AccountId32 {
 							network: None,
 							id: BOB.into(),
 						}
-					)
+					]
 				)
 				.into()
 			),
@@ -1200,15 +1200,15 @@ fn send_with_fee_should_handle_overflow() {
 				u128::MAX,
 				100,
 				Box::new(
-					MultiLocation::new(
+					Location::new(
 						1,
-						X2(
+						[
 							Parachain(2),
 							Junction::AccountId32 {
 								network: None,
 								id: BOB.into(),
 							}
-						)
+						]
 					)
 					.into()
 				),
@@ -1409,15 +1409,15 @@ fn send_self_parachain_asset_to_sibling_relative_parachain() {
 			CurrencyId::D,
 			500,
 			Box::new(
-				MultiLocation::new(
+				Location::new(
 					1,
-					X2(
+					[
 						Parachain(2),
 						Junction::AccountId32 {
 							network: None,
 							id: BOB.into(),
 						}
-					)
+					]
 				)
 				.into()
 			),
@@ -1523,15 +1523,15 @@ fn send_relative_view_sibling_asset_to_non_reserve_sibling() {
 			CurrencyId::D,
 			500,
 			Box::new(
-				MultiLocation::new(
+				Location::new(
 					1,
-					X2(
+					[
 						Parachain(2),
 						Junction::AccountId32 {
 							network: None,
 							id: BOB.into(),
 						}
-					)
+					]
 				)
 				.into()
 			),
@@ -1571,15 +1571,15 @@ fn send_relay_chain_asset_to_relative_view_sibling() {
 			CurrencyId::R,
 			500,
 			Box::new(
-				MultiLocation::new(
+				Location::new(
 					1,
-					X2(
+					[
 						Parachain(4),
 						Junction::AccountId32 {
 							network: None,
 							id: BOB.into(),
 						}
-					)
+					]
 				)
 				.into()
 			),
@@ -1623,7 +1623,7 @@ fn unsupported_multilocation_should_be_filtered() {
 				),
 				WeightLimit::Unlimited
 			),
-			Error::<para::Runtime>::NotSupportedMultiLocation
+			Error::<para::Runtime>::NotSupportedLocation
 		);
 
 		assert_noop!(
@@ -1644,7 +1644,7 @@ fn unsupported_multilocation_should_be_filtered() {
 				),
 				WeightLimit::Unlimited
 			),
-			Error::<para::Runtime>::NotSupportedMultiLocation
+			Error::<para::Runtime>::NotSupportedLocation
 		);
 	});
 }
@@ -1661,15 +1661,15 @@ fn send_with_sufficient_weight_limit() {
 			CurrencyId::A,
 			500,
 			Box::new(
-				MultiLocation::new(
+				Location::new(
 					1,
-					X2(
+					[
 						Parachain(2),
 						Junction::AccountId32 {
 							network: None,
 							id: BOB.into(),
 						}
-					)
+					]
 				)
 				.into()
 			),
@@ -1697,15 +1697,15 @@ fn send_with_insufficient_weight_limit() {
 			CurrencyId::A,
 			500,
 			Box::new(
-				MultiLocation::new(
+				Location::new(
 					1,
-					X2(
+					[
 						Parachain(2),
 						Junction::AccountId32 {
 							network: None,
 							id: BOB.into(),
 						}
-					)
+					]
 				)
 				.into()
 			),
@@ -1747,12 +1747,12 @@ fn send_relay_chain_asset_to_relay_chain_at_rate_limit() {
 			CurrencyId::R,
 			1800,
 			Box::new(
-				MultiLocation::new(
+				Location::new(
 					1,
-					X1(Junction::AccountId32 {
+					[Junction::AccountId32 {
 						network: None,
 						id: CHARLIE.into(),
-					})
+					}]
 				)
 				.into()
 			),
@@ -1769,12 +1769,12 @@ fn send_relay_chain_asset_to_relay_chain_at_rate_limit() {
 				CurrencyId::R,
 				201,
 				Box::new(
-					MultiLocation::new(
+					Location::new(
 						1,
-						X1(Junction::AccountId32 {
+						[Junction::AccountId32 {
 							network: None,
 							id: CHARLIE.into(),
-						})
+						}]
 					)
 					.into()
 				),
@@ -1791,12 +1791,12 @@ fn send_relay_chain_asset_to_relay_chain_at_rate_limit() {
 			CurrencyId::R,
 			201,
 			Box::new(
-				MultiLocation::new(
+				Location::new(
 					1,
-					X1(Junction::AccountId32 {
+					[Junction::AccountId32 {
 						network: None,
 						id: ALICE.into(),
-					})
+					}]
 				)
 				.into()
 			),
@@ -1811,12 +1811,12 @@ fn send_relay_chain_asset_to_relay_chain_at_rate_limit() {
 			CurrencyId::R,
 			200,
 			Box::new(
-				MultiLocation::new(
+				Location::new(
 					1,
-					X1(Junction::AccountId32 {
+					[Junction::AccountId32 {
 						network: None,
 						id: CHARLIE.into(),
-					})
+					}]
 				)
 				.into()
 			),
@@ -1837,23 +1837,23 @@ fn send_relay_chain_asset_to_relay_chain_at_rate_limit() {
 fn send_multiasset_with_zero_fee_should_yield_an_error() {
 	TestNet::reset();
 
-	let asset_id: AssetId = X1(Junction::from(BoundedVec::try_from(b"A".to_vec()).unwrap())).into();
+	let asset_id: AssetId = [Junction::from(BoundedVec::try_from(b"A".to_vec()).unwrap())].into();
 	ParaA::execute_with(|| {
 		assert_noop!(
 			ParaXTokens::transfer_multiasset_with_fee(
 				Some(ALICE).into(),
-				Box::new((asset_id, 100).into()),
+				Box::new((asset_id.clone(), 100).into()),
 				Box::new((asset_id, Fungibility::Fungible(0)).into()),
 				Box::new(
-					MultiLocation::new(
+					Location::new(
 						1,
-						X2(
+						[
 							Parachain(2),
 							Junction::AccountId32 {
 								network: None,
 								id: BOB.into()
 							},
-						)
+						]
 					)
 					.into()
 				),
@@ -1868,8 +1868,8 @@ fn send_multiasset_with_zero_fee_should_yield_an_error() {
 fn send_undefined_nft_should_yield_an_error() {
 	TestNet::reset();
 
-	let fee_id: AssetId = X1(Junction::from(BoundedVec::try_from(b"A".to_vec()).unwrap())).into();
-	let nft_id: AssetId = X1(Junction::GeneralIndex(42)).into();
+	let fee_id: AssetId = [Junction::from(BoundedVec::try_from(b"A".to_vec()).unwrap())].into();
+	let nft_id: AssetId = [Junction::GeneralIndex(42)].into();
 
 	ParaA::execute_with(|| {
 		assert_noop!(
@@ -1878,15 +1878,15 @@ fn send_undefined_nft_should_yield_an_error() {
 				Box::new((nft_id, Undefined).into()),
 				Box::new((fee_id, 100).into()),
 				Box::new(
-					MultiLocation::new(
+					Location::new(
 						1,
-						X2(
+						[
 							Parachain(2),
 							Junction::AccountId32 {
 								network: None,
 								id: BOB.into()
 							},
-						)
+						]
 					)
 					.into()
 				),
@@ -1901,8 +1901,8 @@ fn send_undefined_nft_should_yield_an_error() {
 fn nfts_cannot_be_fee_assets() {
 	TestNet::reset();
 
-	let asset_id: AssetId = X1(Junction::from(BoundedVec::try_from(b"A".to_vec()).unwrap())).into();
-	let nft_id: AssetId = X1(Junction::GeneralIndex(42)).into();
+	let asset_id: AssetId = [Junction::from(BoundedVec::try_from(b"A".to_vec()).unwrap())].into();
+	let nft_id: AssetId = [Junction::GeneralIndex(42)].into();
 
 	ParaA::execute_with(|| {
 		assert_noop!(
@@ -1911,15 +1911,15 @@ fn nfts_cannot_be_fee_assets() {
 				Box::new((asset_id, 100).into()),
 				Box::new((nft_id, Index(1)).into()),
 				Box::new(
-					MultiLocation::new(
+					Location::new(
 						1,
-						X2(
+						[
 							Parachain(2),
 							Junction::AccountId32 {
 								network: None,
 								id: BOB.into()
 							},
-						)
+						]
 					)
 					.into()
 				),

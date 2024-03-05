@@ -6,7 +6,7 @@
 use frame_support::{pallet_prelude::*, traits::EnsureOrigin};
 use frame_system::pallet_prelude::*;
 use sp_std::boxed::Box;
-use xcm::{v3::prelude::*, VersionedMultiLocation, VersionedXcm};
+use xcm::{v4::prelude::*, VersionedLocation, VersionedXcm};
 
 pub use module::*;
 
@@ -31,7 +31,7 @@ pub mod module {
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// XCM message sent. \[to, message\]
-		Sent { to: MultiLocation, message: Xcm<()> },
+		Sent { to: Location, message: Xcm<()> },
 	}
 
 	#[pallet::error]
@@ -55,14 +55,14 @@ pub mod module {
 		#[pallet::weight(Weight::from_parts(100_000_000, 0))]
 		pub fn send_as_sovereign(
 			origin: OriginFor<T>,
-			dest: Box<VersionedMultiLocation>,
+			dest: Box<VersionedLocation>,
 			message: Box<VersionedXcm<()>>,
 		) -> DispatchResult {
 			let _ = T::SovereignOrigin::ensure_origin(origin)?;
-			let dest = MultiLocation::try_from(*dest).map_err(|()| Error::<T>::BadVersion)?;
+			let dest = Location::try_from(*dest).map_err(|()| Error::<T>::BadVersion)?;
 			let message: Xcm<()> = (*message).try_into().map_err(|()| Error::<T>::BadVersion)?;
 
-			pallet_xcm::Pallet::<T>::send_xcm(Here, dest, message.clone()).map_err(|e| match e {
+			pallet_xcm::Pallet::<T>::send_xcm(Here, dest.clone(), message.clone()).map_err(|e| match e {
 				SendError::Unroutable => Error::<T>::Unreachable,
 				_ => Error::<T>::SendFailure,
 			})?;

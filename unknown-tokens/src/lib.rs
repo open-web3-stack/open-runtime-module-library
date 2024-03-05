@@ -3,7 +3,7 @@
 
 use frame_support::pallet_prelude::*;
 use sp_std::vec::Vec;
-use xcm::v3::prelude::*;
+use xcm::v4::prelude::*;
 
 use orml_xcm_support::UnknownAsset;
 
@@ -25,9 +25,9 @@ pub mod module {
 	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event {
 		/// Deposit success.
-		Deposited { asset: MultiAsset, who: MultiLocation },
+		Deposited { asset: Asset, who: Location },
 		/// Withdraw success.
-		Withdrawn { asset: MultiAsset, who: MultiLocation },
+		Withdrawn { asset: Asset, who: Location },
 	}
 
 	#[pallet::error]
@@ -54,7 +54,7 @@ pub mod module {
 	#[pallet::storage]
 	#[pallet::getter(fn concrete_fungible_balances)]
 	pub(crate) type ConcreteFungibleBalances<T> =
-		StorageDoubleMap<_, Blake2_128Concat, MultiLocation, Blake2_128Concat, MultiLocation, u128, ValueQuery>;
+		StorageDoubleMap<_, Blake2_128Concat, Location, Blake2_128Concat, Location, u128, ValueQuery>;
 
 	/// Abstract fungible balances under a given location and a abstract
 	/// fungible id.
@@ -63,23 +63,16 @@ pub mod module {
 	#[pallet::storage]
 	#[pallet::getter(fn abstract_fungible_balances)]
 	pub(crate) type AbstractFungibleBalances<T> =
-		StorageDoubleMap<_, Blake2_128Concat, MultiLocation, Blake2_128Concat, Vec<u8>, u128, ValueQuery>;
+		StorageDoubleMap<_, Blake2_128Concat, Location, Blake2_128Concat, Vec<u8>, u128, ValueQuery>;
 }
 
 impl<T: Config> UnknownAsset for Pallet<T> {
-	fn deposit(asset: &MultiAsset, to: &MultiLocation) -> DispatchResult {
+	fn deposit(asset: &Asset, to: &Location) -> DispatchResult {
 		match asset {
-			MultiAsset {
+			Asset {
 				fun: Fungible(amount),
-				id: Concrete(location),
+				id: AssetId(location),
 			} => ConcreteFungibleBalances::<T>::try_mutate(to, location, |b| -> DispatchResult {
-				*b = b.checked_add(*amount).ok_or(Error::<T>::BalanceOverflow)?;
-				Ok(())
-			}),
-			MultiAsset {
-				fun: Fungible(amount),
-				id: Abstract(key),
-			} => AbstractFungibleBalances::<T>::try_mutate(to, key.to_vec(), |b| -> DispatchResult {
 				*b = b.checked_add(*amount).ok_or(Error::<T>::BalanceOverflow)?;
 				Ok(())
 			}),
@@ -88,25 +81,18 @@ impl<T: Config> UnknownAsset for Pallet<T> {
 
 		Self::deposit_event(Event::Deposited {
 			asset: asset.clone(),
-			who: *to,
+			who: to.clone(),
 		});
 
 		Ok(())
 	}
 
-	fn withdraw(asset: &MultiAsset, from: &MultiLocation) -> DispatchResult {
+	fn withdraw(asset: &Asset, from: &Location) -> DispatchResult {
 		match asset {
-			MultiAsset {
+			Asset {
 				fun: Fungible(amount),
-				id: Concrete(location),
+				id: AssetId(location),
 			} => ConcreteFungibleBalances::<T>::try_mutate(from, location, |b| -> DispatchResult {
-				*b = b.checked_sub(*amount).ok_or(Error::<T>::BalanceTooLow)?;
-				Ok(())
-			}),
-			MultiAsset {
-				fun: Fungible(amount),
-				id: Abstract(key),
-			} => AbstractFungibleBalances::<T>::try_mutate(from, key.to_vec(), |b| -> DispatchResult {
 				*b = b.checked_sub(*amount).ok_or(Error::<T>::BalanceTooLow)?;
 				Ok(())
 			}),
@@ -115,7 +101,7 @@ impl<T: Config> UnknownAsset for Pallet<T> {
 
 		Self::deposit_event(Event::Withdrawn {
 			asset: asset.clone(),
-			who: *from,
+			who: from.clone(),
 		});
 
 		Ok(())
