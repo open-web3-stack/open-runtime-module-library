@@ -32,6 +32,7 @@ pub mod asset_registry;
 pub mod auction;
 pub mod currency;
 pub mod data_provider;
+pub mod delay_tasks;
 pub mod get_by_key;
 pub mod location;
 pub mod multi_asset;

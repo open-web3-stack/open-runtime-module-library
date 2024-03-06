@@ -1,0 +1,48 @@
+[package]
+name = "orml-delay-tasks"
+description = "Delayed xtokens transfer assets executor."
+repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/auction"
+license = "Apache-2.0"
+version = "0.7.0"
+authors = ["Acala Developers"]
+edition = "2021"
+
+[dependencies]
+log = { workspace = true }
+parity-scale-codec = { workspace = true }
+scale-info = { workspace = true }
+serde = { workspace = true, optional = true }
+
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+sp-runtime = { workspace = true }
+sp-std = { workspace = true }
+
+xcm = { workspace = true }
+
+orml-traits = { path = "../traits", version = "0.7.0", default-features = false }
+orml-xtokens = { path = "../xtokens", version = "0.7.0", default-features = false }
+
+[dev-dependencies]
+sp-core = { workspace = true, features = ["std"] }
+sp-io = { workspace = true, features = ["std"] }
+
+[features]
+default = [ "std" ]
+std = [
+	"frame-support/std",
+	"frame-system/std",
+	"orml-traits/std",
+    "orml-xtokens/std",
+	"parity-scale-codec/std",
+	"scale-info/std",
+	"serde",
+	"sp-runtime/std",
+	"sp-std/std",
+	"xcm/std",
+]
+try-runtime = [
+	"frame-support/try-runtime",
+	"frame-system/try-runtime",
+	"sp-runtime/try-runtime",
+]

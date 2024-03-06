@@ -43,8 +43,10 @@ use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, Bounded, Convert, MaybeSerializeDeserialize, Member, Zero},
 	DispatchError,
 };
-use sp_std::{prelude::*, result::Result};
+use sp_std::{fmt::Debug, prelude::*, result::Result};
 
+use parity_scale_codec::{Decode, Encode, FullCodec};
+use scale_info::TypeInfo;
 use xcm::{
 	v4::{prelude::*, Weight},
 	VersionedAsset, VersionedAssets, VersionedLocation,
@@ -53,9 +55,10 @@ use xcm_executor::traits::WeightBounds;
 
 pub use module::*;
 use orml_traits::{
+	delay_tasks::{DelayTasks, DelayedTask},
 	location::{Parse, Reserve},
 	xcm_transfer::{Transferred, XtokensWeightInfo},
-	GetByKey, RateLimiter, XcmTransfer,
+	GetByKey, NamedMultiReservableCurrency, RateLimiter, XcmTransfer,
 };
 
 mod mock;
@@ -75,6 +78,97 @@ use TransferKind::*;
 pub mod module {
 	use super::*;
 
+	#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo)]
+	pub enum XtokensDelayedTask<T: Config> {
+		TransferAssets {
+			who: T::AccountId,
+			assets: Assets,
+			fee: Asset,
+			dest: Location,
+			dest_weight_limit: WeightLimit,
+		},
+	}
+
+	impl<T: Config> DelayedTask for XtokensDelayedTask<T> {
+		fn pre_delay(&self) -> DispatchResult {
+			match self {
+				XtokensDelayedTask::TransferAssets { who, assets, .. } => {
+					let asset_len = assets.len();
+					for i in 0..asset_len {
+						let asset = assets.get(i).ok_or(Error::<T>::AssetIndexNonExistent)?;
+						let currency_id: T::CurrencyId = T::CurrencyIdConvert::convert(asset.id.0.clone())
+							.ok_or(Error::<T>::AssetIndexNonExistent)?;
+						let amount: T::Balance = match asset.fun {
+							Fungibility::Fungible(amount) => {
+								amount.try_into().map_err(|_| Error::<T>::AssetIndexNonExistent)?
+							}
+							Fungibility::NonFungible(_) => return Err(Error::<T>::AssetIndexNonExistent.into()),
+						};
+
+						T::Currency::reserve_named(&T::ReserveIdentifier::get(), currency_id, who, amount)?;
+					}
+				}
+			}
+			Ok(())
+		}
+
+		fn pre_delayed_execute(&self) -> DispatchResult {
+			match self {
+				XtokensDelayedTask::TransferAssets { who, assets, .. } => {
+					let asset_len = assets.len();
+					for i in 0..asset_len {
+						let asset = assets.get(i).ok_or(Error::<T>::AssetIndexNonExistent)?;
+						let currency_id: T::CurrencyId = T::CurrencyIdConvert::convert(asset.id.0.clone())
+							.ok_or(Error::<T>::AssetIndexNonExistent)?;
+						let amount: T::Balance = match asset.fun {
+							Fungibility::Fungible(amount) => {
+								amount.try_into().map_err(|_| Error::<T>::AssetIndexNonExistent)?
+							}
+							Fungibility::NonFungible(_) => return Err(Error::<T>::AssetIndexNonExistent.into()),
+						};
+
+						T::Currency::unreserve_named(&T::ReserveIdentifier::get(), currency_id, who, amount);
+					}
+				}
+			}
+			Ok(())
+		}
+
+		fn delayed_execute(&self) -> DispatchResult {
+			match self {
+				XtokensDelayedTask::TransferAssets {
+					who,
+					assets,
+					fee,
+					dest,
+					dest_weight_limit,
+				} => {
+					// execute `do_transfer_assets` without delay check
+					Pallet::<T>::do_transfer_assets(
+						who.clone(),
+						assets.clone(),
+						fee.clone(),
+						dest.clone(),
+						dest_weight_limit.clone(),
+						false,
+					)
+					.map(|_| ())
+				}
+			}
+		}
+
+		fn on_cancel(&self) -> DispatchResult {
+			self.pre_delayed_execute()
+		}
+	}
+
+	pub struct DisabledTransferAssets<T>(sp_std::marker::PhantomData<T>);
+	impl<T: Config> DelayTasks<T::DelayedTask, BlockNumberFor<T>> for DisabledTransferAssets<T> {
+		fn schedule_delay_task(_task: T::DelayedTask, _delay_blocks: BlockNumberFor<T>) -> DispatchResult {
+			Err(Error::<T>::RateLimited.into())
+		}
+	}
+
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -92,7 +186,8 @@ pub mod module {
 		type CurrencyId: Parameter + Member + Clone;
 
 		/// Convert `T::CurrencyId` to `Location`.
-		type CurrencyIdConvert: Convert<Self::CurrencyId, Option<Location>>;
+		type CurrencyIdConvert: Convert<Self::CurrencyId, Option<Location>>
+			+ Convert<Location, Option<Self::CurrencyId>>;
 
 		/// Convert `T::AccountId` to `Location`.
 		type AccountIdToLocation: Convert<Self::AccountId, Location>;
@@ -137,6 +232,28 @@ pub mod module {
 		/// The id of the RateLimiter.
 		#[pallet::constant]
 		type RateLimiterId: Get<<Self::RateLimiter as RateLimiter>::RateLimiterId>;
+
+		type DelayedTask: DelayedTask
+			+ FullCodec
+			+ Debug
+			+ Clone
+			+ PartialEq
+			+ TypeInfo
+			+ From<XtokensDelayedTask<Self>>;
+
+		type DelayTasks: DelayTasks<Self::DelayedTask, BlockNumberFor<Self>>;
+
+		type DelayBlocks: Get<BlockNumberFor<Self>>;
+
+		type Currency: NamedMultiReservableCurrency<
+			Self::AccountId,
+			Balance = Self::Balance,
+			CurrencyId = Self::CurrencyId,
+		>;
+
+		type ReserveIdentifier: Get<
+			<Self::Currency as NamedMultiReservableCurrency<Self::AccountId>>::ReserveIdentifier,
+		>;
 	}
 
 	#[pallet::event]
@@ -394,7 +511,7 @@ pub mod module {
 			// We first grab the fee
 			let fee: &Asset = assets.get(fee_item as usize).ok_or(Error::<T>::AssetIndexNonExistent)?;
 
-			Self::do_transfer_assets(who, assets.clone(), fee.clone(), dest, dest_weight_limit).map(|_| ())
+			Self::do_transfer_assets(who, assets.clone(), fee.clone(), dest, dest_weight_limit, true).map(|_| ())
 		}
 	}
 
@@ -413,7 +530,7 @@ pub mod module {
 			ensure!(T::LocationsFilter::contains(&dest), Error::<T>::NotSupportedLocation);
 
 			let asset: Asset = (location, amount.into()).into();
-			Self::do_transfer_assets(who, vec![asset.clone()].into(), asset, dest, dest_weight_limit)
+			Self::do_transfer_assets(who, vec![asset.clone()].into(), asset, dest, dest_weight_limit, true)
 		}
 
 		fn do_transfer_with_fee(
@@ -439,7 +556,7 @@ pub mod module {
 			assets.push(asset);
 			assets.push(fee_asset.clone());
 
-			Self::do_transfer_assets(who, assets, fee_asset, dest, dest_weight_limit)
+			Self::do_transfer_assets(who, assets, fee_asset, dest, dest_weight_limit, true)
 		}
 
 		fn do_transfer_asset(
@@ -448,7 +565,7 @@ pub mod module {
 			dest: Location,
 			dest_weight_limit: WeightLimit,
 		) -> Result<Transferred<T::AccountId>, DispatchError> {
-			Self::do_transfer_assets(who, vec![asset.clone()].into(), asset, dest, dest_weight_limit)
+			Self::do_transfer_assets(who, vec![asset.clone()].into(), asset, dest, dest_weight_limit, true)
 		}
 
 		fn do_transfer_asset_with_fee(
@@ -463,7 +580,7 @@ pub mod module {
 			assets.push(asset);
 			assets.push(fee.clone());
 
-			Self::do_transfer_assets(who, assets, fee, dest, dest_weight_limit)
+			Self::do_transfer_assets(who, assets, fee, dest, dest_weight_limit, true)
 		}
 
 		fn do_transfer_multicurrencies(
@@ -502,7 +619,7 @@ pub mod module {
 
 			let fee: Asset = (fee_location, (*fee_amount).into()).into();
 
-			Self::do_transfer_assets(who, assets, fee, dest, dest_weight_limit)
+			Self::do_transfer_assets(who, assets, fee, dest, dest_weight_limit, true)
 		}
 
 		fn do_transfer_assets(
@@ -511,6 +628,7 @@ pub mod module {
 			fee: Asset,
 			dest: Location,
 			dest_weight_limit: WeightLimit,
+			delay_check: bool,
 		) -> Result<Transferred<T::AccountId>, DispatchError> {
 			ensure!(
 				assets.len() <= T::MaxAssetsForTransfer::get(),
@@ -549,18 +667,29 @@ pub mod module {
 						Error::<T>::DistinctReserveForAssetAndFee
 					);
 				}
+			}
 
-				// per asset check
-				let amount = match asset.fun {
-					Fungibility::Fungible(amount) => amount,
-					Fungibility::NonFungible(_) => 1,
-				};
-
-				let rate_limiter_id = T::RateLimiterId::get();
-
-				// try consume quota of the rate limiter.
-				T::RateLimiter::try_consume(rate_limiter_id, asset.id.clone(), amount, Some(&who))
-					.map_err(|_| Error::<T>::RateLimited)?;
+			if delay_check {
+				// delay the transfer assets if limited
+				if Self::transfer_assets_delay_check(&who, assets.clone()).is_err() {
+					return T::DelayTasks::schedule_delay_task(
+						XtokensDelayedTask::TransferAssets {
+							who: who.clone(),
+							assets: assets.clone(),
+							fee: fee.clone(),
+							dest: dest.clone(),
+							dest_weight_limit,
+						}
+						.into(),
+						T::DelayBlocks::get(),
+					)
+					.map(|_| Transferred {
+						sender: who,
+						assets,
+						fee,
+						dest,
+					});
+				}
 			}
 
 			let fee_reserve = T::ReserveProvider::reserve(&fee);
@@ -1023,7 +1152,7 @@ pub mod module {
 			dest: Location,
 			dest_weight_limit: WeightLimit,
 		) -> Result<Transferred<T::AccountId>, DispatchError> {
-			Self::do_transfer_assets(who, assets, fee, dest, dest_weight_limit)
+			Self::do_transfer_assets(who, assets, fee, dest, dest_weight_limit, true)
 		}
 	}
 }
