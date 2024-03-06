@@ -36,7 +36,7 @@ use frame_support::{
 	pallet_prelude::*,
 	require_transactional,
 	traits::{Contains, Get},
-	Parameter,
+	transactional, Parameter,
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
 use sp_runtime::{
@@ -516,6 +516,28 @@ pub mod module {
 	}
 
 	impl<T: Config> Pallet<T> {
+		#[transactional]
+		fn transfer_assets_delay_check(who: &T::AccountId, assets: Assets) -> DispatchResult {
+			let rate_limiter_id = T::RateLimiterId::get();
+			let asset_len = assets.len();
+			for i in 0..asset_len {
+				let asset = assets.get(i).ok_or(Error::<T>::AssetIndexNonExistent)?;
+
+				// per asset check
+				let amount = match asset.fun {
+					Fungibility::Fungible(amount) => amount,
+					Fungibility::NonFungible(_) => 1,
+				};
+
+				// try consume quota of the rate limiter.
+				// NOTE: use AssetId as the key, use AccountId as whitelist filter key.
+				T::RateLimiter::try_consume(rate_limiter_id, asset.id.clone(), amount, Some(who))
+					.map_err(|_| Error::<T>::RateLimited)?;
+			}
+
+			Ok(())
+		}
+
 		fn do_transfer(
 			who: T::AccountId,
 			currency_id: T::CurrencyId,
