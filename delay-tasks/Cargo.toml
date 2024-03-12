@@ -21,7 +21,6 @@ sp-std = { workspace = true }
 xcm = { workspace = true }
 
 orml-traits = { path = "../traits", version = "0.7.0", default-features = false }
-orml-xtokens = { path = "../xtokens", version = "0.7.0", default-features = false }
 
 [dev-dependencies]
 sp-core = { workspace = true, features = ["std"] }
@@ -33,7 +32,6 @@ std = [
 	"frame-support/std",
 	"frame-system/std",
 	"orml-traits/std",
-    "orml-xtokens/std",
 	"parity-scale-codec/std",
 	"scale-info/std",
 	"serde",

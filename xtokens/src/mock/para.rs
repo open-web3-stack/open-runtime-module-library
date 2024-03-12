@@ -267,6 +267,8 @@ impl RateLimiter for MockRateLimiter {
 
 parameter_types! {
 	pub const XtokensRateLimiterId: u8 = 0;
+	pub const GetDelayBlocks: u64 = 1000;
+	pub const GetReserveId: [u8; 8] = *b"xtokensr";
 }
 
 define_combined_delayed_task! {
@@ -295,6 +297,9 @@ impl orml_xtokens::Config for Runtime {
 	type RateLimiterId = XtokensRateLimiterId;
 	type DelayedTask = DelayedTasks;
 	type DelayTasks = DisabledTransferAssets<Runtime>;
+	type DelayBlocks = GetDelayBlocks;
+	type Currency = Tokens;
+	type ReserveId = GetReserveId;
 }
 
 impl orml_xcm::Config for Runtime {

@@ -1,19 +1,15 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::{pallet_prelude::*, traits::schedule::DispatchTime, transactional, weights::Weight};
-use frame_system::{ensure_signed, pallet_prelude::*};
-use orml_traits::{
-	delay_tasks::{DelayTasks, DelayedTask},
-	NamedMultiReservableCurrency,
-};
-use parity_scale_codec::{Decode, Encode, FullCodec};
+use frame_system::pallet_prelude::*;
+use orml_traits::delay_tasks::{DelayTasksManager, DelayedTask};
+use parity_scale_codec::FullCodec;
 use scale_info::TypeInfo;
 use sp_runtime::{
-	traits::{CheckedAdd, Convert, Zero},
+	traits::{CheckedAdd, Zero},
 	ArithmeticError,
 };
 use sp_std::fmt::Debug;
-use xcm::v4::prelude::*;
 
 pub use module::*;
 
@@ -27,7 +23,7 @@ pub mod module {
 	type Nonce = u64;
 
 	#[pallet::config]
-	pub trait Config: frame_system::Config + orml_xtokens::Config {
+	pub trait Config: frame_system::Config {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		type GovernanceOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
@@ -37,7 +33,6 @@ pub mod module {
 
 	#[pallet::error]
 	pub enum Error<T> {
-		BelowMinBondThreshold,
 		InvalidDelayBlock,
 		InvalidId,
 	}
@@ -45,16 +40,24 @@ pub mod module {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// A task has been dispatched on_idle.
 		DelayedTaskAdded {
 			id: Nonce,
 			task: T::Task,
+			execute_block: BlockNumberFor<T>,
 		},
 		DelayedTaskExecuted {
 			id: Nonce,
 			result: DispatchResult,
 		},
-		DelayedTaskPreExecuteFailed {
+		DelayedTaskReDelayed {
+			id: Nonce,
+			execute_block: BlockNumberFor<T>,
+		},
+		DelayedTaskTryExecuteFailed {
+			id: Nonce,
+			error: DispatchError,
+		},
+		DelayedTaskCanceled {
 			id: Nonce,
 		},
 	}
@@ -113,6 +116,10 @@ pub mod module {
 				DelayedTaskQueue::<T>::insert(new_execute_block, id, ());
 				*execute_block = new_execute_block;
 
+				Self::deposit_event(Event::<T>::DelayedTaskReDelayed {
+					id,
+					execute_block: new_execute_block,
+				});
 				Ok(())
 			})?;
 
@@ -128,6 +135,7 @@ pub mod module {
 			delay_task.on_cancel()?;
 			DelayedTaskQueue::<T>::remove(execute_block, id);
 
+			Self::deposit_event(Event::<T>::DelayedTaskCanceled { id });
 			Ok(())
 		}
 	}
@@ -140,25 +148,23 @@ pub mod module {
 						Self::deposit_event(Event::<T>::DelayedTaskExecuted { id, result });
 					}
 					Err(e) => {
-						Self::deposit_event(Event::<T>::DelayedTaskPreExecuteFailed { id });
+						log::debug!(
+							target: "delay-tasks",
+							"try executing delayed task {:?} failed for: {:?}. The delayed task still exists, but needs to be canceled or reset delay block.",
+							id,
+							e
+						);
+						Self::deposit_event(Event::<T>::DelayedTaskTryExecuteFailed { id, error: e });
 					}
 				}
 			}
 		}
 
 		#[transactional]
-		fn do_execute_delayed_task(id: Nonce) -> sp_std::result::Result<DispatchResult, DispatchError> {
+		pub(crate) fn do_execute_delayed_task(id: Nonce) -> sp_std::result::Result<DispatchResult, DispatchError> {
 			let (delayed_task, _) = DelayedTasks::<T>::take(id).ok_or(Error::<T>::InvalidId)?;
-			delayed_task.pre_delayed_execute().map_err(|e| {
-				log::debug!(
-					target: "delay-tasks",
-					"delayed task#{:?}:\n {:?}\n do pre_execute_delayed failed for: {:?}",
-					id,
-					delayed_task,
-					e
-				);
-				e
-			})?;
+
+			delayed_task.pre_delayed_execute()?;
 
 			Ok(delayed_task.delayed_execute())
 		}
@@ -175,21 +181,25 @@ pub mod module {
 		}
 	}
 
-	impl<T: Config> DelayTasks<T::Task, BlockNumberFor<T>> for Pallet<T> {
-		fn schedule_delay_task(task: T::Task, delay_blocks: BlockNumberFor<T>) -> DispatchResult {
+	impl<T: Config> DelayTasksManager<T::Task, BlockNumberFor<T>> for Pallet<T> {
+		fn add_delay_task(task: T::Task, delay_blocks: BlockNumberFor<T>) -> DispatchResult {
 			ensure!(!delay_blocks.is_zero(), Error::<T>::InvalidDelayBlock);
 
 			task.pre_delay()?;
 
 			let id = Self::get_next_delayed_task_id()?;
-			let execute_block_number = frame_system::Pallet::<T>::block_number()
+			let execute_block = frame_system::Pallet::<T>::block_number()
 				.checked_add(&delay_blocks)
 				.ok_or(ArithmeticError::Overflow)?;
 
-			DelayedTasks::<T>::insert(id, (&task, execute_block_number));
-			DelayedTaskQueue::<T>::insert(execute_block_number, id, ());
+			DelayedTasks::<T>::insert(id, (&task, execute_block));
+			DelayedTaskQueue::<T>::insert(execute_block, id, ());
 
-			Self::deposit_event(Event::<T>::DelayedTaskAdded { id, task });
+			Self::deposit_event(Event::<T>::DelayedTaskAdded {
+				id,
+				task,
+				execute_block,
+			});
 			Ok(())
 		}
 	}

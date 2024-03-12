@@ -316,6 +316,8 @@ impl Convert<Asset, Option<CurrencyId>> for RelativeCurrencyIdConvert {
 parameter_types! {
 	pub SelfLocation: Location = Location::here();
 	pub const MaxAssetsForTransfer: usize = 2;
+	pub const GetDelayBlocks: u64 = 1000;
+	pub const GetReserveId: [u8; 8] = *b"xtokensr";
 }
 
 pub struct ParentOrParachains;
@@ -371,6 +373,9 @@ impl orml_xtokens::Config for Runtime {
 	type RateLimiterId = ();
 	type DelayedTask = DelayedTasks;
 	type DelayTasks = DisabledTransferAssets<Runtime>;
+	type DelayBlocks = GetDelayBlocks;
+	type Currency = Tokens;
+	type ReserveId = GetReserveId;
 }
 
 impl orml_xcm::Config for Runtime {

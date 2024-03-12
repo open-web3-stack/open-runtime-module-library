@@ -55,7 +55,7 @@ use xcm_executor::traits::WeightBounds;
 
 pub use module::*;
 use orml_traits::{
-	delay_tasks::{DelayTasks, DelayedTask},
+	delay_tasks::{DelayTasksManager, DelayedTask},
 	location::{Parse, Reserve},
 	xcm_transfer::{Transferred, XtokensWeightInfo},
 	GetByKey, NamedMultiReservableCurrency, RateLimiter, XcmTransfer,
@@ -105,7 +105,7 @@ pub mod module {
 							Fungibility::NonFungible(_) => return Err(Error::<T>::AssetIndexNonExistent.into()),
 						};
 
-						T::Currency::reserve_named(&T::ReserveIdentifier::get(), currency_id, who, amount)?;
+						T::Currency::reserve_named(&T::ReserveId::get(), currency_id, who, amount)?;
 					}
 				}
 			}
@@ -127,7 +127,7 @@ pub mod module {
 							Fungibility::NonFungible(_) => return Err(Error::<T>::AssetIndexNonExistent.into()),
 						};
 
-						T::Currency::unreserve_named(&T::ReserveIdentifier::get(), currency_id, who, amount);
+						T::Currency::unreserve_named(&T::ReserveId::get(), currency_id, who, amount);
 					}
 				}
 			}
@@ -163,8 +163,8 @@ pub mod module {
 	}
 
 	pub struct DisabledTransferAssets<T>(sp_std::marker::PhantomData<T>);
-	impl<T: Config> DelayTasks<T::DelayedTask, BlockNumberFor<T>> for DisabledTransferAssets<T> {
-		fn schedule_delay_task(_task: T::DelayedTask, _delay_blocks: BlockNumberFor<T>) -> DispatchResult {
+	impl<T: Config> DelayTasksManager<T::DelayedTask, BlockNumberFor<T>> for DisabledTransferAssets<T> {
+		fn add_delay_task(_task: T::DelayedTask, _delay_blocks: BlockNumberFor<T>) -> DispatchResult {
 			Err(Error::<T>::RateLimited.into())
 		}
 	}
@@ -241,8 +241,9 @@ pub mod module {
 			+ TypeInfo
 			+ From<XtokensDelayedTask<Self>>;
 
-		type DelayTasks: DelayTasks<Self::DelayedTask, BlockNumberFor<Self>>;
+		type DelayTasks: DelayTasksManager<Self::DelayedTask, BlockNumberFor<Self>>;
 
+		#[pallet::constant]
 		type DelayBlocks: Get<BlockNumberFor<Self>>;
 
 		type Currency: NamedMultiReservableCurrency<
@@ -251,9 +252,7 @@ pub mod module {
 			CurrencyId = Self::CurrencyId,
 		>;
 
-		type ReserveIdentifier: Get<
-			<Self::Currency as NamedMultiReservableCurrency<Self::AccountId>>::ReserveIdentifier,
-		>;
+		type ReserveId: Get<<Self::Currency as NamedMultiReservableCurrency<Self::AccountId>>::ReserveIdentifier>;
 	}
 
 	#[pallet::event]
@@ -694,7 +693,7 @@ pub mod module {
 			if delay_check {
 				// delay the transfer assets if limited
 				if Self::transfer_assets_delay_check(&who, assets.clone()).is_err() {
-					return T::DelayTasks::schedule_delay_task(
+					return T::DelayTasks::add_delay_task(
 						XtokensDelayedTask::TransferAssets {
 							who: who.clone(),
 							assets: assets.clone(),

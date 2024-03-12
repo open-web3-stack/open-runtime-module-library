@@ -7,8 +7,8 @@ pub trait DelayedTask {
 	fn on_cancel(&self) -> DispatchResult;
 }
 
-pub trait DelayTasks<Task, BlockNumber> {
-	fn schedule_delay_task(task: Task, delay_blocks: BlockNumber) -> DispatchResult;
+pub trait DelayTasksManager<Task, BlockNumber> {
+	fn add_delay_task(task: Task, delay_blocks: BlockNumber) -> DispatchResult;
 }
 
 #[macro_export]
