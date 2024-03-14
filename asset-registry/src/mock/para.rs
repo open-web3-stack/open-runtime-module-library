@@ -11,13 +11,14 @@ use frame_support::{
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_traits::{
-	define_combined_delayed_task,
-	delay_tasks::DelayedTask,
+	define_combined_task,
 	location::{AbsoluteReserveProvider, RelativeReserveProvider},
-	parameter_type_with_key, FixedConversionRateProvider, MultiCurrency,
+	parameter_type_with_key,
+	task::{DispatchableTask, TaskResult},
+	FixedConversionRateProvider, MultiCurrency,
 };
 use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
-use orml_xtokens::XtokensDelayedTask;
+use orml_xtokens::XtokensTask;
 use pallet_xcm::XcmPassthrough;
 use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
 use polkadot_parachain_primitives::primitives::Sibling;
@@ -314,16 +315,11 @@ parameter_type_with_key! {
 	};
 }
 
-define_combined_delayed_task! {
+define_combined_task! {
 	#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo)]
 	pub enum DelayedTasks {
-		XtokensDelayedTask(XtokensDelayedTask<Runtime>),
+		Xtokens(XtokensTask<Runtime>),
 	}
-}
-
-parameter_types! {
-	pub const GetDelayBlocks: u64 = 1000;
-	pub const GetReserveId: [u8; 8] = *b"xtokensr";
 }
 
 impl orml_xtokens::Config for Runtime {
@@ -343,11 +339,8 @@ impl orml_xtokens::Config for Runtime {
 	type ReserveProvider = RelativeReserveProvider;
 	type RateLimiter = ();
 	type RateLimiterId = ();
-	type DelayedTask = DelayedTasks;
-	type DelayTasks = orml_xtokens::DisabledTransferAssets<Runtime>;
-	type DelayBlocks = GetDelayBlocks;
-	type Currency = Tokens;
-	type ReserveId = GetReserveId;
+	type Task = ();
+	type DelayTasks = orml_xtokens::DisabledDelayTask<Runtime>;
 }
 
 impl orml_xcm::Config for Runtime {

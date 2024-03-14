@@ -5,7 +5,7 @@
 use super::*;
 use frame_support::{construct_runtime, derive_impl};
 use frame_system::EnsureRoot;
-use orml_traits::define_combined_delayed_task;
+use orml_traits::define_combined_task;
 use sp_runtime::{traits::IdentityLookup, BuildStorage, DispatchError};
 use sp_std::cell::RefCell;
 
@@ -35,7 +35,7 @@ pub(crate) fn reset_delay_process_records() {
 	ON_CANCEL.with(|v| *v.borrow_mut() = false);
 }
 
-define_combined_delayed_task! {
+define_combined_task! {
 	#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo)]
 	pub enum MockDelayedTaskType {
 		Success(SuccessTask),

@@ -32,7 +32,6 @@ pub mod asset_registry;
 pub mod auction;
 pub mod currency;
 pub mod data_provider;
-pub mod delay_tasks;
 pub mod get_by_key;
 pub mod location;
 pub mod multi_asset;
@@ -41,6 +40,7 @@ pub mod parameters;
 pub mod price;
 pub mod rate_limit;
 pub mod rewards;
+pub mod task;
 pub mod xcm_transfer;
 
 /// New data handler

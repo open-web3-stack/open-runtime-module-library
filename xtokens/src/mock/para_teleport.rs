@@ -1,6 +1,6 @@
 use super::{
-	AllowTopLevelPaidExecution, Amount, Balance, CurrencyId, CurrencyIdConvert, DisabledTransferAssets,
-	ParachainXcmRouter, XtokensDelayedTask,
+	AllowTopLevelPaidExecution, Amount, Balance, CurrencyId, CurrencyIdConvert, DisabledDelayTask, ParachainXcmRouter,
+	XtokensTask,
 };
 use crate as orml_xtokens;
 
@@ -15,7 +15,7 @@ use polkadot_parachain_primitives::primitives::Sibling;
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{Convert, IdentityLookup},
-	AccountId32, DispatchResult, RuntimeDebug,
+	AccountId32, RuntimeDebug,
 };
 use xcm::v4::{prelude::*, Weight};
 use xcm_builder::{
@@ -28,7 +28,10 @@ use xcm_executor::{Config, XcmExecutor};
 use crate::mock::teleport_currency_adapter::MultiTeleportCurrencyAdapter;
 use crate::mock::AllTokensAreCreatedEqualToWeight;
 use orml_traits::{
-	define_combined_delayed_task, delay_tasks::DelayedTask, location::AbsoluteReserveProvider, parameter_type_with_key,
+	define_combined_task,
+	location::AbsoluteReserveProvider,
+	parameter_type_with_key,
+	task::{DispatchableTask, TaskResult},
 };
 use orml_xcm_support::{DisabledParachainFee, IsNativeConcrete, MultiNativeAsset};
 
@@ -196,8 +199,6 @@ impl Convert<AccountId, Location> for AccountIdToLocation {
 parameter_types! {
 	pub SelfLocation: Location = Location::new(1, [Parachain(MsgQueue::get().into())]).into();
 	pub const MaxAssetsForTransfer: usize = 3;
-	pub const GetDelayBlocks: u64 = 1000;
-	pub const GetReserveId: [u8; 8] = *b"xtokensr";
 }
 
 pub struct ParentOrParachains;
@@ -216,10 +217,10 @@ impl Contains<Location> for ParentOrParachains {
 	}
 }
 
-define_combined_delayed_task! {
+define_combined_task! {
 	#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo)]
 	pub enum DelayedTasks {
-		XtokensDelayedTask(XtokensDelayedTask<Runtime>),
+		Xtokens(XtokensTask<Runtime>),
 	}
 }
 
@@ -240,11 +241,8 @@ impl orml_xtokens::Config for Runtime {
 	type ReserveProvider = AbsoluteReserveProvider;
 	type RateLimiter = ();
 	type RateLimiterId = ();
-	type DelayedTask = DelayedTasks;
-	type DelayTasks = DisabledTransferAssets<Runtime>;
-	type DelayBlocks = GetDelayBlocks;
-	type Currency = Tokens;
-	type ReserveId = GetReserveId;
+	type Task = ();
+	type DelayTasks = DisabledDelayTask<Runtime>;
 }
 
 impl orml_xcm::Config for Runtime {
