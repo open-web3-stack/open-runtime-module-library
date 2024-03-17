@@ -3,7 +3,7 @@ name = "orml-vesting"
 description = "Provides scheduled balance locking mechanism, in a *graded vesting* way."
 repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/vesting"
 license = "Apache-2.0"
-version = "0.7.0"
+version = "0.8.0"
 authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2021"
 

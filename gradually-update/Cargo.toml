@@ -3,7 +3,7 @@ name = "orml-gradually-update"
 description = "Provides way to adjust numeric parameter gradually over a period of time."
 repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/gradually-update"
 license = "Apache-2.0"
-version = "0.7.0"
+version = "0.8.0"
 authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2021"
 

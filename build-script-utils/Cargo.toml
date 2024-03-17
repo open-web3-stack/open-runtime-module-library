@@ -3,7 +3,7 @@ name = "orml-build-script-utils"
 description = "Crate with utility functions for `build.rs` scripts."
 repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/build-script-utils"
 license = "Apache-2.0"
-version = "0.7.0"
+version = "0.8.0"
 authors = ["Parity Technologies <admin@parity.io>", "Laminar Developers <hello@laminar.one>"]
 edition = "2021"
 
