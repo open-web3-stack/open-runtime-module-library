@@ -144,8 +144,7 @@ pub mod module {
 		type CurrencyId: Parameter + Member + Clone;
 
 		/// Convert `T::CurrencyId` to `Location`.
-		type CurrencyIdConvert: Convert<Self::CurrencyId, Option<Location>>
-			+ Convert<Location, Option<Self::CurrencyId>>;
+		type CurrencyIdConvert: Convert<Self::CurrencyId, Option<Location>>;
 
 		/// Convert `T::AccountId` to `Location`.
 		type AccountIdToLocation: Convert<Self::AccountId, Location>;

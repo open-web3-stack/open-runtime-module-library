@@ -1,20 +1,51 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::{pallet_prelude::*, traits::schedule::DispatchTime, transactional, weights::Weight};
+use frame_support::{
+	pallet_prelude::*,
+	traits::{
+		schedule::{v1::Named as ScheduleNamed, DispatchTime},
+		OriginTrait,
+	},
+	weights::Weight,
+};
 use frame_system::pallet_prelude::*;
-use orml_traits::delay_tasks::{DelayTasksManager, DelayedTask};
+use orml_traits::{
+	task::{DelayTaskHooks, DelayTasksManager, DispatchableTask, TaskResult},
+	MultiCurrency, NamedMultiReservableCurrency,
+};
 use parity_scale_codec::FullCodec;
 use scale_info::TypeInfo;
 use sp_runtime::{
-	traits::{CheckedAdd, Zero},
+	traits::{CheckedAdd, Convert, Zero},
 	ArithmeticError,
 };
 use sp_std::fmt::Debug;
+use sp_std::marker::PhantomData;
+use xcm::v4::prelude::*;
 
 pub use module::*;
 
 mod mock;
 mod tests;
+
+pub const DELAY_TASK_ID: [u8; 8] = *b"orml/dts";
+
+/// A delayed origin. Can only be dispatched via `dispatch_as` with a delay.
+#[derive(PartialEq, Eq, Clone, RuntimeDebug, Encode, Decode, TypeInfo, MaxEncodedLen)]
+pub struct DelayedExecuteOrigin;
+
+pub struct EnsureDelayed;
+impl<O: Into<Result<DelayedExecuteOrigin, O>> + From<DelayedExecuteOrigin>> EnsureOrigin<O> for EnsureDelayed {
+	type Success = ();
+	fn try_origin(o: O) -> Result<Self::Success, O> {
+		o.into().and_then(|_| Ok(()))
+	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn try_successful_origin() -> Result<O, ()> {
+		Ok(O::from(DelayedExecuteOrigin))
+	}
+}
 
 #[frame_support::pallet]
 pub mod module {
@@ -22,19 +53,51 @@ pub mod module {
 
 	type Nonce = u64;
 
+	/// Origin for the delay tasks module.
+	#[pallet::origin]
+	pub type Origin = DelayedExecuteOrigin;
+
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
+		type RuntimeCall: Parameter + From<Call<Self>>;
+
+		/// The outer origin type.
+		type RuntimeOrigin: From<DelayedExecuteOrigin>
+			+ From<<Self as frame_system::Config>::RuntimeOrigin>
+			+ OriginTrait<PalletsOrigin = Self::PalletsOrigin>;
+
+		/// The caller origin, overarching type of all pallets origins.
+		type PalletsOrigin: Parameter + Into<<Self as frame_system::Config>::RuntimeOrigin>;
+
+		type DelayOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
+
 		type GovernanceOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 
-		type Task: DelayedTask + FullCodec + Debug + Clone + PartialEq + TypeInfo;
+		type Task: DispatchableTask + FullCodec + Debug + Clone + PartialEq + TypeInfo;
+
+		/// The Scheduler.
+		type Scheduler: ScheduleNamed<BlockNumberFor<Self>, <Self as Config>::RuntimeCall, Self::PalletsOrigin>;
+
+		type DelayTaskHooks: DelayTaskHooks<Self::Task>;
+
+		/// Convert `Location` to `CurrencyId`.
+		type CurrencyIdConvert: Convert<
+			Location,
+			Option<<Self::Currency as MultiCurrency<Self::AccountId>>::CurrencyId>,
+		>;
+
+		type Currency: NamedMultiReservableCurrency<Self::AccountId>;
+
+		type ReserveId: Get<<Self::Currency as NamedMultiReservableCurrency<Self::AccountId>>::ReserveIdentifier>;
 	}
 
 	#[pallet::error]
 	pub enum Error<T> {
 		InvalidDelayBlock,
 		InvalidId,
+		FailedToSchedule,
 	}
 
 	#[pallet::event]
@@ -53,10 +116,6 @@ pub mod module {
 			id: Nonce,
 			execute_block: BlockNumberFor<T>,
 		},
-		DelayedTaskTryExecuteFailed {
-			id: Nonce,
-			error: DispatchError,
-		},
 		DelayedTaskCanceled {
 			id: Nonce,
 		},
@@ -67,16 +126,7 @@ pub mod module {
 	pub struct Pallet<T>(_);
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-		/// `on_initialize` to return the weight used in `on_finalize`.
-		fn on_initialize(now: BlockNumberFor<T>) -> Weight {
-			Weight::zero()
-		}
-
-		fn on_finalize(now: BlockNumberFor<T>) {
-			Self::_on_finalize(now);
-		}
-	}
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
 	#[pallet::storage]
 	#[pallet::getter(fn next_delayed_task_id)]
@@ -86,16 +136,25 @@ pub mod module {
 	#[pallet::getter(fn delayed_tasks)]
 	pub type DelayedTasks<T: Config> = StorageMap<_, Twox64Concat, Nonce, (T::Task, BlockNumberFor<T>), OptionQuery>;
 
-	#[pallet::storage]
-	#[pallet::getter(fn delayed_task_queue)]
-	pub type DelayedTaskQueue<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, BlockNumberFor<T>, Twox64Concat, Nonce, (), OptionQuery>;
-
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::call_index(0)]
 		#[pallet::weight(Weight::zero())]
-		pub fn reset_execute_block(
+		pub fn delayed_execute(origin: OriginFor<T>, id: Nonce) -> DispatchResult {
+			T::DelayOrigin::ensure_origin(origin)?;
+
+			let execute_result = Self::do_delayed_execute(id)?;
+
+			Self::deposit_event(Event::<T>::DelayedTaskExecuted {
+				id,
+				result: execute_result.result,
+			});
+			Ok(())
+		}
+
+		#[pallet::call_index(1)]
+		#[pallet::weight(Weight::zero())]
+		pub fn reschedule_delay_task(
 			origin: OriginFor<T>,
 			id: Nonce,
 			when: DispatchTime<BlockNumberFor<T>>,
@@ -112,9 +171,10 @@ pub mod module {
 				};
 				ensure!(new_execute_block > now, Error::<T>::InvalidDelayBlock);
 
-				DelayedTaskQueue::<T>::remove(*execute_block, id);
-				DelayedTaskQueue::<T>::insert(new_execute_block, id, ());
 				*execute_block = new_execute_block;
+
+				T::Scheduler::reschedule_named((&DELAY_TASK_ID, id).encode(), DispatchTime::At(new_execute_block))
+					.map_err(|_| Error::<T>::FailedToSchedule)?;
 
 				Self::deposit_event(Event::<T>::DelayedTaskReDelayed {
 					id,
@@ -126,14 +186,17 @@ pub mod module {
 			Ok(())
 		}
 
-		#[pallet::call_index(1)]
+		#[pallet::call_index(2)]
 		#[pallet::weight(Weight::zero())]
 		pub fn cancel_delayed_task(origin: OriginFor<T>, id: Nonce) -> DispatchResult {
 			T::GovernanceOrigin::ensure_origin(origin)?;
 
-			let (delay_task, execute_block) = DelayedTasks::<T>::take(id).ok_or(Error::<T>::InvalidId)?;
-			delay_task.on_cancel()?;
-			DelayedTaskQueue::<T>::remove(execute_block, id);
+			let (task, _) = DelayedTasks::<T>::take(id).ok_or(Error::<T>::InvalidId)?;
+
+			// pre cancel
+			T::DelayTaskHooks::on_cancel(&task)?;
+
+			T::Scheduler::cancel_named((&DELAY_TASK_ID, id).encode()).map_err(|_| Error::<T>::FailedToSchedule)?;
 
 			Self::deposit_event(Event::<T>::DelayedTaskCanceled { id });
 			Ok(())
@@ -141,32 +204,13 @@ pub mod module {
 	}
 
 	impl<T: Config> Pallet<T> {
-		fn _on_finalize(now: BlockNumberFor<T>) {
-			for (id, _) in DelayedTaskQueue::<T>::drain_prefix(now) {
-				match Self::do_execute_delayed_task(id) {
-					Ok(result) => {
-						Self::deposit_event(Event::<T>::DelayedTaskExecuted { id, result });
-					}
-					Err(e) => {
-						log::debug!(
-							target: "delay-tasks",
-							"try executing delayed task {:?} failed for: {:?}. The delayed task still exists, but needs to be canceled or reset delay block.",
-							id,
-							e
-						);
-						Self::deposit_event(Event::<T>::DelayedTaskTryExecuteFailed { id, error: e });
-					}
-				}
-			}
-		}
-
-		#[transactional]
-		pub(crate) fn do_execute_delayed_task(id: Nonce) -> sp_std::result::Result<DispatchResult, DispatchError> {
+		pub(crate) fn do_delayed_execute(id: Nonce) -> sp_std::result::Result<TaskResult, DispatchError> {
 			let (delayed_task, _) = DelayedTasks::<T>::take(id).ok_or(Error::<T>::InvalidId)?;
 
-			delayed_task.pre_delayed_execute()?;
+			// pre delayed dispatch
+			T::DelayTaskHooks::pre_delayed_execute(&delayed_task)?;
 
-			Ok(delayed_task.delayed_execute())
+			Ok(delayed_task.dispatch(Weight::zero()))
 		}
 
 		/// Retrieves the next delayed task ID from storage, and increment it by
@@ -184,22 +228,61 @@ pub mod module {
 	impl<T: Config> DelayTasksManager<T::Task, BlockNumberFor<T>> for Pallet<T> {
 		fn add_delay_task(task: T::Task, delay_blocks: BlockNumberFor<T>) -> DispatchResult {
 			ensure!(!delay_blocks.is_zero(), Error::<T>::InvalidDelayBlock);
-
-			task.pre_delay()?;
-
-			let id = Self::get_next_delayed_task_id()?;
 			let execute_block = frame_system::Pallet::<T>::block_number()
 				.checked_add(&delay_blocks)
 				.ok_or(ArithmeticError::Overflow)?;
 
+			// pre schedule delay task
+			T::DelayTaskHooks::pre_delay(&task)?;
+
+			let id = Self::get_next_delayed_task_id()?;
+			let delayed_origin: <T as Config>::RuntimeOrigin = From::from(DelayedExecuteOrigin);
+			let pallets_origin = delayed_origin.caller().clone();
+
+			T::Scheduler::schedule_named(
+				(&DELAY_TASK_ID, id).encode(),
+				DispatchTime::At(execute_block),
+				None,
+				Zero::zero(),
+				pallets_origin,
+				<T as Config>::RuntimeCall::from(Call::<T>::delayed_execute { id }),
+			)
+			.map_err(|_| Error::<T>::FailedToSchedule)?;
+
 			DelayedTasks::<T>::insert(id, (&task, execute_block));
-			DelayedTaskQueue::<T>::insert(execute_block, id, ());
 
 			Self::deposit_event(Event::<T>::DelayedTaskAdded {
 				id,
 				task,
 				execute_block,
 			});
+			Ok(())
+		}
+	}
+
+	pub struct DelayedXtokensTaskHooks<T>(PhantomData<T>);
+	impl<T: Config + orml_xtokens::Config> DelayTaskHooks<orml_xtokens::XtokensTask<T>> for DelayedXtokensTaskHooks<T> {
+		fn pre_delay(task: &orml_xtokens::XtokensTask<T>) -> DispatchResult {
+			match task {
+				orml_xtokens::XtokensTask::<T>::TransferAssets { who, assets, fee, .. } => {}
+			}
+
+			Ok(())
+		}
+
+		fn pre_delayed_execute(task: &orml_xtokens::XtokensTask<T>) -> DispatchResult {
+			match task {
+				orml_xtokens::XtokensTask::<T>::TransferAssets { who, assets, fee, .. } => {}
+			}
+
+			Ok(())
+		}
+
+		fn on_cancel(task: &orml_xtokens::XtokensTask<T>) -> DispatchResult {
+			match task {
+				orml_xtokens::XtokensTask::<T>::TransferAssets { who, assets, fee, .. } => {}
+			}
+
 			Ok(())
 		}
 	}
