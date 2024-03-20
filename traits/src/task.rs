@@ -26,6 +26,28 @@ impl DispatchableTask for () {
 	}
 }
 
+pub trait DelayTasksManager<Task, BlockNumber> {
+	fn add_delay_task(task: Task, delay_blocks: BlockNumber) -> DispatchResult;
+}
+
+pub trait DelayTaskHooks<Task> {
+	fn pre_delay(task: &Task) -> DispatchResult;
+	fn pre_delayed_execute(task: &Task) -> DispatchResult;
+	fn pre_cancel(task: &Task) -> DispatchResult;
+}
+
+impl<Task> DelayTaskHooks<Task> for () {
+	fn pre_delay(_: &Task) -> DispatchResult {
+		Ok(())
+	}
+	fn pre_delayed_execute(_: &Task) -> DispatchResult {
+		Ok(())
+	}
+	fn pre_cancel(_: &Task) -> DispatchResult {
+		Ok(())
+	}
+}
+
 #[macro_export]
 macro_rules! define_combined_task {
 	(
@@ -63,24 +85,63 @@ macro_rules! define_combined_task {
 	};
 }
 
-pub trait DelayTasksManager<Task, BlockNumber> {
-	fn add_delay_task(task: Task, delay_blocks: BlockNumber) -> DispatchResult;
-}
+#[macro_export]
+macro_rules! define_combined_task_and_bind_delay_hooks {
+	(
+		$(#[$meta:meta])*
+		$vis:vis enum $combined_name:ident {
+			$(
+				$task:ident ( $vtask:ident $(<$($generic:tt),*>)? , $hook:ty )
+			),+ $(,)?
+		}
+	) => {
+		$(#[$meta])*
+		$vis enum $combined_name {
+			$(
+				$task($vtask $(<$($generic),*>)?),
+			)*
+		}
 
-pub trait DelayTaskHooks<Task> {
-	fn pre_delay(task: &Task) -> DispatchResult;
-	fn pre_delayed_execute(task: &Task) -> DispatchResult;
-	fn on_cancel(task: &Task) -> DispatchResult;
-}
+		impl DispatchableTask for $combined_name {
+			fn dispatch(self, weight: Weight) -> TaskResult {
+				match self {
+					$(
+						$combined_name::$task(t) => t.dispatch(weight),
+					)*
+				}
+			}
+		}
 
-impl<Task> DelayTaskHooks<Task> for () {
-	fn pre_delay(_: &Task) -> DispatchResult {
-		Ok(())
-	}
-	fn pre_delayed_execute(_: &Task) -> DispatchResult {
-		Ok(())
-	}
-	fn on_cancel(_: &Task) -> DispatchResult {
-		Ok(())
-	}
+		impl DelayTaskHooks<$combined_name> for $combined_name {
+			fn pre_delay(task: &$combined_name) -> DispatchResult {
+				match task {
+					$(
+						$combined_name::$task(t) => <$hook>::pre_delay(t),
+					)*
+				}
+			}
+			fn pre_delayed_execute(task: &$combined_name) -> DispatchResult {
+				match task {
+					$(
+						$combined_name::$task(t) => <$hook>::pre_delayed_execute(t),
+					)*
+				}
+			}
+			fn pre_cancel(task: &$combined_name) -> DispatchResult {
+				match task {
+					$(
+						$combined_name::$task(t) => <$hook>::pre_cancel(t),
+					)*
+				}
+			}
+		}
+
+        $(
+            impl From<$vtask $(<$($generic),*>)?> for $combined_name {
+                fn from(t: $vtask $(<$($generic),*>)?) -> Self{
+                    $combined_name::$task(t)
+                }
+            }
+        )*
+	};
 }

@@ -10,7 +10,7 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use orml_traits::{
-	task::{DelayTaskHooks, DelayTasksManager, DispatchableTask, TaskResult},
+	task::{DelayTaskHooks, DelayTasksManager, DispatchableTask},
 	MultiCurrency, NamedMultiReservableCurrency,
 };
 use parity_scale_codec::FullCodec;
@@ -38,7 +38,7 @@ pub struct EnsureDelayed;
 impl<O: Into<Result<DelayedExecuteOrigin, O>> + From<DelayedExecuteOrigin>> EnsureOrigin<O> for EnsureDelayed {
 	type Success = ();
 	fn try_origin(o: O) -> Result<Self::Success, O> {
-		o.into().and_then(|_| Ok(()))
+		o.into().map(|_| ())
 	}
 
 	#[cfg(feature = "runtime-benchmarks")]
@@ -98,6 +98,8 @@ pub mod module {
 		InvalidDelayBlock,
 		InvalidId,
 		FailedToSchedule,
+		AssetIndexNonExistent,
+		AssetConvertFailed,
 	}
 
 	#[pallet::event]
@@ -118,6 +120,10 @@ pub mod module {
 		},
 		DelayedTaskCanceled {
 			id: Nonce,
+		},
+		DelayedTaskStuck {
+			id: Nonce,
+			error: DispatchError,
 		},
 	}
 
@@ -143,12 +149,21 @@ pub mod module {
 		pub fn delayed_execute(origin: OriginFor<T>, id: Nonce) -> DispatchResult {
 			T::DelayOrigin::ensure_origin(origin)?;
 
-			let execute_result = Self::do_delayed_execute(id)?;
+			let (delayed_task, _) = DelayedTasks::<T>::get(id).ok_or(Error::<T>::InvalidId)?;
 
-			Self::deposit_event(Event::<T>::DelayedTaskExecuted {
-				id,
-				result: execute_result.result,
-			});
+			// pre delayed execute
+			if let Err(error) = T::DelayTaskHooks::pre_delayed_execute(&delayed_task) {
+				Self::deposit_event(Event::<T>::DelayedTaskStuck { id, error });
+			} else {
+				let execute_result = delayed_task.dispatch(Weight::zero());
+
+				DelayedTasks::<T>::remove(id);
+				Self::deposit_event(Event::<T>::DelayedTaskExecuted {
+					id,
+					result: execute_result.result,
+				});
+			}
+
 			Ok(())
 		}
 
@@ -171,10 +186,10 @@ pub mod module {
 				};
 				ensure!(new_execute_block > now, Error::<T>::InvalidDelayBlock);
 
-				*execute_block = new_execute_block;
-
 				T::Scheduler::reschedule_named((&DELAY_TASK_ID, id).encode(), DispatchTime::At(new_execute_block))
 					.map_err(|_| Error::<T>::FailedToSchedule)?;
+
+				*execute_block = new_execute_block;
 
 				Self::deposit_event(Event::<T>::DelayedTaskReDelayed {
 					id,
@@ -188,15 +203,19 @@ pub mod module {
 
 		#[pallet::call_index(2)]
 		#[pallet::weight(Weight::zero())]
-		pub fn cancel_delayed_task(origin: OriginFor<T>, id: Nonce) -> DispatchResult {
+		pub fn cancel_delayed_task(origin: OriginFor<T>, id: Nonce, skip_pre_cancel: bool) -> DispatchResult {
 			T::GovernanceOrigin::ensure_origin(origin)?;
 
-			let (task, _) = DelayedTasks::<T>::take(id).ok_or(Error::<T>::InvalidId)?;
+			let (task, execute_block) = DelayedTasks::<T>::take(id).ok_or(Error::<T>::InvalidId)?;
 
-			// pre cancel
-			T::DelayTaskHooks::on_cancel(&task)?;
+			if !skip_pre_cancel {
+				T::DelayTaskHooks::pre_cancel(&task)?;
+			}
 
-			T::Scheduler::cancel_named((&DELAY_TASK_ID, id).encode()).map_err(|_| Error::<T>::FailedToSchedule)?;
+			if frame_system::Pallet::<T>::block_number() < execute_block {
+				// if now < execute_block, need cancel scheduler
+				T::Scheduler::cancel_named((&DELAY_TASK_ID, id).encode()).map_err(|_| Error::<T>::FailedToSchedule)?;
+			}
 
 			Self::deposit_event(Event::<T>::DelayedTaskCanceled { id });
 			Ok(())
@@ -204,15 +223,6 @@ pub mod module {
 	}
 
 	impl<T: Config> Pallet<T> {
-		pub(crate) fn do_delayed_execute(id: Nonce) -> sp_std::result::Result<TaskResult, DispatchError> {
-			let (delayed_task, _) = DelayedTasks::<T>::take(id).ok_or(Error::<T>::InvalidId)?;
-
-			// pre delayed dispatch
-			T::DelayTaskHooks::pre_delayed_execute(&delayed_task)?;
-
-			Ok(delayed_task.dispatch(Weight::zero()))
-		}
-
 		/// Retrieves the next delayed task ID from storage, and increment it by
 		/// one.
 		fn get_next_delayed_task_id() -> Result<Nonce, DispatchError> {
@@ -261,10 +271,33 @@ pub mod module {
 	}
 
 	pub struct DelayedXtokensTaskHooks<T>(PhantomData<T>);
-	impl<T: Config + orml_xtokens::Config> DelayTaskHooks<orml_xtokens::XtokensTask<T>> for DelayedXtokensTaskHooks<T> {
+	impl<T: Config + orml_xtokens::Config> DelayTaskHooks<orml_xtokens::XtokensTask<T>> for DelayedXtokensTaskHooks<T>
+	where
+		<T as Config>::Currency: MultiCurrency<
+			T::AccountId,
+			CurrencyId = <T as orml_xtokens::Config>::CurrencyId,
+			Balance = <T as orml_xtokens::Config>::Balance,
+		>,
+	{
 		fn pre_delay(task: &orml_xtokens::XtokensTask<T>) -> DispatchResult {
 			match task {
-				orml_xtokens::XtokensTask::<T>::TransferAssets { who, assets, fee, .. } => {}
+				orml_xtokens::XtokensTask::<T>::TransferAssets { who, assets, .. } => {
+					let asset_len = assets.len();
+					for i in 0..asset_len {
+						let asset = assets.get(i).ok_or(Error::<T>::AssetIndexNonExistent)?;
+						let currency_id: <T::Currency as MultiCurrency<T::AccountId>>::CurrencyId =
+							<T as Config>::CurrencyIdConvert::convert(asset.id.0.clone())
+								.ok_or(Error::<T>::AssetConvertFailed)?;
+						let amount: T::Balance = match asset.fun {
+							Fungibility::Fungible(amount) => {
+								amount.try_into().map_err(|_| Error::<T>::AssetConvertFailed)?
+							}
+							Fungibility::NonFungible(_) => return Err(Error::<T>::AssetConvertFailed.into()),
+						};
+
+						T::Currency::reserve_named(&T::ReserveId::get(), currency_id, who, amount)?;
+					}
+				}
 			}
 
 			Ok(())
@@ -272,18 +305,30 @@ pub mod module {
 
 		fn pre_delayed_execute(task: &orml_xtokens::XtokensTask<T>) -> DispatchResult {
 			match task {
-				orml_xtokens::XtokensTask::<T>::TransferAssets { who, assets, fee, .. } => {}
+				orml_xtokens::XtokensTask::<T>::TransferAssets { who, assets, .. } => {
+					let asset_len = assets.len();
+					for i in 0..asset_len {
+						let asset = assets.get(i).ok_or(Error::<T>::AssetIndexNonExistent)?;
+						let currency_id: <T::Currency as MultiCurrency<T::AccountId>>::CurrencyId =
+							<T as Config>::CurrencyIdConvert::convert(asset.id.0.clone())
+								.ok_or(Error::<T>::AssetConvertFailed)?;
+						let amount: T::Balance = match asset.fun {
+							Fungibility::Fungible(amount) => {
+								amount.try_into().map_err(|_| Error::<T>::AssetConvertFailed)?
+							}
+							Fungibility::NonFungible(_) => return Err(Error::<T>::AssetConvertFailed.into()),
+						};
+
+						T::Currency::unreserve_named(&T::ReserveId::get(), currency_id, who, amount);
+					}
+				}
 			}
 
 			Ok(())
 		}
 
-		fn on_cancel(task: &orml_xtokens::XtokensTask<T>) -> DispatchResult {
-			match task {
-				orml_xtokens::XtokensTask::<T>::TransferAssets { who, assets, fee, .. } => {}
-			}
-
-			Ok(())
+		fn pre_cancel(task: &orml_xtokens::XtokensTask<T>) -> DispatchResult {
+			Self::pre_delayed_execute(task)
 		}
 	}
 }

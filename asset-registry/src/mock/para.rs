@@ -11,22 +11,17 @@ use frame_support::{
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_traits::{
-	define_combined_task,
 	location::{AbsoluteReserveProvider, RelativeReserveProvider},
-	parameter_type_with_key,
-	task::{DispatchableTask, TaskResult},
-	FixedConversionRateProvider, MultiCurrency,
+	parameter_type_with_key, FixedConversionRateProvider, MultiCurrency,
 };
 use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
-use orml_xtokens::XtokensTask;
 use pallet_xcm::XcmPassthrough;
 use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
 use polkadot_parachain_primitives::primitives::Sibling;
-use scale_info::TypeInfo;
 use sp_core::Get;
 use sp_runtime::{
 	traits::{AccountIdConversion, Convert, IdentityLookup},
-	AccountId32, DispatchResult, RuntimeDebug,
+	AccountId32,
 };
 use xcm::v4::{prelude::*, Weight};
 use xcm_builder::{
@@ -313,13 +308,6 @@ parameter_type_with_key! {
 			_ => None,
 		}
 	};
-}
-
-define_combined_task! {
-	#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo)]
-	pub enum DelayedTasks {
-		Xtokens(XtokensTask<Runtime>),
-	}
 }
 
 impl orml_xtokens::Config for Runtime {

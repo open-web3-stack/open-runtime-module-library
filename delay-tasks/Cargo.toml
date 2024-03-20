@@ -26,8 +26,22 @@ orml-xtokens = { path = "../xtokens", version = "0.7.0", default-features = fals
 [dev-dependencies]
 sp-core = { workspace = true, features = ["std"] }
 sp-io = { workspace = true, features = ["std"] }
+pallet-balances = { workspace = true, features = ["std"] }
 pallet-preimage = { workspace = true, features = ["std"] }
 pallet-scheduler = { workspace = true, features = ["std"] }
+orml-tokens = { path = "../tokens", version = "0.7.0", features = ["std"] }
+
+cumulus-pallet-xcm = { workspace = true, features = ["std"] }
+orml-xcm-mock-message-queue = { path = "../xcm-mock-message-queue" }
+orml-xcm = { path = "../xcm" }
+orml-xcm-support = { path = "../xcm-support" }
+pallet-xcm = { workspace = true, features = ["std"] }
+xcm-builder = { workspace = true, features = ["std"] }
+xcm-executor = { workspace = true, features = ["std"] }
+polkadot-parachain-primitives = { workspace = true, features = ["std"] }
+polkadot-runtime-parachains = { workspace = true, features = ["std"] }
+polkadot-runtime-common = { workspace = true, features = ["std"] }
+xcm-simulator = { workspace = true }
 
 [features]
 default = [ "std" ]
@@ -42,6 +56,11 @@ std = [
 	"sp-runtime/std",
 	"sp-std/std",
 	"xcm/std",
+]
+runtime-benchmarks = [
+	"frame-support/runtime-benchmarks",
+	"frame-system/runtime-benchmarks",
+	"sp-runtime/runtime-benchmarks",
 ]
 try-runtime = [
 	"frame-support/try-runtime",
