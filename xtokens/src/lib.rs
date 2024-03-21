@@ -144,7 +144,8 @@ pub mod module {
 		type CurrencyId: Parameter + Member + Clone;
 
 		/// Convert `T::CurrencyId` to `Location`.
-		type CurrencyIdConvert: Convert<Self::CurrencyId, Option<Location>>;
+		type CurrencyIdConvert: Convert<Self::CurrencyId, Option<Location>>
+			+ Convert<Location, Option<Self::CurrencyId>>;
 
 		/// Convert `T::AccountId` to `Location`.
 		type AccountIdToLocation: Convert<Self::AccountId, Location>;
@@ -468,25 +469,27 @@ pub mod module {
 			for i in 0..asset_len {
 				let asset = assets.get(i).ok_or(Error::<T>::AssetIndexNonExistent)?;
 
-				// per asset check
-				let amount = match asset.fun {
-					Fungibility::Fungible(amount) => amount,
-					Fungibility::NonFungible(_) => 1,
-				};
+				if let Some(currency_id) = T::CurrencyIdConvert::convert(asset.id.0.clone()) {
+					// per asset check
+					let amount = match asset.fun {
+						Fungibility::Fungible(amount) => amount,
+						Fungibility::NonFungible(_) => 1,
+					};
 
-				// try consume quota of the rate limiter.
-				// NOTE: use AssetId as the key, use AccountId as whitelist filter key.
-				match T::RateLimiter::try_consume(rate_limiter_id, asset.id.clone(), amount, Some(who)) {
-					Ok(_) => {}
-					Err(_e @ RateLimiterError::Deny) => {
-						return Err(Error::<T>::RateLimiterDeny.into());
-					}
-					Err(ref _e @ RateLimiterError::Delay { duration }) => {
-						if duration > need_delay.unwrap_or_default() {
-							need_delay = Some(duration);
+					// try consume quota of the rate limiter.
+					// NOTE: use CurrencyId as the key, use AccountId as whitelist filter key.
+					match T::RateLimiter::try_consume(rate_limiter_id, currency_id, amount, Some(who)) {
+						Ok(_) => {}
+						Err(_e @ RateLimiterError::Deny) => {
+							return Err(Error::<T>::RateLimiterDeny.into());
 						}
-					}
-				};
+						Err(ref _e @ RateLimiterError::Delay { duration }) => {
+							if duration > need_delay.unwrap_or_default() {
+								need_delay = Some(duration);
+							}
+						}
+					};
+				}
 			}
 
 			Ok(need_delay)

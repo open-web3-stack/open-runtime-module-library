@@ -248,11 +248,9 @@ impl RateLimiter<BlockNumberFor<Runtime>> for MockRateLimiter {
 		value: u128,
 	) -> Result<(), RateLimiterError<BlockNumberFor<Runtime>>> {
 		let encoded_limit_key = limit_key.encode();
-		let r_multi_location: Location = CurrencyIdConvert::convert(CurrencyId::R).unwrap();
-		let r_asset_id = AssetId(r_multi_location);
-		let encoded_r_asset_id = r_asset_id.encode();
+		let encoded_currency_id = CurrencyId::R.encode();
 
-		if encoded_limit_key == encoded_r_asset_id {
+		if encoded_limit_key == encoded_currency_id {
 			let accumulation = R_ACCUMULATION.with(|v| *v.borrow());
 			ensure!((accumulation + value) <= 2000, RateLimiterError::Deny);
 		}
@@ -262,11 +260,9 @@ impl RateLimiter<BlockNumberFor<Runtime>> for MockRateLimiter {
 
 	fn consume(_: Self::RateLimiterId, limit_key: impl Encode, value: u128) {
 		let encoded_limit_key = limit_key.encode();
-		let r_multi_location: Location = CurrencyIdConvert::convert(CurrencyId::R).unwrap();
-		let r_asset_id = AssetId(r_multi_location);
-		let encoded_r_asset_id = r_asset_id.encode();
+		let encoded_currency_id = CurrencyId::R.encode();
 
-		if encoded_limit_key == encoded_r_asset_id {
+		if encoded_limit_key == encoded_currency_id {
 			R_ACCUMULATION.with(|v| *v.borrow_mut() += value);
 		}
 	}
