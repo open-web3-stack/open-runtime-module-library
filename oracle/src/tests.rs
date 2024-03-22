@@ -290,7 +290,7 @@ fn get_all_values_should_work() {
 #[test]
 fn change_member_should_work() {
 	new_test_ext().execute_with(|| {
-		OracleMembers::set(vec![2, 3, 4]);
+		set_members(vec![2, 3, 4]);
 		<ModuleOracle as ChangeMembers<AccountId>>::change_members_sorted(&[4], &[1], &[2, 3, 4]);
 		assert_noop!(
 			ModuleOracle::feed_values(RuntimeOrigin::signed(1), vec![(50, 1000)].try_into().unwrap()),
