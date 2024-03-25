@@ -63,7 +63,9 @@ impl SortedMembers<AccountId> for Members {
 	}
 }
 
+#[cfg(feature = "runtime-benchmarks")]
 pub struct BenchmarkHelper;
+#[cfg(feature = "runtime-benchmarks")]
 impl crate::BenchmarkHelper<Key, Value, MaxFeedValues> for BenchmarkHelper {
 	fn get_currency_id_value_pairs() -> BoundedVec<(Key, Value), MaxFeedValues> {
 		vec![(1, 1), (2, 2), (3, 3)].try_into().unwrap()
