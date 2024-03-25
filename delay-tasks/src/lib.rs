@@ -13,6 +13,7 @@ use orml_traits::{
 	task::{DelayTaskHooks, DelayTasksManager, DispatchableTask},
 	MultiCurrency, NamedMultiReservableCurrency,
 };
+use orml_xtokens::XtokensTask;
 use parity_scale_codec::FullCodec;
 use scale_info::TypeInfo;
 use sp_runtime::{
@@ -271,7 +272,7 @@ pub mod module {
 	}
 
 	pub struct DelayedXtokensTaskHooks<T>(PhantomData<T>);
-	impl<T: Config + orml_xtokens::Config> DelayTaskHooks<orml_xtokens::XtokensTask<T>> for DelayedXtokensTaskHooks<T>
+	impl<T: Config + orml_xtokens::Config> DelayTaskHooks<XtokensTask<T>> for DelayedXtokensTaskHooks<T>
 	where
 		<T as Config>::Currency: MultiCurrency<
 			T::AccountId,
@@ -279,9 +280,9 @@ pub mod module {
 			Balance = <T as orml_xtokens::Config>::Balance,
 		>,
 	{
-		fn pre_delay(task: &orml_xtokens::XtokensTask<T>) -> DispatchResult {
+		fn pre_delay(task: &XtokensTask<T>) -> DispatchResult {
 			match task {
-				orml_xtokens::XtokensTask::<T>::TransferAssets { who, assets, .. } => {
+				XtokensTask::<T>::TransferAssets { who, assets, .. } => {
 					let asset_len = assets.len();
 					for i in 0..asset_len {
 						let asset = assets.get(i).ok_or(Error::<T>::AssetIndexNonExistent)?;
@@ -303,9 +304,9 @@ pub mod module {
 			Ok(())
 		}
 
-		fn pre_delayed_execute(task: &orml_xtokens::XtokensTask<T>) -> DispatchResult {
+		fn pre_delayed_execute(task: &XtokensTask<T>) -> DispatchResult {
 			match task {
-				orml_xtokens::XtokensTask::<T>::TransferAssets { who, assets, .. } => {
+				XtokensTask::<T>::TransferAssets { who, assets, .. } => {
 					let asset_len = assets.len();
 					for i in 0..asset_len {
 						let asset = assets.get(i).ok_or(Error::<T>::AssetIndexNonExistent)?;
@@ -327,7 +328,7 @@ pub mod module {
 			Ok(())
 		}
 
-		fn pre_cancel(task: &orml_xtokens::XtokensTask<T>) -> DispatchResult {
+		fn pre_cancel(task: &XtokensTask<T>) -> DispatchResult {
 			Self::pre_delayed_execute(task)
 		}
 	}

@@ -301,3 +301,134 @@ fn do_delayed_execute_work() {
 		assert_eq!(PRE_DELAYED_EXECUTE_SUCCEEDED.with(|v| *v.borrow()), 2);
 	});
 }
+
+#[test]
+fn delayed_xtokens_task_hooks_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let assets: Assets = Assets::from(vec![
+			(Location::parent(), 1000).into(),
+			(
+				(
+					Parent,
+					Parachain(1),
+					Junction::from(BoundedVec::try_from(b"A".to_vec()).unwrap()),
+				),
+				2000,
+			)
+				.into(),
+			(
+				(
+					Parent,
+					Parachain(2),
+					Junction::from(BoundedVec::try_from(b"B".to_vec()).unwrap()),
+				),
+				3000,
+			)
+				.into(),
+		]);
+		let fee: Asset = (Location::parent(), 1000).into();
+		let dest: Location = (
+			Parent,
+			Parachain(2),
+			Junction::AccountId32 {
+				network: None,
+				id: BOB.into(),
+			},
+		)
+			.into();
+		let task = XtokensTask::<Runtime>::TransferAssets {
+			who: ALICE,
+			assets,
+			fee,
+			dest,
+			dest_weight_limit: WeightLimit::Unlimited,
+		};
+
+		assert_ok!(Tokens::deposit(CurrencyId::R, &ALICE, 3000));
+		assert_ok!(Tokens::deposit(CurrencyId::A, &ALICE, 3000));
+		assert_ok!(Tokens::deposit(CurrencyId::B, &ALICE, 3000));
+		assert_eq!(Tokens::free_balance(CurrencyId::R, &ALICE), 3000);
+		assert_eq!(Tokens::free_balance(CurrencyId::A, &ALICE), 3000);
+		assert_eq!(Tokens::free_balance(CurrencyId::B, &ALICE), 3000);
+		assert_eq!(
+			Tokens::reserved_balance_named(&ReserveId::get(), CurrencyId::R, &ALICE),
+			0
+		);
+		assert_eq!(
+			Tokens::reserved_balance_named(&ReserveId::get(), CurrencyId::A, &ALICE),
+			0
+		);
+		assert_eq!(
+			Tokens::reserved_balance_named(&ReserveId::get(), CurrencyId::B, &ALICE),
+			0
+		);
+
+		assert_ok!(DelayedXtokensTaskHooks::<Runtime>::pre_delay(&task));
+		assert_eq!(Tokens::free_balance(CurrencyId::R, &ALICE), 2000);
+		assert_eq!(Tokens::free_balance(CurrencyId::A, &ALICE), 1000);
+		assert_eq!(Tokens::free_balance(CurrencyId::B, &ALICE), 0);
+		assert_eq!(
+			Tokens::reserved_balance_named(&ReserveId::get(), CurrencyId::R, &ALICE),
+			1000
+		);
+		assert_eq!(
+			Tokens::reserved_balance_named(&ReserveId::get(), CurrencyId::A, &ALICE),
+			2000
+		);
+		assert_eq!(
+			Tokens::reserved_balance_named(&ReserveId::get(), CurrencyId::B, &ALICE),
+			3000
+		);
+
+		assert_ok!(DelayedXtokensTaskHooks::<Runtime>::pre_delayed_execute(&task));
+		assert_eq!(Tokens::free_balance(CurrencyId::R, &ALICE), 3000);
+		assert_eq!(Tokens::free_balance(CurrencyId::A, &ALICE), 3000);
+		assert_eq!(Tokens::free_balance(CurrencyId::B, &ALICE), 3000);
+		assert_eq!(
+			Tokens::reserved_balance_named(&ReserveId::get(), CurrencyId::R, &ALICE),
+			0
+		);
+		assert_eq!(
+			Tokens::reserved_balance_named(&ReserveId::get(), CurrencyId::A, &ALICE),
+			0
+		);
+		assert_eq!(
+			Tokens::reserved_balance_named(&ReserveId::get(), CurrencyId::B, &ALICE),
+			0
+		);
+
+		assert_ok!(DelayedXtokensTaskHooks::<Runtime>::pre_delay(&task));
+		assert_eq!(Tokens::free_balance(CurrencyId::R, &ALICE), 2000);
+		assert_eq!(Tokens::free_balance(CurrencyId::A, &ALICE), 1000);
+		assert_eq!(Tokens::free_balance(CurrencyId::B, &ALICE), 0);
+		assert_eq!(
+			Tokens::reserved_balance_named(&ReserveId::get(), CurrencyId::R, &ALICE),
+			1000
+		);
+		assert_eq!(
+			Tokens::reserved_balance_named(&ReserveId::get(), CurrencyId::A, &ALICE),
+			2000
+		);
+		assert_eq!(
+			Tokens::reserved_balance_named(&ReserveId::get(), CurrencyId::B, &ALICE),
+			3000
+		);
+
+		assert_ok!(DelayedXtokensTaskHooks::<Runtime>::pre_cancel(&task));
+		assert_eq!(Tokens::free_balance(CurrencyId::R, &ALICE), 3000);
+		assert_eq!(Tokens::free_balance(CurrencyId::A, &ALICE), 3000);
+		assert_eq!(Tokens::free_balance(CurrencyId::B, &ALICE), 3000);
+		assert_eq!(
+			Tokens::reserved_balance_named(&ReserveId::get(), CurrencyId::R, &ALICE),
+			0
+		);
+		assert_eq!(
+			Tokens::reserved_balance_named(&ReserveId::get(), CurrencyId::A, &ALICE),
+			0
+		);
+		assert_eq!(
+			Tokens::reserved_balance_named(&ReserveId::get(), CurrencyId::B, &ALICE),
+			0
+		);
+	});
+}

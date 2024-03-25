@@ -5,10 +5,13 @@
 use super::*;
 use frame_support::{
 	construct_runtime, derive_impl, parameter_types,
-	traits::{ConstU128, EqualPrivilegeOnly, Everything},
+	traits::{EqualPrivilegeOnly, Everything},
 };
 use frame_system::EnsureRoot;
-use orml_traits::{define_combined_task_and_bind_delay_hooks, parameter_type_with_key, task::TaskResult};
+use orml_traits::{
+	define_combined_task_and_bind_delay_hooks, location::AbsoluteReserveProvider, parameter_type_with_key,
+	task::TaskResult,
+};
 use serde::{Deserialize, Serialize};
 use sp_runtime::{traits::IdentityLookup, AccountId32, BuildStorage, DispatchError};
 use sp_std::cell::RefCell;
@@ -29,23 +32,6 @@ impl frame_system::Config for Runtime {
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Block = Block;
-	type AccountData = pallet_balances::AccountData<Balance>;
-}
-
-impl pallet_balances::Config for Runtime {
-	type MaxLocks = ConstU32<50>;
-	type Balance = Balance;
-	type RuntimeEvent = RuntimeEvent;
-	type DustRemoval = ();
-	type ExistentialDeposit = ConstU128<1>;
-	type AccountStore = System;
-	type WeightInfo = ();
-	type MaxReserves = ConstU32<50>;
-	type ReserveIdentifier = [u8; 8];
-	type RuntimeHoldReason = RuntimeHoldReason;
-	type RuntimeFreezeReason = RuntimeFreezeReason;
-	type FreezeIdentifier = [u8; 8];
-	type MaxFreezes = ();
 }
 
 impl pallet_preimage::Config for Runtime {
@@ -179,6 +165,85 @@ impl orml_tokens::Config for Runtime {
 	type MaxReserves = ConstU32<50>;
 	type ReserveIdentifier = ReserveIdentifier;
 	type DustRemovalWhitelist = Everything;
+}
+
+parameter_types! {
+	pub SelfLocation: Location = Location::new(1, [Parachain(2000)]);
+}
+
+pub struct AccountIdToLocation;
+impl Convert<AccountId, Location> for AccountIdToLocation {
+	fn convert(account: AccountId) -> Location {
+		[Junction::AccountId32 {
+			network: None,
+			id: account.into(),
+		}]
+		.into()
+	}
+}
+
+parameter_type_with_key! {
+	pub ParachainMinFee: |location: Location| -> Option<u128> {
+		#[allow(clippy::match_ref_pats)] // false positive
+		match (location.parents, location.first_interior()) {
+			(1, Some(Parachain(3))) => Some(100),
+			_ => None,
+		}
+	};
+}
+
+pub enum Weightless {}
+impl PreparedMessage for Weightless {
+	fn weight_of(&self) -> Weight {
+		unreachable!()
+	}
+}
+
+pub struct MockExec;
+impl ExecuteXcm<RuntimeCall> for MockExec {
+	type Prepared = Weightless;
+
+	fn prepare(_message: Xcm<RuntimeCall>) -> Result<Self::Prepared, Xcm<RuntimeCall>> {
+		unreachable!()
+	}
+
+	fn execute(_origin: impl Into<Location>, _pre: Weightless, _hash: &mut XcmHash, _weight_credit: Weight) -> Outcome {
+		unreachable!()
+	}
+
+	fn charge_fees(_location: impl Into<Location>, _fees: Assets) -> XcmResult {
+		Err(XcmError::Unimplemented)
+	}
+}
+
+parameter_types! {
+	pub UniversalLocation: InteriorLocation = Here;
+	pub const UnitWeightCost: Weight = Weight::from_parts(10, 10);
+	pub const BaseXcmWeight: Weight = Weight::from_parts(100_000_000, 100_000_000);
+	pub const MaxInstructions: u32 = 100;
+	pub const MaxAssetsIntoHolding: u32 = 64;
+	pub const MaxAssetsForTransfer: usize = 2;
+}
+
+impl orml_xtokens::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Balance = Balance;
+	type CurrencyId = CurrencyId;
+	type CurrencyIdConvert = CurrencyIdConvert;
+	type AccountIdToLocation = AccountIdToLocation;
+	type SelfLocation = SelfLocation;
+	type XcmExecutor = MockExec;
+	type Weigher = xcm_builder::FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
+	type BaseXcmWeight = BaseXcmWeight;
+	type UniversalLocation = UniversalLocation;
+	type MaxAssetsForTransfer = MaxAssetsForTransfer;
+	type MinXcmFee = ParachainMinFee;
+	type LocationsFilter = Everything;
+	type ReserveProvider = AbsoluteReserveProvider;
+	type RateLimiter = ();
+	type RateLimiterId = ();
+	type Task = MockTaskType;
+	type DelayTasks = DelayTasks;
 }
 
 thread_local! {
@@ -325,6 +390,7 @@ define_combined_task_and_bind_delay_hooks! {
 		FailPreDelay(FailPreDelayTask, FailPreDelayTaskHook),
 		FailPreDelayedExecute(FailPreDelayedExecuteTask, FailPreDelayedExecuteTaskHook),
 		FailPreCancel(FailPreCancelTask, FailPreCancelTaskHook),
+		Xtokens(XtokensTask<Runtime>, DelayedXtokensTaskHooks<Runtime>),
 	}
 }
 
@@ -356,7 +422,7 @@ construct_runtime!(
 		Scheduler: pallet_scheduler,
 		Preimage: pallet_preimage,
 		Tokens: orml_tokens,
-		Balances: pallet_balances,
+		XTokens: orml_xtokens,
 	}
 );
 
