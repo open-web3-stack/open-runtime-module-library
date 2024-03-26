@@ -41,6 +41,9 @@ use sp_std::{prelude::*, vec};
 
 pub use crate::default_combine_data::DefaultCombineData;
 
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
+
 mod default_combine_data;
 mod mock;
 mod tests;
@@ -48,6 +51,15 @@ mod weights;
 
 pub use module::*;
 pub use weights::WeightInfo;
+
+#[cfg(feature = "runtime-benchmarks")]
+/// Helper trait for benchmarking.
+pub trait BenchmarkHelper<OracleKey, OracleValue, L: Get<u32>> {
+	/// Returns a list of `(oracle_key, oracle_value)` pairs to be used for benchmarking.
+	///
+	/// NOTE: User should ensure to at least submit two values, otherwise the benchmark linear analysis might fail.
+	fn get_currency_id_value_pairs() -> BoundedVec<(OracleKey, OracleValue), L>;
+}
 
 #[frame_support::pallet]
 pub mod module {
@@ -100,6 +112,9 @@ pub mod module {
 		/// Maximum size the vector used for feed values
 		#[pallet::constant]
 		type MaxFeedValues: Get<u32>;
+
+		#[cfg(feature = "runtime-benchmarks")]
+		type BenchmarkHelper: BenchmarkHelper<Self::OracleKey, Self::OracleValue, Self::MaxFeedValues>;
 	}
 
 	#[pallet::error]

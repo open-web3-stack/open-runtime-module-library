@@ -27,6 +27,7 @@ impl frame_system::Config for Test {
 
 thread_local! {
 	static TIME: RefCell<u32> = RefCell::new(0);
+	static MEMBERS: RefCell<Vec<AccountId>> = RefCell::new(vec![1, 2, 3]);
 }
 
 pub struct Timestamp;
@@ -46,14 +47,28 @@ impl Timestamp {
 
 parameter_types! {
 	pub const RootOperatorAccountId: AccountId = 4;
-	pub static OracleMembers: Vec<AccountId> = vec![1, 2, 3];
+	pub const MaxFeedValues: u32 = 5;
 }
 
 pub struct Members;
 
 impl SortedMembers<AccountId> for Members {
 	fn sorted_members() -> Vec<AccountId> {
-		OracleMembers::get()
+		MEMBERS.with(|v| v.borrow().clone())
+	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn add(who: &AccountId) {
+		MEMBERS.with(|v| v.borrow_mut().push(*who));
+	}
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+pub struct BenchmarkHelper;
+#[cfg(feature = "runtime-benchmarks")]
+impl crate::BenchmarkHelper<Key, Value, MaxFeedValues> for BenchmarkHelper {
+	fn get_currency_id_value_pairs() -> BoundedVec<(Key, Value), MaxFeedValues> {
+		vec![(1, 1), (2, 2), (3, 3)].try_into().unwrap()
 	}
 }
 
@@ -68,7 +83,9 @@ impl Config for Test {
 	type Members = Members;
 	type WeightInfo = ();
 	type MaxHasDispatchedSize = ConstU32<100>;
-	type MaxFeedValues = ConstU32<5>;
+	type MaxFeedValues = MaxFeedValues;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = BenchmarkHelper;
 }
 
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -79,6 +96,10 @@ construct_runtime!(
 		ModuleOracle: oracle,
 	}
 );
+
+pub fn set_members(members: Vec<AccountId>) {
+	MEMBERS.with(|v| *v.borrow_mut() = members);
+}
 
 // This function basically just builds a genesis storage key/value store
 // according to our desired mockup.
