@@ -1808,7 +1808,9 @@ impl<T: Config> fungibles::Inspect<T::AccountId> for Pallet<T> {
 		let a = Self::accounts(who, asset_id);
 		// Liquid balance is what is neither reserved nor locked/frozen.
 		let liquid = a.free.saturating_sub(a.frozen);
-		if frame_system::Pallet::<T>::can_dec_provider(who) && !matches!(preservation, Preservation::Protect) {
+		if frame_system::Pallet::<T>::can_dec_provider(who)
+			&& !matches!(preservation, Preservation::Protect | Preservation::Preserve)
+		{
 			liquid
 		} else {
 			// `must_remain_to_exist` is the part of liquid balance which must remain to

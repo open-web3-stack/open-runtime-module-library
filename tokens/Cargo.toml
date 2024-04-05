@@ -3,7 +3,7 @@ name = "orml-tokens"
 description = "Fungible tokens module that implements `MultiCurrency` trait."
 repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/tokens"
 license = "Apache-2.0"
-version = "0.8.0"
+version = "0.8.1"
 authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2021"
 

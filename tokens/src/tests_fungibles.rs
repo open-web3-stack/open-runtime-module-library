@@ -27,6 +27,15 @@ fn fungibles_inspect_trait_should_work() {
 				),
 				98
 			);
+			assert_eq!(
+				<Tokens as fungibles::Inspect<_>>::reducible_balance(
+					DOT,
+					&ALICE,
+					Preservation::Preserve,
+					Fortitude::Polite
+				),
+				98
+			);
 			assert_ok!(
 				<Tokens as fungibles::Inspect<_>>::can_deposit(DOT, &ALICE, 1, Provenance::Extant).into_result()
 			);
