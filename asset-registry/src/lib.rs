@@ -151,7 +151,7 @@ pub mod module {
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
-		pub assets: Vec<(T::AssetId, Vec<u8>)>,
+		pub assets: Vec<(T::AssetId, Vec<u8>, Option<L1Asset>)>,
 	}
 
 	impl<T: Config> Default for GenesisConfig<T> {
@@ -163,9 +163,13 @@ pub mod module {
 	#[pallet::genesis_build]
 	impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
 		fn build(&self) {
-			self.assets.iter().for_each(|(asset_id, metadata_encoded)| {
+			self.assets.iter().for_each(|(asset_id, metadata_encoded, maybe_l1_asset)| {
 				let metadata = AssetMetadata::decode(&mut &metadata_encoded[..]).expect("Error decoding AssetMetadata");
-				Pallet::<T>::do_register_asset(metadata, Some(asset_id.clone())).expect("Error registering Asset");
+				if let Some(l1_asset) = maybe_l1_asset{
+					Pallet::<T>::do_register_l1_asset(metadata, Some(asset_id.clone()), l1_asset.clone()).expect("Error registering Asset");
+				} else {
+					Pallet::<T>::do_register_asset(metadata, Some(asset_id.clone())).expect("Error registering Asset");
+				}
 			});
 		}
 	}
