@@ -200,7 +200,7 @@ impl<T: Config> Mutate for Pallet<T> {
 		asset_id: Option<Self::AssetId>,
 		metadata: AssetMetadata<Self::Balance, Self::CustomMetadata, Self::StringLimit>,
 	) -> DispatchResult {
-		let _ =Pallet::<T>::do_register_asset(metadata, asset_id)?;
+		let _ = Pallet::<T>::do_register_asset(metadata, asset_id)?;
 		Ok(())
 	}
 

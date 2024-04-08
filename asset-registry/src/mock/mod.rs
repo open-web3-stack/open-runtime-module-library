@@ -174,7 +174,9 @@ pub fn para_ext(para_id: u32, asset_data: Option<(Vec<(u32, Vec<u8>, Option<L1As
 	.unwrap();
 
 	if let Some((assets, _)) = asset_data {
-		GenesisConfig::<Runtime> { assets: assets }.assimilate_storage(&mut t).unwrap();
+		GenesisConfig::<Runtime> { assets: assets }
+			.assimilate_storage(&mut t)
+			.unwrap();
 	}
 
 	let mut ext = TestExternalities::new(t);

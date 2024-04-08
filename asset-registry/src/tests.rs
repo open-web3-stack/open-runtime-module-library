@@ -111,8 +111,18 @@ fn genesis_issuance_should_work() {
 		assert_eq!(AssetRegistry::metadata(1).unwrap(), metadata2);
 		assert_eq!(AssetRegistry::metadata(2).unwrap(), metadata3);
 
-		assert_eq!(AssetRegistry::asset_id_to_l1_id(2), Some(L1Asset::Ethereum(array_bytes::hex2array("0x0123456789012345678901234567890123456789").unwrap())));
-		assert_eq!(AssetRegistry::l1_asset_to_id(L1Asset::Ethereum(array_bytes::hex2array("0x0123456789012345678901234567890123456789").unwrap())), Some(2));
+		assert_eq!(
+			AssetRegistry::asset_id_to_l1_id(2),
+			Some(L1Asset::Ethereum(
+				array_bytes::hex2array("0x0123456789012345678901234567890123456789").unwrap()
+			))
+		);
+		assert_eq!(
+			AssetRegistry::l1_asset_to_id(L1Asset::Ethereum(
+				array_bytes::hex2array("0x0123456789012345678901234567890123456789").unwrap()
+			)),
+			Some(2)
+		);
 	});
 }
 
@@ -448,7 +458,7 @@ fn test_register_duplicate_l1_asset_returns_error() {
 		let register_asset = RuntimeCall::AssetRegistry(crate::Call::<para::Runtime>::register_l1_asset {
 			metadata,
 			asset_id: None,
-			l1_asset: L1Asset::Ethereum(array_bytes::hex2array("0x0123456789012345678901234567890123456789").unwrap())
+			l1_asset: L1Asset::Ethereum(array_bytes::hex2array("0x0123456789012345678901234567890123456789").unwrap()),
 		});
 		assert_noop!(
 			register_asset.dispatch(RuntimeOrigin::root()),
@@ -554,7 +564,8 @@ fn test_update_l1_asset_works() {
 	TestNet::reset();
 
 	ParaA::execute_with(|| {
-		let old_l1_asset = L1Asset::Ethereum(array_bytes::hex2array("0x0123456789012345678901234567890123456789").unwrap());
+		let old_l1_asset =
+			L1Asset::Ethereum(array_bytes::hex2array("0x0123456789012345678901234567890123456789").unwrap());
 		assert_ok!(AssetRegistry::register_l1_asset(
 			RuntimeOrigin::root(),
 			dummy_metadata(),
@@ -562,7 +573,8 @@ fn test_update_l1_asset_works() {
 			old_l1_asset.clone()
 		));
 
-		let new_l1_asset = L1Asset::Ethereum(array_bytes::hex2array("0x0123456789012345678901234567890123456700").unwrap());
+		let new_l1_asset =
+			L1Asset::Ethereum(array_bytes::hex2array("0x0123456789012345678901234567890123456700").unwrap());
 		assert_ok!(AssetRegistry::update_l1_asset_data(
 			RuntimeOrigin::root(),
 			1,
@@ -598,10 +610,21 @@ fn test_update_l1_asset_fails_with_unknown_asset() {
 
 	ParaA::execute_with(|| {
 		let old_metadata = dummy_metadata();
-		assert_ok!(AssetRegistry::register_l1_asset(RuntimeOrigin::root(), old_metadata, None, L1Asset::Ethereum(array_bytes::hex2array("0x0123456789012345678901234567890123456789").unwrap())));
+		assert_ok!(AssetRegistry::register_l1_asset(
+			RuntimeOrigin::root(),
+			old_metadata,
+			None,
+			L1Asset::Ethereum(array_bytes::hex2array("0x0123456789012345678901234567890123456789").unwrap())
+		));
 
 		assert_noop!(
-			AssetRegistry::update_l1_asset_data(RuntimeOrigin::root(), 4, Some(L1Asset::Ethereum(array_bytes::hex2array("0x0123456789012345678901234567890123456700").unwrap()))),
+			AssetRegistry::update_l1_asset_data(
+				RuntimeOrigin::root(),
+				4,
+				Some(L1Asset::Ethereum(
+					array_bytes::hex2array("0x0123456789012345678901234567890123456700").unwrap()
+				))
+			),
 			Error::<para::Runtime>::AssetNotFound
 		);
 	});

@@ -10,14 +10,14 @@ pub use orml_traits::asset_registry::AssetMetadata;
 use orml_traits::asset_registry::AssetProcessor;
 use scale_info::TypeInfo;
 use sp_runtime::{
-	traits::{AtLeast32BitUnsigned, Member, Hash, MaybeDisplay, SimpleBitOps, CheckEqual},
+	traits::{AtLeast32BitUnsigned, CheckEqual, Hash, MaybeDisplay, Member, SimpleBitOps},
 	DispatchResult,
 };
+use sp_std::fmt::Debug;
 use sp_std::prelude::*;
-use sp_std::{fmt::Debug};
 // use sp_core::H256;
-use xcm::{v3::prelude::*, VersionedMultiLocation};
 use mangata_types::assets::L1Asset;
+use xcm::{v3::prelude::*, VersionedMultiLocation};
 
 pub use impls::*;
 pub use module::*;
@@ -82,7 +82,7 @@ pub mod module {
 			+ MaxEncodedLen;
 
 		type Hashing: Hash<Output = <Self as module::Config>::Hash> + TypeInfo;
-		
+
 		type L1AssetAuthority: EnsureOrigin<Self::RuntimeOrigin>;
 
 		/// Weight information for extrinsics in this module.
@@ -104,7 +104,7 @@ pub mod module {
 		ConflictingAssetId,
 		/// Name or symbol is too long.
 		InvalidAssetString,
-		ConflictingL1Asset
+		ConflictingL1Asset,
 	}
 
 	#[pallet::event]
@@ -137,12 +137,10 @@ pub mod module {
 	#[pallet::getter(fn location_to_asset_id)]
 	pub type LocationToAssetId<T: Config> = StorageMap<_, Twox64Concat, MultiLocation, T::AssetId, OptionQuery>;
 
-
 	/// Maps a asset id to an L1Asset - useful when processing l1 assets
 	#[pallet::storage]
 	#[pallet::getter(fn asset_id_to_l1_id)]
 	pub type IdToL1Asset<T: Config> = StorageMap<_, Twox64Concat, T::AssetId, L1Asset, OptionQuery>;
-
 
 	/// Maps a L1Asset to an asset id - useful when processing l1 assets
 	#[pallet::storage]
@@ -163,14 +161,19 @@ pub mod module {
 	#[pallet::genesis_build]
 	impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
 		fn build(&self) {
-			self.assets.iter().for_each(|(asset_id, metadata_encoded, maybe_l1_asset)| {
-				let metadata = AssetMetadata::decode(&mut &metadata_encoded[..]).expect("Error decoding AssetMetadata");
-				if let Some(l1_asset) = maybe_l1_asset{
-					Pallet::<T>::do_register_l1_asset(metadata, Some(asset_id.clone()), l1_asset.clone()).expect("Error registering Asset");
-				} else {
-					Pallet::<T>::do_register_asset(metadata, Some(asset_id.clone())).expect("Error registering Asset");
-				}
-			});
+			self.assets
+				.iter()
+				.for_each(|(asset_id, metadata_encoded, maybe_l1_asset)| {
+					let metadata =
+						AssetMetadata::decode(&mut &metadata_encoded[..]).expect("Error decoding AssetMetadata");
+					if let Some(l1_asset) = maybe_l1_asset {
+						Pallet::<T>::do_register_l1_asset(metadata, Some(asset_id.clone()), l1_asset.clone())
+							.expect("Error registering Asset");
+					} else {
+						Pallet::<T>::do_register_asset(metadata, Some(asset_id.clone()))
+							.expect("Error registering Asset");
+					}
+				});
 		}
 	}
 
@@ -228,7 +231,7 @@ pub mod module {
 			origin: OriginFor<T>,
 			metadata: AssetMetadata<T::Balance, T::CustomMetadata, T::StringLimit>,
 			asset_id: Option<T::AssetId>,
-			l1_asset: L1Asset
+			l1_asset: L1Asset,
 		) -> DispatchResult {
 			T::L1AssetAuthority::ensure_origin(origin)?;
 
@@ -242,35 +245,30 @@ pub mod module {
 		pub fn update_l1_asset_data(
 			origin: OriginFor<T>,
 			asset_id: T::AssetId,
-			l1_asset: Option<L1Asset>
+			l1_asset: Option<L1Asset>,
 		) -> DispatchResult {
 			T::L1AssetAuthority::ensure_origin(origin)?;
-			ensure!(Metadata::<T>::get(asset_id.clone()).is_some(), Error::<T>::AssetNotFound);
+			ensure!(
+				Metadata::<T>::get(asset_id.clone()).is_some(),
+				Error::<T>::AssetNotFound
+			);
 
 			IdToL1Asset::<T>::try_mutate_exists(&asset_id, |l| {
-
-				Self::do_update_l1_asset_to_id(
-					asset_id.clone(),
-					l.clone(),
-					l1_asset.clone()
-				)?;
+				Self::do_update_l1_asset_to_id(asset_id.clone(), l.clone(), l1_asset.clone())?;
 				*l = l1_asset;
 				Ok(())
 			})
 		}
-
 	}
 }
 
 impl<T: Config> Pallet<T> {
-	
 	/// Register a new l1 asset
 	pub fn do_register_l1_asset(
 		metadata: AssetMetadata<T::Balance, T::CustomMetadata, T::StringLimit>,
 		asset_id: Option<T::AssetId>,
-		l1_asset: L1Asset
+		l1_asset: L1Asset,
 	) -> Result<T::AssetId, DispatchError> {
-		
 		let (asset_id, metadata) = Self::do_register_asset(metadata, asset_id)?;
 
 		Self::do_insert_l1_asset(asset_id.clone(), l1_asset.clone())?;
@@ -446,5 +444,4 @@ impl<T: Config> Pallet<T> {
 			Ok(())
 		})
 	}
-
 }
