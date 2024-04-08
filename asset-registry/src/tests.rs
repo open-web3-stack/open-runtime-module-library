@@ -97,8 +97,22 @@ fn genesis_issuance_should_work() {
 				fee_per_second: 1_000_000_000_000,
 			},
 		};
+		let metadata3 = AssetMetadata {
+			decimals: 12,
+			name: BoundedVec::truncate_from("para G native token 2".as_bytes().to_vec()),
+			symbol: BoundedVec::truncate_from("paraG2".as_bytes().to_vec()),
+			existential_deposit: 0,
+			location: None,
+			additional: CustomMetadata {
+				fee_per_second: 1_000_000_000_000,
+			},
+		};
 		assert_eq!(AssetRegistry::metadata(0).unwrap(), metadata1);
 		assert_eq!(AssetRegistry::metadata(1).unwrap(), metadata2);
+		assert_eq!(AssetRegistry::metadata(2).unwrap(), metadata3);
+
+		assert_eq!(AssetRegistry::asset_id_to_l1_id(2), Some(L1Asset::Ethereum(array_bytes::hex2array("0x0123456789012345678901234567890123456789").unwrap())));
+		assert_eq!(AssetRegistry::l1_asset_to_id(L1Asset::Ethereum(array_bytes::hex2array("0x0123456789012345678901234567890123456789").unwrap())), Some(2));
 	});
 }
 
@@ -418,6 +432,32 @@ fn test_register_duplicate_location_returns_error() {
 }
 
 #[test]
+fn test_register_duplicate_l1_asset_returns_error() {
+	TestNet::reset();
+
+	ParaA::execute_with(|| {
+		let mut metadata = dummy_metadata();
+		metadata.location = None;
+
+		assert_ok!(AssetRegistry::register_l1_asset(
+			RuntimeOrigin::root(),
+			dummy_metadata(),
+			None,
+			L1Asset::Ethereum(array_bytes::hex2array("0x0123456789012345678901234567890123456789").unwrap())
+		));
+		let register_asset = RuntimeCall::AssetRegistry(crate::Call::<para::Runtime>::register_l1_asset {
+			metadata,
+			asset_id: None,
+			l1_asset: L1Asset::Ethereum(array_bytes::hex2array("0x0123456789012345678901234567890123456789").unwrap())
+		});
+		assert_noop!(
+			register_asset.dispatch(RuntimeOrigin::root()),
+			Error::<para::Runtime>::ConflictingL1Asset
+		);
+	});
+}
+
+#[test]
 fn test_register_duplicate_asset_id_returns_error() {
 	TestNet::reset();
 
@@ -429,6 +469,31 @@ fn test_register_duplicate_asset_id_returns_error() {
 		));
 		assert_noop!(
 			AssetRegistry::do_register_asset_without_asset_processor(dummy_metadata(), 1),
+			Error::<para::Runtime>::ConflictingAssetId
+		);
+	});
+}
+
+#[test]
+fn test_register_l1_asset_duplicate_asset_id_returns_error() {
+	TestNet::reset();
+	let mut metadata = dummy_metadata();
+	metadata.location = None;
+
+	ParaA::execute_with(|| {
+		assert_ok!(AssetRegistry::register_l1_asset(
+			RuntimeOrigin::root(),
+			dummy_metadata(),
+			Some(1),
+			L1Asset::Ethereum(array_bytes::hex2array("0x0123456789012345678901234567890123456789").unwrap())
+		));
+		assert_noop!(
+			AssetRegistry::register_l1_asset(
+				RuntimeOrigin::root(),
+				metadata,
+				Some(1),
+				L1Asset::Ethereum(array_bytes::hex2array("0x0123456789012345678901234567890123456789").unwrap())
+			),
 			Error::<para::Runtime>::ConflictingAssetId
 		);
 	});
@@ -485,6 +550,34 @@ fn test_update_metadata_works() {
 }
 
 #[test]
+fn test_update_l1_asset_works() {
+	TestNet::reset();
+
+	ParaA::execute_with(|| {
+		let old_l1_asset = L1Asset::Ethereum(array_bytes::hex2array("0x0123456789012345678901234567890123456789").unwrap());
+		assert_ok!(AssetRegistry::register_l1_asset(
+			RuntimeOrigin::root(),
+			dummy_metadata(),
+			None,
+			old_l1_asset.clone()
+		));
+
+		let new_l1_asset = L1Asset::Ethereum(array_bytes::hex2array("0x0123456789012345678901234567890123456700").unwrap());
+		assert_ok!(AssetRegistry::update_l1_asset_data(
+			RuntimeOrigin::root(),
+			1,
+			Some(new_l1_asset.clone())
+		));
+
+		// check that the old location was removed and the new one added
+		assert_eq!(AssetRegistry::l1_asset_to_id(old_l1_asset), None);
+		assert_eq!(AssetRegistry::l1_asset_to_id(new_l1_asset.clone()), Some(1));
+
+		assert_eq!(AssetRegistry::asset_id_to_l1_id(1).unwrap(), new_l1_asset);
+	});
+}
+
+#[test]
 fn test_update_metadata_fails_with_unknown_asset() {
 	TestNet::reset();
 
@@ -494,6 +587,21 @@ fn test_update_metadata_fails_with_unknown_asset() {
 
 		assert_noop!(
 			AssetRegistry::update_asset(RuntimeOrigin::root(), 4, None, None, None, None, None, None,),
+			Error::<para::Runtime>::AssetNotFound
+		);
+	});
+}
+
+#[test]
+fn test_update_l1_asset_fails_with_unknown_asset() {
+	TestNet::reset();
+
+	ParaA::execute_with(|| {
+		let old_metadata = dummy_metadata();
+		assert_ok!(AssetRegistry::register_l1_asset(RuntimeOrigin::root(), old_metadata, None, L1Asset::Ethereum(array_bytes::hex2array("0x0123456789012345678901234567890123456789").unwrap())));
+
+		assert_noop!(
+			AssetRegistry::update_l1_asset_data(RuntimeOrigin::root(), 4, Some(L1Asset::Ethereum(array_bytes::hex2array("0x0123456789012345678901234567890123456700").unwrap()))),
 			Error::<para::Runtime>::AssetNotFound
 		);
 	});

@@ -33,6 +33,7 @@ mangata-types = { git = "https://github.com/mangata-finance/polkadot-sdk", defau
 orml-traits = { path = "../traits", version = "0.4.1-dev", default-features = false }
 
 [dev-dependencies]
+array-bytes = { version = "6.2.0" }
 # substrate
 pallet-balances = { git = "https://github.com/mangata-finance/polkadot-sdk", branch = "eth-rollup-develop" }
 sp-io = { git = "https://github.com/mangata-finance/polkadot-sdk", default-features = false , branch = "eth-rollup-develop" }

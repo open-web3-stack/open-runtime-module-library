@@ -245,6 +245,7 @@ pub mod module {
 			l1_asset: Option<L1Asset>
 		) -> DispatchResult {
 			T::L1AssetAuthority::ensure_origin(origin)?;
+			ensure!(Metadata::<T>::get(asset_id.clone()).is_some(), Error::<T>::AssetNotFound);
 
 			IdToL1Asset::<T>::try_mutate_exists(&asset_id, |l| {
 

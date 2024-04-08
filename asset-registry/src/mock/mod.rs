@@ -97,7 +97,7 @@ decl_test_parachain! {
 				additional: para::CustomMetadata {
 					fee_per_second: 1_000_000_000_000,
 				},
-			})),
+			}), None),
 			(
 				1,
 				AssetMetadata::<Balance, para::CustomMetadata, para::StringLimit>::encode(&AssetMetadata {
@@ -109,7 +109,19 @@ decl_test_parachain! {
 				additional: para::CustomMetadata {
 					fee_per_second: 1_000_000_000_000,
 				},
-			}))], 5
+			}), None),
+			(
+				2,
+				AssetMetadata::<Balance, para::CustomMetadata, para::StringLimit>::encode(&AssetMetadata {
+				decimals: 12,
+				name: BoundedVec::truncate_from("para G native token 2".as_bytes().to_vec()),
+				symbol: BoundedVec::truncate_from("paraG2".as_bytes().to_vec()),
+				existential_deposit: 0,
+				location: None,
+				additional: para::CustomMetadata {
+					fee_per_second: 1_000_000_000_000,
+				},
+			}), Some(L1Asset::Ethereum(array_bytes::hex2array("0x0123456789012345678901234567890123456789").unwrap())))], 5
 		))),
 	}
 }
@@ -141,7 +153,7 @@ decl_test_network! {
 pub type ParaTokens = orml_tokens::Pallet<para::Runtime>;
 pub type ParaXTokens = orml_xtokens::Pallet<para::Runtime>;
 
-pub fn para_ext(para_id: u32, asset_data: Option<(Vec<(u32, Vec<u8>)>, u32)>) -> TestExternalities {
+pub fn para_ext(para_id: u32, asset_data: Option<(Vec<(u32, Vec<u8>, Option<L1Asset>)>, u32)>) -> TestExternalities {
 	use para::{Runtime, System};
 
 	let mut t = frame_system::GenesisConfig::<Runtime>::default()
@@ -162,7 +174,7 @@ pub fn para_ext(para_id: u32, asset_data: Option<(Vec<(u32, Vec<u8>)>, u32)>) ->
 	.unwrap();
 
 	if let Some((assets, _)) = asset_data {
-		GenesisConfig::<Runtime> { assets: assets.into_iter().map(|(x, y)| (x, y, None)).collect::<_>() }.assimilate_storage(&mut t).unwrap();
+		GenesisConfig::<Runtime> { assets: assets }.assimilate_storage(&mut t).unwrap();
 	}
 
 	let mut ext = TestExternalities::new(t);
