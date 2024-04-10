@@ -329,11 +329,15 @@ impl<T: Config> Pallet<T> {
 		move_share: T::Share,
 		other: &T::AccountId,
 	) -> DispatchResult {
-		SharesAndWithdrawnRewards::<T>::mutate(pool, other, |increased_share| {
+		SharesAndWithdrawnRewards::<T>::try_mutate(pool, other, |increased_share| {
 			let (increased_share, increased_rewards) = increased_share;
-			SharesAndWithdrawnRewards::<T>::mutate_exists(pool, who, |share| {
+			SharesAndWithdrawnRewards::<T>::try_mutate_exists(pool, who, |share| {
 				let (share, rewards) = share.as_mut().ok_or(Error::<T>::ShareDoesNotExist)?;
 				ensure!(move_share < *share, Error::<T>::CanSplitOnlyLessThanShare);
+				if who == other {
+					// self transfer is noop
+					return Ok(());
+				}
 				for (reward_currency, balance) in rewards {
 					// u128 * u128 is always less than u256
 					// move_share / share always less then 1 and share > 0
