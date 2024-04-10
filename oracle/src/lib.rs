@@ -55,9 +55,11 @@ pub use weights::WeightInfo;
 #[cfg(feature = "runtime-benchmarks")]
 /// Helper trait for benchmarking.
 pub trait BenchmarkHelper<OracleKey, OracleValue, L: Get<u32>> {
-	/// Returns a list of `(oracle_key, oracle_value)` pairs to be used for benchmarking.
+	/// Returns a list of `(oracle_key, oracle_value)` pairs to be used for
+	/// benchmarking.
 	///
-	/// NOTE: User should ensure to at least submit two values, otherwise the benchmark linear analysis might fail.
+	/// NOTE: User should ensure to at least submit two values, otherwise the
+	/// benchmark linear analysis might fail.
 	fn get_currency_id_value_pairs() -> BoundedVec<(OracleKey, OracleValue), L>;
 }
 

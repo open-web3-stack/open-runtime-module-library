@@ -218,6 +218,13 @@ impl<T: Config> Pallet<T> {
 					return Ok(());
 				}
 
+				let old_share = share;
+
+				share = share.saturating_sub(remove_amount);
+				if !share.is_zero() {
+					ensure!(share >= T::MinimalShares::get(pool), Error::<T>::ShareBelowMinimal);
+				}
+
 				PoolInfos::<T>::try_mutate_exists(pool, |maybe_pool_info| -> DispatchResult {
 					if let Some(mut pool_info) = maybe_pool_info.take() {
 						let removing_share = U256::from(remove_amount.saturated_into::<u128>());
@@ -230,7 +237,7 @@ impl<T: Config> Pallet<T> {
 							.for_each(|(reward_currency, withdrawn_reward)| {
 								let withdrawn_reward_to_remove: T::Balance = removing_share
 									.saturating_mul(withdrawn_reward.to_owned().saturated_into::<u128>().into())
-									.checked_div(share.saturated_into::<u128>().into())
+									.checked_div(old_share.saturated_into::<u128>().into())
 									.unwrap_or_default()
 									.as_u128()
 									.saturated_into();
@@ -255,15 +262,12 @@ impl<T: Config> Pallet<T> {
 						}
 					}
 
+					if !share.is_zero() {
+						*share_info = Some((share, withdrawn_rewards));
+					}
+
 					Ok(())
 				})?;
-
-				share = share.saturating_sub(remove_amount);
-				if !share.is_zero() {
-					ensure!(share >= T::MinimalShares::get(pool), Error::<T>::ShareBelowMinimal);
-
-					*share_info = Some((share, withdrawn_rewards));
-				}
 			}
 
 			Ok(())
@@ -349,6 +353,10 @@ impl<T: Config> Pallet<T> {
 		move_share: T::Share,
 		other: &T::AccountId,
 	) -> DispatchResult {
+		if move_share.is_zero() {
+			return Ok(());
+		}
+
 		SharesAndWithdrawnRewards::<T>::try_mutate(pool, other, |increased_share| {
 			let (increased_share, increased_rewards) = increased_share;
 			SharesAndWithdrawnRewards::<T>::try_mutate_exists(pool, who, |share| {
@@ -379,6 +387,16 @@ impl<T: Config> Pallet<T> {
 				}
 				*share = share.saturating_sub(move_share);
 				*increased_share = increased_share.saturating_add(move_share);
+
+				ensure!(
+					*share >= T::MinimalShares::get(pool) || share.is_zero(),
+					Error::<T>::ShareBelowMinimal
+				);
+				ensure!(
+					*increased_share >= T::MinimalShares::get(pool),
+					Error::<T>::ShareBelowMinimal
+				);
+
 				Ok(())
 			})
 		})
