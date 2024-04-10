@@ -6,7 +6,7 @@ mod mock;
 mod tests;
 
 use frame_support::pallet_prelude::*;
-use orml_traits::RewardHandler;
+use orml_traits::{GetByKey, RewardHandler};
 use parity_scale_codec::{FullCodec, HasCompact};
 use scale_info::TypeInfo;
 use sp_core::U256;
@@ -73,6 +73,11 @@ pub mod module {
 
 		type CurrencyId: Parameter + Member + Copy + MaybeSerializeDeserialize + Ord;
 
+		/// The minimal amount of shares an account can hold.
+		/// Transactions that would result in an account holding shares fewer
+		/// than this amount but non zero are invalid.
+		type MinimalShares: GetByKey<Self::PoolId, Self::Share>;
+
 		/// The `RewardHandler`
 		type Handler: RewardHandler<Self::AccountId, Self::CurrencyId, Balance = Self::Balance, PoolId = Self::PoolId>;
 	}
@@ -83,8 +88,12 @@ pub mod module {
 	pub enum Error<T> {
 		/// Pool does not exist
 		PoolDoesNotExist,
+		/// Account does not have share
 		ShareDoesNotExist,
+		/// Can split only less than share
 		CanSplitOnlyLessThanShare,
+		/// Share amount below minimal
+		ShareBelowMinimal,
 	}
 
 	/// Record reward pool info.
@@ -140,12 +149,12 @@ impl<T: Config> Pallet<T> {
 		})
 	}
 
-	pub fn add_share(who: &T::AccountId, pool: &T::PoolId, add_amount: T::Share) {
+	pub fn add_share(who: &T::AccountId, pool: &T::PoolId, add_amount: T::Share) -> DispatchResult {
 		if add_amount.is_zero() {
-			return;
+			return Ok(());
 		}
 
-		PoolInfos::<T>::mutate(pool, |pool_info| {
+		PoolInfos::<T>::try_mutate(pool, |pool_info| {
 			let initial_total_shares = pool_info.total_shares;
 			pool_info.total_shares = pool_info.total_shares.saturating_add(add_amount);
 
@@ -171,8 +180,11 @@ impl<T: Config> Pallet<T> {
 					withdrawn_inflation.push((*reward_currency, reward_inflation));
 				});
 
-			SharesAndWithdrawnRewards::<T>::mutate(pool, who, |(share, withdrawn_rewards)| {
+			SharesAndWithdrawnRewards::<T>::try_mutate(pool, who, |(share, withdrawn_rewards)| {
 				*share = share.saturating_add(add_amount);
+
+				ensure!(*share >= T::MinimalShares::get(pool), Error::<T>::ShareBelowMinimal);
+
 				// update withdrawn inflation for each reward currency
 				withdrawn_inflation
 					.into_iter()
@@ -184,27 +196,29 @@ impl<T: Config> Pallet<T> {
 							})
 							.or_insert(reward_inflation);
 					});
-			});
-		});
+
+				Ok(())
+			})
+		})
 	}
 
-	pub fn remove_share(who: &T::AccountId, pool: &T::PoolId, remove_amount: T::Share) {
+	pub fn remove_share(who: &T::AccountId, pool: &T::PoolId, remove_amount: T::Share) -> DispatchResult {
 		if remove_amount.is_zero() {
-			return;
+			return Ok(());
 		}
 
 		// claim rewards firstly
 		Self::claim_rewards(who, pool);
 
-		SharesAndWithdrawnRewards::<T>::mutate_exists(pool, who, |share_info| {
+		SharesAndWithdrawnRewards::<T>::try_mutate_exists(pool, who, |share_info| {
 			if let Some((mut share, mut withdrawn_rewards)) = share_info.take() {
 				let remove_amount = remove_amount.min(share);
 
 				if remove_amount.is_zero() {
-					return;
+					return Ok(());
 				}
 
-				PoolInfos::<T>::mutate_exists(pool, |maybe_pool_info| {
+				PoolInfos::<T>::try_mutate_exists(pool, |maybe_pool_info| -> DispatchResult {
 					if let Some(mut pool_info) = maybe_pool_info.take() {
 						let removing_share = U256::from(remove_amount.saturated_into::<u128>());
 
@@ -240,23 +254,29 @@ impl<T: Config> Pallet<T> {
 							*maybe_pool_info = Some(pool_info);
 						}
 					}
-				});
+
+					Ok(())
+				})?;
 
 				share = share.saturating_sub(remove_amount);
 				if !share.is_zero() {
+					ensure!(share >= T::MinimalShares::get(pool), Error::<T>::ShareBelowMinimal);
+
 					*share_info = Some((share, withdrawn_rewards));
 				}
 			}
-		});
+
+			Ok(())
+		})
 	}
 
-	pub fn set_share(who: &T::AccountId, pool: &T::PoolId, new_share: T::Share) {
+	pub fn set_share(who: &T::AccountId, pool: &T::PoolId, new_share: T::Share) -> DispatchResult {
 		let (share, _) = Self::shares_and_withdrawn_rewards(pool, who);
 
 		if new_share > share {
-			Self::add_share(who, pool, new_share.saturating_sub(share));
+			Self::add_share(who, pool, new_share.saturating_sub(share))
 		} else {
-			Self::remove_share(who, pool, share.saturating_sub(new_share));
+			Self::remove_share(who, pool, share.saturating_sub(new_share))
 		}
 	}
 
