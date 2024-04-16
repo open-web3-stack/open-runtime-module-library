@@ -668,7 +668,7 @@ fn do_transfer_report_keep_alive_error_when_ed_is_not_zero() {
 			);
 
 			// even if dave is in dust removal whitelist, but account drain will still cause
-			// account be be reaped.
+			// account be reaped.
 			assert_noop!(
 				Tokens::do_transfer(DOT, &DAVE, &BOB, 100, ExistenceRequirement::KeepAlive),
 				Error::<Runtime>::KeepAlive

@@ -756,7 +756,7 @@ fn consume_work() {
 		assert_eq!(RateLimit::rate_limit_quota(0, BTC.encode()), (0, 100));
 		assert_eq!(RateLimit::rate_limit_quota(0, ETH.encode()), (0, 1000));
 
-		// consume when vaule > remainer_quota
+		// consume when value > remainer_quota
 		RateLimit::consume(1, ETH, 1000);
 		assert_eq!(RateLimit::rate_limit_quota(1, ETH.encode()), (0, 0));
 	});
@@ -834,7 +834,7 @@ fn can_consume_work() {
 		assert_ok!(RateLimit::can_consume(1, BTC, 10000));
 		assert_ok!(RateLimit::can_consume(1, BTC, u128::MAX));
 
-		// if dosen't config rule, always return true
+		// if doesn't config rule, always return true
 		assert_eq!(RateLimitRules::<Runtime>::contains_key(0, ETH.encode()), false);
 		assert_ok!(RateLimit::can_consume(0, ETH, 10000));
 		assert_ok!(RateLimit::can_consume(0, ETH, u128::MAX));
