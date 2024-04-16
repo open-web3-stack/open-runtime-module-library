@@ -200,7 +200,7 @@ fn multiple_calls_should_fail() {
 			vec![(50, 1300)].try_into().unwrap()
 		));
 
-		// Fails feeding by the the extrinsic
+		// Fails feeding by the extrinsic
 		assert_noop!(
 			ModuleOracle::feed_values(RuntimeOrigin::signed(1), vec![(50, 1300)].try_into().unwrap()),
 			Error::<Test, _>::AlreadyFeeded,
