@@ -31,7 +31,7 @@ use frame_support::{
 	dispatch::{DispatchClass, GetDispatchInfo, Pays},
 	pallet_prelude::*,
 	traits::{
-		schedule::{v1::Named as ScheduleNamed, DispatchTime, Priority},
+		schedule::{v3::Named as ScheduleNamed, DispatchTime, Priority},
 		EitherOfDiverse, EnsureOrigin, Get, IsType, OriginTrait,
 	},
 };
