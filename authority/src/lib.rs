@@ -31,7 +31,7 @@ use frame_support::{
 	dispatch::{DispatchClass, GetDispatchInfo, Pays},
 	pallet_prelude::*,
 	traits::{
-		schedule::{v3::Named as ScheduleNamed, DispatchTime, Priority},
+		schedule::{DispatchTime, Priority},
 		EitherOfDiverse, EnsureOrigin, Get, IsType, OriginTrait,
 	},
 };
@@ -44,6 +44,10 @@ use sp_runtime::{
 	ArithmeticError, DispatchError, DispatchResult, Either, RuntimeDebug,
 };
 use sp_std::prelude::*;
+
+// Todo: Switch to current v3 api: https://github.com/open-web3-stack/open-runtime-module-library/issues/995
+#[allow(deprecated)]
+use frame_support::traits::schedule::v1::Named as ScheduleNamed;
 
 mod mock;
 mod tests;
@@ -215,6 +219,7 @@ pub mod module {
 			+ GetDispatchInfo;
 
 		/// The Scheduler.
+		#[allow(deprecated)]
 		type Scheduler: ScheduleNamed<BlockNumberFor<Self>, <Self as Config>::RuntimeCall, Self::PalletsOrigin>;
 
 		/// The type represent origin that can be dispatched by other origins.
@@ -357,6 +362,7 @@ pub mod module {
 			};
 			let pallets_origin = schedule_origin.caller().clone();
 
+			#[allow(deprecated)]
 			T::Scheduler::schedule_named(
 				Encode::encode(&(&pallets_origin, id)),
 				when,
@@ -394,6 +400,7 @@ pub mod module {
 			};
 
 			T::AuthorityConfig::check_fast_track_schedule(origin, &initial_origin, new_delay)?;
+			#[allow(deprecated)]
 			T::Scheduler::reschedule_named((&initial_origin, task_id).encode(), when)
 				.map_err(|_| Error::<T>::FailedToFastTrack)?;
 
@@ -416,6 +423,7 @@ pub mod module {
 		) -> DispatchResult {
 			T::AuthorityConfig::check_delay_schedule(origin, &initial_origin)?;
 
+			#[allow(deprecated)]
 			T::Scheduler::reschedule_named(
 				(&initial_origin, task_id).encode(),
 				DispatchTime::After(additional_delay),
@@ -442,6 +450,7 @@ pub mod module {
 			task_id: ScheduleTaskIndex,
 		) -> DispatchResult {
 			T::AuthorityConfig::check_cancel_schedule(origin, &initial_origin)?;
+			#[allow(deprecated)]
 			T::Scheduler::cancel_named((&initial_origin, task_id).encode()).map_err(|_| Error::<T>::FailedToCancel)?;
 
 			Self::deposit_event(Event::Cancelled {
