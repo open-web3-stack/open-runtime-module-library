@@ -120,13 +120,14 @@ where
 		asset: Self::AssetId,
 		dest: &AccountId,
 		amount: Self::Balance,
+		preservation: Preservation,
 		precision: Precision,
 		fortitude: Fortitude,
 	) -> Result<Self::Balance, DispatchError> {
 		if TestKey::contains(&asset) {
-			A::burn_from(dest, amount, precision, fortitude)
+			A::burn_from(dest, amount, preservation, precision, fortitude)
 		} else {
-			B::burn_from(asset, dest, amount, precision, fortitude)
+			B::burn_from(asset, dest, amount, preservation, precision, fortitude)
 		}
 	}
 
@@ -295,6 +296,7 @@ where
 	fn burn_from(
 		dest: &AccountId,
 		amount: Self::Balance,
+		preservation: Preservation,
 		precision: Precision,
 		fortitude: Fortitude,
 	) -> Result<Self::Balance, DispatchError> {
@@ -302,6 +304,7 @@ where
 			GetCurrencyId::get(),
 			dest,
 			C::convert_balance_back(amount, GetCurrencyId::get())?,
+			preservation,
 			precision,
 			fortitude,
 		)

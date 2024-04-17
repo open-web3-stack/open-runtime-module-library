@@ -1858,6 +1858,8 @@ impl<T: Config> fungibles::Mutate<T::AccountId> for Pallet<T> {
 		asset_id: Self::AssetId,
 		who: &T::AccountId,
 		amount: Self::Balance,
+		// TODO: Respect preservation
+		_preservation: Preservation,
 		// TODO: Respect precision
 		_precision: Precision,
 		// TODO: Respect fortitude
@@ -2492,10 +2494,18 @@ where
 	fn burn_from(
 		who: &T::AccountId,
 		amount: Self::Balance,
+		preservation: Preservation,
 		precision: Precision,
 		fortitude: Fortitude,
 	) -> Result<Self::Balance, DispatchError> {
-		<Pallet<T> as fungibles::Mutate<_>>::burn_from(GetCurrencyId::get(), who, amount, precision, fortitude)
+		<Pallet<T> as fungibles::Mutate<_>>::burn_from(
+			GetCurrencyId::get(),
+			who,
+			amount,
+			preservation,
+			precision,
+			fortitude,
+		)
 	}
 
 	fn transfer(
