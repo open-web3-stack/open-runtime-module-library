@@ -140,6 +140,9 @@ impl Config for XcmConfig {
 	type SafeCallFilter = Everything;
 	type Aliasers = ();
 	type TransactionalProcessor = ();
+	type HrmpNewChannelOpenRequestHandler = ();
+	type HrmpChannelAcceptedHandler = ();
+	type HrmpChannelClosingHandler = ();
 }
 
 impl cumulus_pallet_xcm::Config for Runtime {

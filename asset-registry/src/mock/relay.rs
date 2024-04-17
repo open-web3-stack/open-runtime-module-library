@@ -110,6 +110,9 @@ impl Config for XcmConfig {
 	type SafeCallFilter = Everything;
 	type Aliasers = Nothing;
 	type TransactionalProcessor = ();
+	type HrmpNewChannelOpenRequestHandler = ();
+	type HrmpChannelAcceptedHandler = ();
+	type HrmpChannelClosingHandler = ();
 }
 
 pub type LocalOriginToLocation = SignedToAccountId32<RuntimeOrigin, AccountId, KusamaNetwork>;
@@ -187,6 +190,7 @@ impl pallet_message_queue::Config for Runtime {
 	type QueueChangeHandler = ();
 	type QueuePausedQuery = ();
 	type WeightInfo = ();
+	type IdleMaxServiceWeight = ();
 }
 
 construct_runtime!(
