@@ -5,14 +5,13 @@ use frame_benchmarking::v2::*;
 
 use frame_support::assert_ok;
 use frame_system::{Pallet as System, RawOrigin};
-use sp_std::vec;
 
 #[instance_benchmarks]
 mod benchmarks {
 	use super::*;
 
 	#[benchmark]
-	fn feed_values(x: Linear<1, { T::BenchmarkHelper::get_currency_id_value_pairs().len() as u32 }>) {
+	fn feed_values(x: Linear<0, { T::BenchmarkHelper::get_currency_id_value_pairs().len() as u32 }>) {
 		// Register the caller
 		let caller: T::AccountId = whitelisted_caller();
 		T::Members::add(&caller);

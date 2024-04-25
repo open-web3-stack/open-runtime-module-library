@@ -63,6 +63,13 @@ pub trait BenchmarkHelper<OracleKey, OracleValue, L: Get<u32>> {
 	fn get_currency_id_value_pairs() -> BoundedVec<(OracleKey, OracleValue), L>;
 }
 
+#[cfg(feature = "runtime-benchmarks")]
+impl<OracleKey, OracleValue, L: Get<u32>> BenchmarkHelper<OracleKey, OracleValue, L> for () {
+	fn get_currency_id_value_pairs() -> BoundedVec<(OracleKey, OracleValue), L> {
+		BoundedVec::default()
+	}
+}
+
 #[frame_support::pallet]
 pub mod module {
 	use super::*;
