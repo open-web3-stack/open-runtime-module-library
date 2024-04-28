@@ -25,7 +25,7 @@ benchmarks! {
 		}: _(RawOrigin::Root, metadata, None)
 
 		update_asset {
-			let asset_id: T::AssetId = 1.into();
+			let asset_id: T::AssetId = 0.into();
 			let decimals = 18;
 			let name = BoundedVec::truncate_from("new token".as_bytes().to_vec());
 			let symbol = BoundedVec::truncate_from("NWT".as_bytes().to_vec());
