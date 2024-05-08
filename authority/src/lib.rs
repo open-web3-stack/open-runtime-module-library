@@ -72,7 +72,9 @@ mod helper {
 	use std::cell::RefCell;
 
 	thread_local! {
-		static NESTED_MAX_ENCODED_LEN: RefCell<bool> = RefCell::new(false);
+		static NESTED_MAX_ENCODED_LEN: RefCell<bool> = const {
+			RefCell::new(false)
+		};
 	}
 
 	pub fn set_nested_max_encoded_len(val: bool) {
