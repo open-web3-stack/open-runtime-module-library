@@ -6,12 +6,12 @@ use super::*;
 use frame_support::{
 	assert_noop, assert_ok,
 	dispatch::DispatchErrorWithPostInfo,
-	traits::{schedule::DispatchTime, OriginTrait},
+	traits::{schedule::DispatchTime, OriginTrait, StorePreimage},
 };
 use frame_system::RawOrigin;
 use mock::{
-	authority, run_to_block, Authority, BlockNumber, ExtBuilder, MockAsOriginId, OriginCaller, Runtime, RuntimeCall,
-	RuntimeOrigin, System,
+	authority, run_to_block, Authority, BlockNumber, ExtBuilder, MockAsOriginId, OriginCaller, Preimage, Runtime,
+	RuntimeCall, RuntimeOrigin, System,
 };
 use parity_scale_codec::MaxEncodedLen;
 use sp_io::hashing::blake2_256;
@@ -74,7 +74,7 @@ fn schedule_dispatch_at_work() {
 				DispatchTime::At(1),
 				0,
 				true,
-				Box::new(call.clone())
+				Box::new(Preimage::bound(call.clone()).unwrap())
 			),
 			Error::<Runtime>::FailedToSchedule
 		);
@@ -84,7 +84,7 @@ fn schedule_dispatch_at_work() {
 			DispatchTime::At(2),
 			0,
 			true,
-			Box::new(call.clone())
+			Box::new(Preimage::bound(call.clone()).unwrap())
 		));
 		System::assert_last_event(mock::RuntimeEvent::Authority(Event::Scheduled {
 			origin: OriginCaller::Authority(DelayedOrigin {
@@ -109,7 +109,7 @@ fn schedule_dispatch_at_work() {
 			DispatchTime::At(3),
 			0,
 			false,
-			Box::new(call)
+			Box::new(Preimage::bound(call).unwrap())
 		));
 		System::assert_last_event(mock::RuntimeEvent::Authority(Event::Scheduled {
 			origin: OriginCaller::system(RawOrigin::Root),
@@ -144,7 +144,7 @@ fn schedule_dispatch_after_work() {
 				DispatchTime::At(0),
 				0,
 				true,
-				Box::new(call.clone())
+				Box::new(Preimage::bound(call.clone()).unwrap())
 			),
 			ArithmeticError::Overflow
 		);
@@ -154,7 +154,7 @@ fn schedule_dispatch_after_work() {
 			DispatchTime::After(0),
 			0,
 			true,
-			Box::new(call.clone())
+			Box::new(Preimage::bound(call.clone()).unwrap())
 		));
 		System::assert_last_event(mock::RuntimeEvent::Authority(Event::Scheduled {
 			origin: OriginCaller::Authority(DelayedOrigin {
@@ -179,7 +179,7 @@ fn schedule_dispatch_after_work() {
 			DispatchTime::After(0),
 			0,
 			false,
-			Box::new(call)
+			Box::new(Preimage::bound(call).unwrap())
 		));
 		System::assert_last_event(mock::RuntimeEvent::Authority(Event::Scheduled {
 			origin: OriginCaller::system(RawOrigin::Root),
@@ -214,7 +214,7 @@ fn fast_track_scheduled_dispatch_work() {
 			DispatchTime::At(2),
 			0,
 			true,
-			Box::new(call.clone())
+			Box::new(Preimage::bound(call.clone()).unwrap())
 		));
 		System::assert_last_event(mock::RuntimeEvent::Authority(Event::Scheduled {
 			origin: OriginCaller::Authority(DelayedOrigin {
@@ -255,7 +255,7 @@ fn fast_track_scheduled_dispatch_work() {
 			DispatchTime::At(2),
 			0,
 			false,
-			Box::new(call)
+			Box::new(Preimage::bound(call.clone()).unwrap())
 		));
 		System::assert_last_event(mock::RuntimeEvent::Authority(Event::Scheduled {
 			origin: OriginCaller::system(RawOrigin::Root),
@@ -293,7 +293,7 @@ fn delay_scheduled_dispatch_work() {
 			DispatchTime::At(2),
 			0,
 			true,
-			Box::new(call.clone())
+			Box::new(Preimage::bound(call.clone()).unwrap())
 		));
 		System::assert_last_event(mock::RuntimeEvent::Authority(Event::Scheduled {
 			origin: OriginCaller::Authority(DelayedOrigin {
@@ -334,7 +334,7 @@ fn delay_scheduled_dispatch_work() {
 			DispatchTime::At(2),
 			0,
 			false,
-			Box::new(call)
+			Box::new(Preimage::bound(call).unwrap())
 		));
 		System::assert_last_event(mock::RuntimeEvent::Authority(Event::Scheduled {
 			origin: OriginCaller::system(RawOrigin::Root),
@@ -371,7 +371,7 @@ fn cancel_scheduled_dispatch_work() {
 			DispatchTime::At(2),
 			0,
 			true,
-			Box::new(call.clone())
+			Box::new(Preimage::bound(call.clone()).unwrap())
 		));
 		System::assert_last_event(mock::RuntimeEvent::Authority(Event::Scheduled {
 			origin: OriginCaller::Authority(DelayedOrigin {
@@ -410,7 +410,7 @@ fn cancel_scheduled_dispatch_work() {
 			DispatchTime::At(2),
 			0,
 			false,
-			Box::new(call)
+			Box::new(Preimage::bound(call).unwrap())
 		));
 		System::assert_last_event(mock::RuntimeEvent::Authority(Event::Scheduled {
 			origin: OriginCaller::system(RawOrigin::Root),
