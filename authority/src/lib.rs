@@ -32,22 +32,21 @@ use frame_support::{
 	pallet_prelude::*,
 	traits::{
 		schedule::{DispatchTime, Priority},
-		EitherOfDiverse, EnsureOrigin, Get, IsType, OriginTrait,
+		Bounded, EitherOfDiverse, EnsureOrigin, Get, IsType, OriginTrait,
 	},
 };
 use frame_system::{pallet_prelude::*, EnsureRoot, EnsureSigned};
 use parity_scale_codec::MaxEncodedLen;
 use scale_info::TypeInfo;
 use sp_core::defer;
+use sp_io::hashing::blake2_256;
 use sp_runtime::{
 	traits::{CheckedSub, Dispatchable, Hash, Saturating},
 	ArithmeticError, DispatchError, DispatchResult, Either, RuntimeDebug,
 };
 use sp_std::prelude::*;
 
-// Todo: Switch to current v3 api: https://github.com/open-web3-stack/open-runtime-module-library/issues/995
-#[allow(deprecated)]
-use frame_support::traits::schedule::v1::Named as ScheduleNamed;
+use frame_support::traits::schedule::v3::Named as ScheduleNamed;
 
 mod mock;
 mod tests;
@@ -201,6 +200,7 @@ pub mod module {
 	#[pallet::origin]
 	pub type Origin<T> = DelayedOrigin<BlockNumberFor<T>, <T as Config>::PalletsOrigin>;
 	pub(crate) type CallOf<T> = <T as Config>::RuntimeCall;
+	pub(crate) type BoundedCallOf<T> = Bounded<CallOf<T>, <T as frame_system::Config>::Hashing>;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -221,8 +221,12 @@ pub mod module {
 			+ GetDispatchInfo;
 
 		/// The Scheduler.
-		#[allow(deprecated)]
-		type Scheduler: ScheduleNamed<BlockNumberFor<Self>, <Self as Config>::RuntimeCall, Self::PalletsOrigin>;
+		type Scheduler: ScheduleNamed<
+			BlockNumberFor<Self>,
+			<Self as Config>::RuntimeCall,
+			Self::PalletsOrigin,
+			Hasher = Self::Hashing,
+		>;
 
 		/// The type represent origin that can be dispatched by other origins.
 		type AsOriginId: Parameter + AsOriginId<<Self as frame_system::Config>::RuntimeOrigin, Self::PalletsOrigin>;
@@ -337,7 +341,7 @@ pub mod module {
 			when: DispatchTime<BlockNumberFor<T>>,
 			priority: Priority,
 			with_delayed_origin: bool,
-			call: Box<CallOf<T>>,
+			call: Box<BoundedCallOf<T>>,
 		) -> DispatchResult {
 			T::AuthorityConfig::check_schedule_dispatch(origin.clone(), priority)?;
 
@@ -364,16 +368,9 @@ pub mod module {
 			};
 			let pallets_origin = schedule_origin.caller().clone();
 
-			#[allow(deprecated)]
-			T::Scheduler::schedule_named(
-				Encode::encode(&(&pallets_origin, id)),
-				when,
-				None,
-				priority,
-				pallets_origin.clone(),
-				*call,
-			)
-			.map_err(|_| Error::<T>::FailedToSchedule)?;
+			let task_name = (&pallets_origin, id).using_encoded(blake2_256);
+			T::Scheduler::schedule_named(task_name, when, None, priority, pallets_origin.clone(), *call)
+				.map_err(|_| Error::<T>::FailedToSchedule)?;
 
 			Self::deposit_event(Event::Scheduled {
 				origin: pallets_origin,
@@ -402,9 +399,8 @@ pub mod module {
 			};
 
 			T::AuthorityConfig::check_fast_track_schedule(origin, &initial_origin, new_delay)?;
-			#[allow(deprecated)]
-			T::Scheduler::reschedule_named((&initial_origin, task_id).encode(), when)
-				.map_err(|_| Error::<T>::FailedToFastTrack)?;
+			let task_name = (&initial_origin, task_id).using_encoded(blake2_256);
+			T::Scheduler::reschedule_named(task_name, when).map_err(|_| Error::<T>::FailedToFastTrack)?;
 
 			Self::deposit_event(Event::FastTracked {
 				origin: *initial_origin,
@@ -425,12 +421,9 @@ pub mod module {
 		) -> DispatchResult {
 			T::AuthorityConfig::check_delay_schedule(origin, &initial_origin)?;
 
-			#[allow(deprecated)]
-			T::Scheduler::reschedule_named(
-				(&initial_origin, task_id).encode(),
-				DispatchTime::After(additional_delay),
-			)
-			.map_err(|_| Error::<T>::FailedToDelay)?;
+			let task_name = (&initial_origin, task_id).using_encoded(blake2_256);
+			T::Scheduler::reschedule_named(task_name, DispatchTime::After(additional_delay))
+				.map_err(|_| Error::<T>::FailedToDelay)?;
 
 			let now = frame_system::Pallet::<T>::block_number();
 			let dispatch_at = now.saturating_add(additional_delay);
@@ -452,8 +445,9 @@ pub mod module {
 			task_id: ScheduleTaskIndex,
 		) -> DispatchResult {
 			T::AuthorityConfig::check_cancel_schedule(origin, &initial_origin)?;
-			#[allow(deprecated)]
-			T::Scheduler::cancel_named((&initial_origin, task_id).encode()).map_err(|_| Error::<T>::FailedToCancel)?;
+
+			let task_name = (&initial_origin, task_id).using_encoded(blake2_256);
+			T::Scheduler::cancel_named(task_name).map_err(|_| Error::<T>::FailedToCancel)?;
 
 			Self::deposit_event(Event::Cancelled {
 				origin: *initial_origin,
