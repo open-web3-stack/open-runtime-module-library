@@ -867,14 +867,14 @@ macro_rules! impl_benchmark {
 		#[cfg(test)]
 		impl Benchmark {
 			/// Test a particular benchmark by name.
-            ///
-            /// This isn't called `test_benchmark_by_name` just in case some end-user eventually
-            /// writes a benchmark, itself called `by_name`; the function would be shadowed in
-            /// that case.
-            ///
-            /// This is generally intended to be used by child test modules such as those created
-            /// by the `impl_benchmark_test_suite` macro. However, it is not an error if a pallet
-            /// author chooses not to implement benchmarks.
+			///
+			/// This isn't called `test_benchmark_by_name` just in case some end-user eventually
+			/// writes a benchmark, itself called `by_name`; the function would be shadowed in
+			/// that case.
+			///
+			/// This is generally intended to be used by child test modules such as those created
+			/// by the `impl_benchmark_test_suite` macro. However, it is not an error if a pallet
+			/// author chooses not to implement benchmarks.
 			#[allow(unused)]
 			fn test_bench_by_name(name: &[u8]) -> Result<(), $crate::BenchmarkError> {
 				let name = $crate::str::from_utf8(name)
@@ -1153,7 +1153,7 @@ macro_rules! impl_benchmark_test_suite {
 									err,
 								);
 								anything_failed = true;
-							}
+							},
 							Ok(Err(err)) => {
 								match err {
 									$crate::BenchmarkError::Stop(err) => {
@@ -1164,7 +1164,7 @@ macro_rules! impl_benchmark_test_suite {
 											err,
 										);
 										anything_failed = true;
-									}
+									},
 									$crate::BenchmarkError::Override(_) => {
 										// This is still considered a success condition.
 										$crate::log::error!(
@@ -1172,7 +1172,7 @@ macro_rules! impl_benchmark_test_suite {
 											$crate::str::from_utf8(benchmark_name)
 												.expect("benchmark name is always a valid string!"),
 										);
-									}
+									},
 									$crate::BenchmarkError::Skip => {
 										// This is considered a success condition.
 										$crate::log::error!(
@@ -1180,7 +1180,7 @@ macro_rules! impl_benchmark_test_suite {
 											$crate::str::from_utf8(benchmark_name)
 												.expect("benchmark name is always a valid string!"),
 										);
-									}
+									},
 									$crate::BenchmarkError::Weightless => {
 										// This is considered a success condition.
 										$crate::log::error!(
@@ -1190,7 +1190,7 @@ macro_rules! impl_benchmark_test_suite {
 										);
 									}
 								}
-							}
+							},
 							Ok(Ok(())) => (),
 						}
 					}
@@ -1304,7 +1304,7 @@ macro_rules! add_benchmark {
 						(b"Benchmark Override".to_vec(), 0, 0, false)
 					);
 					Some($crate::vec![result])
-				}
+				},
 				Err($crate::BenchmarkError::Stop(e)) => {
 					$crate::show_benchmark_debug_info(
 						instance_string,
@@ -1314,7 +1314,7 @@ macro_rules! add_benchmark {
 						e,
 					);
 					return Err(e.into());
-				}
+				},
 				Err($crate::BenchmarkError::Skip) => {
 					$crate::log::error!(
 						"WARNING: benchmark error skipped - {}",
@@ -1322,7 +1322,7 @@ macro_rules! add_benchmark {
 							.expect("benchmark name is always a valid string!")
 					);
 					None
-				}
+				},
 				Err($crate::BenchmarkError::Weightless) => {
 					$crate::log::error!(
 						"WARNING: benchmark weightless skipped - {}",
@@ -1417,12 +1417,12 @@ macro_rules! cb_list_benchmarks {
 macro_rules! define_benchmarks {
     ( $([ $names:path, $( $locations:tt )* ])* ) => {
 		/// Calls `list_benchmark` with all configs from `define_benchmarks`
-        /// and passes the first two parameters on.
-        ///
-        /// Use as:
-        /// ```ignore
-        /// list_benchmarks!(list, extra);
-        /// ```
+		/// and passes the first two parameters on.
+		///
+		/// Use as:
+		/// ```ignore
+		/// list_benchmarks!(list, extra);
+		/// ```
 		#[macro_export]
 		macro_rules! list_benchmarks {
             ( $list:ident, $extra:ident ) => {
@@ -1431,12 +1431,12 @@ macro_rules! define_benchmarks {
         }
 
 		/// Calls `add_benchmark` with all configs from `define_benchmarks`
-        /// and passes the first two parameters on.
-        ///
-        /// Use as:
-        /// ```ignore
-        /// add_benchmarks!(params, batches);
-        /// ```
+		/// and passes the first two parameters on.
+		///
+		/// Use as:
+		/// ```ignore
+		/// add_benchmarks!(params, batches);
+		/// ```
 		#[macro_export]
 		macro_rules! add_benchmarks {
             ( $params:ident, $batches:ident ) => {
