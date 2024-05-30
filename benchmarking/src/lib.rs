@@ -923,7 +923,7 @@ macro_rules! impl_benchmark_test {
 						};
 
 						// Run execution + verification
-						<SelectedBenchmark as $crate::BenchmarkingSetup<$runtime, _>>::test_instance(&selected_benchmark, &c, &on_before_start);
+						<SelectedBenchmark as $crate::BenchmarkingSetup<$runtime, _>>::test_instance(&selected_benchmark, &c, &on_before_start)?;
 
 						// Reset the state
 						$crate::benchmarking::wipe_db();
