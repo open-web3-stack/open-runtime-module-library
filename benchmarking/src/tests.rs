@@ -127,79 +127,67 @@ fn benchmarks_macro_works() {
 	let components = <SelectedBenchmark as BenchmarkingSetup<Test>>::components(&selected_benchmark);
 	assert_eq!(components, vec![(BenchmarkParameter::b, 1, 1000)]);
 
-	let closure = <SelectedBenchmark as BenchmarkingSetup<Test>>::instance(
-		&selected_benchmark,
-		&[(BenchmarkParameter::b, 1)],
-		true,
-	)
-	.expect("failed to create closure");
-
 	new_test_ext().execute_with(|| {
-		assert_eq!(closure(), Ok(()));
+		assert_ok!(<SelectedBenchmark as BenchmarkingSetup<Test>>::unit_test_instance(
+			&selected_benchmark,
+			&[(BenchmarkParameter::b, 1)],
+		));
 	});
 }
 
 #[test]
 fn benchmarks_macro_rename_works() {
 	// Check benchmark creation for `other_dummy`.
-	let selected_benchmark = SelectedBenchmark::other_name;
-	let components = <SelectedBenchmark as BenchmarkingSetup<Test>>::components(&selected_benchmark);
+	let selected = SelectedBenchmark::other_name;
+	let components = <SelectedBenchmark as BenchmarkingSetup<Test>>::components(&selected);
 	assert_eq!(components, vec![(BenchmarkParameter::b, 1, 1000)]);
 
-	let closure = <SelectedBenchmark as BenchmarkingSetup<Test>>::instance(
-		&selected_benchmark,
-		&[(BenchmarkParameter::b, 1)],
-		true,
-	)
-	.expect("failed to create closure");
-
 	new_test_ext().execute_with(|| {
-		assert_ok!(closure());
+		assert_ok!(<SelectedBenchmark as BenchmarkingSetup<Test>>::unit_test_instance(
+			&selected,
+			&[(BenchmarkParameter::b, 1)],
+		));
 	});
 }
 
 #[test]
 fn benchmarks_macro_works_for_non_dispatchable() {
-	let selected_benchmark = SelectedBenchmark::sort_vector;
+	let selected = SelectedBenchmark::sort_vector;
 
-	let components = <SelectedBenchmark as BenchmarkingSetup<Test>>::components(&selected_benchmark);
+	let components = <SelectedBenchmark as BenchmarkingSetup<Test>>::components(&selected);
 	assert_eq!(components, vec![(BenchmarkParameter::x, 1, 10000)]);
 
-	let closure = <SelectedBenchmark as BenchmarkingSetup<Test>>::instance(
-		&selected_benchmark,
-		&[(BenchmarkParameter::x, 1)],
-		true,
-	)
-	.expect("failed to create closure");
-
-	assert_eq!(closure(), Ok(()));
+	new_test_ext().execute_with(|| {
+		assert_ok!(<SelectedBenchmark as BenchmarkingSetup<Test>>::unit_test_instance(
+			&selected,
+			&[(BenchmarkParameter::x, 1)],
+		));
+	});
 }
 
 #[test]
 fn benchmarks_macro_verify_works() {
 	// Check postcondition for benchmark `set_value` is valid.
-	let selected_benchmark = SelectedBenchmark::set_value;
-
-	let closure = <SelectedBenchmark as BenchmarkingSetup<Test>>::instance(
-		&selected_benchmark,
-		&[(BenchmarkParameter::b, 1)],
-		true,
-	)
-	.expect("failed to create closure");
+	let selected = SelectedBenchmark::set_value;
 
 	new_test_ext().execute_with(|| {
-		assert_ok!(closure());
+		assert_ok!(<SelectedBenchmark as BenchmarkingSetup<Test>>::unit_test_instance(
+			&selected,
+			&[(BenchmarkParameter::b, 1)],
+		));
 	});
 
 	// Check postcondition for benchmark `bad_verify` is invalid.
 	let selected = SelectedBenchmark::bad_verify;
 
-	let closure =
-		<SelectedBenchmark as BenchmarkingSetup<Test>>::instance(&selected, &[(BenchmarkParameter::x, 10000)], true)
-			.expect("failed to create closure");
-
 	new_test_ext().execute_with(|| {
-		assert_err!(closure(), "You forgot to sort!");
+		assert_err!(
+			<SelectedBenchmark as BenchmarkingSetup<Test>>::unit_test_instance(
+				&selected,
+				&[(BenchmarkParameter::x, 10000)],
+			),
+			"You forgot to sort!"
+		);
 	});
 }
 
