@@ -174,6 +174,7 @@ fn pallet_fungibles_mutate_deposit_events() {
 				DOT,
 				&ALICE,
 				500,
+				Preservation::Expendable,
 				Precision::Exact,
 				Fortitude::Polite
 			));
