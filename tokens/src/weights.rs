@@ -34,6 +34,8 @@ pub trait WeightInfo {
 	fn transfer_keep_alive() -> Weight;
 	fn force_transfer() -> Weight;
 	fn set_balance() -> Weight;
+	fn set_allowance() -> Weight;
+	fn transfer_allowance() -> Weight;
 }
 
 /// Default weights.
@@ -59,6 +61,16 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().writes(3 as u64))
 	}
 	fn set_balance() -> Weight {
+		Weight::from_parts(34_000_000, 0)
+			.saturating_add(RocksDbWeight::get().reads(3 as u64))
+			.saturating_add(RocksDbWeight::get().writes(3 as u64))
+	}
+	fn set_allowance() -> Weight {
+		Weight::from_parts(34_000_000, 0)
+			.saturating_add(RocksDbWeight::get().reads(3 as u64))
+			.saturating_add(RocksDbWeight::get().writes(3 as u64))
+	}
+	fn transfer_allowance() -> Weight {
 		Weight::from_parts(34_000_000, 0)
 			.saturating_add(RocksDbWeight::get().reads(3 as u64))
 			.saturating_add(RocksDbWeight::get().writes(3 as u64))
