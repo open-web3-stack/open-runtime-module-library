@@ -1,0 +1,69 @@
+[package]
+name = "orml-delay-tasks"
+description = "Scheduler delay task and execute."
+repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/auction"
+license = "Apache-2.0"
+version = "0.7.0"
+authors = ["Acala Developers"]
+edition = "2021"
+
+[dependencies]
+log = { workspace = true }
+parity-scale-codec = { workspace = true }
+scale-info = { workspace = true }
+serde = { workspace = true, optional = true }
+
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+sp-runtime = { workspace = true }
+sp-std = { workspace = true }
+
+xcm = { workspace = true }
+
+orml-traits = { path = "../traits", version = "0.7.0", default-features = false }
+orml-xtokens = { path = "../xtokens", version = "0.7.0", default-features = false }
+
+[dev-dependencies]
+sp-core = { workspace = true, features = ["std"] }
+sp-io = { workspace = true, features = ["std"] }
+pallet-balances = { workspace = true, features = ["std"] }
+pallet-preimage = { workspace = true, features = ["std"] }
+pallet-scheduler = { workspace = true, features = ["std"] }
+orml-tokens = { path = "../tokens", version = "0.7.0", features = ["std"] }
+
+cumulus-pallet-xcm = { workspace = true, features = ["std"] }
+orml-xcm-mock-message-queue = { path = "../xcm-mock-message-queue" }
+orml-xcm = { path = "../xcm" }
+orml-xcm-support = { path = "../xcm-support" }
+pallet-xcm = { workspace = true, features = ["std"] }
+xcm-builder = { workspace = true, features = ["std"] }
+xcm-executor = { workspace = true, features = ["std"] }
+polkadot-parachain-primitives = { workspace = true, features = ["std"] }
+polkadot-runtime-parachains = { workspace = true, features = ["std"] }
+polkadot-runtime-common = { workspace = true, features = ["std"] }
+xcm-simulator = { workspace = true }
+
+[features]
+default = [ "std" ]
+std = [
+	"frame-support/std",
+	"frame-system/std",
+	"orml-traits/std",
+	"orml-xtokens/std",
+	"parity-scale-codec/std",
+	"scale-info/std",
+	"serde",
+	"sp-runtime/std",
+	"sp-std/std",
+	"xcm/std",
+]
+runtime-benchmarks = [
+	"frame-support/runtime-benchmarks",
+	"frame-system/runtime-benchmarks",
+	"sp-runtime/runtime-benchmarks",
+]
+try-runtime = [
+	"frame-support/try-runtime",
+	"frame-system/try-runtime",
+	"sp-runtime/try-runtime",
+]

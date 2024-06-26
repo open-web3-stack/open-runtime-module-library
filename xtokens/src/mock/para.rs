@@ -1,6 +1,6 @@
 use super::{
-	AllowTopLevelPaidExecution, Amount, Balance, CurrencyId, CurrencyIdConvert, ParachainXcmRouter, RateLimiter,
-	CHARLIE,
+	AllowTopLevelPaidExecution, Amount, Balance, BlockNumberFor, CurrencyId, CurrencyIdConvert, DisabledDelayTask,
+	ParachainXcmRouter, RateLimiter, XtokensTask, CHARLIE,
 };
 use crate as orml_xtokens;
 
@@ -10,11 +10,12 @@ use frame_support::{
 };
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
-use parity_scale_codec::Encode;
+use parity_scale_codec::{Decode, Encode};
 use polkadot_parachain_primitives::primitives::Sibling;
+use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{Convert, IdentityLookup},
-	AccountId32,
+	AccountId32, RuntimeDebug,
 };
 use sp_std::cell::RefCell;
 use xcm::v4::{prelude::*, Weight};
@@ -26,7 +27,13 @@ use xcm_builder::{
 use xcm_executor::{Config, XcmExecutor};
 
 use crate::mock::AllTokensAreCreatedEqualToWeight;
-use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key, RateLimiterError};
+use orml_traits::{
+	define_combined_task,
+	location::AbsoluteReserveProvider,
+	parameter_type_with_key,
+	task::{DispatchableTask, TaskResult},
+	RateLimiterError,
+};
 use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
 
 pub type AccountId = AccountId32;
@@ -230,7 +237,7 @@ thread_local! {
 }
 
 pub struct MockRateLimiter;
-impl RateLimiter for MockRateLimiter {
+impl RateLimiter<BlockNumberFor<Runtime>> for MockRateLimiter {
 	type RateLimiterId = u8;
 
 	fn is_whitelist(_: Self::RateLimiterId, key: impl Encode) -> bool {
@@ -239,15 +246,17 @@ impl RateLimiter for MockRateLimiter {
 		encoded_key != encoded_charlie
 	}
 
-	fn can_consume(_: Self::RateLimiterId, limit_key: impl Encode, value: u128) -> Result<(), RateLimiterError> {
+	fn can_consume(
+		_: Self::RateLimiterId,
+		limit_key: impl Encode,
+		value: u128,
+	) -> Result<(), RateLimiterError<BlockNumberFor<Runtime>>> {
 		let encoded_limit_key = limit_key.encode();
-		let r_multi_location: Location = CurrencyIdConvert::convert(CurrencyId::R).unwrap();
-		let r_asset_id = AssetId(r_multi_location);
-		let encoded_r_asset_id = r_asset_id.encode();
+		let encoded_currency_id = CurrencyId::R.encode();
 
-		if encoded_limit_key == encoded_r_asset_id {
+		if encoded_limit_key == encoded_currency_id {
 			let accumulation = R_ACCUMULATION.with(|v| *v.borrow());
-			ensure!((accumulation + value) <= 2000, RateLimiterError::ExceedLimit);
+			ensure!((accumulation + value) <= 2000, RateLimiterError::Deny);
 		}
 
 		Ok(())
@@ -255,11 +264,9 @@ impl RateLimiter for MockRateLimiter {
 
 	fn consume(_: Self::RateLimiterId, limit_key: impl Encode, value: u128) {
 		let encoded_limit_key = limit_key.encode();
-		let r_multi_location: Location = CurrencyIdConvert::convert(CurrencyId::R).unwrap();
-		let r_asset_id = AssetId(r_multi_location);
-		let encoded_r_asset_id = r_asset_id.encode();
+		let encoded_currency_id = CurrencyId::R.encode();
 
-		if encoded_limit_key == encoded_r_asset_id {
+		if encoded_limit_key == encoded_currency_id {
 			R_ACCUMULATION.with(|v| *v.borrow_mut() += value);
 		}
 	}
@@ -267,6 +274,13 @@ impl RateLimiter for MockRateLimiter {
 
 parameter_types! {
 	pub const XtokensRateLimiterId: u8 = 0;
+}
+
+define_combined_task! {
+	#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo)]
+	pub enum DelayedTasks {
+		Xtokens(XtokensTask<Runtime>),
+	}
 }
 
 impl orml_xtokens::Config for Runtime {
@@ -286,6 +300,8 @@ impl orml_xtokens::Config for Runtime {
 	type ReserveProvider = AbsoluteReserveProvider;
 	type RateLimiter = MockRateLimiter;
 	type RateLimiterId = XtokensRateLimiterId;
+	type Task = DelayedTasks;
+	type DelayTasks = DisabledDelayTask<Runtime>;
 }
 
 impl orml_xcm::Config for Runtime {
