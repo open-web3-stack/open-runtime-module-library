@@ -703,14 +703,17 @@ pub mod module {
 			recipient: Location,
 			dest_weight_limit: WeightLimit,
 		) -> Result<Xcm<T::RuntimeCall>, DispatchError> {
-			Ok(Xcm(vec![TransferReserveAsset {
-				assets: assets.clone(),
-				dest: dest.clone(),
-				xcm: Xcm(vec![
-					Self::buy_execution(fee, &dest, dest_weight_limit)?,
-					Self::deposit_asset(recipient, assets.len() as u32),
-				]),
-			}]))
+			Ok(Xcm(vec![
+				SetFeesMode { jit_withdraw: true },
+				TransferReserveAsset {
+					assets: assets.clone(),
+					dest: dest.clone(),
+					xcm: Xcm(vec![
+						Self::buy_execution(fee, &dest, dest_weight_limit)?,
+						Self::deposit_asset(recipient, assets.len() as u32),
+					]),
+				},
+			]))
 		}
 
 		fn transfer_to_reserve(
@@ -722,6 +725,7 @@ pub mod module {
 		) -> Result<Xcm<T::RuntimeCall>, DispatchError> {
 			Ok(Xcm(vec![
 				WithdrawAsset(assets.clone()),
+				SetFeesMode { jit_withdraw: true },
 				InitiateReserveWithdraw {
 					assets: All.into(),
 					reserve: reserve.clone(),
@@ -753,6 +757,7 @@ pub mod module {
 			if !use_teleport {
 				Ok(Xcm(vec![
 					WithdrawAsset(assets),
+					SetFeesMode { jit_withdraw: true },
 					InitiateReserveWithdraw {
 						assets: All.into(),
 						reserve: reserve.clone(),
@@ -772,6 +777,7 @@ pub mod module {
 			} else {
 				Ok(Xcm(vec![
 					WithdrawAsset(assets),
+					SetFeesMode { jit_withdraw: true },
 					InitiateReserveWithdraw {
 						assets: All.into(),
 						reserve: reserve.clone(),
@@ -873,13 +879,17 @@ pub mod module {
 					Pallet::<T>::transfer_kind(T::ReserveProvider::reserve(&asset), &dest)
 				{
 					let mut msg = match transfer_kind {
-						SelfReserveAsset => Xcm(vec![TransferReserveAsset {
-							assets: vec![asset].into(),
-							dest,
-							xcm: Xcm(vec![]),
-						}]),
+						SelfReserveAsset => Xcm(vec![
+							SetFeesMode { jit_withdraw: true },
+							TransferReserveAsset {
+								assets: vec![asset].into(),
+								dest,
+								xcm: Xcm(vec![]),
+							},
+						]),
 						ToReserve | ToNonReserve => Xcm(vec![
 							WithdrawAsset(Assets::from(asset)),
+							SetFeesMode { jit_withdraw: true },
 							InitiateReserveWithdraw {
 								assets: All.into(),
 								// `dest` is always (equal to) `reserve` in both cases
@@ -936,13 +946,17 @@ pub mod module {
 				let reserve_location = Pallet::<T>::get_reserve_location(&assets, fee_item);
 				if let Ok((transfer_kind, dest, _, reserve)) = Pallet::<T>::transfer_kind(reserve_location, &dest) {
 					let mut msg = match transfer_kind {
-						SelfReserveAsset => Xcm(vec![TransferReserveAsset {
-							assets,
-							dest,
-							xcm: Xcm(vec![]),
-						}]),
+						SelfReserveAsset => Xcm(vec![
+							SetFeesMode { jit_withdraw: true },
+							TransferReserveAsset {
+								assets,
+								dest,
+								xcm: Xcm(vec![]),
+							},
+						]),
 						ToReserve | ToNonReserve => Xcm(vec![
 							WithdrawAsset(assets),
+							SetFeesMode { jit_withdraw: true },
 							InitiateReserveWithdraw {
 								assets: All.into(),
 								// `dest` is always (equal to) `reserve` in both cases
