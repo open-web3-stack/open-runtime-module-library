@@ -20,8 +20,11 @@ use sp_runtime::{
 use xcm::{v3, v4::prelude::*, VersionedLocation};
 use xcm_simulator::TestExt;
 
+#[allow(deprecated)]
 type OldLocation = xcm::v2::MultiLocation;
+#[allow(deprecated)]
 type OldJunctions = xcm::v2::Junctions;
+#[allow(deprecated)]
 type OldJunction = xcm::v2::Junction;
 
 fn treasury_account() -> AccountId32 {
@@ -585,12 +588,14 @@ fn test_asset_authority() {
 #[test]
 fn test_v2_to_v3_incompatible_multilocation() {
 	// Assert that V2 and V3 Location both are encoded differently
+
+	#[allow(deprecated)]
+	let old_location = OldLocation::new(
+		0,
+		OldJunctions::X1(OldJunction::GeneralKey(vec![0].try_into().unwrap())),
+	);
 	assert!(
-		OldLocation::new(
-			0,
-			OldJunctions::X1(OldJunction::GeneralKey(vec![0].try_into().unwrap()))
-		)
-		.encode() != Location::new(0, [Junction::from(BoundedVec::try_from(vec![0]).unwrap())]).encode()
+		old_location.encode() != Location::new(0, [Junction::from(BoundedVec::try_from(vec![0]).unwrap())]).encode()
 	);
 }
 
