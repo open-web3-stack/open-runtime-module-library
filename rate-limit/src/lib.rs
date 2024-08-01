@@ -112,6 +112,8 @@ pub mod module {
 		/// Exceed the allowed maximum number of KeyFilter configured to a
 		/// RateLimiterId.
 		MaxFilterExceeded,
+		/// Delay block must not be zero.
+		ZeroDelayBlock,
 	}
 
 	#[pallet::event]
@@ -129,6 +131,10 @@ pub mod module {
 		WhitelistFilterRemoved { rate_limiter_id: T::RateLimiterId },
 		/// The whitelist of bypass rate limit has been reset.
 		WhitelistFilterReset { rate_limiter_id: T::RateLimiterId },
+		AllowDelayBlockChanged {
+			rate_limiter_id: T::RateLimiterId,
+			update: Option<BlockNumberFor<T>>,
+		},
 	}
 
 	/// The rate limit rule for specific RateLimiterId and encoded key.
@@ -155,6 +161,12 @@ pub mod module {
 	#[pallet::getter(fn limit_whitelist)]
 	pub type LimitWhitelist<T: Config> =
 		StorageMap<_, Twox64Concat, T::RateLimiterId, OrderedSet<KeyFilter, T::MaxWhitelistFilterCount>, ValueQuery>;
+
+	/// Allow delay (not consume quota) when limit check for specific
+	/// RateLimiterId
+	#[pallet::storage]
+	#[pallet::getter(fn allow_delay)]
+	pub type AllowDelay<T: Config> = StorageMap<_, Twox64Concat, T::RateLimiterId, BlockNumberFor<T>, OptionQuery>;
 
 	#[pallet::pallet]
 	#[pallet::without_storage_info]
@@ -317,6 +329,37 @@ pub mod module {
 			Self::deposit_event(Event::WhitelistFilterReset { rate_limiter_id });
 			Ok(())
 		}
+
+		/// Allow delayed when limit check.
+		///
+		/// Requires `GovernanceOrigin`
+		///
+		/// Parameters:
+		/// - `rate_limiter_id`: rate limiter id.
+		/// - `allow_delayed_block`: allow delay when limit check.
+		#[pallet::call_index(4)]
+		#[pallet::weight(T::WeightInfo::reset_whitelist())]
+		#[transactional]
+		pub fn allow_delay_block(
+			origin: OriginFor<T>,
+			rate_limiter_id: T::RateLimiterId,
+			allow_delayed_block: Option<BlockNumberFor<T>>,
+		) -> DispatchResult {
+			T::GovernanceOrigin::ensure_origin(origin)?;
+
+			if let Some(dely_block) = allow_delayed_block {
+				ensure!(!dely_block.is_zero(), Error::<T>::ZeroDelayBlock);
+				AllowDelay::<T>::insert(rate_limiter_id, dely_block);
+			} else {
+				AllowDelay::<T>::remove(rate_limiter_id);
+			}
+
+			Self::deposit_event(Event::AllowDelayBlockChanged {
+				rate_limiter_id,
+				update: allow_delayed_block,
+			});
+			Ok(())
+		}
 	}
 
 	impl<T: Config> Pallet<T> {
@@ -381,7 +424,7 @@ pub mod module {
 		}
 	}
 
-	impl<T: Config> RateLimiter for Pallet<T> {
+	impl<T: Config> RateLimiter<BlockNumberFor<T>> for Pallet<T> {
 		type RateLimiterId = T::RateLimiterId;
 
 		fn is_whitelist(limiter_id: Self::RateLimiterId, key: impl Encode) -> bool {
@@ -410,31 +453,33 @@ pub mod module {
 			false
 		}
 
-		fn can_consume(limiter_id: Self::RateLimiterId, key: impl Encode, value: u128) -> Result<(), RateLimiterError> {
+		fn can_consume(
+			limiter_id: Self::RateLimiterId,
+			key: impl Encode,
+			value: u128,
+		) -> Result<(), RateLimiterError<BlockNumberFor<T>>> {
 			let encoded_key: Vec<u8> = key.encode();
 
-			let allowed = match RateLimitRules::<T>::get(limiter_id, &encoded_key) {
+			match RateLimitRules::<T>::get(limiter_id, &encoded_key) {
 				Some(rate_limit_rule @ RateLimitRule::PerPeriod { .. })
 				| Some(rate_limit_rule @ RateLimitRule::TokenBucket { .. }) => {
 					let remainer_quota =
 						Self::access_remainer_quota_after_update(rate_limit_rule, &limiter_id, &encoded_key);
 
-					value <= remainer_quota
-				}
-				Some(RateLimitRule::Unlimited) => true,
-				Some(RateLimitRule::NotAllowed) => {
-					// always return false, even if the value is zero.
-					false
-				}
-				None => {
-					// if doesn't rate limit rule, always return true.
-					true
-				}
-			};
+					if value > remainer_quota {
+						if let Some(delay_block) = AllowDelay::<T>::get(limiter_id) {
+							return Err(RateLimiterError::Delay { duration: delay_block });
+						} else {
+							return Err(RateLimiterError::Deny);
+						}
+					}
 
-			ensure!(allowed, RateLimiterError::ExceedLimit);
-
-			Ok(())
+					Ok(())
+				}
+				Some(RateLimitRule::Unlimited) => Ok(()),
+				Some(RateLimitRule::NotAllowed) => Err(RateLimiterError::Deny),
+				None => Ok(()),
+			}
 		}
 
 		fn consume(limiter_id: Self::RateLimiterId, key: impl Encode, value: u128) {

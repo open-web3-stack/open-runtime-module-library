@@ -393,6 +393,37 @@ fn reset_whitelist_work() {
 }
 
 #[test]
+fn allow_delay_block_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_noop!(
+			RateLimit::allow_delay_block(RuntimeOrigin::signed(ALICE), 0, Some(1),),
+			BadOrigin
+		);
+
+		// delay block is zero
+		assert_noop!(
+			RateLimit::allow_delay_block(RuntimeOrigin::root(), 0, Some(0),),
+			Error::<Runtime>::ZeroDelayBlock
+		);
+
+		assert_eq!(RateLimit::allow_delay(0), None);
+		assert_ok!(RateLimit::allow_delay_block(RuntimeOrigin::root(), 0, Some(100),));
+		System::assert_last_event(RuntimeEvent::RateLimit(crate::Event::AllowDelayBlockChanged {
+			rate_limiter_id: 0,
+			update: Some(100),
+		}));
+		assert_eq!(RateLimit::allow_delay(0), Some(100));
+
+		assert_ok!(RateLimit::allow_delay_block(RuntimeOrigin::root(), 0, None,));
+		System::assert_last_event(RuntimeEvent::RateLimit(crate::Event::AllowDelayBlockChanged {
+			rate_limiter_id: 0,
+			update: None,
+		}));
+		assert_eq!(RateLimit::allow_delay(0), None);
+	});
+}
+
+#[test]
 fn is_whitelist_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_eq!(RateLimit::is_whitelist(0, BOB), false);
@@ -799,12 +830,12 @@ fn can_consume_work() {
 
 		assert_eq!(RateLimit::rate_limit_quota(0, DOT.encode()), (0, 0));
 		assert_ok!(RateLimit::can_consume(0, DOT, 0));
-		assert_eq!(RateLimit::can_consume(0, DOT, 500), Err(RateLimiterError::ExceedLimit),);
+		assert_eq!(RateLimit::can_consume(0, DOT, 500), Err(RateLimiterError::Deny),);
 		assert_eq!(RateLimit::rate_limit_quota(0, DOT.encode()), (0, 0));
 
 		assert_eq!(RateLimit::rate_limit_quota(1, DOT.encode()), (0, 0));
 		assert_ok!(RateLimit::can_consume(1, DOT, 0));
-		assert_eq!(RateLimit::can_consume(1, DOT, 501), Err(RateLimiterError::ExceedLimit),);
+		assert_eq!(RateLimit::can_consume(1, DOT, 501), Err(RateLimiterError::Deny),);
 		assert_eq!(RateLimit::rate_limit_quota(1, DOT.encode()), (0, 0));
 
 		System::set_block_number(100);
@@ -813,20 +844,29 @@ fn can_consume_work() {
 		assert_eq!(RateLimit::rate_limit_quota(0, DOT.encode()), (0, 0));
 		assert_ok!(RateLimit::can_consume(0, DOT, 500));
 		assert_eq!(RateLimit::rate_limit_quota(0, DOT.encode()), (100, 500));
-		assert_eq!(RateLimit::can_consume(0, DOT, 501), Err(RateLimiterError::ExceedLimit),);
+		assert_eq!(RateLimit::can_consume(0, DOT, 501), Err(RateLimiterError::Deny),);
 		assert_eq!(RateLimit::rate_limit_quota(0, DOT.encode()), (100, 500));
 
 		assert_eq!(RateLimit::rate_limit_quota(1, DOT.encode()), (0, 0));
 		assert_ok!(RateLimit::can_consume(1, DOT, 501));
 		assert_eq!(RateLimit::rate_limit_quota(1, DOT.encode()), (100, 1000));
-		assert_eq!(RateLimit::can_consume(1, DOT, 1001), Err(RateLimiterError::ExceedLimit),);
+		assert_eq!(RateLimit::can_consume(1, DOT, 1001), Err(RateLimiterError::Deny),);
 		assert_eq!(RateLimit::rate_limit_quota(1, DOT.encode()), (100, 1000));
+
+		// if config allow delay for rate limit id 0, return RateLimiterError::Delay
+		assert_ok!(RateLimit::allow_delay_block(RuntimeOrigin::root(), 0, Some(10000),));
+		assert_eq!(RateLimit::rate_limit_quota(0, DOT.encode()), (100, 500));
+		assert_ok!(RateLimit::can_consume(0, DOT, 500));
+		assert_eq!(
+			RateLimit::can_consume(0, DOT, 501),
+			Err(RateLimiterError::Delay { duration: 10000 })
+		);
 
 		// NotAllowed always return error, even if value is 0
 		RateLimitQuota::<Runtime>::mutate(0, BTC.encode(), |(_, remainer_quota)| *remainer_quota = 10000);
 		assert_eq!(RateLimit::rate_limit_quota(0, BTC.encode()), (0, 10000));
-		assert_eq!(RateLimit::can_consume(0, BTC, 0), Err(RateLimiterError::ExceedLimit),);
-		assert_eq!(RateLimit::can_consume(0, BTC, 100), Err(RateLimiterError::ExceedLimit),);
+		assert_eq!(RateLimit::can_consume(0, BTC, 0), Err(RateLimiterError::Deny),);
+		assert_eq!(RateLimit::can_consume(0, BTC, 100), Err(RateLimiterError::Deny),);
 
 		// Unlimited always return true
 		assert_eq!(RateLimit::rate_limit_quota(1, BTC.encode()), (0, 0));

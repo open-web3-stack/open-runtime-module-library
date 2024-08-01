@@ -1,4 +1,7 @@
-use super::{AllowTopLevelPaidExecution, Amount, Balance, CurrencyId, CurrencyIdConvert, ParachainXcmRouter};
+use super::{
+	AllowTopLevelPaidExecution, Amount, Balance, CurrencyId, CurrencyIdConvert, DisabledDelayTask, ParachainXcmRouter,
+	XtokensTask,
+};
 use crate as orml_xtokens;
 
 use frame_support::{
@@ -7,10 +10,12 @@ use frame_support::{
 };
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
+use parity_scale_codec::{Decode, Encode};
 use polkadot_parachain_primitives::primitives::Sibling;
+use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{Convert, IdentityLookup},
-	AccountId32,
+	AccountId32, RuntimeDebug,
 };
 use xcm::v4::{prelude::*, Weight};
 use xcm_builder::{
@@ -22,7 +27,12 @@ use xcm_executor::{Config, XcmExecutor};
 
 use crate::mock::teleport_currency_adapter::MultiTeleportCurrencyAdapter;
 use crate::mock::AllTokensAreCreatedEqualToWeight;
-use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
+use orml_traits::{
+	define_combined_task,
+	location::AbsoluteReserveProvider,
+	parameter_type_with_key,
+	task::{DispatchableTask, TaskResult},
+};
 use orml_xcm_support::{DisabledParachainFee, IsNativeConcrete, MultiNativeAsset};
 
 pub type AccountId = AccountId32;
@@ -211,6 +221,13 @@ impl Contains<Location> for ParentOrParachains {
 	}
 }
 
+define_combined_task! {
+	#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo)]
+	pub enum DelayedTasks {
+		Xtokens(XtokensTask<Runtime>),
+	}
+}
+
 impl orml_xtokens::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
@@ -228,6 +245,8 @@ impl orml_xtokens::Config for Runtime {
 	type ReserveProvider = AbsoluteReserveProvider;
 	type RateLimiter = ();
 	type RateLimiterId = ();
+	type Task = ();
+	type DelayTasks = DisabledDelayTask<Runtime>;
 }
 
 impl orml_xcm::Config for Runtime {

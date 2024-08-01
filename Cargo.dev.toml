@@ -6,6 +6,7 @@ members = [
 	"benchmarking",
 	"build-script-utils",
 	"currencies",
+	"delay-tasks",
 	"gradually-update",
 	"nft",
 	"oracle",

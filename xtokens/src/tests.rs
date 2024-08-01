@@ -1780,7 +1780,7 @@ fn send_relay_chain_asset_to_relay_chain_at_rate_limit() {
 				),
 				WeightLimit::Unlimited
 			),
-			Error::<para::Runtime>::RateLimited
+			Error::<para::Runtime>::RateLimiterDeny
 		);
 		assert_eq!(ParaTokens::free_balance(CurrencyId::R, &CHARLIE), 1200);
 		assert_eq!(R_ACCUMULATION.with(|v| *v.borrow()), 1800);
