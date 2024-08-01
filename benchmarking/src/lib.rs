@@ -11,6 +11,8 @@ pub use frame_benchmarking::{
 	Recording,
 };
 
+#[cfg(not(feature = "std"))]
+extern crate alloc;
 #[cfg(feature = "std")]
 pub use frame_benchmarking::{Analysis, BenchmarkSelector};
 #[doc(hidden)]
