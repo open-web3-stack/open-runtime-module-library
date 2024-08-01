@@ -3,7 +3,7 @@ name = "orml-rate-limit"
 description = "Provides way to config rate limiter for limit some operation."
 repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/rate-limit"
 license = "Apache-2.0"
-version = "0.13.0"
+version = "1.0.0"
 authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2021"
 
@@ -19,8 +19,8 @@ sp-io = { workspace = true }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 
-orml-traits = { path = "../traits", version = "0.13.0", default-features = false }
-orml-utilities = { path = "../utilities", version = "0.13.0", default-features = false }
+orml-traits = { path = "../traits", version = "1.0.0", default-features = false }
+orml-utilities = { path = "../utilities", version = "1.0.0", default-features = false }
 
 [dev-dependencies]
 pallet-timestamp = { workspace = true, features = ["std"] }

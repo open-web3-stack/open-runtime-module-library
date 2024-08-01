@@ -3,7 +3,7 @@ name = "orml-unknown-tokens"
 description = "Unknown tokens module that implements `UnknownAsset` trait."
 repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/unknown-tokens"
 license = "Apache-2.0"
-version = "0.13.0"
+version = "1.0.0"
 authors = ["Acala Developers"]
 edition = "2021"
 
@@ -18,7 +18,7 @@ sp-std = { workspace = true }
 
 xcm = { workspace = true }
 
-orml-xcm-support = { path = "../xcm-support", version = "0.13.0", default-features = false }
+orml-xcm-support = { path = "../xcm-support", version = "1.0.0", default-features = false }
 
 [dev-dependencies]
 sp-core = { workspace = true, features = ["std"] }

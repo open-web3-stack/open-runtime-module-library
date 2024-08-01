@@ -3,7 +3,7 @@ name = "orml-nft"
 description = "Non-fungible token pallet provides basic functions to create and manager NFT"
 repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/nft"
 license = "Apache-2.0"
-version = "0.13.0"
+version = "1.0.0"
 authors = ["Acala Developers"]
 edition = "2021"
 
