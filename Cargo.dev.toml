@@ -26,6 +26,7 @@ members = [
 ]
 
 resolver = "2"
+# crates-version = "0.7.0"
 
 [profile.dev]
 split-debuginfo = "unpacked"
