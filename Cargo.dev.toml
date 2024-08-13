@@ -28,7 +28,7 @@ members = [
 
 resolver = "2"
 
-[package.metadata.orml]
+[workspace.metadata.orml]
 crates-version = "0.9.1"
 
 [profile.dev]
