@@ -21,8 +21,7 @@
 //!
 //! - `MultiCurrency` - Abstraction over a fungible multi-currency system.
 //! - `MultiCurrencyExtended` - Extended `MultiCurrency` with additional helper
-//!   types and methods, like updating balance
-//! by a given signed integer amount.
+//!   types and methods, like updating balance by a given signed integer amount.
 //!
 //! ## Interface
 //!
@@ -31,8 +30,7 @@
 //! - `transfer` - Transfer some balance to another account, in a given
 //!   currency.
 //! - `transfer_native_currency` - Transfer some balance to another account, in
-//!   native currency set in
-//! `Config::NativeCurrency`.
+//!   native currency set in `Config::NativeCurrency`.
 //! - `update_balance` - Update balance by signed integer amount, in a given
 //!   currency, root origin required.
 

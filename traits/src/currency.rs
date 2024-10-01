@@ -257,8 +257,7 @@ pub trait NamedMultiReservableCurrency<AccountId>: MultiReservableCurrency<Accou
 	///
 	/// - This is different from `reserve`.
 	/// - If the remaining reserved balance is less than `ExistentialDeposit`,
-	///   it will
-	/// invoke `on_reserved_too_low` and could reap the account.
+	///   it will invoke `on_reserved_too_low` and could reap the account.
 	fn unreserve_named(
 		id: &Self::ReserveIdentifier,
 		currency_id: Self::CurrencyId,
@@ -551,8 +550,7 @@ pub trait NamedBasicReservableCurrency<AccountId, ReserveIdentifier>: BasicReser
 	///
 	/// - This is different from `reserve`.
 	/// - If the remaining reserved balance is less than `ExistentialDeposit`,
-	///   it will
-	/// invoke `on_reserved_too_low` and could reap the account.
+	///   it will invoke `on_reserved_too_low` and could reap the account.
 	fn unreserve_named(id: &ReserveIdentifier, who: &AccountId, value: Self::Balance) -> Self::Balance;
 
 	/// Moves up to `value` from reserved balance of account `slashed` to

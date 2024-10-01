@@ -19,8 +19,7 @@
 //!
 //! - `MultiCurrency` - Abstraction over a fungible multi-currency system.
 //! - `MultiCurrencyExtended` - Extended `MultiCurrency` with additional helper
-//!   types and methods, like updating balance
-//! by a given signed integer amount.
+//!   types and methods, like updating balance by a given signed integer amount.
 //!
 //! ## Interface
 //!
