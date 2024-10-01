@@ -36,8 +36,8 @@ std = [
 	'log/std',
 	'orml-traits/std',
 	'parity-scale-codec/std',
-	'serde',
 	'scale-info/std',
+	'serde',
 	'sp-runtime/std',
 	'sp-std/std',
 ]
