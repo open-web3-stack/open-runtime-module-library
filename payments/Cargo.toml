@@ -13,6 +13,7 @@ readme = "README.md"
 parity-scale-codec = { workspace = true }
 log = { workspace = true }
 scale-info = { workspace = true }
+serde = { workspace = true, optional = true }
 
 frame-support = { workspace = true }
 frame-system = { workspace = true }
@@ -22,8 +23,6 @@ sp-std = { workspace = true }
 orml-traits = {path = "../traits", version = "1.0.0", default-features = false }
 
 [dev-dependencies]
-serde = "1.0.136"
-
 sp-core = { workspace = true }
 sp-io = { workspace = true }
 
@@ -38,6 +37,7 @@ std = [
 	'orml-traits/std',
 	'parity-scale-codec/std',
 	'scale-info/std',
+	'serde',
 	'sp-runtime/std',
 	'sp-std/std',
 ]

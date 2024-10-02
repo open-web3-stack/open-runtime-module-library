@@ -21,6 +21,7 @@
 //! - CancelBufferBlockLength: This is the time window where the recipient can
 //!   dispute a cancellation request from the payment creator.
 
+//!
 //! Extrinsics
 //!
 //! - `pay` - Create an payment for the given currencyid/amount
@@ -42,6 +43,7 @@
 //! - `accept_and_pay` - Allows the sender to fulfill a payment request created
 //!   by a recipient
 
+//!
 //! Types
 //!
 //! The `PaymentDetail` struct stores information about the payment/escrow. A
