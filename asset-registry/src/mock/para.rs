@@ -331,6 +331,8 @@ impl orml_xtokens::Config for Runtime {
 	type ReserveProvider = RelativeReserveProvider;
 	type RateLimiter = ();
 	type RateLimiterId = ();
+	type Task = ();
+	type DelayTasks = orml_xtokens::DisabledDelayTask<Runtime>;
 }
 
 impl orml_xcm::Config for Runtime {

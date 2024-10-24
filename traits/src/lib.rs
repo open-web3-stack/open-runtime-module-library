@@ -40,6 +40,7 @@ pub mod parameters;
 pub mod price;
 pub mod rate_limit;
 pub mod rewards;
+pub mod task;
 pub mod xcm_transfer;
 
 /// New data handler
