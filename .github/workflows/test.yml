@@ -33,6 +33,8 @@ jobs:
       run: make dev-format-check
     - name: Install clippy
       run: rustup component add clippy
+    - name: Update
+      run: cargo update
     - name: Run clippy
       run: cargo clippy -- -D warnings
     - name: Check for Wasm
