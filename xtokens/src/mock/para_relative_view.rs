@@ -3,7 +3,7 @@ use crate as orml_xtokens;
 
 use frame_support::{
 	construct_runtime, derive_impl, parameter_types,
-	traits::{ConstU128, ConstU32, Contains, Everything, Get, Nothing},
+	traits::{ConstU128, ConstU32, Contains, ContainsPair, Everything, Get, Nothing},
 };
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
@@ -12,6 +12,7 @@ use sp_runtime::{
 	traits::{Convert, IdentityLookup},
 	AccountId32, BoundedVec,
 };
+use sp_std::marker::PhantomData;
 use xcm::v4::{prelude::*, Weight};
 use xcm_builder::{
 	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin, FixedWeightBounds, ParentIsPreset,
@@ -22,10 +23,10 @@ use xcm_executor::{Config, XcmExecutor};
 
 use crate::mock::AllTokensAreCreatedEqualToWeight;
 use orml_traits::{
-	location::{AbsoluteReserveProvider, RelativeReserveProvider},
+	location::{AbsoluteReserveProvider, RelativeReserveProvider, Reserve},
 	parameter_type_with_key,
 };
-use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
+use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter};
 
 pub type AccountId = AccountId32;
 
@@ -113,6 +114,25 @@ parameter_types! {
 	pub const BaseXcmWeight: Weight = Weight::from_parts(100_000_000, 100_000_000);
 	pub const MaxInstructions: u32 = 100;
 	pub const MaxAssetsIntoHolding: u32 = 64;
+}
+
+pub struct MultiNativeAsset<ReserveProvider>(PhantomData<ReserveProvider>);
+impl<ReserveProvider> ContainsPair<Asset, Location> for MultiNativeAsset<ReserveProvider>
+where
+	ReserveProvider: Reserve,
+{
+	fn contains(asset: &Asset, origin: &Location) -> bool {
+		if let Some(ref reserve) = ReserveProvider::reserve(asset) {
+			if reserve == origin {
+				return true;
+			}
+		}
+		// allow parachain to be reserved of relay to bypass https://github.com/paritytech/polkadot-sdk/pull/5660
+		if asset.id.0 == Location::parent() {
+			return true;
+		}
+		false
+	}
 }
 
 pub struct XcmConfig;

@@ -56,30 +56,6 @@ thread_local! {
 	]);
 }
 
-pub struct TenToFourteen;
-impl SortedMembers<AccountId> for TenToFourteen {
-	fn sorted_members() -> Vec<AccountId> {
-		TEN_TO_FOURTEEN.with(|v| v.borrow().clone())
-	}
-	#[cfg(feature = "runtime-benchmarks")]
-	fn add(new: &AccountId) {
-		TEN_TO_FOURTEEN.with(|v| {
-			let mut members = v.borrow_mut();
-			members.push(new.clone());
-			members.sort();
-		})
-	}
-}
-
-impl ContainsLengthBound for TenToFourteen {
-	fn max_len() -> usize {
-		TEN_TO_FOURTEEN.with(|v| v.borrow().len())
-	}
-	fn min_len() -> usize {
-		0
-	}
-}
-
 parameter_types! {
 	pub const ProposalBond: Permill = Permill::from_percent(5);
 	pub const Burn: Permill = Permill::from_percent(50);
