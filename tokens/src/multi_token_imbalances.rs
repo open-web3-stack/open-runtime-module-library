@@ -36,7 +36,7 @@ impl<T: Config> PositiveImbalance<T> {
 
 impl<T: Config> Default for PositiveImbalance<T> {
 	fn default() -> Self {
-		PositiveImbalance(Default::default(), Default::default())
+		fail!("PositiveImbalance::default cannnot be implemented properly because of currency id");
 	}
 }
 
@@ -59,7 +59,7 @@ impl<T: Config> NegativeImbalance<T> {
 
 impl<T: Config> Default for NegativeImbalance<T> {
 	fn default() -> Self {
-		NegativeImbalance(Default::default(), Default::default())
+		fail!("NegativeImbalance::default cannnot be implemented properly because of currency id");
 	}
 }
 
