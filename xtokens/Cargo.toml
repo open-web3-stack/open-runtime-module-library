@@ -3,7 +3,7 @@ name = "orml-xtokens"
 description = "Cross-chain token transfer."
 repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/xtokens"
 license = "Apache-2.0"
-version = "1.0.0"
+version = "1.1.0"
 authors = ["Acala Developers"]
 edition = "2021"
 
@@ -26,8 +26,8 @@ xcm = { workspace = true }
 xcm-executor = { workspace = true }
 
 # orml
-orml-traits = { path = "../traits", version = "1.0.0", default-features = false}
-orml-xcm-support = { path = "../xcm-support", version = "1.0.0", default-features = false }
+orml-traits = { path = "../traits", version = "1.1.0", default-features = false}
+orml-xcm-support = { path = "../xcm-support", version = "1.1.0", default-features = false }
 
 [dev-dependencies]
 # substrate

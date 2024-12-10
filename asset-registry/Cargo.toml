@@ -3,7 +3,7 @@ name = "orml-asset-registry"
 description = "Registry for (foreign) assets"
 repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/asset-registry"
 license = "Apache-2.0"
-version = "1.0.0"
+version = "1.1.0"
 authors = ["Interlay Ltd, etc"]
 edition = "2021"
 
@@ -27,7 +27,7 @@ xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }
 
 # orml
-orml-traits = { path = "../traits", version = "1.0.0", default-features = false }
+orml-traits = { path = "../traits", version = "1.1.0", default-features = false }
 
 # for runtime-benchmarks
 polkadot-runtime-common = { workspace = true, optional = true }

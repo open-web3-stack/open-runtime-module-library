@@ -3,7 +3,7 @@ name = "orml-xcm-support"
 description = "Supporting module for XCM integration."
 repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/xcm-support"
 license = "Apache-2.0"
-version = "1.0.0"
+version = "1.1.0"
 authors = ["Acala Developers"]
 edition = "2021"
 
@@ -17,7 +17,7 @@ sp-std = { workspace = true }
 xcm = { workspace = true }
 xcm-executor = { workspace = true }
 
-orml-traits = { path = "../traits", version = "1.0.0", default-features = false }
+orml-traits = { path = "../traits", version = "1.1.0", default-features = false }
 
 [features]
 default = [ "std" ]
