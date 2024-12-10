@@ -34,9 +34,7 @@ jobs:
     - name: Install clippy
       run: rustup component add clippy
     - name: Update
-      run: |
-        cargo update
-        cargo update -p frame-support-procedural --precise 30.0.2
+      run: cargo update
     - name: Run clippy
       run: cargo clippy -- -D warnings
     - name: Check for Wasm

@@ -28,8 +28,6 @@ jobs:
     - name: Install Zepter
       run: cargo install zepter --version 0.15.0 --locked -q -f --no-default-features && zepter --version
     - run: make Cargo.toml
-    - run: |
-        cargo update
-        cargo update -p frame-support-procedural --precise 30.0.2
+    - run: cargo update
     - name: Check Rust features
       run: make dev-features-check
