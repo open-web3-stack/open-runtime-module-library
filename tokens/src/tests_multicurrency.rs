@@ -28,7 +28,7 @@ fn multicurrency_withdraw_work() {
 			assert!(Accounts::<Runtime>::contains_key(ALICE, DOT));
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
 			assert_eq!(Tokens::total_issuance(DOT), 100);
-			assert_ok!(Tokens::withdraw(DOT, &ALICE, 99));
+			assert_ok!(Tokens::withdraw(DOT, &ALICE, 99, ExistenceRequirement::AllowDeath));
 			assert!(!Accounts::<Runtime>::contains_key(ALICE, DOT));
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
 			assert_eq!(Tokens::total_issuance(DOT), 1);
@@ -44,7 +44,13 @@ fn multicurrency_transfer_work() {
 			assert!(Accounts::<Runtime>::contains_key(ALICE, DOT));
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 100);
 			assert_eq!(Tokens::free_balance(DOT, &BOB), 100);
-			assert_ok!(<Tokens as MultiCurrency<_>>::transfer(DOT, &ALICE, &BOB, 99));
+			assert_ok!(<Tokens as MultiCurrency<_>>::transfer(
+				DOT,
+				&ALICE,
+				&BOB,
+				99,
+				ExistenceRequirement::AllowDeath
+			));
 			assert!(!Accounts::<Runtime>::contains_key(ALICE, DOT));
 			assert_eq!(Tokens::free_balance(DOT, &ALICE), 0);
 			assert_eq!(Tokens::free_balance(DOT, &BOB), 199);
@@ -379,7 +385,7 @@ fn no_op_if_amount_is_zero() {
 		assert_ok!(Tokens::transfer(Some(ALICE).into(), BOB, DOT, 0));
 		assert_ok!(Tokens::transfer(Some(ALICE).into(), ALICE, DOT, 0));
 		assert_ok!(Tokens::deposit(DOT, &ALICE, 0));
-		assert_ok!(Tokens::withdraw(DOT, &ALICE, 0));
+		assert_ok!(Tokens::withdraw(DOT, &ALICE, 0, ExistenceRequirement::AllowDeath));
 		assert_eq!(Tokens::slash(DOT, &ALICE, 0), 0);
 		assert_eq!(Tokens::slash(DOT, &ALICE, 1), 1);
 		assert_ok!(Tokens::update_balance(DOT, &ALICE, 0));

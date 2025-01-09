@@ -14,7 +14,7 @@ on:
       - '**/README.md'
 
 env:
-  TARPAULIN_VERSION: 0.19.1
+  TARPAULIN_VERSION: 0.31.0
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -33,9 +33,11 @@ jobs:
         uses: dtolnay/rust-toolchain@nightly
       - name: Generate code coverage
         run: |
-          wget https://github.com/xd009642/tarpaulin/releases/download/${{ env.TARPAULIN_VERSION }}/cargo-tarpaulin-${{ env.TARPAULIN_VERSION }}-travis.tar.gz
-          tar -zxvf cargo-tarpaulin-${{ env.TARPAULIN_VERSION }}-travis.tar.gz -C $HOME/.cargo/bin
+          wget https://github.com/xd009642/tarpaulin/releases/download/${{ env.TARPAULIN_VERSION }}/cargo-tarpaulin-x86_64-unknown-linux-musl.tar.gz
+          tar -zxvf cargo-tarpaulin-x86_64-unknown-linux-musl.tar.gz -C $HOME/.cargo/bin
           make Cargo.toml
+          cargo update
+          cargo update -p xcm-procedural --precise 10.1.0
           cargo tarpaulin --verbose --no-fail-fast --workspace --timeout 300 --out Xml
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v3

@@ -1,4 +1,4 @@
-use frame_support::traits::Get;
+use frame_support::traits::{ExistenceRequirement, Get};
 use parity_scale_codec::FullCodec;
 use sp_runtime::{
 	traits::{Convert, MaybeSerializeDeserialize, SaturatedConversion},
@@ -173,7 +173,8 @@ impl<
 			let amount: MultiCurrency::Balance = Match::matches_fungible(asset)
 				.ok_or_else(|| XcmError::from(Error::FailedToMatchFungible))?
 				.saturated_into();
-			MultiCurrency::withdraw(currency_id, &who, amount).map_err(|e| XcmError::FailedToTransactAsset(e.into()))
+			MultiCurrency::withdraw(currency_id, &who, amount, ExistenceRequirement::AllowDeath)
+				.map_err(|e| XcmError::FailedToTransactAsset(e.into()))
 		})?;
 
 		Ok(asset.clone().into())
@@ -194,8 +195,14 @@ impl<
 		let amount: MultiCurrency::Balance = Match::matches_fungible(asset)
 			.ok_or_else(|| XcmError::from(Error::FailedToMatchFungible))?
 			.saturated_into();
-		MultiCurrency::transfer(currency_id, &from_account, &to_account, amount)
-			.map_err(|e| XcmError::FailedToTransactAsset(e.into()))?;
+		MultiCurrency::transfer(
+			currency_id,
+			&from_account,
+			&to_account,
+			amount,
+			ExistenceRequirement::AllowDeath,
+		)
+		.map_err(|e| XcmError::FailedToTransactAsset(e.into()))?;
 
 		Ok(asset.clone().into())
 	}

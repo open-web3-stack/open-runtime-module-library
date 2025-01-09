@@ -56,30 +56,6 @@ thread_local! {
 	]);
 }
 
-pub struct TenToFourteen;
-impl SortedMembers<AccountId> for TenToFourteen {
-	fn sorted_members() -> Vec<AccountId> {
-		TEN_TO_FOURTEEN.with(|v| v.borrow().clone())
-	}
-	#[cfg(feature = "runtime-benchmarks")]
-	fn add(new: &AccountId) {
-		TEN_TO_FOURTEEN.with(|v| {
-			let mut members = v.borrow_mut();
-			members.push(new.clone());
-			members.sort();
-		})
-	}
-}
-
-impl ContainsLengthBound for TenToFourteen {
-	fn max_len() -> usize {
-		TEN_TO_FOURTEEN.with(|v| v.borrow().len())
-	}
-	fn min_len() -> usize {
-		0
-	}
-}
-
 parameter_types! {
 	pub const ProposalBond: Permill = Permill::from_percent(5);
 	pub const Burn: Permill = Permill::from_percent(50);
@@ -92,13 +68,8 @@ pub type MockCurrencyAdapter = CurrencyAdapter<Runtime, GetTokenId>;
 impl pallet_treasury::Config for Runtime {
 	type PalletId = TreasuryPalletId;
 	type Currency = MockCurrencyAdapter;
-	type ApproveOrigin = frame_system::EnsureRoot<AccountId>;
 	type RejectOrigin = frame_system::EnsureRoot<AccountId>;
 	type RuntimeEvent = RuntimeEvent;
-	type OnSlash = ();
-	type ProposalBond = ProposalBond;
-	type ProposalBondMinimum = ConstU64<1>;
-	type ProposalBondMaximum = ();
 	type SpendPeriod = ConstU64<2>;
 	type Burn = Burn;
 	type BurnDestination = (); // Just gets burned.

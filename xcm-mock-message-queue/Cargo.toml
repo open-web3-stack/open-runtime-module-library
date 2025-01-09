@@ -3,7 +3,7 @@ name = "orml-xcm-mock-message-queue"
 description = "XCM Mock Message Qeueu for XCM Simulator tests"
 repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/xcm-mock-message-queue"
 license = "Apache-2.0"
-version = "0.10.0"
+version = "1.1.0"
 authors = ["Acala Developers"]
 edition = "2021"
 
@@ -36,4 +36,9 @@ std = [
 	"sp-runtime/std",
 	"sp-std/std",
 	"xcm/std",
+]
+try-runtime = [
+	"frame-support/try-runtime",
+	"frame-system/try-runtime",
+	"sp-runtime/try-runtime",
 ]

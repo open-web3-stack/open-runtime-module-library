@@ -21,6 +21,7 @@
 //! - CancelBufferBlockLength: This is the time window where the recipient can
 //!   dispute a cancellation request from the payment creator.
 
+//!
 //! Extrinsics
 //!
 //! - `pay` - Create an payment for the given currencyid/amount
@@ -42,6 +43,7 @@
 //! - `accept_and_pay` - Allows the sender to fulfill a payment request created
 //!   by a recipient
 
+//!
 //! Types
 //!
 //! The `PaymentDetail` struct stores information about the payment/escrow. A
@@ -72,8 +74,12 @@ pub mod pallet {
 		weights::WeightInfo,
 	};
 	use frame_support::{
-		dispatch::DispatchResultWithPostInfo, fail, pallet_prelude::*, require_transactional,
-		storage::bounded_btree_map::BoundedBTreeMap, traits::tokens::BalanceStatus,
+		dispatch::DispatchResultWithPostInfo,
+		fail,
+		pallet_prelude::*,
+		require_transactional,
+		storage::bounded_btree_map::BoundedBTreeMap,
+		traits::{tokens::BalanceStatus, ExistenceRequirement},
 	};
 	use frame_system::pallet_prelude::*;
 	use orml_traits::{MultiCurrency, MultiReservableCurrency};
@@ -632,6 +638,7 @@ pub mod pallet {
 								from,           // fee is paid by payment creator
 								&fee_recipient, // account of fee recipient
 								fee_amount,     // amount of fee
+								ExistenceRequirement::AllowDeath,
 							)?;
 						}
 					}
@@ -646,7 +653,13 @@ pub mod pallet {
 				let amount_to_recipient = recipient_share.mul_floor(payment.amount);
 				let amount_to_sender = payment.amount.saturating_sub(amount_to_recipient);
 				// send share to recipient
-				T::Asset::transfer(payment.asset, to, from, amount_to_sender)?;
+				T::Asset::transfer(
+					payment.asset,
+					to,
+					from,
+					amount_to_sender,
+					ExistenceRequirement::AllowDeath,
+				)?;
 
 				Ok(())
 			})?;

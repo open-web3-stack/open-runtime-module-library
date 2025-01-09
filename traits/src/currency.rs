@@ -1,5 +1,5 @@
 use crate::{arithmetic, Happened};
-use frame_support::traits::tokens::Balance;
+use frame_support::traits::{tokens::Balance, ExistenceRequirement};
 pub use frame_support::{
 	traits::{BalanceStatus, DefensiveSaturating, LockIdentifier},
 	transactional,
@@ -56,6 +56,7 @@ pub trait MultiCurrency<AccountId> {
 		from: &AccountId,
 		to: &AccountId,
 		amount: Self::Balance,
+		existence_requirement: ExistenceRequirement,
 	) -> DispatchResult;
 
 	/// Add `amount` to the balance of `who` under `currency_id` and increase
@@ -64,7 +65,12 @@ pub trait MultiCurrency<AccountId> {
 
 	/// Remove `amount` from the balance of `who` under `currency_id` and reduce
 	/// total issuance.
-	fn withdraw(currency_id: Self::CurrencyId, who: &AccountId, amount: Self::Balance) -> DispatchResult;
+	fn withdraw(
+		currency_id: Self::CurrencyId,
+		who: &AccountId,
+		amount: Self::Balance,
+		existence_requirement: ExistenceRequirement,
+	) -> DispatchResult;
 
 	/// Same result as `slash(currency_id, who, value)` (but without the
 	/// side-effects) assuming there are no balance changes in the meantime and
@@ -257,8 +263,7 @@ pub trait NamedMultiReservableCurrency<AccountId>: MultiReservableCurrency<Accou
 	///
 	/// - This is different from `reserve`.
 	/// - If the remaining reserved balance is less than `ExistentialDeposit`,
-	///   it will
-	/// invoke `on_reserved_too_low` and could reap the account.
+	///   it will invoke `on_reserved_too_low` and could reap the account.
 	fn unreserve_named(
 		id: &Self::ReserveIdentifier,
 		currency_id: Self::CurrencyId,
@@ -382,13 +387,18 @@ pub trait BasicCurrency<AccountId> {
 	// Public mutables
 
 	/// Transfer some amount from one account to another.
-	fn transfer(from: &AccountId, to: &AccountId, amount: Self::Balance) -> DispatchResult;
+	fn transfer(
+		from: &AccountId,
+		to: &AccountId,
+		amount: Self::Balance,
+		existence_requirement: ExistenceRequirement,
+	) -> DispatchResult;
 
 	/// Add `amount` to the balance of `who` and increase total issuance.
 	fn deposit(who: &AccountId, amount: Self::Balance) -> DispatchResult;
 
 	/// Remove `amount` from the balance of `who` and reduce total issuance.
-	fn withdraw(who: &AccountId, amount: Self::Balance) -> DispatchResult;
+	fn withdraw(who: &AccountId, amount: Self::Balance, existence_requirement: ExistenceRequirement) -> DispatchResult;
 
 	/// Same result as `slash(who, value)` (but without the side-effects)
 	/// assuming there are no balance changes in the meantime and only the
@@ -551,8 +561,7 @@ pub trait NamedBasicReservableCurrency<AccountId, ReserveIdentifier>: BasicReser
 	///
 	/// - This is different from `reserve`.
 	/// - If the remaining reserved balance is less than `ExistentialDeposit`,
-	///   it will
-	/// invoke `on_reserved_too_low` and could reap the account.
+	///   it will invoke `on_reserved_too_low` and could reap the account.
 	fn unreserve_named(id: &ReserveIdentifier, who: &AccountId, value: Self::Balance) -> Self::Balance;
 
 	/// Moves up to `value` from reserved balance of account `slashed` to

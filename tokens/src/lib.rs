@@ -19,8 +19,7 @@
 //!
 //! - `MultiCurrency` - Abstraction over a fungible multi-currency system.
 //! - `MultiCurrencyExtended` - Extended `MultiCurrency` with additional helper
-//!   types and methods, like updating balance
-//! by a given signed integer amount.
+//!   types and methods, like updating balance by a given signed integer amount.
 //!
 //! ## Interface
 //!
@@ -1162,9 +1161,10 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
 		from: &T::AccountId,
 		to: &T::AccountId,
 		amount: Self::Balance,
+		existence_requirement: ExistenceRequirement,
 	) -> DispatchResult {
 		// allow death
-		Self::do_transfer(currency_id, from, to, amount, ExistenceRequirement::AllowDeath)
+		Self::do_transfer(currency_id, from, to, amount, existence_requirement)
 	}
 
 	fn deposit(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
@@ -1173,9 +1173,14 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
 		Ok(())
 	}
 
-	fn withdraw(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
+	fn withdraw(
+		currency_id: Self::CurrencyId,
+		who: &T::AccountId,
+		amount: Self::Balance,
+		existence_requirement: ExistenceRequirement,
+	) -> DispatchResult {
 		// allow death
-		Self::do_withdraw(currency_id, who, amount, ExistenceRequirement::AllowDeath, true)
+		Self::do_withdraw(currency_id, who, amount, existence_requirement, true)
 	}
 
 	// Check if `value` amount of free balance can be slashed from `who`.
@@ -1270,7 +1275,7 @@ impl<T: Config> MultiCurrencyExtended<T::AccountId> for Pallet<T> {
 		if by_amount.is_positive() {
 			Self::deposit(currency_id, who, by_balance)
 		} else {
-			Self::withdraw(currency_id, who, by_balance).map(|_| ())
+			Self::withdraw(currency_id, who, by_balance, ExistenceRequirement::AllowDeath).map(|_| ())
 		}
 	}
 }
@@ -1858,6 +1863,8 @@ impl<T: Config> fungibles::Mutate<T::AccountId> for Pallet<T> {
 		asset_id: Self::AssetId,
 		who: &T::AccountId,
 		amount: Self::Balance,
+		// TODO: Respect preservation
+		_preservation: Preservation,
 		// TODO: Respect precision
 		_precision: Precision,
 		// TODO: Respect fortitude
@@ -2492,10 +2499,18 @@ where
 	fn burn_from(
 		who: &T::AccountId,
 		amount: Self::Balance,
+		preservation: Preservation,
 		precision: Precision,
 		fortitude: Fortitude,
 	) -> Result<Self::Balance, DispatchError> {
-		<Pallet<T> as fungibles::Mutate<_>>::burn_from(GetCurrencyId::get(), who, amount, precision, fortitude)
+		<Pallet<T> as fungibles::Mutate<_>>::burn_from(
+			GetCurrencyId::get(),
+			who,
+			amount,
+			preservation,
+			precision,
+			fortitude,
+		)
 	}
 
 	fn transfer(

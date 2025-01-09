@@ -2,7 +2,7 @@
 authors = ["Virto Network <we@virto.team>"]
 edition = '2021'
 name = "orml-payments"
-version = "0.10.0"
+version = "1.1.0"
 license = "Apache-2.0"
 homepage = "https://github.com/virto-network/virto-node"
 repository = "https://github.com/virto-network/virto-node"
@@ -13,17 +13,16 @@ readme = "README.md"
 parity-scale-codec = { workspace = true }
 log = { workspace = true }
 scale-info = { workspace = true }
+serde = { workspace = true, optional = true }
 
 frame-support = { workspace = true }
 frame-system = { workspace = true }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 
-orml-traits = {path = "../traits", version = "0.10.0", default-features = false }
+orml-traits = {path = "../traits", version = "1.1.0", default-features = false }
 
 [dev-dependencies]
-serde = "1.0.136"
-
 sp-core = { workspace = true }
 sp-io = { workspace = true }
 
@@ -38,6 +37,7 @@ std = [
 	'orml-traits/std',
 	'parity-scale-codec/std',
 	'scale-info/std',
+	'serde',
 	'sp-runtime/std',
 	'sp-std/std',
 ]
