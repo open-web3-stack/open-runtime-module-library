@@ -134,7 +134,13 @@ pub mod module {
 		) -> DispatchResult {
 			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
-			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, &from, &to, amount)
+			<Self as MultiCurrency<T::AccountId>>::transfer(
+				currency_id,
+				&from,
+				&to,
+				amount,
+				ExistenceRequirement::AllowDeath,
+			)
 		}
 
 		/// Transfer some native currency to another account.
@@ -150,7 +156,7 @@ pub mod module {
 		) -> DispatchResult {
 			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
-			T::NativeCurrency::transfer(&from, &to, amount)
+			T::NativeCurrency::transfer(&from, &to, amount, ExistenceRequirement::AllowDeath)
 		}
 
 		/// update amount of account `who` under `currency_id`.
@@ -220,14 +226,15 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
 		from: &T::AccountId,
 		to: &T::AccountId,
 		amount: Self::Balance,
+		existence_requirement: ExistenceRequirement,
 	) -> DispatchResult {
 		if amount.is_zero() || from == to {
 			return Ok(());
 		}
 		if currency_id == T::GetNativeCurrencyId::get() {
-			T::NativeCurrency::transfer(from, to, amount)
+			T::NativeCurrency::transfer(from, to, amount, existence_requirement)
 		} else {
-			T::MultiCurrency::transfer(currency_id, from, to, amount)
+			T::MultiCurrency::transfer(currency_id, from, to, amount, existence_requirement)
 		}
 	}
 
@@ -242,14 +249,19 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
 		}
 	}
 
-	fn withdraw(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
+	fn withdraw(
+		currency_id: Self::CurrencyId,
+		who: &T::AccountId,
+		amount: Self::Balance,
+		existence_requirement: ExistenceRequirement,
+	) -> DispatchResult {
 		if amount.is_zero() {
 			return Ok(());
 		}
 		if currency_id == T::GetNativeCurrencyId::get() {
-			T::NativeCurrency::withdraw(who, amount)
+			T::NativeCurrency::withdraw(who, amount, existence_requirement)
 		} else {
-			T::MultiCurrency::withdraw(currency_id, who, amount)
+			T::MultiCurrency::withdraw(currency_id, who, amount, existence_requirement)
 		}
 	}
 
@@ -475,16 +487,31 @@ where
 		<Pallet<T>>::ensure_can_withdraw(GetCurrencyId::get(), who, amount)
 	}
 
-	fn transfer(from: &T::AccountId, to: &T::AccountId, amount: Self::Balance) -> DispatchResult {
-		<Pallet<T> as MultiCurrency<T::AccountId>>::transfer(GetCurrencyId::get(), from, to, amount)
+	fn transfer(
+		from: &T::AccountId,
+		to: &T::AccountId,
+		amount: Self::Balance,
+		existence_requirement: ExistenceRequirement,
+	) -> DispatchResult {
+		<Pallet<T> as MultiCurrency<T::AccountId>>::transfer(
+			GetCurrencyId::get(),
+			from,
+			to,
+			amount,
+			existence_requirement,
+		)
 	}
 
 	fn deposit(who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
 		<Pallet<T>>::deposit(GetCurrencyId::get(), who, amount)
 	}
 
-	fn withdraw(who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
-		<Pallet<T>>::withdraw(GetCurrencyId::get(), who, amount)
+	fn withdraw(
+		who: &T::AccountId,
+		amount: Self::Balance,
+		existence_requirement: ExistenceRequirement,
+	) -> DispatchResult {
+		<Pallet<T>>::withdraw(GetCurrencyId::get(), who, amount, existence_requirement)
 	}
 
 	fn can_slash(who: &T::AccountId, amount: Self::Balance) -> bool {
@@ -653,8 +680,13 @@ where
 		Currency::ensure_can_withdraw(who, amount, WithdrawReasons::all(), new_balance)
 	}
 
-	fn transfer(from: &AccountId, to: &AccountId, amount: Self::Balance) -> DispatchResult {
-		Currency::transfer(from, to, amount, ExistenceRequirement::AllowDeath)
+	fn transfer(
+		from: &AccountId,
+		to: &AccountId,
+		amount: Self::Balance,
+		existence_requirement: ExistenceRequirement,
+	) -> DispatchResult {
+		Currency::transfer(from, to, amount, existence_requirement)
 	}
 
 	fn deposit(who: &AccountId, amount: Self::Balance) -> DispatchResult {
@@ -666,8 +698,8 @@ where
 		Ok(())
 	}
 
-	fn withdraw(who: &AccountId, amount: Self::Balance) -> DispatchResult {
-		Currency::withdraw(who, amount, WithdrawReasons::all(), ExistenceRequirement::AllowDeath).map(|_| ())
+	fn withdraw(who: &AccountId, amount: Self::Balance, existence_requirement: ExistenceRequirement) -> DispatchResult {
+		Currency::withdraw(who, amount, WithdrawReasons::all(), existence_requirement).map(|_| ())
 	}
 
 	fn can_slash(who: &AccountId, amount: Self::Balance) -> bool {
@@ -707,7 +739,7 @@ where
 		if by_amount.is_positive() {
 			Self::deposit(who, by_balance)
 		} else {
-			Self::withdraw(who, by_balance)
+			Self::withdraw(who, by_balance, ExistenceRequirement::AllowDeath)
 		}
 	}
 }
@@ -817,7 +849,12 @@ impl<T: Config> TransferAll<T::AccountId> for Pallet<T> {
 			T::MultiCurrency::transfer_all(source, dest)?;
 
 			// transfer all free to dest
-			T::NativeCurrency::transfer(source, dest, T::NativeCurrency::free_balance(source))
+			T::NativeCurrency::transfer(
+				source,
+				dest,
+				T::NativeCurrency::free_balance(source),
+				ExistenceRequirement::AllowDeath,
+			)
 		})
 	}
 }

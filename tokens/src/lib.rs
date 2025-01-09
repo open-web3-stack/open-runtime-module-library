@@ -1161,9 +1161,10 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
 		from: &T::AccountId,
 		to: &T::AccountId,
 		amount: Self::Balance,
+		existence_requirement: ExistenceRequirement,
 	) -> DispatchResult {
 		// allow death
-		Self::do_transfer(currency_id, from, to, amount, ExistenceRequirement::AllowDeath)
+		Self::do_transfer(currency_id, from, to, amount, existence_requirement)
 	}
 
 	fn deposit(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
@@ -1172,9 +1173,14 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
 		Ok(())
 	}
 
-	fn withdraw(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
+	fn withdraw(
+		currency_id: Self::CurrencyId,
+		who: &T::AccountId,
+		amount: Self::Balance,
+		existence_requirement: ExistenceRequirement,
+	) -> DispatchResult {
 		// allow death
-		Self::do_withdraw(currency_id, who, amount, ExistenceRequirement::AllowDeath, true)
+		Self::do_withdraw(currency_id, who, amount, existence_requirement, true)
 	}
 
 	// Check if `value` amount of free balance can be slashed from `who`.
@@ -1269,7 +1275,7 @@ impl<T: Config> MultiCurrencyExtended<T::AccountId> for Pallet<T> {
 		if by_amount.is_positive() {
 			Self::deposit(currency_id, who, by_balance)
 		} else {
-			Self::withdraw(currency_id, who, by_balance).map(|_| ())
+			Self::withdraw(currency_id, who, by_balance, ExistenceRequirement::AllowDeath).map(|_| ())
 		}
 	}
 }
