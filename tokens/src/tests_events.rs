@@ -20,7 +20,13 @@ fn pallet_multicurrency_deposit_events() {
 		.balances(vec![(ALICE, DOT, 100), (BOB, DOT, 100)])
 		.build()
 		.execute_with(|| {
-			assert_ok!(<Tokens as MultiCurrency<AccountId>>::transfer(DOT, &ALICE, &BOB, 10));
+			assert_ok!(<Tokens as MultiCurrency<AccountId>>::transfer(
+				DOT,
+				&ALICE,
+				&BOB,
+				10,
+				ExistenceRequirement::AllowDeath
+			));
 			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Transfer {
 				currency_id: DOT,
 				from: ALICE,
@@ -35,7 +41,12 @@ fn pallet_multicurrency_deposit_events() {
 				amount: 10,
 			}));
 
-			assert_ok!(<Tokens as MultiCurrency<AccountId>>::withdraw(DOT, &ALICE, 10));
+			assert_ok!(<Tokens as MultiCurrency<AccountId>>::withdraw(
+				DOT,
+				&ALICE,
+				10,
+				ExistenceRequirement::AllowDeath
+			));
 			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Withdrawn {
 				currency_id: DOT,
 				who: ALICE,
