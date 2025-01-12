@@ -12,7 +12,7 @@ use sp_runtime::{
 	traits::{Convert, IdentityLookup},
 	AccountId32,
 };
-use xcm::v4::{prelude::*, Weight};
+use xcm::v5::{prelude::*, Weight};
 use xcm_builder::{
 	AccountId32Aliases, EnsureXcmOrigin, FixedWeightBounds, NativeAsset, ParentIsPreset, RelayChainAsNative,
 	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,

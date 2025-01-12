@@ -13,7 +13,7 @@ use polkadot_runtime_parachains::{
 	inclusion::{AggregateMessageOrigin, UmpQueueId},
 	origin, shared,
 };
-use xcm::v4::prelude::*;
+use xcm::v5::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, ChildParachainAsNative, ChildParachainConvertsVia,
 	FixedWeightBounds, FungibleAdapter, IsConcrete, SignedAccountId32AsNative, SignedToAccountId32,

@@ -17,7 +17,7 @@ use sp_runtime::{
 	AccountId32,
 };
 use sp_std::{cell::RefCell, marker::PhantomData};
-use xcm::v4::{prelude::*, Weight};
+use xcm::v5::{prelude::*, Weight};
 use xcm_builder::{
 	AccountId32Aliases, EnsureXcmOrigin, FixedWeightBounds, NativeAsset, ParentIsPreset, RelayChainAsNative,
 	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,

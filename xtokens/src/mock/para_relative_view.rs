@@ -13,7 +13,7 @@ use sp_runtime::{
 	AccountId32, BoundedVec,
 };
 use sp_std::marker::PhantomData;
-use xcm::v4::{prelude::*, Weight};
+use xcm::v5::{prelude::*, Weight};
 use xcm_builder::{
 	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin, FixedWeightBounds, ParentIsPreset,
 	RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,

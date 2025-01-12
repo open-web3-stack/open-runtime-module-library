@@ -1,5 +1,5 @@
 use sp_core::{bounded::BoundedVec, ConstU32};
-use xcm::v4::prelude::*;
+use xcm::v5::prelude::*;
 
 pub trait Parse {
 	/// Returns the "chain" location part. It could be parent, sibling

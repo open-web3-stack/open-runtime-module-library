@@ -10,7 +10,7 @@ use sp_std::{
 };
 
 use orml_xcm_support::{OnDepositFail, UnknownAsset as UnknownAssetT};
-use xcm::v4::{prelude::*, Asset, Error as XcmError, Location, Result};
+use xcm::v5::{prelude::*, Asset, Error as XcmError, Location, Result};
 use xcm_executor::{
 	traits::{ConvertLocation, MatchesFungible, TransactAsset},
 	AssetsInHolding,
