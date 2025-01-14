@@ -91,18 +91,18 @@ fn add_share_should_work() {
 		);
 
 		// overflow occurs when saturating calculation
-		assert_ok!(RewardsModule::add_share(&ALICE, &DOT_POOL, u64::MAX));
+		assert_ok!(RewardsModule::add_share(&ALICE, &DOT_POOL, u128::MAX));
 
 		assert_eq!(
 			RewardsModule::pool_infos(DOT_POOL),
 			PoolInfo {
-				total_shares: u64::MAX,
-				rewards: vec![(NATIVE_COIN, (u64::MAX, u64::MAX))].into_iter().collect()
+				total_shares: u128::MAX,
+				rewards: vec![(NATIVE_COIN, (u128::MAX, u128::MAX))].into_iter().collect()
 			}
 		);
 		assert_eq!(
 			RewardsModule::shares_and_withdrawn_rewards(DOT_POOL, ALICE),
-			(u64::MAX, vec![(NATIVE_COIN, u64::MAX)].into_iter().collect())
+			(u128::MAX, vec![(NATIVE_COIN, u128::MAX)].into_iter().collect())
 		);
 	});
 }
@@ -661,5 +661,31 @@ fn minimal_share_should_be_enforced() {
 			Error::<Runtime>::ShareBelowMinimal
 		);
 		assert_ok!(RewardsModule::transfer_share_and_rewards(&ALICE, &DOT_POOL, 5, &BOB));
+	});
+}
+
+#[test]
+fn overflow_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(RewardsModule::add_share(&ALICE, &DOT_POOL, 10));
+
+		// The DOT pool accumulate 21 rewards in the NATIVE COIN
+		assert_ok!(RewardsModule::accumulate_reward(&DOT_POOL, NATIVE_COIN, 21));
+		assert_eq!(
+			RewardsModule::pool_infos(DOT_POOL),
+			PoolInfo {
+				total_shares: 10,
+				rewards: vec![(NATIVE_COIN, (21, 0))].into_iter().collect()
+			}
+		);
+
+		assert_ok!(RewardsModule::add_share(&ALICE, &DOT_POOL, u128::MAX));
+		assert_eq!(
+			RewardsModule::pool_infos(DOT_POOL),
+			PoolInfo {
+				total_shares: u128::MAX,
+				rewards: vec![(NATIVE_COIN, (u128::MAX, u128::MAX))].into_iter().collect()
+			}
+		);
 	});
 }
