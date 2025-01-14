@@ -12,8 +12,8 @@ use std::collections::HashMap;
 use crate as rewards;
 
 pub type AccountId = u128;
-pub type Balance = u64;
-pub type Share = u64;
+pub type Balance = u128;
+pub type Share = u128;
 pub type PoolId = u32;
 pub type CurrencyId = u32;
 
