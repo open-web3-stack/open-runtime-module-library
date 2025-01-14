@@ -171,7 +171,7 @@ impl<T: Config> Pallet<T> {
 							.saturating_mul(total_reward.to_owned().saturated_into::<u128>().into())
 							.checked_div(initial_total_shares.to_owned().saturated_into::<u128>().into())
 							.unwrap_or_default()
-							.as_u128()
+							.saturated_into::<u128>()
 							.saturated_into()
 					};
 					*total_reward = total_reward.saturating_add(reward_inflation);
@@ -239,7 +239,7 @@ impl<T: Config> Pallet<T> {
 									.saturating_mul(withdrawn_reward.to_owned().saturated_into::<u128>().into())
 									.checked_div(old_share.saturated_into::<u128>().into())
 									.unwrap_or_default()
-									.as_u128()
+									.saturated_into::<u128>()
 									.saturated_into();
 
 								if let Some((total_reward, total_withdrawn_reward)) =
