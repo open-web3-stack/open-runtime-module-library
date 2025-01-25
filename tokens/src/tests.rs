@@ -264,6 +264,59 @@ fn set_balance_should_work() {
 		});
 }
 
+#[test]
+fn set_allowance_should_work() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 100)])
+		.build()
+		.execute_with(|| {
+			assert_eq!(Allowances::<Runtime>::get((DOT, ALICE, BOB)), 0);
+			assert_ok!(Tokens::set_allowance(Some(ALICE).into(), BOB, DOT, 100));
+			assert_eq!(Allowances::<Runtime>::get((DOT, ALICE, BOB)), 100);
+
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::AllowanceSet {
+				currency_id: DOT,
+				owner: ALICE,
+				spender: BOB,
+				amount: 100,
+			}));
+		});
+}
+
+#[test]
+fn transfer_allowance_should_work() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, DOT, 200)])
+		.build()
+		.execute_with(|| {
+			assert_eq!(Tokens::free_balance(DOT, &ALICE), 200);
+
+			assert_ok!(Tokens::set_allowance(Some(ALICE).into(), BOB, DOT, 200));
+			System::assert_has_event(RuntimeEvent::Tokens(crate::Event::AllowanceSet {
+				currency_id: DOT,
+				owner: ALICE,
+				spender: BOB,
+				amount: 200,
+			}));
+
+			assert_ok!(Tokens::transfer_allowance(Some(BOB).into(), ALICE, CHARLIE, DOT, 100));
+			System::assert_has_event(RuntimeEvent::Tokens(crate::Event::AllowanceSet {
+				currency_id: DOT,
+				owner: ALICE,
+				spender: BOB,
+				amount: 100,
+			}));
+			System::assert_last_event(RuntimeEvent::Tokens(crate::Event::Transfer {
+				currency_id: DOT,
+				from: ALICE,
+				to: CHARLIE,
+				amount: 100,
+			}));
+
+			assert_eq!(Allowances::<Runtime>::get((DOT, ALICE, BOB)), 100);
+		});
+}
+
 // *************************************************
 // tests for inline impl
 // *************************************************
