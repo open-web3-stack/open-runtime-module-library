@@ -1211,8 +1211,8 @@ pub fn show_benchmark_debug_info(
 	components: &[(BenchmarkParameter, u32)],
 	verify: &bool,
 	error_message: &str,
-) -> sp_runtime::RuntimeString {
-	sp_runtime::format_runtime_string!(
+) -> String {
+	format!(
 		"\n* Pallet: {}\n\
 		* Benchmark: {}\n\
 		* Components: {:?}\n\

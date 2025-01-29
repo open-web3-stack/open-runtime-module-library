@@ -9,8 +9,8 @@ edition = "2021"
 
 [dependencies]
 scale-info = { workspace = true }
-serde = { version = "1.0.136", optional = true, features = ["derive"] }
-parity-scale-codec = {  version = "3.0.0", default-features = false, features = ["derive"] }
+serde = { workspace = true, optional = true, features = ["derive"] }
+parity-scale-codec = { workspace = true, default-features = false, features = ["derive"] }
 
 frame-support = { workspace = true }
 sp-runtime = { workspace = true, features = ["serde"] }

@@ -491,7 +491,7 @@ fn trigger_call_works() {
 		});
 		let hash = <Runtime as frame_system::Config>::Hashing::hash_of(&call);
 
-		let call_weight_bound = call.get_dispatch_info().weight;
+		let call_weight_bound = call.get_dispatch_info().total_weight();
 
 		// call not authorized yet
 		assert_noop!(
@@ -617,7 +617,7 @@ fn trigger_call_should_be_free_and_operational() {
 			ratio: Perbill::from_percent(50),
 		});
 		let hash = <Runtime as frame_system::Config>::Hashing::hash_of(&call);
-		let call_weight_bound = call.get_dispatch_info().weight;
+		let call_weight_bound = call.get_dispatch_info().total_weight();
 		let trigger_call = RuntimeCall::Authority(authority::Call::trigger_call {
 			hash,
 			call_weight_bound,

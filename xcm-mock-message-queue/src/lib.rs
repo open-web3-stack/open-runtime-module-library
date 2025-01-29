@@ -8,7 +8,7 @@ use parity_scale_codec::{Decode, Encode};
 use polkadot_parachain_primitives::primitives::DmpMessageHandler;
 use sp_std::prelude::*;
 use xcm::{
-	v4::{prelude::*, Weight},
+	v5::{prelude::*, Weight},
 	VersionedXcm,
 };
 

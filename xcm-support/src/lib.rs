@@ -16,7 +16,7 @@ use sp_runtime::{
 };
 use sp_std::marker::PhantomData;
 
-use xcm::v4::prelude::*;
+use xcm::v5::prelude::*;
 use xcm_executor::traits::MatchesFungible;
 
 use orml_traits::{location::Reserve, GetByKey};

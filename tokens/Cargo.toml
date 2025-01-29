@@ -8,7 +8,7 @@ authors = ["Laminar Developers <hello@laminar.one>"]
 edition = "2021"
 
 [dependencies]
-parity-scale-codec = {  version = "3.0.0", default-features = false, features = ["max-encoded-len"] }
+parity-scale-codec = { workspace = true, default-features = false, features = ["max-encoded-len"] }
 log = { workspace = true }
 scale-info = { workspace = true }
 serde = { workspace = true, optional = true }

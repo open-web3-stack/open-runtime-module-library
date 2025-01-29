@@ -6,7 +6,7 @@
 use frame_support::{pallet_prelude::*, traits::EnsureOrigin};
 use frame_system::pallet_prelude::*;
 use sp_std::boxed::Box;
-use xcm::{v4::prelude::*, VersionedLocation, VersionedXcm};
+use xcm::{v5::prelude::*, VersionedLocation, VersionedXcm};
 
 pub use module::*;
 

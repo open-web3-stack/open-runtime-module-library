@@ -12,7 +12,7 @@ use polkadot_runtime_parachains::{
 	origin, shared,
 };
 use sp_runtime::{traits::IdentityLookup, AccountId32};
-use xcm::v4::prelude::*;
+use xcm::v5::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, ChildParachainAsNative, ChildParachainConvertsVia,
 	FixedWeightBounds, FungibleAdapter, IsConcrete, SignedAccountId32AsNative, SignedToAccountId32,
@@ -45,6 +45,7 @@ impl pallet_balances::Config for Runtime {
 	type RuntimeFreezeReason = RuntimeFreezeReason;
 	type FreezeIdentifier = [u8; 8];
 	type MaxFreezes = ();
+	type DoneSlashHandler = ();
 }
 
 impl shared::Config for Runtime {

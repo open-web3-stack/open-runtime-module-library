@@ -7,13 +7,13 @@ use frame_support::{
 	construct_runtime, derive_impl, parameter_types,
 	traits::{
 		tokens::{PayFromAccount, UnityAssetBalanceConversion},
-		ChangeMembers, ConstU32, ConstU64, ContainsLengthBound, SortedMembers,
+		ChangeMembers, ConstU32, ConstU64,
 	},
 	PalletId,
 };
 use orml_traits::parameter_type_with_key;
 use sp_runtime::{
-	traits::{AccountIdConversion, IdentityLookup},
+	traits::{AccountIdConversion, BlockNumberProvider, IdentityLookup},
 	AccountId32, BuildStorage, Permill,
 };
 use sp_std::cell::RefCell;
@@ -65,6 +65,19 @@ parameter_types! {
 }
 
 pub type MockCurrencyAdapter = CurrencyAdapter<Runtime, GetTokenId>;
+
+parameter_types! {
+	pub static MockBlockNumberProvider: u64 = 0;
+}
+
+impl BlockNumberProvider for MockBlockNumberProvider {
+	type BlockNumber = u64;
+
+	fn current_block_number() -> BlockNumberFor<Runtime> {
+		Self::get()
+	}
+}
+
 impl pallet_treasury::Config for Runtime {
 	type PalletId = TreasuryPalletId;
 	type Currency = MockCurrencyAdapter;
@@ -85,6 +98,7 @@ impl pallet_treasury::Config for Runtime {
 	type PayoutPeriod = ConstU64<10>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = ();
+	type BlockNumberProvider = MockBlockNumberProvider;
 }
 
 thread_local! {

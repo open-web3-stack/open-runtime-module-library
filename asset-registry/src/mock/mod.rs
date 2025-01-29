@@ -10,7 +10,7 @@ use sp_io::TestExternalities;
 use sp_runtime::{traits::Convert, AccountId32, BuildStorage};
 use xcm::{
 	v3,
-	v4::{Asset, Location},
+	v5::{Asset, Location},
 };
 use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain, TestExt};
 
@@ -109,12 +109,12 @@ impl Convert<CurrencyId, Option<Location>> for CurrencyIdConvert {
 			),
 			CurrencyId::RegisteredAsset(id) => AssetRegistry::location(&id).unwrap_or_default(),
 		};
-		loc.and_then(|l| l.try_into().ok())
+		loc.and_then(|l| l.into_versioned().try_into().ok())
 	}
 }
 impl Convert<Location, Option<CurrencyId>> for CurrencyIdConvert {
 	fn convert(l: Location) -> Option<CurrencyId> {
-		use xcm::v4::Junction::*;
+		use xcm::v5::Junction::*;
 
 		let a: Vec<u8> = "A".into();
 		let a1: Vec<u8> = "A1".into();
@@ -147,14 +147,14 @@ impl Convert<Location, Option<CurrencyId>> for CurrencyIdConvert {
 			_ => None,
 		};
 		currency_id.or_else(|| {
-			let loc = v3::Location::try_from(l.clone()).ok()?;
+			let loc = v3::Location::try_from(l.into_versioned()).ok()?;
 			AssetRegistry::location_to_asset_id(&loc).map(CurrencyId::RegisteredAsset)
 		})
 	}
 }
 impl Convert<Asset, Option<CurrencyId>> for CurrencyIdConvert {
 	fn convert(a: Asset) -> Option<CurrencyId> {
-		use xcm::v4::prelude::*;
+		use xcm::v5::prelude::*;
 		if let Asset {
 			fun: Fungible(_),
 			id: AssetId(id),
