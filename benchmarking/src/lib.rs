@@ -13,6 +13,8 @@ pub use frame_benchmarking::{
 
 #[cfg(not(feature = "std"))]
 extern crate alloc;
+#[cfg(not(feature = "std"))]
+use alloc::{format, string::String};
 #[cfg(feature = "std")]
 pub use frame_benchmarking::{Analysis, BenchmarkSelector};
 #[doc(hidden)]
