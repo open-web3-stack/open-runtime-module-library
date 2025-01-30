@@ -36,6 +36,8 @@ jobs:
     - name: Update
       run: |
         cargo update
+        cargo update parity-scale-codec@3.7.2 --precise 3.6.12
+        cargo update parity-scale-codec-derive@3.7.2 --precise 3.6.12
     - name: Run clippy
       run: cargo clippy -- -D warnings
     - name: Check for Wasm
