@@ -8,7 +8,7 @@ use orml_traits::{ConcreteFungibleAsset, MultiCurrency};
 use parity_scale_codec::Encode;
 use polkadot_parachain_primitives::primitives::Sibling;
 use sp_runtime::{traits::AccountIdConversion, AccountId32};
-use xcm::{v4::OriginKind::SovereignAccount, VersionedXcm};
+use xcm::{v5::OriginKind::SovereignAccount, VersionedXcm};
 use xcm_simulator::TestExt;
 
 fn para_a_account() -> AccountId32 {
@@ -1038,7 +1038,7 @@ fn send_as_sovereign() {
 				},
 				Instruction::Transact {
 					origin_kind: SovereignAccount,
-					require_weight_at_most: 1_000_000_000.into(),
+					fallback_max_weight: Some(1_000_000_000.into()),
 					call: call.encode().into(),
 				}
 			])))
@@ -1080,7 +1080,7 @@ fn send_as_sovereign_fails_if_bad_origin() {
 					},
 					Instruction::Transact {
 						origin_kind: SovereignAccount,
-						require_weight_at_most: 1_000_000_000.into(),
+						fallback_max_weight: Some(1_000_000_000.into()),
 						call: call.encode().into(),
 					}
 				])))

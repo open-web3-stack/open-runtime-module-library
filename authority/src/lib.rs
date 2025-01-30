@@ -319,7 +319,7 @@ pub mod module {
 		#[pallet::call_index(0)]
 		#[pallet::weight({
 			let info = call.get_dispatch_info();
-			(T::WeightInfo::dispatch_as().saturating_add(info.weight), info.class)
+			(T::WeightInfo::dispatch_as().saturating_add(info.total_weight()), info.class)
 		})]
 		pub fn dispatch_as(origin: OriginFor<T>, as_origin: T::AsOriginId, call: Box<CallOf<T>>) -> DispatchResult {
 			as_origin.check_dispatch_from(origin)?;
@@ -508,7 +508,7 @@ pub mod module {
 					ensure!(who == caller, Error::<T>::TriggerCallNotPermitted);
 				}
 				ensure!(
-					call_weight_bound.all_gte(call.get_dispatch_info().weight),
+					call_weight_bound.all_gte(call.get_dispatch_info().total_weight()),
 					Error::<T>::WrongCallWeightBound
 				);
 				let result = call.dispatch(OriginFor::<T>::root());

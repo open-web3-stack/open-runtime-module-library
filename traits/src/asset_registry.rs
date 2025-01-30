@@ -1,7 +1,7 @@
 use frame_support::pallet_prelude::*;
 use sp_runtime::DispatchResult;
 use sp_std::fmt::Debug;
-use xcm::v4::prelude::*;
+use xcm::v5::prelude::*;
 use xcm::VersionedLocation;
 
 pub trait WeightToFeeConverter {

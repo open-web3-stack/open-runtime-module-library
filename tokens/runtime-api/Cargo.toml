@@ -8,7 +8,7 @@ description = "Runtime API module for orml-tokens."
 repository = "https://github.com/open-web3-stack/open-runtime-module-library"
 
 [dependencies]
-parity-scale-codec = {  version = "3.0.0", default-features = false, features = ["derive"] }
+parity-scale-codec = { workspace = true, default-features = false, features = ["derive"] }
 frame-support = { workspace = true }
 sp-api = { workspace = true }
 sp-runtime = { workspace = true }

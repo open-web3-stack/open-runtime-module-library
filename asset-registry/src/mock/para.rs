@@ -23,7 +23,7 @@ use sp_runtime::{
 	traits::{AccountIdConversion, Convert, IdentityLookup},
 	AccountId32,
 };
-use xcm::v4::{prelude::*, Weight};
+use xcm::v5::{prelude::*, Weight};
 use xcm_builder::{
 	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin, FixedWeightBounds, ParentIsPreset,
 	RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
@@ -55,6 +55,7 @@ impl pallet_balances::Config for Runtime {
 	type RuntimeFreezeReason = RuntimeFreezeReason;
 	type FreezeIdentifier = [u8; 8];
 	type MaxFreezes = ();
+	type DoneSlashHandler = ();
 }
 
 use orml_asset_registry::impls::ExistentialDeposits as AssetRegistryExistentialDeposits;
@@ -193,7 +194,8 @@ pub type AssetRegistryWeightTrader =
 pub struct MyFixedConversionRateProvider;
 impl FixedConversionRateProvider for MyFixedConversionRateProvider {
 	fn get_fee_per_second(location: &Location) -> Option<u128> {
-		let metadata = AssetRegistry::fetch_metadata_by_location(&location.clone().try_into().unwrap())?;
+		let metadata =
+			AssetRegistry::fetch_metadata_by_location(&location.clone().into_versioned().try_into().unwrap())?;
 		Some(metadata.additional.fee_per_second)
 	}
 }

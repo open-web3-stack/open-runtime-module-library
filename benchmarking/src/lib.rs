@@ -13,6 +13,8 @@ pub use frame_benchmarking::{
 
 #[cfg(not(feature = "std"))]
 extern crate alloc;
+#[cfg(not(feature = "std"))]
+use alloc::{format, string::String};
 #[cfg(feature = "std")]
 pub use frame_benchmarking::{Analysis, BenchmarkSelector};
 #[doc(hidden)]
@@ -1211,8 +1213,8 @@ pub fn show_benchmark_debug_info(
 	components: &[(BenchmarkParameter, u32)],
 	verify: &bool,
 	error_message: &str,
-) -> sp_runtime::RuntimeString {
-	sp_runtime::format_runtime_string!(
+) -> String {
+	format!(
 		"\n* Pallet: {}\n\
 		* Benchmark: {}\n\
 		* Components: {:?}\n\

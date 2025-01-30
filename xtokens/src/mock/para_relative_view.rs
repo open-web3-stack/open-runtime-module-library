@@ -13,7 +13,7 @@ use sp_runtime::{
 	AccountId32, BoundedVec,
 };
 use sp_std::marker::PhantomData;
-use xcm::v4::{prelude::*, Weight};
+use xcm::v5::{prelude::*, Weight};
 use xcm_builder::{
 	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin, FixedWeightBounds, ParentIsPreset,
 	RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
@@ -52,6 +52,7 @@ impl pallet_balances::Config for Runtime {
 	type RuntimeFreezeReason = RuntimeFreezeReason;
 	type FreezeIdentifier = [u8; 8];
 	type MaxFreezes = ();
+	type DoneSlashHandler = ();
 }
 
 parameter_type_with_key! {

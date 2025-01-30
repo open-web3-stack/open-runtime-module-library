@@ -46,7 +46,7 @@ use sp_runtime::{
 use sp_std::{prelude::*, result::Result};
 
 use xcm::{
-	v4::{prelude::*, Weight},
+	v5::{prelude::*, Weight},
 	VersionedAsset, VersionedAssets, VersionedLocation,
 };
 use xcm_executor::traits::WeightBounds;
