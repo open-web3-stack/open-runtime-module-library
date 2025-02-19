@@ -1,3 +1,6 @@
+//! **Disclaimer**: This pallet is experimental and has not been audited. It is
+//! not suitable for production use.
+
 //!This pallet allows users to create secure reversible payments that keep
 //! funds locked in a merchant's account until the off-chain goods are confirmed
 //! to be received. Each payment gets assigned its own *judge* that can help
