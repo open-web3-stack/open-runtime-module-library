@@ -45,13 +45,13 @@ pub mod module {
 	/// Limit rules type.
 	#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 	pub enum RateLimitRule {
-		/// Each period to reset remainer quota to `quota` amount.
-		/// `can_consume` check return true when the remainer quota gte the
+		/// Each period to reset remainder quota to `quota` amount.
+		/// `can_consume` check return true when the remainder quota gte the
 		/// consume amount.
 		PerPeriod { period: Period, quota: u128 },
-		/// Each period to increase `quota_increment` amount to remainer quota
-		/// and keep remainer quota lte `max_quota`.
-		/// `can_consume` check return true when the remainer quota gte the
+		/// Each period to increase `quota_increment` amount to remainder quota
+		/// and keep remainder quota lte `max_quota`.
+		/// `can_consume` check return true when the remainder quota gte the
 		/// consume amount.
 		TokenBucket {
 			period: Period,
@@ -67,7 +67,7 @@ pub mod module {
 	/// The maximum length of KeyFilter inner key.
 	pub const MAX_FILTER_KEY_LENGTH: u32 = 256;
 
-	/// Match rules to fitler key is in bypass whitelist.
+	/// Match rules to filter key is in bypass whitelist.
 	#[derive(PartialOrd, Ord, PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 	pub enum KeyFilter {
 		/// If the encoded key is equal to the vec, the key is in whitelist.
@@ -442,7 +442,7 @@ pub mod module {
 
 			match RateLimitRules::<T>::get(limiter_id, &encoded_key) {
 				Some(RateLimitRule::PerPeriod { .. }) | Some(RateLimitRule::TokenBucket { .. }) => {
-					// consume remainer quota in these situation.
+					// consume remainder quota in these situation.
 					RateLimitQuota::<T>::mutate(limiter_id, &encoded_key, |(_, remainer_quota)| {
 						*remainer_quota = (*remainer_quota).saturating_sub(value);
 					});

@@ -182,7 +182,7 @@ pub mod module {
 		DistinctReserveForAssetAndFee,
 		/// The fee is zero.
 		ZeroFee,
-		/// The transfering asset amount is zero.
+		/// The transferring asset amount is zero.
 		ZeroAmount,
 		/// The number of assets to be sent is over the maximum.
 		TooManyAssetsBeingSent,
@@ -495,7 +495,7 @@ pub mod module {
 				assets.push((location, (*amount).into()).into())
 			}
 
-			// We construct the fee now, since getting it from assets wont work as assets
+			// We construct the fee now, since getting it from assets won't work as assets
 			// sorts it
 			let fee_location: Location = T::CurrencyIdConvert::convert(fee_currency_id.clone())
 				.ok_or(Error::<T>::NotCrossChainTransferableCurrency)?;
