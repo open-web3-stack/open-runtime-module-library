@@ -400,7 +400,7 @@ pub mod pallet {
 		}
 
 		/// Allow the creator of a payment to initiate a refund that will return
-		/// the funds after a configured amount of time that the reveiver has to
+		/// the funds after a configured amount of time that the receiver has to
 		/// react and oppose the request
 		#[pallet::call_index(4)]
 		#[pallet::weight(T::WeightInfo::request_refund())]

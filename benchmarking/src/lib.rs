@@ -1172,7 +1172,7 @@ macro_rules! impl_benchmark_test_suite {
 									$crate::BenchmarkError::Override(_) => {
 										// This is still considered a success condition.
 										$crate::log::error!(
-											"WARNING: benchmark error overrided - {}",
+											"WARNING: benchmark error overridden - {}",
 											$crate::str::from_utf8(benchmark_name)
 												.expect("benchmark name is always a valid string!"),
 										);
@@ -1300,7 +1300,7 @@ macro_rules! add_benchmark {
 				Err($crate::BenchmarkError::Override(mut result)) => {
 					// Insert override warning as the first storage key.
 					$crate::log::error!(
-						"WARNING: benchmark error overrided - {}",
+						"WARNING: benchmark error overridden - {}",
 						$crate::str::from_utf8(benchmark)
 							.expect("benchmark name is always a valid string!")
 					);
