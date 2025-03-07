@@ -282,7 +282,7 @@ macro_rules! define_parameters {
 	};
 }
 
-/// Define aggregrated parameters types.
+/// Define aggregated parameters types.
 ///
 /// Example:
 /// ```

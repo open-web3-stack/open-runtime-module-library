@@ -5,7 +5,7 @@ set -e
 COMMAND=$1
 
 ALLOW_CLIPPY_RULES=(
-	"clippy::identity_op" # this helps the code to be consistant
+	"clippy::identity_op" # this helps the code to be consistent
 	"clippy::disallowed_names" # TODO: allow them in test only
 	"clippy::ptr-arg" # TODO: decide if we want to fix those
 	"clippy::match_single_binding" # TODO: fix those

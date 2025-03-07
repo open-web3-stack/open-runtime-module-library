@@ -864,8 +864,8 @@ fn do_withdraw_report_keep_alive_error_when_ed_is_not_zero() {
 				Error::<Runtime>::KeepAlive
 			);
 
-			// dave is in dust removal whitelist, still can withdraw if remainer is not zero
-			// but below ED.
+			// dave is in dust removal whitelist, still can withdraw if remainder is not
+			// zero but below ED.
 			assert!(Accounts::<Runtime>::contains_key(DAVE, DOT));
 			assert_eq!(Tokens::free_balance(DOT, &DAVE), 100);
 			assert_eq!(Tokens::total_issuance(DOT), 200);
