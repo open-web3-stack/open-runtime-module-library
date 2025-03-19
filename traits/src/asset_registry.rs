@@ -23,7 +23,6 @@ pub trait AssetProcessor<AssetId, Metadata> {
 #[derive(TypeInfo, Encode, Decode, CloneNoBound, EqNoBound, PartialEqNoBound, RuntimeDebugNoBound, MaxEncodedLen)]
 #[codec(mel_bound(skip_type_params(StringLimit)))]
 #[scale_info(skip_type_params(StringLimit))]
-
 pub struct AssetMetadata<Balance, CustomMetadata, StringLimit: Get<u32>>
 where
 	Balance: Clone + Debug + Eq + PartialEq,
