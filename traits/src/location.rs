@@ -76,7 +76,7 @@ pub trait RelativeLocations {
 
 impl RelativeLocations for Location {
 	fn sibling_parachain_general_key(para_id: u32, general_key: BoundedVec<u8, ConstU32<32>>) -> Location {
-		return Location::new(1, [Parachain(para_id), general_key.as_bounded_slice().into()]);
+		Location::new(1, [Parachain(para_id), general_key.as_bounded_slice().into()])
 	}
 }
 
