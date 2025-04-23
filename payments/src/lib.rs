@@ -1,3 +1,6 @@
+//! **Disclaimer**: This pallet is experimental and has not been audited. It is
+//! not suitable for production use.
+
 //!This pallet allows users to create secure reversible payments that keep
 //! funds locked in a merchant's account until the off-chain goods are confirmed
 //! to be received. Each payment gets assigned its own *judge* that can help
@@ -27,7 +30,7 @@
 //! - `pay` - Create an payment for the given currencyid/amount
 //! - `pay_with_remark` - Create a payment with a remark, can be used to tag
 //!   payments
-//! - `release` - Release the payment amount to recipent
+//! - `release` - Release the payment amount to recipient
 //! - `cancel` - Allows the recipient to cancel the payment and release the
 //!   payment amount to creator
 //! - `resolve_release_payment` - Allows assigned judge to release a payment
@@ -204,13 +207,13 @@ pub mod pallet {
 		InvalidAction,
 		/// Payment is in review state and cannot be modified
 		PaymentNeedsReview,
-		/// Unexpeted math error
+		/// Unexpected math error
 		MathError,
 		/// Payment request has not been created
 		RefundNotRequested,
 		/// Dispute period has not passed
 		DisputePeriodNotPassed,
-		/// The automatic cancelation queue cannot accept
+		/// The automatic cancellation queue cannot accept
 		RefundQueueFull,
 	}
 
@@ -397,7 +400,7 @@ pub mod pallet {
 		}
 
 		/// Allow the creator of a payment to initiate a refund that will return
-		/// the funds after a configured amount of time that the reveiver has to
+		/// the funds after a configured amount of time that the receiver has to
 		/// react and oppose the request
 		#[pallet::call_index(4)]
 		#[pallet::weight(T::WeightInfo::request_refund())]

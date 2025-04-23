@@ -11,7 +11,7 @@
 //! offchain data. The raw values can be combined to provide an aggregated
 //! value.
 //!
-//! The data is valid only if feeded by an authorized operator.
+//! The data is valid only if fed by an authorized operator.
 //! `pallet_membership` in FRAME can be used to as source of `T::Members`.
 
 #![cfg_attr(not(feature = "std"), no_std)]
@@ -130,7 +130,7 @@ pub mod module {
 	pub enum Error<T, I = ()> {
 		/// Sender does not have permission
 		NoPermission,
-		/// Feeder has already feeded at this block
+		/// Feeder has already fed at this block
 		AlreadyFeeded,
 	}
 

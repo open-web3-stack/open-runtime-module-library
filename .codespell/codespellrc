@@ -1,0 +1,5 @@
+[codespell]
+skip = .git,Cargo.lock
+count =
+quiet-level = 3
+ignore-words = ./.codespell/ignore.txt

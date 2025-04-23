@@ -1,5 +1,7 @@
 # Payments Pallet
 
+⚠️ **Disclaimer**: This pallet is experimental and has not been audited. It is not suitable for production use.
+
 This pallet allows users to create secure reversible payments that keep funds locked in a merchant's account until the off-chain goods are confirmed to be received. Each payment gets assigned its own *judge* that can help resolve any disputes between the two parties.
 
 ## Terminology
@@ -27,7 +29,7 @@ This pallet allows users to create secure reversible payments that keep funds lo
 
 - `pay` - Create an payment for the given currencyid/amount
 - `pay_with_remark` - Create a payment with a remark, can be used to tag payments
-- `release` - Release the payment amount to recipent
+- `release` - Release the payment amount to recipient
 - `cancel` - Allows the recipient to cancel the payment and release the payment amount to creator
 - `resolve_release_payment` - Allows assigned judge to release a payment
 - `resolve_cancel_payment` - Allows assigned judge to cancel a payment
