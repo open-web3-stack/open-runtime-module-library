@@ -58,11 +58,8 @@ use frame_system::{ensure_signed, pallet_prelude::*};
 use parity_scale_codec::MaxEncodedLen;
 use scale_info::TypeInfo;
 use sp_runtime::{
-	traits::{
-		AtLeast32BitUnsigned, Bounded, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, Saturating,
-		StaticLookup, Zero,
-	},
-	ArithmeticError, DispatchError, DispatchResult, FixedPointOperand, RuntimeDebug, TokenError,
+	traits::{Bounded, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, Saturating, StaticLookup, Zero},
+	ArithmeticError, DispatchError, DispatchResult, RuntimeDebug, TokenError,
 };
 use sp_std::{cmp, convert::Infallible, marker, prelude::*, vec::Vec};
 
@@ -184,14 +181,7 @@ pub mod module {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		/// The balance type
-		type Balance: Parameter
-			+ Member
-			+ AtLeast32BitUnsigned
-			+ Default
-			+ Copy
-			+ MaybeSerializeDeserialize
-			+ MaxEncodedLen
-			+ FixedPointOperand;
+		type Balance: frame_support::traits::tokens::Balance;
 
 		/// The amount type, should be signed version of `Balance`
 		type Amount: Signed

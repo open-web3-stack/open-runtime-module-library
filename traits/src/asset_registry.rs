@@ -20,7 +20,17 @@ pub trait AssetProcessor<AssetId, Metadata> {
 }
 
 /// Data describing the asset properties.
-#[derive(TypeInfo, Encode, Decode, CloneNoBound, EqNoBound, PartialEqNoBound, RuntimeDebugNoBound, MaxEncodedLen)]
+#[derive(
+	TypeInfo,
+	Encode,
+	Decode,
+	CloneNoBound,
+	EqNoBound,
+	PartialEqNoBound,
+	RuntimeDebugNoBound,
+	MaxEncodedLen,
+	DecodeWithMemTracking,
+)]
 #[codec(mel_bound(skip_type_params(StringLimit)))]
 #[scale_info(skip_type_params(StringLimit))]
 

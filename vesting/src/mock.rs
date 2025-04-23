@@ -111,6 +111,7 @@ impl ExtBuilder {
 
 		pallet_balances::GenesisConfig::<Runtime> {
 			balances: vec![(ALICE, ALICE_BALANCE), (CHARLIE, CHARLIE_BALANCE)],
+			..Default::default()
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();

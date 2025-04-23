@@ -36,14 +36,14 @@ pub mod module {
 	use super::*;
 
 	/// Period type.
-	#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+	#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, DecodeWithMemTracking)]
 	pub enum Period {
 		Blocks(u64),
 		Seconds(u64),
 	}
 
 	/// Limit rules type.
-	#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+	#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, DecodeWithMemTracking)]
 	pub enum RateLimitRule {
 		/// Each period to reset remainer quota to `quota` amount.
 		/// `can_consume` check return true when the remainer quota gte the
@@ -68,7 +68,19 @@ pub mod module {
 	pub const MAX_FILTER_KEY_LENGTH: u32 = 256;
 
 	/// Match rules to fitler key is in bypass whitelist.
-	#[derive(PartialOrd, Ord, PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+	#[derive(
+		PartialOrd,
+		Ord,
+		PartialEq,
+		Eq,
+		Clone,
+		Encode,
+		Decode,
+		RuntimeDebug,
+		TypeInfo,
+		MaxEncodedLen,
+		DecodeWithMemTracking,
+	)]
 	pub enum KeyFilter {
 		/// If the encoded key is equal to the vec, the key is in whitelist.
 		Match(BoundedVec<u8, ConstU32<MAX_FILTER_KEY_LENGTH>>),

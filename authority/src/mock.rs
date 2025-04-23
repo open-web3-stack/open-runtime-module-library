@@ -51,13 +51,14 @@ impl pallet_scheduler::Config for Runtime {
 	type WeightInfo = ();
 	type OriginPrivilegeCmp = EqualPrivilegeOnly;
 	type Preimages = Preimage;
+	type BlockNumberProvider = System;
 }
 
 impl pallet_root_testing::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 }
 
-#[derive(Clone, Encode, Decode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo)]
+#[derive(Clone, Encode, Decode, Eq, PartialEq, Ord, PartialOrd, Debug, TypeInfo, DecodeWithMemTracking)]
 pub enum MockAsOriginId {
 	Root,
 	Account1,
