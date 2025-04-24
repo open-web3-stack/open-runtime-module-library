@@ -67,7 +67,7 @@ pub mod module {
 	/// The maximum length of KeyFilter inner key.
 	pub const MAX_FILTER_KEY_LENGTH: u32 = 256;
 
-	/// Match rules to fitler key is in bypass whitelist.
+	/// Match rules to filter key is in bypass whitelist.
 	#[derive(
 		PartialOrd,
 		Ord,
