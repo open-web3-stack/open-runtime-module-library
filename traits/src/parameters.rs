@@ -144,7 +144,8 @@ macro_rules! define_parameters {
 				$crate::parameters::parity_scale_codec::Decode,
 				$crate::parameters::parity_scale_codec::MaxEncodedLen,
 				$crate::parameters::sp_runtime::RuntimeDebug,
-				$crate::parameters::scale_info::TypeInfo
+				$crate::parameters::scale_info::TypeInfo,
+				$crate::parameters::parity_scale_codec::DecodeWithMemTracking
 			)]
 			$vis enum $name {
 				$(
@@ -161,7 +162,8 @@ macro_rules! define_parameters {
 				$crate::parameters::parity_scale_codec::Decode,
 				$crate::parameters::parity_scale_codec::MaxEncodedLen,
 				$crate::parameters::sp_runtime::RuntimeDebug,
-				$crate::parameters::scale_info::TypeInfo
+				$crate::parameters::scale_info::TypeInfo,
+				$crate::parameters::parity_scale_codec::DecodeWithMemTracking
 			)]
 			$vis enum [<$name Key>] {
 				$(
@@ -178,7 +180,8 @@ macro_rules! define_parameters {
 				$crate::parameters::parity_scale_codec::Decode,
 				$crate::parameters::parity_scale_codec::MaxEncodedLen,
 				$crate::parameters::sp_runtime::RuntimeDebug,
-				$crate::parameters::scale_info::TypeInfo
+				$crate::parameters::scale_info::TypeInfo,
+				$crate::parameters::parity_scale_codec::DecodeWithMemTracking
 			)]
 			$vis enum [<$name Value>] {
 				$(
@@ -209,7 +212,8 @@ macro_rules! define_parameters {
 					$crate::parameters::parity_scale_codec::Decode,
 					$crate::parameters::parity_scale_codec::MaxEncodedLen,
 					$crate::parameters::sp_runtime::RuntimeDebug,
-					$crate::parameters::scale_info::TypeInfo
+					$crate::parameters::scale_info::TypeInfo,
+					$crate::parameters::parity_scale_codec::DecodeWithMemTracking
 				)]
 				$vis struct $key_name $( (pub $key_para) )?;
 
@@ -334,7 +338,8 @@ macro_rules! define_aggregrated_parameters {
 				$crate::parameters::parity_scale_codec::Decode,
 				$crate::parameters::parity_scale_codec::MaxEncodedLen,
 				$crate::parameters::sp_runtime::RuntimeDebug,
-				$crate::parameters::scale_info::TypeInfo
+				$crate::parameters::scale_info::TypeInfo,
+				$crate::parameters::parity_scale_codec::DecodeWithMemTracking
 			)]
 			$vis enum $name {
 				$(
@@ -351,7 +356,8 @@ macro_rules! define_aggregrated_parameters {
 				$crate::parameters::parity_scale_codec::Decode,
 				$crate::parameters::parity_scale_codec::MaxEncodedLen,
 				$crate::parameters::sp_runtime::RuntimeDebug,
-				$crate::parameters::scale_info::TypeInfo
+				$crate::parameters::scale_info::TypeInfo,
+				$crate::parameters::parity_scale_codec::DecodeWithMemTracking
 			)]
 			$vis enum [<$name Key>] {
 				$(
@@ -368,7 +374,8 @@ macro_rules! define_aggregrated_parameters {
 				$crate::parameters::parity_scale_codec::Decode,
 				$crate::parameters::parity_scale_codec::MaxEncodedLen,
 				$crate::parameters::sp_runtime::RuntimeDebug,
-				$crate::parameters::scale_info::TypeInfo
+				$crate::parameters::scale_info::TypeInfo,
+				$crate::parameters::parity_scale_codec::DecodeWithMemTracking
 			)]
 			$vis enum [<$name Value>] {
 				$(

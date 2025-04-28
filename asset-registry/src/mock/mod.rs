@@ -33,6 +33,7 @@ pub const CHARLIE: AccountId32 = AccountId32::new([2u8; 32]);
 	Ord,
 	parity_scale_codec::MaxEncodedLen,
 	TypeInfo,
+	DecodeWithMemTracking,
 )]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum CurrencyId {
@@ -294,6 +295,7 @@ pub fn relay_ext() -> sp_io::TestExternalities {
 
 	pallet_balances::GenesisConfig::<Runtime> {
 		balances: vec![(ALICE, 1_000)],
+		..Default::default()
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();
