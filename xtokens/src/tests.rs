@@ -648,7 +648,6 @@ fn send_self_parachain_asset_to_sibling_with_distinct_fee() {
 
 #[test]
 fn sending_sibling_asset_to_reserve_sibling_with_relay_fee_works() {
-	env_logger::init();
 	TestNet::reset();
 
 	ParaA::execute_with(|| {
