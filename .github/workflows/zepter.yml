@@ -27,7 +27,9 @@ jobs:
       uses: dtolnay/rust-toolchain@nightly
     - name: Install Zepter
       run: cargo install zepter --version 0.15.0 --locked -q -f --no-default-features && zepter --version
-    - run: make Cargo.toml
-    - run: cargo update
+    - run: |
+        make Cargo.toml
+        cargo update
+        cargo update base64ct --precise 1.6.0 # 1.8.0 requires the Cargo feature called `edition2024`
     - name: Check Rust features
       run: make dev-features-check
