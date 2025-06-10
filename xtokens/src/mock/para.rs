@@ -244,7 +244,7 @@ parameter_type_with_key! {
 	pub ParachainMinFee: |location: Location| -> Option<u128> {
 		#[allow(clippy::match_ref_pats)] // false positive
 		match (location.parents, location.first_interior()) {
-			(1, Some(Parachain(3))) => Some(40),
+			(1, Some(Parachain(3))) => Some(50),
 			_ => None,
 		}
 	};

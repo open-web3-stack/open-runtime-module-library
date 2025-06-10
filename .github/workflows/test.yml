@@ -36,6 +36,7 @@ jobs:
     - name: Update
       run: |
         cargo update
+        cargo update base64ct --precise 1.6.0 # 1.8.0 requires the Cargo feature called `edition2024`
     - name: Run clippy
       run: cargo clippy -- -D warnings
     - name: Check for Wasm

@@ -147,10 +147,10 @@ fn send_self_parachain_asset_to_sibling() {
 	});
 
 	ParaB::execute_with(|| {
-		assert_eq!(ParaTokens::free_balance(CurrencyId::RegisteredAsset(1), &BOB), 460);
+		assert_eq!(ParaTokens::free_balance(CurrencyId::RegisteredAsset(1), &BOB), 450);
 		assert_eq!(
 			ParaTokens::free_balance(CurrencyId::RegisteredAsset(1), &treasury_account()),
-			40
+			50
 		);
 	});
 }
@@ -247,12 +247,12 @@ fn send_sibling_asset_to_non_reserve_sibling() {
 		);
 		assert_eq!(
 			ParaTokens::free_balance(CurrencyId::RegisteredAsset(1), &sibling_c_account()),
-			460
+			450
 		);
 	});
 
 	ParaC::execute_with(|| {
-		assert_eq!(ParaTokens::free_balance(CurrencyId::RegisteredAsset(1), &BOB), 420);
+		assert_eq!(ParaTokens::free_balance(CurrencyId::RegisteredAsset(1), &BOB), 400);
 	});
 }
 
@@ -342,7 +342,7 @@ fn test_fixed_rate_asset_trader() {
 		));
 	});
 
-	let expected_fee = 40;
+	let expected_fee = 50;
 	let expected_transfer_1_amount = 500 - expected_fee;
 	ParaB::execute_with(|| {
 		assert_eq!(
