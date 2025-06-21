@@ -133,7 +133,7 @@ pub struct ReserveData<ReserveIdentifier, Balance> {
 	pub amount: Balance,
 }
 
-/// balance information for an account.
+/// Balance information for an account.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, Default, MaxEncodedLen, RuntimeDebug, TypeInfo)]
 pub struct AccountData<Balance> {
 	/// Non-reserved part of the balance. There may still be restrictions on
@@ -245,6 +245,8 @@ pub mod module {
 		DeadAccount,
 		// Number of named reserves exceed `T::MaxReserves`
 		TooManyReserves,
+		/// The allowance is too low
+		AllowanceTooLow,
 	}
 
 	#[pallet::event]
@@ -355,6 +357,13 @@ pub mod module {
 			currency_id: T::CurrencyId,
 			amount: T::Balance,
 		},
+		/// Some allowance was updated
+		AllowanceSet {
+			currency_id: T::CurrencyId,
+			owner: T::AccountId,
+			spender: T::AccountId,
+			amount: T::Balance,
+		},
 	}
 
 	/// The total issuance of a token type.
@@ -404,6 +413,19 @@ pub mod module {
 		Twox64Concat,
 		T::CurrencyId,
 		BoundedVec<ReserveData<T::ReserveIdentifier, T::Balance>, T::MaxReserves>,
+		ValueQuery,
+	>;
+
+	/// Allowances for accounts to spend approved funds.
+	#[pallet::storage]
+	pub(super) type Allowances<T: Config> = StorageNMap<
+		_,
+		(
+			NMapKey<Blake2_128Concat, T::CurrencyId>, // currency
+			NMapKey<Blake2_128Concat, T::AccountId>,  // owner
+			NMapKey<Blake2_128Concat, T::AccountId>,  // spender
+		),
+		T::Balance, // amount
 		ValueQuery,
 	>;
 
@@ -637,6 +659,84 @@ pub mod module {
 				});
 				Ok(())
 			})?;
+
+			Ok(())
+		}
+
+		/// Approve the `spender` to spend an `amount` from the free balance of `owner`.
+		///
+		/// The dispatch origin for this call must be `Signed` by the owner.
+		///
+		/// - `spender`: The account to approve spending.
+		/// - `currency_id`: currency type.
+		/// - `amount`: free balance amount to allow.
+		#[pallet::call_index(5)]
+		#[pallet::weight(T::WeightInfo::set_allowance())]
+		pub fn set_allowance(
+			origin: OriginFor<T>,
+			spender: <T::Lookup as StaticLookup>::Source,
+			currency_id: T::CurrencyId,
+			#[pallet::compact] amount: T::Balance,
+		) -> DispatchResult {
+			let owner = ensure_signed(origin)?;
+			let spender = T::Lookup::lookup(spender)?;
+
+			Allowances::<T>::insert((&currency_id, &owner, &spender), amount);
+
+			Self::deposit_event(Event::AllowanceSet {
+				currency_id,
+				owner,
+				spender,
+				amount,
+			});
+
+			Ok(())
+		}
+
+		/// Spender can transfer some free balance from the approved account.
+		///
+		/// The dispatch origin for this call must be `Signed` by the spender.
+		///
+		/// - `from`: The account which approved spending.
+		/// - `from`: The recipient of the transfer.
+		/// - `currency_id`: currency type.
+		/// - `amount`: free balance amount to allow.
+		#[pallet::call_index(6)]
+		#[pallet::weight(T::WeightInfo::set_balance())]
+		pub fn transfer_allowance(
+			origin: OriginFor<T>,
+			from: <T::Lookup as StaticLookup>::Source,
+			to: <T::Lookup as StaticLookup>::Source,
+			currency_id: T::CurrencyId,
+			#[pallet::compact] amount: T::Balance,
+		) -> DispatchResult {
+			let spender = ensure_signed(origin)?;
+			let owner = T::Lookup::lookup(from)?;
+			let destination = T::Lookup::lookup(to)?;
+
+			let remaining = Allowances::<T>::try_mutate(
+				(&currency_id, &owner, &spender),
+				|allowance| -> Result<T::Balance, DispatchError> {
+					let remaining = allowance.checked_sub(&amount).ok_or(Error::<T>::AllowanceTooLow)?;
+					*allowance = remaining;
+					Ok(remaining)
+				},
+			)?;
+
+			Self::deposit_event(Event::AllowanceSet {
+				currency_id,
+				owner: owner.clone(),
+				spender,
+				amount: remaining,
+			});
+
+			Self::do_transfer(
+				currency_id,
+				&owner,
+				&destination,
+				amount,
+				ExistenceRequirement::KeepAlive,
+			)?;
 
 			Ok(())
 		}
