@@ -96,7 +96,7 @@ fn multi_native_asset() {
 			fun: Fungible(10),
 			id: AssetId(Location::parent())
 		},
-		&Parent.into()
+		&Location::new(1, Parachain(1000))
 	));
 	assert!(MultiNativeAsset::<AbsoluteReserveProvider>::contains(
 		&Asset::sibling_parachain_asset(1, b"TokenA".to_vec().try_into().unwrap(), 100),

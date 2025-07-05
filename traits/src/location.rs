@@ -1,6 +1,8 @@
 use sp_core::{bounded::BoundedVec, ConstU32};
 use xcm::v5::prelude::*;
 
+pub const ASSET_HUB_ID: u32 = 1000;
+
 pub trait Parse {
 	/// Returns the "chain" location part. It could be parent, sibling
 	/// parachain, or child parachain.
@@ -18,8 +20,8 @@ impl Parse for Location {
 		match (self.parents, self.first_interior()) {
 			// sibling parachain
 			(1, Some(Parachain(id))) => Some(Location::new(1, [Parachain(*id)])),
-			// parent
-			(1, _) => Some(Location::parent()),
+			// parent -> assethub
+			(1, _) => Some(Location::new(1, Parachain(ASSET_HUB_ID))),
 			// children parachain
 			(0, Some(Parachain(id))) => Some(Location::new(0, [Parachain(*id)])),
 			_ => None,
@@ -95,11 +97,11 @@ mod tests {
 	fn parent_as_reserve_chain() {
 		assert_eq!(
 			AbsoluteReserveProvider::reserve(&concrete_fungible(Location::new(1, [GENERAL_INDEX]))),
-			Some(Location::parent())
+			Some(Location::new(1, Parachain(ASSET_HUB_ID)))
 		);
 		assert_eq!(
 			RelativeReserveProvider::reserve(&concrete_fungible(Location::new(1, [GENERAL_INDEX]))),
-			Some(Location::parent())
+			Some(Location::new(1, Parachain(ASSET_HUB_ID)))
 		);
 	}
 

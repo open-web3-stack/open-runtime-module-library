@@ -71,6 +71,8 @@ enum TransferKind {
 }
 use TransferKind::*;
 
+const LOG_TARGET: &str = "xtokens";
+
 #[frame_support::pallet]
 pub mod module {
 	use super::*;
@@ -686,10 +688,15 @@ pub mod module {
 			let mut hash = msg.using_encoded(sp_io::hashing::blake2_256);
 
 			let weight = T::Weigher::weight(&mut msg).map_err(|()| Error::<T>::UnweighableMessage)?;
+			log::debug!(
+				target: LOG_TARGET,
+				"origin_location {:?} execute transfer message {:?}, hash {:?}, weight: {:?}",
+				origin_location, msg, hash, weight
+			);
 			T::XcmExecutor::prepare_and_execute(origin_location, msg, &mut hash, weight, weight)
 				.ensure_complete()
 				.map_err(|error| {
-					log::error!("Failed execute transfer message with {:?}", error);
+					log::error!(target: LOG_TARGET, "Failed execute transfer message with {:?}", error);
 					Error::<T>::XcmExecutionFailed
 				})?;
 

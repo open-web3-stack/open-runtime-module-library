@@ -1,9 +1,13 @@
-use sp_runtime::DispatchError;
+use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
+use scale_info::TypeInfo;
+use sp_runtime::{DispatchError, RuntimeDebug};
 use sp_std::vec::Vec;
 use xcm::{
 	v5::{prelude::*, Weight},
 	VersionedAsset, VersionedAssets, VersionedLocation,
 };
+
+#[derive(Encode, Decode, Clone, PartialEq, Eq, MaxEncodedLen, RuntimeDebug, TypeInfo)]
 pub struct Transferred<AccountId> {
 	pub sender: AccountId,
 	pub assets: Assets,
