@@ -689,7 +689,7 @@ pub mod module {
 			T::XcmExecutor::prepare_and_execute(origin_location, msg, &mut hash, weight, weight)
 				.ensure_complete()
 				.map_err(|error| {
-					log::error!("Failed execute transfer message with {:?}", error);
+					log::error!("Failed execute transfer message with {error:?}");
 					Error::<T>::XcmExecutionFailed
 				})?;
 
