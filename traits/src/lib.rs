@@ -70,7 +70,10 @@ pub enum Change<Value> {
 
 #[derive(Encode, Decode, DecodeWithMemTracking, RuntimeDebug, Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub struct TimestampedValue<Value: Ord + PartialOrd, Moment> {
+pub struct TimestampedValue<Value, Moment>
+where
+	Value: Ord + PartialOrd,
+{
 	pub value: Value,
 	pub timestamp: Moment,
 }

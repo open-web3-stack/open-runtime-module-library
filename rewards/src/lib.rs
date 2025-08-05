@@ -18,7 +18,12 @@ use sp_std::{borrow::ToOwned, collections::btree_map::BTreeMap, fmt::Debug, prel
 
 /// The Reward Pool Info.
 #[derive(Clone, Encode, Decode, DecodeWithMemTracking, PartialEq, Eq, RuntimeDebug, TypeInfo)]
-pub struct PoolInfo<Share: HasCompact, Balance: HasCompact, CurrencyId: Ord> {
+pub struct PoolInfo<Share, Balance, CurrencyId>
+where
+	Share: HasCompact,
+	Balance: HasCompact,
+	CurrencyId: Ord,
+{
 	/// Total shares amount
 	pub total_shares: Share,
 	/// Reward infos <reward_currency, (total_reward, total_withdrawn_reward)>

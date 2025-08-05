@@ -117,7 +117,10 @@ pub enum Task {
 
 /// The details of a scheduled task
 #[derive(PartialEq, Eq, Clone, Encode, Decode, DecodeWithMemTracking, Debug, TypeInfo, MaxEncodedLen)]
-pub struct ScheduledTask<Time: HasCompact> {
+pub struct ScheduledTask<Time>
+where
+	Time: HasCompact,
+{
 	/// the type of scheduled task
 	pub task: Task,
 	/// the 'time' at which the task should be executed
