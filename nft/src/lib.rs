@@ -23,7 +23,7 @@
 
 use frame_support::{ensure, pallet_prelude::*, traits::Get, BoundedVec, Parameter};
 use frame_system::pallet_prelude::*;
-use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
+use parity_scale_codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, One, Zero},
@@ -35,7 +35,7 @@ mod mock;
 mod tests;
 
 /// Class info
-#[derive(Encode, Decode, Clone, Eq, PartialEq, MaxEncodedLen, RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, DecodeWithMemTracking, Clone, Eq, PartialEq, MaxEncodedLen, RuntimeDebug, TypeInfo)]
 pub struct ClassInfo<TokenId, AccountId, Data, ClassMetadataOf> {
 	/// Class metadata
 	pub metadata: ClassMetadataOf,
@@ -48,7 +48,7 @@ pub struct ClassInfo<TokenId, AccountId, Data, ClassMetadataOf> {
 }
 
 /// Token info
-#[derive(Encode, Decode, Clone, Eq, PartialEq, MaxEncodedLen, RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, DecodeWithMemTracking, Clone, Eq, PartialEq, MaxEncodedLen, RuntimeDebug, TypeInfo)]
 pub struct TokenInfo<AccountId, Data, TokenMetadataOf> {
 	/// Token metadata
 	pub metadata: TokenMetadataOf,

@@ -17,7 +17,7 @@ use sp_runtime::{
 use sp_std::{borrow::ToOwned, collections::btree_map::BTreeMap, fmt::Debug, prelude::*};
 
 /// The Reward Pool Info.
-#[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[derive(Clone, Encode, Decode, DecodeWithMemTracking, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub struct PoolInfo<Share: HasCompact, Balance: HasCompact, CurrencyId: Ord> {
 	/// Total shares amount
 	pub total_shares: Share,
