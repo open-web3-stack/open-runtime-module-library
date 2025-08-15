@@ -1,7 +1,7 @@
 #![allow(unused_qualifications)]
 use crate::{pallet, AssetIdOf, BalanceOf};
 use frame_system::pallet_prelude::*;
-use parity_scale_codec::{Decode, Encode, HasCompact, MaxEncodedLen};
+use parity_scale_codec::{Decode, DecodeWithMemTracking, Encode, HasCompact, MaxEncodedLen};
 use scale_info::TypeInfo;
 use sp_runtime::{DispatchResult, Percent};
 
@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 /// guarantee proof of funds and can be released once an agreed upon condition
 /// has reached between the payment creator and recipient. The payment lifecycle
 /// is tracked using the state field.
-#[derive(Encode, Decode, Debug, Clone, PartialEq, Eq, MaxEncodedLen, TypeInfo)]
+#[derive(Encode, Decode, DecodeWithMemTracking, Debug, Clone, PartialEq, Eq, MaxEncodedLen, TypeInfo)]
 #[scale_info(skip_type_params(T))]
 #[codec(mel_bound(T: pallet::Config))]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -38,7 +38,7 @@ pub struct PaymentDetail<T: pallet::Config> {
 /// The `PaymentState` enum tracks the possible states that a payment can be in.
 /// When a payment is 'completed' or 'cancelled' it is removed from storage and
 /// hence not tracked by a state.
-#[derive(Encode, Decode, Debug, Clone, PartialEq, Eq, MaxEncodedLen, TypeInfo)]
+#[derive(Encode, Decode, DecodeWithMemTracking, Debug, Clone, PartialEq, Eq, MaxEncodedLen, TypeInfo)]
 #[scale_info(skip_type_params(T))]
 #[codec(mel_bound(T: pallet::Config))]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -109,15 +109,18 @@ pub trait FeeHandler<T: pallet::Config> {
 }
 
 /// Types of Tasks that can be scheduled in the pallet
-#[derive(PartialEq, Eq, Clone, Encode, Decode, Debug, TypeInfo, MaxEncodedLen)]
+#[derive(PartialEq, Eq, Clone, Encode, Decode, DecodeWithMemTracking, Debug, TypeInfo, MaxEncodedLen)]
 pub enum Task {
 	// payment `from` to `to` has to be cancelled
 	Cancel,
 }
 
 /// The details of a scheduled task
-#[derive(PartialEq, Eq, Clone, Encode, Decode, Debug, TypeInfo, MaxEncodedLen)]
-pub struct ScheduledTask<Time: HasCompact> {
+#[derive(PartialEq, Eq, Clone, Encode, Decode, DecodeWithMemTracking, Debug, TypeInfo, MaxEncodedLen)]
+pub struct ScheduledTask<Time>
+where
+	Time: HasCompact,
+{
 	/// the type of scheduled task
 	pub task: Task,
 	/// the 'time' at which the task should be executed
