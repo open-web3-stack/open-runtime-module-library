@@ -25,6 +25,7 @@
 #![allow(clippy::boxed_local)]
 #![allow(clippy::borrowed_box)]
 #![allow(clippy::unused_unit)]
+#![allow(clippy::useless_conversion)]
 
 use frame_support::{
 	dispatch::PostDispatchInfo,

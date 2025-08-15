@@ -36,6 +36,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 #![allow(clippy::comparison_chain)]
+#![allow(clippy::useless_conversion)]
 
 pub use crate::imbalances::{NegativeImbalance, PositiveImbalance};
 

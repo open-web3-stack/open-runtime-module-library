@@ -101,8 +101,7 @@ impl<W: WeightToFeeConverter, R: TakeRevenue> WeightTrader for AssetRegistryTrad
 	) -> Result<AssetsInHolding, XcmError> {
 		log::trace!(
 			target: "xcm::weight",
-			"AssetRegistryTrader::buy_weight weight: {:?}, payment: {:?}",
-			weight, payment,
+			"AssetRegistryTrader::buy_weight weight: {weight:?}, payment: {payment:?}"
 		);
 
 		for (asset, _) in payment.fungible.iter() {
@@ -140,7 +139,7 @@ impl<W: WeightToFeeConverter, R: TakeRevenue> WeightTrader for AssetRegistryTrad
 	}
 
 	fn refund_weight(&mut self, weight: XcmWeight, _context: &XcmContext) -> Option<Asset> {
-		log::trace!(target: "xcm::weight", "AssetRegistryTrader::refund_weight weight: {:?}", weight);
+		log::trace!(target: "xcm::weight", "AssetRegistryTrader::refund_weight weight: {weight:?}");
 
 		match self.bought_weight {
 			Some(ref mut bought) => {
