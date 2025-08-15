@@ -26,6 +26,7 @@ pub const CHARLIE: AccountId32 = AccountId32::new([2u8; 32]);
 #[derive(
 	Encode,
 	Decode,
+	DecodeWithMemTracking,
 	Eq,
 	PartialEq,
 	Copy,
@@ -36,7 +37,7 @@ pub const CHARLIE: AccountId32 = AccountId32::new([2u8; 32]);
 	parity_scale_codec::MaxEncodedLen,
 	TypeInfo,
 )]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize, DecodeWithMemTracking))]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum CurrencyId {
 	/// Relay chain token.
 	R,
