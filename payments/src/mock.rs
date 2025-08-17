@@ -67,7 +67,6 @@ impl orml_tokens::Config for Test {
 	type Amount = i64;
 	type Balance = Balance;
 	type CurrencyId = u32;
-	type RuntimeEvent = RuntimeEvent;
 	type ExistentialDeposits = ExistentialDeposits;
 	type CurrencyHooks = ();
 	type WeightInfo = ();
@@ -107,7 +106,6 @@ parameter_types! {
 }
 
 impl payment::Config for Test {
-	type RuntimeEvent = RuntimeEvent;
 	type Asset = Tokens;
 	type DisputeResolver = MockDisputeResolver;
 	type IncentivePercentage = IncentivePercentage;

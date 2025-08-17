@@ -64,7 +64,6 @@ impl SortedMembers<AccountId> for Members {
 }
 
 impl Config for Test {
-	type RuntimeEvent = RuntimeEvent;
 	type OnNewData = ();
 	type CombineData = DefaultCombineData<Self, ConstU32<3>, ConstU32<600>>;
 	type Time = Timestamp;

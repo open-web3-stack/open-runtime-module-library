@@ -6,7 +6,7 @@
 mod tests;
 
 pub use frame_benchmarking::{
-	benchmarking, whitelisted_caller, BenchmarkBatch, BenchmarkConfig, BenchmarkError, BenchmarkList,
+	benchmarking, current_time, whitelisted_caller, BenchmarkBatch, BenchmarkConfig, BenchmarkError, BenchmarkList,
 	BenchmarkMetadata, BenchmarkParameter, BenchmarkRecording, BenchmarkResult, Benchmarking, BenchmarkingSetup,
 	Recording,
 };
@@ -836,9 +836,9 @@ macro_rules! impl_benchmark {
 					);
 
 					// Time the storage root recalculation.
-					let start_storage_root = $crate::benchmarking::current_time();
+					let start_storage_root = $crate::current_time();
 					$crate::storage_root($crate::StateVersion::V0);
-					let finish_storage_root = $crate::benchmarking::current_time();
+					let finish_storage_root = $crate::current_time();
 					let elapsed_storage_root = finish_storage_root - start_storage_root;
 
 					let skip_meta = [ $( stringify!($name_skip_meta).as_ref() ),* ];
