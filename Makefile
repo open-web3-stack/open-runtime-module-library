@@ -1,5 +1,5 @@
 check: githooks
-	./scripts/run.sh check --no-default-features --target=wasm32-unknown-unknown
+	./scripts/run.sh check --no-default-features --target=wasm32v1-none
 
 check-tests: githooks
 	./scripts/run.sh check --tests
