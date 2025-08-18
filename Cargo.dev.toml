@@ -4,7 +4,6 @@ members = [
 	"auction",
 	"authority",
 	"benchmarking",
-	"build-script-utils",
 	"currencies",
 	"gradually-update",
 	"nft",
