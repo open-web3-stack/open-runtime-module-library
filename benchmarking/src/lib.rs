@@ -1281,12 +1281,13 @@ macro_rules! add_benchmark {
 		let (config, whitelist) = $params;
 		let $crate::BenchmarkConfig {
 			pallet,
+			instance,
 			benchmark,
 			selected_components,
 			verify,
 			internal_repeats,
 		} = config;
-		if &pallet[..] == &name_string[..] {
+		if &pallet[..] == &name_string[..] && &instance[..] == &instance_string[..] {
 			let benchmark_result = $( $location )*::Benchmark::run_benchmark(
 				&benchmark[..],
 				&selected_components[..],
