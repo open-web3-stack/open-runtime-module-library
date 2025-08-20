@@ -34,8 +34,6 @@ pub mod module {
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
-		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-
 		/// Additional non-standard metadata to store for each asset
 		type CustomMetadata: Parameter + Member + TypeInfo + MaxEncodedLen;
 

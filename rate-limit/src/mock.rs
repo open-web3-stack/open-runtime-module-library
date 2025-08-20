@@ -44,7 +44,6 @@ impl pallet_timestamp::Config for Runtime {
 }
 
 impl Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
 	type GovernanceOrigin = EnsureRoot<AccountId>;
 	type RateLimiterId = RateLimiterId;
 	type MaxWhitelistFilterCount = ConstU32<3>;

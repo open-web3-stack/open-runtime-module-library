@@ -68,7 +68,6 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for EnsureOriginIm
 }
 
 impl Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
 	type AggregratedKeyValue = RuntimeParameters;
 	type AdminOrigin = EnsureOriginImpl;
 	type WeightInfo = ();

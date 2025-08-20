@@ -16,8 +16,6 @@ pub mod module {
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config + pallet_xcm::Config {
-		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-
 		/// The required origin for sending XCM as parachain sovereign.
 		///
 		/// Typically root or the majority of collective.

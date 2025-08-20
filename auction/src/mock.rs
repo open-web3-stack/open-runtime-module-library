@@ -48,7 +48,6 @@ impl AuctionHandler<AccountId, Balance, BlockNumber, AuctionId> for Handler {
 }
 
 impl Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
 	type AuctionId = AuctionId;
 	type Handler = Handler;

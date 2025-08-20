@@ -138,7 +138,6 @@ impl AsOriginId<RuntimeOrigin, OriginCaller> for MockAsOriginId {
 }
 
 impl Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
 	type RuntimeOrigin = RuntimeOrigin;
 	type PalletsOrigin = OriginCaller;
 	type Scheduler = Scheduler;

@@ -17,9 +17,7 @@ impl frame_system::Config for Runtime {
 	type Block = Block;
 }
 
-impl Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-}
+impl Config for Runtime {}
 
 type Block = frame_system::mocking::MockBlock<Runtime>;
 

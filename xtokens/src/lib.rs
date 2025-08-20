@@ -77,8 +77,6 @@ pub mod module {
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
-		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-
 		/// The balance type.
 		type Balance: Parameter
 			+ Member
@@ -685,7 +683,7 @@ pub mod module {
 			};
 			let mut hash = msg.using_encoded(sp_io::hashing::blake2_256);
 
-			let weight = T::Weigher::weight(&mut msg).map_err(|()| Error::<T>::UnweighableMessage)?;
+			let weight = T::Weigher::weight(&mut msg, Weight::MAX).map_err(|_| Error::<T>::UnweighableMessage)?;
 			T::XcmExecutor::prepare_and_execute(origin_location, msg, &mut hash, weight, weight)
 				.ensure_complete()
 				.map_err(|error| {
@@ -898,7 +896,7 @@ pub mod module {
 							},
 						]),
 					};
-					return T::Weigher::weight(&mut msg)
+					return T::Weigher::weight(&mut msg, Weight::MAX)
 						.map_or(Weight::max_value(), |w| T::BaseXcmWeight::get().saturating_add(w));
 				}
 			}
@@ -965,7 +963,7 @@ pub mod module {
 							},
 						]),
 					};
-					return T::Weigher::weight(&mut msg)
+					return T::Weigher::weight(&mut msg, Weight::MAX)
 						.map_or(Weight::max_value(), |w| T::BaseXcmWeight::get().saturating_add(w));
 				}
 			}

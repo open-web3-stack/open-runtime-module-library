@@ -22,7 +22,6 @@ impl frame_system::Config for Runtime {
 }
 
 impl Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
 	type UpdateFrequency = ConstU64<10>;
 	type DispatchOrigin = frame_system::EnsureRoot<AccountId>;
 	type WeightInfo = ();
