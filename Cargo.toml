@@ -1,0 +1,70 @@
+[workspace]
+members = [
+	"asset-registry",
+	"auction",
+	"authority",
+	"benchmarking",
+	"currencies",
+	"gradually-update",
+	"nft",
+	"oracle",
+	"oracle/runtime-api",
+	"parameters",
+	"payments",
+	"rate-limit",
+	"rewards",
+	"tokens",
+	"tokens/runtime-api",
+	"traits",
+	"unknown-tokens",
+	"utilities",
+	"vesting",
+	"xcm-mock-message-queue",
+	"xcm-support",
+	"xcm",
+	"xtokens",
+]
+
+resolver = "2"
+
+[profile.dev]
+split-debuginfo = "unpacked"
+
+[workspace.dependencies]
+log = { version = "0.4.25", default-features = false }
+scale-info = { version = "2.10.0", default-features = false, features = ["derive"] }
+serde = { version = "1.0.214" }
+parity-scale-codec = { version = "3.6.12", default-features = false, features = ["max-encoded-len"] }
+
+cumulus-pallet-xcm = { version = "0.20.0", default-features = false }
+cumulus-primitives-core = { version = "0.19.0", default-features = false }
+frame-benchmarking = { version = "41.0.0", default-features = false }
+frame-support = { version = "41.0.0", default-features = false }
+frame-system = { version = "41.0.0", default-features = false }
+pallet-balances = { version = "42.0.0", default-features = false }
+pallet-elections-phragmen = { version = "42.0.0", default-features = false }
+pallet-message-queue = { version = "44.0.0", default-features = false }
+pallet-preimage = { version = "41.0.0", default-features = false }
+pallet-root-testing = { version = "17.0.0", default-features = false }
+pallet-scheduler = { version = "42.0.0", default-features = false }
+pallet-timestamp = { version = "40.0.0", default-features = false }
+pallet-treasury = { version = "40.0.0", default-features = false }
+pallet-xcm = { version = "20.1.0", default-features = false }
+polkadot-parachain-primitives = { version = "17.0.0", default-features = false }
+polkadot-runtime-common = { version = "20.0.0", default-features = false }
+polkadot-runtime-parachains = { version = "20.0.1", default-features = false }
+sp-api = { version = "37.0.0", default-features = false }
+sp-application-crypto = { version = "41.0.0", default-features = false }
+sp-arithmetic = { version = "27.0.0", default-features = false }
+sp-core = { version = "37.0.0", default-features = false }
+sp-io = { version = "41.0.1", default-features = false }
+sp-runtime = { version = "42.0.0", default-features = false }
+sp-runtime-interface = { version = "30.0.0", default-features = false }
+sp-staking = { version = "39.0.0", default-features = false }
+sp-std = { version = "14.0.0", default-features = false }
+sp-storage = { version = "22.0.0", default-features = false }
+xcm = { version = "17.0.0", package = "staging-xcm", default-features = false }
+xcm-builder = { version = "21.0.0", package = "staging-xcm-builder", default-features = false }
+xcm-executor = { version = "20.0.0", package = "staging-xcm-executor", default-features = false }
+
+xcm-simulator = { version = "21.0.0" }
