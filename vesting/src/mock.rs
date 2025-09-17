@@ -74,7 +74,6 @@ impl BlockNumberProvider for MockBlockNumberProvider {
 }
 
 impl Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
 	type Currency = PalletBalances;
 	type MinVestedTransfer = ConstU64<5>;
 	type VestedTransferOrigin = EnsureAliceOrBob;

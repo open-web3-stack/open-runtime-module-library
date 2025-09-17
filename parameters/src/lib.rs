@@ -23,8 +23,6 @@ pub mod module {
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
-		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-
 		/// The key value type for parameters. Usually created by
 		/// orml_traits::parameters::define_aggregrated_parameters
 		type AggregratedKeyValue: AggregratedKeyValue;
