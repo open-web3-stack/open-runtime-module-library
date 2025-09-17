@@ -1,7 +1,5 @@
-export RUSTFLAGS := ${RUSTFLAGS} --cfg substrate_runtime
-
 check: githooks
-	./scripts/run.sh check --no-default-features --target=wasm32v1-none
+	RUSTFLAGS="${RUSTFLAGS:-} --cfg substrate_runtime" ./scripts/run.sh check --no-default-features --target=wasm32v1-none
 
 check-tests: githooks
 	./scripts/run.sh check --tests
