@@ -1,4 +1,7 @@
-use super::{Amount, Balance, CurrencyId, CurrencyIdConvert, ParachainXcmRouter};
+use super::{
+	AbsoluteReserveProviderMigrationPhase, Amount, Balance, CurrencyId, CurrencyIdConvert, ParachainXcmRouter,
+	RelativeReserveProviderMigrationPhase,
+};
 use crate as orml_xtokens;
 
 use frame_support::{
@@ -22,10 +25,7 @@ use xcm_builder::{
 use xcm_executor::{Config, XcmExecutor};
 
 use crate::mock::AllTokensAreCreatedEqualToWeight;
-use orml_traits::{
-	location::{AbsoluteReserveProvider, RelativeReserveProvider, Reserve},
-	parameter_type_with_key,
-};
+use orml_traits::{location::Reserve, parameter_type_with_key};
 use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter};
 
 pub type AccountId = AccountId32;
@@ -141,7 +141,7 @@ impl Config for XcmConfig {
 	type XcmSender = XcmRouter;
 	type AssetTransactor = LocalAssetTransactor;
 	type OriginConverter = XcmOriginToCallOrigin;
-	type IsReserve = MultiNativeAsset<AbsoluteReserveProvider>;
+	type IsReserve = MultiNativeAsset<AbsoluteReserveProviderMigrationPhase<Runtime>>;
 	type IsTeleporter = ();
 	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
@@ -378,9 +378,10 @@ impl orml_xtokens::Config for Runtime {
 	type BaseXcmWeight = BaseXcmWeight;
 	type UniversalLocation = UniversalLocation;
 	type MaxAssetsForTransfer = MaxAssetsForTransfer;
-	type ReserveProvider = RelativeReserveProvider;
+	type ReserveProvider = RelativeReserveProviderMigrationPhase<Runtime>;
 	type RateLimiter = ();
 	type RateLimiterId = ();
+	type MigrationPhaseUpdateOrigin = EnsureRoot<AccountId>;
 }
 
 impl orml_xcm::Config for Runtime {

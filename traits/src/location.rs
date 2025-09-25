@@ -1,73 +1,11 @@
 use sp_core::{bounded::BoundedVec, ConstU32};
 use xcm::v5::prelude::*;
 
-pub trait Parse {
-	/// Returns the "chain" location part. It could be parent, sibling
-	/// parachain, or child parachain.
-	fn chain_part(&self) -> Option<Location>;
-	/// Returns "non-chain" location part.
-	fn non_chain_part(&self) -> Option<Location>;
-}
-
-fn is_chain_junction(junction: Option<&Junction>) -> bool {
-	matches!(junction, Some(Parachain(_)))
-}
-
-impl Parse for Location {
-	fn chain_part(&self) -> Option<Location> {
-		match (self.parents, self.first_interior()) {
-			// sibling parachain
-			(1, Some(Parachain(id))) => Some(Location::new(1, [Parachain(*id)])),
-			// parent
-			(1, _) => Some(Location::parent()),
-			// children parachain
-			(0, Some(Parachain(id))) => Some(Location::new(0, [Parachain(*id)])),
-			_ => None,
-		}
-	}
-
-	fn non_chain_part(&self) -> Option<Location> {
-		let mut junctions = self.interior().clone();
-		while is_chain_junction(junctions.first()) {
-			let _ = junctions.take_first();
-		}
-
-		if junctions != Here {
-			Some(Location::new(0, junctions))
-		} else {
-			None
-		}
-	}
-}
+pub const ASSET_HUB_ID: u32 = 1000;
 
 pub trait Reserve {
 	/// Returns assets reserve location.
 	fn reserve(asset: &Asset) -> Option<Location>;
-}
-
-// Provide reserve in absolute path view
-pub struct AbsoluteReserveProvider;
-
-impl Reserve for AbsoluteReserveProvider {
-	fn reserve(asset: &Asset) -> Option<Location> {
-		let AssetId(location) = &asset.id;
-		location.chain_part()
-	}
-}
-
-// Provide reserve in relative path view
-// Self tokens are represeneted as Here
-pub struct RelativeReserveProvider;
-
-impl Reserve for RelativeReserveProvider {
-	fn reserve(asset: &Asset) -> Option<Location> {
-		let AssetId(location) = &asset.id;
-		if location.parents == 0 && !is_chain_junction(location.first_interior()) {
-			Some(Location::here())
-		} else {
-			location.chain_part()
-		}
-	}
 }
 
 pub trait RelativeLocations {

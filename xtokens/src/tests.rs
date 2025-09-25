@@ -1929,3 +1929,31 @@ fn nfts_cannot_be_fee_assets() {
 		);
 	});
 }
+
+#[test]
+fn set_migration_phase_should_work() {
+	TestNet::reset();
+
+	ParaA::execute_with(|| {
+		assert_eq!(MigrationPhase::NotStarted, MigrationStatus::<para::Runtime>::get());
+		assert_ok!(ParaXTokens::set_migration_phase(
+			para::RuntimeOrigin::root(),
+			MigrationPhase::InProgress
+		));
+		assert!(para::System::events().iter().any(|r| {
+			matches!(
+				r.event,
+				para::RuntimeEvent::XTokens(Event::MigrationPhaseChanged {
+					migration_phase: MigrationPhase::InProgress
+				})
+			)
+		}));
+
+		assert_eq!(MigrationPhase::InProgress, MigrationStatus::<para::Runtime>::get());
+		assert_ok!(ParaXTokens::set_migration_phase(
+			para::RuntimeOrigin::root(),
+			MigrationPhase::Completed
+		));
+		assert_eq!(MigrationPhase::Completed, MigrationStatus::<para::Runtime>::get());
+	});
+}
