@@ -4,7 +4,7 @@
 
 use super::*;
 
-use orml_traits::{location::AbsoluteReserveProvider, location::RelativeLocations, ConcreteFungibleAsset};
+use orml_traits::{location::RelativeLocations, ConcreteFungibleAsset};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum TestCurrencyId {
@@ -87,23 +87,4 @@ fn is_native_concrete_does_not_matches_non_native_currencies() {
 		)),
 	})
 	.is_none());
-}
-
-#[test]
-fn multi_native_asset() {
-	assert!(MultiNativeAsset::<AbsoluteReserveProvider>::contains(
-		&Asset {
-			fun: Fungible(10),
-			id: AssetId(Location::parent())
-		},
-		&Parent.into()
-	));
-	assert!(MultiNativeAsset::<AbsoluteReserveProvider>::contains(
-		&Asset::sibling_parachain_asset(1, b"TokenA".to_vec().try_into().unwrap(), 100),
-		&Location::new(1, [Parachain(1)]),
-	));
-	assert!(!MultiNativeAsset::<AbsoluteReserveProvider>::contains(
-		&Asset::sibling_parachain_asset(1, b"TokenA".to_vec().try_into().unwrap(), 100),
-		&Location::parent(),
-	));
 }
