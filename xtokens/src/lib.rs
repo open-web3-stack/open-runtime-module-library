@@ -850,7 +850,7 @@ pub mod module {
 
 		/// Ensure has the `dest` has chain part and recipient part.
 		fn ensure_valid_dest(dest: &Location) -> Result<(Location, Location), DispatchError> {
-			if let (Some(dest), Some(recipient)) = (Self::chain_part(&dest), Self::non_chain_part(&dest)) {
+			if let (Some(dest), Some(recipient)) = (Self::chain_part(dest), Self::non_chain_part(dest)) {
 				Ok((dest, recipient))
 			} else {
 				Err(Error::<T>::InvalidDest.into())
