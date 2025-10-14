@@ -14,7 +14,7 @@ on:
       - '**/README.md'
 
 env:
-  TARPAULIN_VERSION: 0.32.7
+  TARPAULIN_VERSION: 0.33.0
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
