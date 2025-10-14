@@ -37,7 +37,7 @@ jobs:
           tar -zxvf cargo-tarpaulin-x86_64-unknown-linux-musl.tar.gz -C $HOME/.cargo/bin
           make Cargo.toml
           cargo update
-          cargo tarpaulin --verbose --no-fail-fast --workspace --timeout 300 --out Xml
+          cargo tarpaulin --engine llvm --no-fail-fast --workspace --timeout 300 --out Xml
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v5
         with:
