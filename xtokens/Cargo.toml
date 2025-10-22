@@ -21,6 +21,7 @@ sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 
 # polkadot
+parachains-common = { workspace = true, optional = true }
 pallet-xcm = { workspace = true }
 xcm = { workspace = true }
 xcm-executor = { workspace = true }
@@ -38,7 +39,6 @@ pallet-message-queue = { workspace = true, features = ["std"] }
 # cumulus
 cumulus-pallet-xcm = { workspace = true, features = ["std"] }
 cumulus-primitives-core = { workspace = true, features = ["std"] }
-parachains-common = { workspace = true, features = ["std"] }
 
 # polkadot
 polkadot-parachain-primitives = { workspace = true, features = ["std"] }
@@ -62,6 +62,7 @@ std = [
 	"orml-traits/std",
 	"orml-xcm-support/std",
 	"pallet-xcm/std",
+	"parachains-common/std",
 	"parity-scale-codec/std",
 	"scale-info/std",
 	"serde",
@@ -75,6 +76,7 @@ runtime-benchmarks = [
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
+	"parachains-common/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
@@ -83,5 +85,6 @@ try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
 	"pallet-xcm/try-runtime",
+	"parachains-common/try-runtime",
 	"sp-runtime/try-runtime",
 ]

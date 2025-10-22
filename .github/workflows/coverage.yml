@@ -14,7 +14,7 @@ on:
       - '**/README.md'
 
 env:
-  TARPAULIN_VERSION: 0.32.7
+  TARPAULIN_VERSION: 0.33.0
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -37,9 +37,7 @@ jobs:
           tar -zxvf cargo-tarpaulin-x86_64-unknown-linux-musl.tar.gz -C $HOME/.cargo/bin
           make Cargo.toml
           cargo update
-          cargo update base64ct --precise 1.6.0 # 1.8.0 requires the Cargo feature called `edition2024`
-          cargo update pallet-revive-proc-macro --precise 0.3.0 # TODO: https://github.com/paritytech/polkadot-sdk/issues/9425
-          cargo tarpaulin --verbose --no-fail-fast --workspace --timeout 300 --out Xml
+          cargo tarpaulin --engine llvm --no-fail-fast --workspace --timeout 300 --out Xml
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v5
         with:
