@@ -54,7 +54,7 @@ parameter_type_with_key! {
 	pub MinXcmReserveFee: |location: Location| -> Option<u128> {
 		#[allow(clippy::match_ref_pats)] // false positive
 		match (location.parents, location.first_interior()) {
-			(1, Some(Parachain(parachains::statemine::ID))) => Some(4_000_000_000),
+			(1, Some(Parachain(parachains::assethub::ID))) => Some(4_000_000_000),
 			_ => None,
 		}
 	};

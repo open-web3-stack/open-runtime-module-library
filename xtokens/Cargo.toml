@@ -38,6 +38,7 @@ pallet-message-queue = { workspace = true, features = ["std"] }
 # cumulus
 cumulus-pallet-xcm = { workspace = true, features = ["std"] }
 cumulus-primitives-core = { workspace = true, features = ["std"] }
+parachains-common = { workspace = true, features = ["std"] }
 
 # polkadot
 polkadot-parachain-primitives = { workspace = true, features = ["std"] }
