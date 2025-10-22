@@ -12,7 +12,7 @@ use frame_support::{
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_traits::{parameter_type_with_key, FixedConversionRateProvider, MultiCurrency};
 use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
-use orml_xtokens::{AbsoluteReserveProviderMigrationPhase, RelativeReserveProviderMigrationPhase};
+use orml_xtokens::{AbsoluteReserveProvider, RelativeReserveProvider};
 use pallet_xcm::XcmPassthrough;
 use parity_scale_codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use polkadot_parachain_primitives::primitives::Sibling;
@@ -210,7 +210,7 @@ impl Config for XcmConfig {
 	type XcmSender = XcmRouter;
 	type AssetTransactor = LocalAssetTransactor;
 	type OriginConverter = XcmOriginToCallOrigin;
-	type IsReserve = MultiNativeAsset<AbsoluteReserveProviderMigrationPhase<Runtime>>;
+	type IsReserve = MultiNativeAsset<AbsoluteReserveProvider>;
 	type IsTeleporter = ();
 	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
@@ -327,10 +327,9 @@ impl orml_xtokens::Config for Runtime {
 	type BaseXcmWeight = BaseXcmWeight;
 	type UniversalLocation = UniversalLocation;
 	type MaxAssetsForTransfer = MaxAssetsForTransfer;
-	type ReserveProvider = RelativeReserveProviderMigrationPhase<Runtime>;
+	type ReserveProvider = RelativeReserveProvider;
 	type RateLimiter = ();
 	type RateLimiterId = ();
-	type MigrationPhaseUpdateOrigin = EnsureRoot<AccountId>;
 }
 
 impl orml_xcm::Config for Runtime {
