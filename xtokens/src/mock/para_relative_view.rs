@@ -1,8 +1,9 @@
 use super::{
-	AbsoluteReserveProviderMigrationPhase, Amount, Balance, CurrencyId, CurrencyIdConvert, ParachainXcmRouter,
-	RelativeReserveProviderMigrationPhase,
+	AbsoluteReserveProvider, Amount, Balance, CurrencyId, CurrencyIdConvert, ParachainXcmRouter,
+	RelativeReserveProvider,
 };
 use crate as orml_xtokens;
+use orml_xtokens::ASSET_HUB_ID;
 
 use frame_support::{
 	construct_runtime, derive_impl, parameter_types,
@@ -10,6 +11,7 @@ use frame_support::{
 };
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
+use parachains_common::xcm_config::ConcreteAssetFromSystem;
 use polkadot_parachain_primitives::primitives::Sibling;
 use sp_runtime::{
 	traits::{Convert, IdentityLookup},
@@ -24,7 +26,7 @@ use xcm_builder::{
 };
 use xcm_executor::{Config, XcmExecutor};
 
-use crate::mock::AllTokensAreCreatedEqualToWeight;
+use crate::mock::{AllTokensAreCreatedEqualToWeight, KsmLocation};
 use orml_traits::{location::Reserve, parameter_type_with_key};
 use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter};
 
@@ -141,8 +143,8 @@ impl Config for XcmConfig {
 	type XcmSender = XcmRouter;
 	type AssetTransactor = LocalAssetTransactor;
 	type OriginConverter = XcmOriginToCallOrigin;
-	type IsReserve = MultiNativeAsset<AbsoluteReserveProviderMigrationPhase<Runtime>>;
-	type IsTeleporter = ();
+	type IsReserve = MultiNativeAsset<AbsoluteReserveProvider>;
+	type IsTeleporter = ConcreteAssetFromSystem<KsmLocation>;
 	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
 	type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
@@ -350,6 +352,7 @@ impl Contains<Location> for ParentOrParachains {
 				| (1, [Parachain(3), Junction::AccountId32 { .. }])
 				| (1, [Parachain(4), Junction::AccountId32 { .. }])
 				| (1, [Parachain(100), Junction::AccountId32 { .. }])
+				| (1, [Parachain(ASSET_HUB_ID), Junction::AccountId32 { .. }])
 		)
 	}
 }
@@ -360,6 +363,7 @@ parameter_type_with_key! {
 		match (location.parents, location.first_interior()) {
 			(1, Some(Parachain(2))) => Some(50),
 			(1, Some(Parachain(3))) => Some(50),
+			(1, Some(Parachain(ASSET_HUB_ID))) => Some(50),
 			_ => None,
 		}
 	};
@@ -378,10 +382,9 @@ impl orml_xtokens::Config for Runtime {
 	type BaseXcmWeight = BaseXcmWeight;
 	type UniversalLocation = UniversalLocation;
 	type MaxAssetsForTransfer = MaxAssetsForTransfer;
-	type ReserveProvider = RelativeReserveProviderMigrationPhase<Runtime>;
+	type ReserveProvider = RelativeReserveProvider;
 	type RateLimiter = ();
 	type RateLimiterId = ();
-	type MigrationPhaseUpdateOrigin = EnsureRoot<AccountId>;
 }
 
 impl orml_xcm::Config for Runtime {

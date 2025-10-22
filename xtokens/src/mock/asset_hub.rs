@@ -1,37 +1,25 @@
-use super::{
-	AbsoluteReserveProvider, AllowTopLevelPaidExecution, Amount, Balance, CurrencyId, CurrencyIdConvert,
-	ParachainXcmRouter, RateLimiter, CHARLIE,
-};
-use crate as orml_xtokens;
+use super::{AbsoluteReserveProvider, AllowTopLevelPaidExecution, Balance, ParachainXcmRouter};
 
 use frame_support::{
-	construct_runtime, derive_impl, ensure, parameter_types,
-	traits::{ConstU128, ConstU32, Contains, ContainsPair, Everything, Get, Nothing},
+	construct_runtime, derive_impl, parameter_types,
+	traits::{ConstU128, ConstU32, ContainsPair, Everything, Get, Nothing},
 };
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
 use parachains_common::xcm_config::ConcreteAssetFromSystem;
-use parity_scale_codec::Encode;
 use polkadot_parachain_primitives::primitives::Sibling;
-use sp_runtime::{
-	traits::{Convert, IdentityLookup},
-	AccountId32,
-};
-use sp_std::{cell::RefCell, marker::PhantomData};
+use sp_runtime::{traits::IdentityLookup, AccountId32};
+use sp_std::marker::PhantomData;
 use xcm::v5::{prelude::*, Weight};
 use xcm_builder::{
-	AccountId32Aliases, EnsureXcmOrigin, FixedWeightBounds, ParentIsPreset, RelayChainAsNative,
-	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,
-	SovereignSignedViaLocation, TakeWeightCredit,
+	AccountId32Aliases, EnsureXcmOrigin, FixedWeightBounds, FungibleAdapter, IsConcrete, ParentIsPreset,
+	RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
+	SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 };
 use xcm_executor::{Config, XcmExecutor};
 
 use crate::mock::{AllTokensAreCreatedEqualToWeight, KsmLocation};
-use orml_traits::{
-	location::{Reserve, ASSET_HUB_ID},
-	parameter_type_with_key, RateLimiterError,
-};
-use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter};
+use orml_traits::location::Reserve;
 
 pub type AccountId = AccountId32;
 
@@ -60,27 +48,9 @@ impl pallet_balances::Config for Runtime {
 	type DoneSlashHandler = ();
 }
 
-parameter_type_with_key! {
-	pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
-		Default::default()
-	};
-}
-
-impl orml_tokens::Config for Runtime {
-	type Balance = Balance;
-	type Amount = Amount;
-	type CurrencyId = CurrencyId;
-	type WeightInfo = ();
-	type ExistentialDeposits = ExistentialDeposits;
-	type CurrencyHooks = ();
-	type MaxLocks = ConstU32<50>;
-	type MaxReserves = ConstU32<50>;
-	type ReserveIdentifier = [u8; 8];
-	type DustRemovalWhitelist = Everything;
-}
-
 parameter_types! {
 	pub const RelayNetwork: NetworkId = NetworkId::Kusama;
+	pub const RelayLocation: Location = Location::parent();
 	pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
 	pub UniversalLocation: InteriorLocation =
 		[GlobalConsensus(RelayNetwork::get()), Parachain(MsgQueue::get().into())].into();
@@ -100,16 +70,8 @@ pub type XcmOriginToCallOrigin = (
 	XcmPassthrough<RuntimeOrigin>,
 );
 
-pub type LocalAssetTransactor = MultiCurrencyAdapter<
-	Tokens,
-	(),
-	IsNativeConcrete<CurrencyId, CurrencyIdConvert>,
-	AccountId,
-	LocationToAccountId,
-	CurrencyId,
-	CurrencyIdConvert,
-	(),
->;
+pub type LocalAssetTransactor =
+	FungibleAdapter<Balances, IsConcrete<RelayLocation>, LocationToAccountId, AccountId, ()>;
 
 pub type XcmRouter = ParachainXcmRouter<MsgQueue>;
 pub type Barrier = (TakeWeightCredit, AllowTopLevelPaidExecution);
@@ -208,116 +170,6 @@ impl pallet_xcm::Config for Runtime {
 	type AuthorizedAliasConsideration = ();
 }
 
-pub struct AccountIdToLocation;
-impl Convert<AccountId, Location> for AccountIdToLocation {
-	fn convert(account: AccountId) -> Location {
-		[Junction::AccountId32 {
-			network: None,
-			id: account.into(),
-		}]
-		.into()
-	}
-}
-
-parameter_types! {
-	pub SelfLocation: Location = Location::new(1, [Parachain(MsgQueue::get().into())]);
-	pub const MaxAssetsForTransfer: usize = 3;
-}
-
-pub struct ParentOrParachains;
-impl Contains<Location> for ParentOrParachains {
-	fn contains(location: &Location) -> bool {
-		matches!(
-			location.unpack(),
-			(0, [Junction::AccountId32 { .. }])
-				| (1, [Junction::AccountId32 { .. }])
-				| (1, [Parachain(1), Junction::AccountId32 { .. }])
-				| (1, [Parachain(2), Junction::AccountId32 { .. }])
-				| (1, [Parachain(3), Junction::AccountId32 { .. }])
-				| (1, [Parachain(4), Junction::AccountId32 { .. }])
-				| (1, [Parachain(100), Junction::AccountId32 { .. }])
-				| (1, [Parachain(ASSET_HUB_ID), Junction::AccountId32 { .. }])
-		)
-	}
-}
-
-parameter_type_with_key! {
-	pub ParachainMinFee: |location: Location| -> Option<u128> {
-		#[allow(clippy::match_ref_pats)] // false positive
-		match (location.parents, location.first_interior()) {
-			(1, Some(Parachain(3))) => Some(50),
-			(1, Some(Parachain(ASSET_HUB_ID))) => Some(50),
-			_ => None,
-		}
-	};
-}
-
-thread_local! {
-	pub static R_ACCUMULATION: RefCell<u128> = RefCell::new(0);
-}
-
-pub struct MockRateLimiter;
-impl RateLimiter for MockRateLimiter {
-	type RateLimiterId = u8;
-
-	fn is_whitelist(_: Self::RateLimiterId, key: impl Encode) -> bool {
-		let encoded_charlie = CHARLIE.encode();
-		let encoded_key: Vec<u8> = key.encode();
-		encoded_key != encoded_charlie
-	}
-
-	fn can_consume(_: Self::RateLimiterId, limit_key: impl Encode, value: u128) -> Result<(), RateLimiterError> {
-		let encoded_limit_key = limit_key.encode();
-		let r_multi_location: Location = CurrencyIdConvert::convert(CurrencyId::R).unwrap();
-		let r_asset_id = AssetId(r_multi_location);
-		let encoded_r_asset_id = r_asset_id.encode();
-
-		if encoded_limit_key == encoded_r_asset_id {
-			let accumulation = R_ACCUMULATION.with(|v| *v.borrow());
-			ensure!((accumulation + value) <= 2000, RateLimiterError::ExceedLimit);
-		}
-
-		Ok(())
-	}
-
-	fn consume(_: Self::RateLimiterId, limit_key: impl Encode, value: u128) {
-		let encoded_limit_key = limit_key.encode();
-		let r_multi_location: Location = CurrencyIdConvert::convert(CurrencyId::R).unwrap();
-		let r_asset_id = AssetId(r_multi_location);
-		let encoded_r_asset_id = r_asset_id.encode();
-
-		if encoded_limit_key == encoded_r_asset_id {
-			R_ACCUMULATION.with(|v| *v.borrow_mut() += value);
-		}
-	}
-}
-
-parameter_types! {
-	pub const XtokensRateLimiterId: u8 = 0;
-}
-
-impl orml_xtokens::Config for Runtime {
-	type Balance = Balance;
-	type CurrencyId = CurrencyId;
-	type CurrencyIdConvert = CurrencyIdConvert;
-	type AccountIdToLocation = AccountIdToLocation;
-	type SelfLocation = SelfLocation;
-	type LocationsFilter = ParentOrParachains;
-	type MinXcmFee = ParachainMinFee;
-	type XcmExecutor = XcmExecutor<XcmConfig>;
-	type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
-	type BaseXcmWeight = BaseXcmWeight;
-	type UniversalLocation = UniversalLocation;
-	type MaxAssetsForTransfer = MaxAssetsForTransfer;
-	type ReserveProvider = AbsoluteReserveProvider;
-	type RateLimiter = MockRateLimiter;
-	type RateLimiterId = XtokensRateLimiterId;
-}
-
-impl orml_xcm::Config for Runtime {
-	type SovereignOrigin = EnsureRoot<AccountId>;
-}
-
 impl orml_xcm_mock_message_queue::Config for Runtime {
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 }
@@ -332,10 +184,6 @@ construct_runtime!(
 		MsgQueue: orml_xcm_mock_message_queue,
 		CumulusXcm: cumulus_pallet_xcm,
 
-		Tokens: orml_tokens,
-		XTokens: orml_xtokens,
-
 		PolkadotXcm: pallet_xcm,
-		OrmlXcm: orml_xcm,
 	}
 );

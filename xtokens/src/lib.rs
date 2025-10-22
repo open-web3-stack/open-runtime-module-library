@@ -71,19 +71,6 @@ enum TransferKind {
 }
 use TransferKind::*;
 
-#[derive(
-	scale_info::TypeInfo, Default, Encode, Decode, Clone, Eq, PartialEq, Debug, MaxEncodedLen, DecodeWithMemTracking,
-)]
-pub enum MigrationPhase {
-	/// Not started
-	#[default]
-	NotStarted,
-	/// Started
-	InProgress,
-	/// Completed
-	Completed,
-}
-
 #[frame_support::pallet]
 pub mod module {
 	use super::*;
@@ -148,13 +135,7 @@ pub mod module {
 		/// The id of the RateLimiter.
 		#[pallet::constant]
 		type RateLimiterId: Get<<Self::RateLimiter as RateLimiter>::RateLimiterId>;
-
-		/// The origin that can change the migration phase.
-		type MigrationPhaseUpdateOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 	}
-
-	#[pallet::storage]
-	pub type MigrationStatus<T: Config> = StorageValue<_, MigrationPhase, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(fn deposit_event)]
@@ -166,8 +147,6 @@ pub mod module {
 			fee: Asset,
 			dest: Location,
 		},
-		/// Migration phase changed.
-		MigrationPhaseChanged { migration_phase: MigrationPhase },
 	}
 
 	#[pallet::error]
@@ -416,17 +395,9 @@ pub mod module {
 			Self::do_transfer_assets(who, assets.clone(), fee.clone(), dest, dest_weight_limit).map(|_| ())
 		}
 
-		#[pallet::call_index(6)]
-		#[pallet::weight(frame_support::weights::Weight::from_parts(10000, 0))]
-		pub fn set_migration_phase(origin: OriginFor<T>, migration_phase: MigrationPhase) -> DispatchResult {
-			T::MigrationPhaseUpdateOrigin::ensure_origin(origin)?;
-
-			MigrationStatus::<T>::set(migration_phase.clone());
-
-			Self::deposit_event(Event::<T>::MigrationPhaseChanged { migration_phase });
-
-			Ok(())
-		}
+		// #[pallet::call_index(6)]
+		// pub fn set_migration_phase(origin: OriginFor<T>, migration_phase:
+		// MigrationPhase) -> DispatchResult {}
 	}
 
 	impl<T: Config> Pallet<T> {
@@ -598,7 +569,7 @@ pub mod module {
 			if asset_len > 1 && fee_reserve != non_fee_reserve {
 				// Current only support `ToReserve` with relay-chain asset as fee. other case
 				// like `NonReserve` or `SelfReserve` with relay-chain fee is not support.
-				ensure!(non_fee_reserve == Self::chain_part(&dest), Error::<T>::InvalidAsset);
+				ensure!(non_fee_reserve == chain_part(&dest), Error::<T>::InvalidAsset);
 
 				let reserve_location = non_fee_reserve.clone().ok_or(Error::<T>::AssetHasNoReserve)?;
 				let min_xcm_fee = T::MinXcmFee::get(&reserve_location).ok_or(Error::<T>::MinXcmFeeNotDefined)?;
@@ -623,7 +594,7 @@ pub mod module {
 
 				let mut override_recipient = T::SelfLocation::get();
 				if override_recipient == Location::here() {
-					let dest_chain_part = Self::chain_part(&dest).ok_or(Error::<T>::InvalidDest)?;
+					let dest_chain_part = chain_part(&dest).ok_or(Error::<T>::InvalidDest)?;
 					let ancestry = T::UniversalLocation::get();
 					let _ = override_recipient
 						.reanchor(&dest_chain_part, &ancestry)
@@ -633,7 +604,7 @@ pub mod module {
 				// First xcm sent to fee reserve chain and routed to dest chain.
 				// We can use `MinXcmFee` configuration to decide which target parachain use
 				// teleport. But as current there's only one case which is Parachain send back
-				// asset to Statemine/t, So we set `use_teleport` to always `true` in this case.
+				// asset to AssetHub, So we set `use_teleport` to always `true` in this case.
 				Self::execute_and_send_reserve_kind_xcm(
 					origin_location.clone(),
 					assets_to_fee_reserve,
@@ -717,10 +688,12 @@ pub mod module {
 			let mut hash = msg.using_encoded(sp_io::hashing::blake2_256);
 
 			let weight = T::Weigher::weight(&mut msg, Weight::MAX).map_err(|_| Error::<T>::UnweighableMessage)?;
-			T::XcmExecutor::prepare_and_execute(origin_location, msg, &mut hash, weight, weight)
+			T::XcmExecutor::prepare_and_execute(origin_location.clone(), msg.clone(), &mut hash, weight, weight)
 				.ensure_complete()
 				.map_err(|error| {
-					log::error!("Failed execute transfer message with {error:?}");
+					log::error!(
+						"Failed execute transfer message with {error:?}, origin: {origin_location:?}, msg: {msg:?}"
+					);
 					Error::<T>::XcmExecutionFailed
 				})?;
 
@@ -850,7 +823,7 @@ pub mod module {
 
 		/// Ensure has the `dest` has chain part and recipient part.
 		fn ensure_valid_dest(dest: &Location) -> Result<(Location, Location), DispatchError> {
-			if let (Some(dest), Some(recipient)) = (Self::chain_part(dest), Self::non_chain_part(dest)) {
+			if let (Some(dest), Some(recipient)) = (chain_part(dest), non_chain_part(dest)) {
 				Ok((dest, recipient))
 			} else {
 				Err(Error::<T>::InvalidDest.into())
@@ -895,41 +868,6 @@ pub mod module {
 			};
 			let asset = assets.get(reserve_idx);
 			asset.and_then(T::ReserveProvider::reserve)
-		}
-
-		/// Returns the "chain" location part. It could be parent, sibling
-		/// parachain, or child parachain.
-		pub fn chain_part(location: &Location) -> Option<Location> {
-			match (location.parents, location.first_interior()) {
-				// sibling parachain
-				(1, Some(Parachain(id))) => Some(Location::new(1, [Parachain(*id)])),
-				// parent
-				(1, _) => match MigrationStatus::<T>::get() {
-					// RelayChain
-					MigrationPhase::NotStarted => Some(Location::parent()),
-					// Disable transfer when migration is in progress
-					MigrationPhase::InProgress => None,
-					// AssetHub
-					MigrationPhase::Completed => Some(Location::new(1, [Parachain(ASSET_HUB_ID)])),
-				},
-				// children parachain
-				(0, Some(Parachain(id))) => Some(Location::new(0, [Parachain(*id)])),
-				_ => None,
-			}
-		}
-
-		/// Returns "non-chain" location part.
-		pub fn non_chain_part(location: &Location) -> Option<Location> {
-			let mut junctions = location.interior().clone();
-			while is_chain_junction(junctions.first()) {
-				let _ = junctions.take_first();
-			}
-
-			if junctions != Here {
-				Some(Location::new(0, junctions))
-			} else {
-				None
-			}
 		}
 	}
 
@@ -1140,26 +1078,54 @@ fn is_chain_junction(junction: Option<&Junction>) -> bool {
 }
 
 // Provide reserve in absolute path view
-pub struct AbsoluteReserveProviderMigrationPhase<T>(PhantomData<T>);
+pub struct AbsoluteReserveProvider;
 
-impl<T: Config> Reserve for AbsoluteReserveProviderMigrationPhase<T> {
+impl Reserve for AbsoluteReserveProvider {
 	fn reserve(asset: &Asset) -> Option<Location> {
 		let AssetId(location) = &asset.id;
-		Pallet::<T>::chain_part(location)
+		chain_part(location)
 	}
 }
 
 // Provide reserve in relative path view
 // Self tokens are represeneted as Here
-pub struct RelativeReserveProviderMigrationPhase<T>(PhantomData<T>);
+pub struct RelativeReserveProvider;
 
-impl<T: Config> Reserve for RelativeReserveProviderMigrationPhase<T> {
+impl Reserve for RelativeReserveProvider {
 	fn reserve(asset: &Asset) -> Option<Location> {
 		let AssetId(location) = &asset.id;
 		if location.parents == 0 && !is_chain_junction(location.first_interior()) {
 			Some(Location::here())
 		} else {
-			Pallet::<T>::chain_part(location)
+			chain_part(location)
 		}
+	}
+}
+
+/// Returns the "chain" location part. It could be parent, sibling
+/// parachain, or child parachain.
+pub fn chain_part(location: &Location) -> Option<Location> {
+	match (location.parents, location.first_interior()) {
+		// sibling parachain
+		(1, Some(Parachain(id))) => Some(Location::new(1, [Parachain(*id)])),
+		// parent -> assethub
+		(1, _) => Some(Location::new(1, [Parachain(ASSET_HUB_ID)])),
+		// children parachain
+		(0, Some(Parachain(id))) => Some(Location::new(0, [Parachain(*id)])),
+		_ => None,
+	}
+}
+
+/// Returns "non-chain" location part.
+pub fn non_chain_part(location: &Location) -> Option<Location> {
+	let mut junctions = location.interior().clone();
+	while is_chain_junction(junctions.first()) {
+		let _ = junctions.take_first();
+	}
+
+	if junctions != Here {
+		Some(Location::new(0, junctions))
+	} else {
+		None
 	}
 }
