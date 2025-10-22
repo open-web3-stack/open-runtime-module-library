@@ -41,6 +41,7 @@ cumulus-primitives-core = { version = "0.21.0", default-features = false }
 frame-benchmarking = { version = "43.0.0", default-features = false }
 frame-support = { version = "43.0.0", default-features = false }
 frame-system = { version = "43.0.0", default-features = false }
+parachains-common = { version = "25.0.0", default-features = false }
 pallet-balances = { version = "44.0.0", default-features = false }
 pallet-elections-phragmen = { version = "44.0.0", default-features = false }
 pallet-message-queue = { version = "46.0.0", default-features = false }

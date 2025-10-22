@@ -6,7 +6,8 @@ use frame_support::{
 use frame_system::EnsureRoot;
 use sp_runtime::{traits::IdentityLookup, AccountId32};
 
-use crate::Weight;
+use crate::mock::KsmLocation;
+use crate::{Weight, ASSET_HUB_ID};
 use cumulus_primitives_core::ParaId;
 use polkadot_runtime_parachains::{
 	configuration,
@@ -58,7 +59,6 @@ impl configuration::Config for Runtime {
 }
 
 parameter_types! {
-	pub KsmLocation: Location = Here.into();
 	pub const KusamaNetwork: NetworkId = NetworkId::Kusama;
 	pub UniversalLocation: InteriorLocation = [GlobalConsensus(KusamaNetwork::get())].into();
 }
@@ -81,11 +81,11 @@ pub type Barrier = (TakeWeightCredit, AllowTopLevelPaidExecutionFrom<Everything>
 
 parameter_types! {
 	pub Kusama: AssetFilter = Wild(AllOf { fun: WildFungible, id: AssetId(KsmLocation::get()) });
-	pub Statemine: Location = Parachain(3).into();
-	pub KusamaForStatemine: (AssetFilter, Location) = (Kusama::get(), Statemine::get());
+	pub AssetHub: Location = Parachain(ASSET_HUB_ID).into();
+	pub KusamaForAssetHub: (AssetFilter, Location) = (Kusama::get(), AssetHub::get());
 }
 
-pub type TrustedTeleporters = xcm_builder::Case<KusamaForStatemine>;
+pub type TrustedTeleporters = xcm_builder::Case<KusamaForAssetHub>;
 
 parameter_types! {
 	pub const UnitWeightCost: Weight = Weight::from_parts(10, 10);
