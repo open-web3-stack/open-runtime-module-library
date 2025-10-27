@@ -43,7 +43,7 @@ use sp_std::{prelude::*, vec};
 pub use crate::default_combine_data::DefaultCombineData;
 
 #[cfg(feature = "runtime-benchmarks")]
-mod benchmarking;
+pub mod benchmarking;
 
 mod default_combine_data;
 mod mock;
