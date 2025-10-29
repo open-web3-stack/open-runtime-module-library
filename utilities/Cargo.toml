@@ -18,15 +18,13 @@ sp-std = { workspace = true }
 sp-io = { workspace = true }
 sp-core = { workspace = true }
 
-[dev-dependencies]
-serde_json = "1.0.64"
-
 frame-system = { workspace = true, features = ["std"] }
 
 [features]
 default = [ "std" ]
 std = [
 	"frame-support/std",
+	"frame-system/std",
 	"parity-scale-codec/std",
 	"scale-info/std",
 	"serde",
