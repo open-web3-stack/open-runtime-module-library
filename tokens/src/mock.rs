@@ -378,9 +378,9 @@ where
 #[cfg(feature = "runtime-benchmarks")]
 pub struct MockBenchmarkHelper;
 #[cfg(feature = "runtime-benchmarks")]
-impl BenchmarkHelper<CurrencyId> for MockBenchmarkHelper {
-	fn get_currency_id() -> Option<CurrencyId> {
-		Some(DOT)
+impl BenchmarkHelper<CurrencyId, Balance> for MockBenchmarkHelper {
+	fn get_currency_id_and_amount() -> Option<(CurrencyId, Balance)> {
+		Some((DOT, 1000))
 	}
 }
 

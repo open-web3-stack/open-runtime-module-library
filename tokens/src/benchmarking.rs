@@ -6,18 +6,16 @@ use frame_system::RawOrigin;
 use sp_runtime::traits::SaturatedConversion;
 
 /// Helper trait for benchmarking.
-pub trait BenchmarkHelper<CurrencyId> {
-	/// Returns a currency id to be used for benchmarking.
-	fn get_currency_id() -> Option<CurrencyId>;
+pub trait BenchmarkHelper<CurrencyId, Balance> {
+	/// Returns a currency id and amount to be used in benchmarking.
+	fn get_currency_id_and_amount() -> Option<(CurrencyId, Balance)>;
 }
 
-impl<CurrencyId> BenchmarkHelper<CurrencyId> for () {
-	fn get_currency_id() -> Option<CurrencyId> {
+impl<CurrencyId, Balance> BenchmarkHelper<CurrencyId, Balance> for () {
+	fn get_currency_id_and_amount() -> Option<(CurrencyId, Balance)> {
 		None
 	}
 }
-
-const AMOUNT: u32 = 1_000_000_000;
 
 #[benchmarks]
 mod benchmarks {
@@ -26,9 +24,8 @@ mod benchmarks {
 	#[benchmark]
 	fn transfer() {
 		let from: T::AccountId = account("from", 0, 0);
-		let amount: T::Balance = AMOUNT.into();
 
-		let currency_id: T::CurrencyId = T::BenchmarkHelper::get_currency_id().unwrap();
+		let (currency_id, amount) = T::BenchmarkHelper::get_currency_id_and_amount().unwrap();
 
 		assert_ok!(<Pallet::<T> as MultiCurrencyExtended<_>>::update_balance(
 			currency_id,
@@ -48,9 +45,8 @@ mod benchmarks {
 	#[benchmark]
 	fn transfer_all() {
 		let from: T::AccountId = account("from", 0, 0);
-		let amount: T::Balance = AMOUNT.into();
 
-		let currency_id: T::CurrencyId = T::BenchmarkHelper::get_currency_id().unwrap();
+		let (currency_id, amount) = T::BenchmarkHelper::get_currency_id_and_amount().unwrap();
 
 		assert_ok!(<Pallet::<T> as MultiCurrencyExtended<_>>::update_balance(
 			currency_id,
@@ -73,9 +69,8 @@ mod benchmarks {
 	#[benchmark]
 	fn transfer_keep_alive() {
 		let from: T::AccountId = account("from", 0, 0);
-		let amount: T::Balance = AMOUNT.into();
 
-		let currency_id: T::CurrencyId = T::BenchmarkHelper::get_currency_id().unwrap();
+		let (currency_id, amount) = T::BenchmarkHelper::get_currency_id_and_amount().unwrap();
 
 		assert_ok!(<Pallet::<T> as MultiCurrencyExtended<_>>::update_balance(
 			currency_id,
@@ -99,9 +94,8 @@ mod benchmarks {
 	fn force_transfer() {
 		let from: T::AccountId = account("from", 0, 0);
 		let from_lookup = <T as frame_system::Config>::Lookup::unlookup(from.clone());
-		let amount: T::Balance = AMOUNT.into();
 
-		let currency_id: T::CurrencyId = T::BenchmarkHelper::get_currency_id().unwrap();
+		let (currency_id, amount) = T::BenchmarkHelper::get_currency_id_and_amount().unwrap();
 
 		assert_ok!(<Pallet::<T> as MultiCurrencyExtended<_>>::update_balance(
 			currency_id,
@@ -125,9 +119,8 @@ mod benchmarks {
 	fn set_balance() {
 		let who: T::AccountId = account("who", 0, 0);
 		let who_lookup = <T as frame_system::Config>::Lookup::unlookup(who.clone());
-		let amount: T::Balance = AMOUNT.into();
 
-		let currency_id: T::CurrencyId = T::BenchmarkHelper::get_currency_id().unwrap();
+		let (currency_id, amount) = T::BenchmarkHelper::get_currency_id_and_amount().unwrap();
 
 		#[extrinsic_call]
 		_(RawOrigin::Root, who_lookup, currency_id, amount, amount);

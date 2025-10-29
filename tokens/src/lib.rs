@@ -233,7 +233,7 @@ pub mod module {
 
 		/// The benchmarks need a way to provide currency id.
 		#[cfg(feature = "runtime-benchmarks")]
-		type BenchmarkHelper: BenchmarkHelper<Self::CurrencyId>;
+		type BenchmarkHelper: BenchmarkHelper<Self::CurrencyId, Self::Balance>;
 	}
 
 	#[pallet::error]
