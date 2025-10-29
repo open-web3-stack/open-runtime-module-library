@@ -231,7 +231,7 @@ pub mod module {
 		// is zero or below ED.
 		type DustRemovalWhitelist: Contains<Self::AccountId>;
 
-		/// The benchmarks need a way to create asset ids from u32s.
+		/// The benchmarks need a way to provide currency id.
 		#[cfg(feature = "runtime-benchmarks")]
 		type BenchmarkHelper: BenchmarkHelper<Self::CurrencyId>;
 	}
