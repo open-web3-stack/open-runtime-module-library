@@ -25,7 +25,7 @@ orml-utilities = { path = "../utilities", version = "1.5.0", default-features = 
 pallet-balances = { workspace = true, features = ["std"] }
 sp-core = { workspace = true, features = ["std"] }
 
-orml_tokens = { package = "orml-tokens", path = "../tokens" }
+orml_tokens = { package = "orml-tokens", path = "../tokens", features = ["std"] }
 
 [features]
 default = [ "std" ]

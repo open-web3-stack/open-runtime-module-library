@@ -26,7 +26,7 @@ orml-traits = {path = "../traits", version = "1.5.0", default-features = false }
 sp-core = { workspace = true }
 sp-io = { workspace = true }
 
-orml-tokens = { path = "../tokens" }
+orml-tokens = { path = "../tokens", features = ["std"] }
 
 [features]
 default = [ 'std' ]
