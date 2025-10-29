@@ -25,7 +25,7 @@ orml-utilities = { path = "../utilities", version = "1.5.0", default-features = 
 pallet-balances = { workspace = true, features = ["std"] }
 sp-core = { workspace = true, features = ["std"] }
 
-orml_tokens = { package = "orml-tokens", path = "../tokens", features = ["std"] }
+orml-tokens = { path = "../tokens", features = ["std"] }
 
 [features]
 default = [ "std" ]
@@ -40,6 +40,11 @@ std = [
 	"sp-io/std",
 	"sp-runtime/std",
 	"sp-std/std",
+]
+runtime-benchmarks = [
+	"frame-support/runtime-benchmarks",
+	"frame-system/runtime-benchmarks",
+	"orml-tokens/runtime-benchmarks",
 ]
 try-runtime = [
 	"frame-support/try-runtime",

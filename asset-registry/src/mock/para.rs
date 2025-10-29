@@ -77,6 +77,8 @@ impl orml_tokens::Config for Runtime {
 	type MaxReserves = ();
 	type MaxLocks = ConstU32<50>;
 	type DustRemovalWhitelist = Nothing;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = ();
 }
 
 #[derive(scale_info::TypeInfo, Encode, Decode, Clone, Eq, PartialEq, Debug, MaxEncodedLen, DecodeWithMemTracking)]
