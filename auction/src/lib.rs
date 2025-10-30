@@ -22,10 +22,14 @@ use sp_runtime::{
 	DispatchError, DispatchResult,
 };
 
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
 mod mock;
 mod tests;
 mod weights;
 
+#[cfg(feature = "runtime-benchmarks")]
+pub use benchmarking::{BaseBenchmarkHelper, BenchmarkHelper};
 pub use module::*;
 pub use weights::WeightInfo;
 
@@ -61,6 +65,9 @@ pub mod module {
 
 		/// Weight information for extrinsics in this module.
 		type WeightInfo: WeightInfo;
+
+		#[cfg(feature = "runtime-benchmarks")]
+		type BenchmarkHelper: BenchmarkHelper<BlockNumberFor<Self>>;
 	}
 
 	#[pallet::error]
