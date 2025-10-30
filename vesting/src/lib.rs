@@ -45,10 +45,14 @@ use sp_std::{
 	vec::Vec,
 };
 
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
 mod mock;
 mod tests;
 mod weights;
 
+#[cfg(feature = "runtime-benchmarks")]
+pub use benchmarking::BenchmarkHelper;
 pub use module::*;
 pub use weights::WeightInfo;
 
@@ -143,6 +147,9 @@ pub mod module {
 
 		// The block number provider
 		type BlockNumberProvider: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
+
+		#[cfg(feature = "runtime-benchmarks")]
+		type BenchmarkHelper: BenchmarkHelper<Self::AccountId, BalanceOf<Self>>;
 	}
 
 	#[pallet::error]

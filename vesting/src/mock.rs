@@ -73,6 +73,15 @@ impl BlockNumberProvider for MockBlockNumberProvider {
 	}
 }
 
+#[cfg(feature = "runtime-benchmarks")]
+pub struct MockBenchmarkHelper;
+#[cfg(feature = "runtime-benchmarks")]
+impl BenchmarkHelper<AccountId, Balance> for MockBenchmarkHelper {
+	fn get_vesting_account_and_amount() -> Option<(AccountId, Balance)> {
+		Some((ALICE, 1000))
+	}
+}
+
 impl Config for Runtime {
 	type Currency = PalletBalances;
 	type MinVestedTransfer = ConstU64<5>;
@@ -80,6 +89,8 @@ impl Config for Runtime {
 	type WeightInfo = ();
 	type MaxVestingSchedules = ConstU32<2>;
 	type BlockNumberProvider = MockBlockNumberProvider;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = MockBenchmarkHelper;
 }
 
 type Block = frame_system::mocking::MockBlock<Runtime>;
