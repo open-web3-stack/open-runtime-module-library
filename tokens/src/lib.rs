@@ -71,6 +71,8 @@ use orml_traits::{
 	MultiReservableCurrency, NamedMultiReservableCurrency,
 };
 
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
 mod imbalances;
 mod impls;
 mod mock;
@@ -82,6 +84,8 @@ mod tests_multicurrency;
 
 mod weights;
 
+#[cfg(feature = "runtime-benchmarks")]
+pub use benchmarking::BenchmarkHelper;
 pub use impls::*;
 pub use weights::WeightInfo;
 
@@ -226,6 +230,10 @@ pub mod module {
 		// The whitelist of accounts that will not be reaped even if its total
 		// is zero or below ED.
 		type DustRemovalWhitelist: Contains<Self::AccountId>;
+
+		/// The benchmarks need a way to provide currency id.
+		#[cfg(feature = "runtime-benchmarks")]
+		type BenchmarkHelper: BenchmarkHelper<Self::CurrencyId, Self::Balance>;
 	}
 
 	#[pallet::error]
