@@ -137,6 +137,15 @@ impl AsOriginId<RuntimeOrigin, OriginCaller> for MockAsOriginId {
 	}
 }
 
+#[cfg(feature = "runtime-benchmarks")]
+pub struct MockBenchmarkHelper;
+#[cfg(feature = "runtime-benchmarks")]
+impl BenchmarkHelper<MockAsOriginId> for MockBenchmarkHelper {
+	fn get_as_origin_id_root() -> Option<MockAsOriginId> {
+		Some(MockAsOriginId::Root)
+	}
+}
+
 impl Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type PalletsOrigin = OriginCaller;
@@ -145,6 +154,8 @@ impl Config for Runtime {
 	type AsOriginId = MockAsOriginId;
 	type AuthorityConfig = AuthorityConfigImpl;
 	type WeightInfo = ();
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = MockBenchmarkHelper;
 }
 
 type Block = frame_system::mocking::MockBlock<Runtime>;
