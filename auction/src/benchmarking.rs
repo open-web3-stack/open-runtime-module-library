@@ -5,13 +5,15 @@ use frame_support::assert_ok;
 use frame_system::{EventRecord, RawOrigin};
 
 /// Helper trait for benchmarking.
-pub trait BenchmarkHelper<BlockNumber> {
-	fn setup_bid();
+pub trait BenchmarkHelper<BlockNumber, AccountId, Balance> {
+	fn setup_bid() -> Option<(AccountId, Balance)>;
 	fn setup_on_finalize(rand: u32) -> Option<BlockNumber>;
 }
 
-impl<BlockNumber> BenchmarkHelper<BlockNumber> for () {
-	fn setup_bid() {}
+impl<BlockNumber, AccountId, Balance> BenchmarkHelper<BlockNumber, AccountId, Balance> for () {
+	fn setup_bid() -> Option<(AccountId, Balance)> {
+		None
+	}
 	fn setup_on_finalize(_rand: u32) -> Option<BlockNumber> {
 		None
 	}
@@ -19,8 +21,8 @@ impl<BlockNumber> BenchmarkHelper<BlockNumber> for () {
 
 pub struct BaseBenchmarkHelper<T>(sp_std::marker::PhantomData<T>);
 
-impl<T: Config> BenchmarkHelper<BlockNumberFor<T>> for BaseBenchmarkHelper<T> {
-	fn setup_bid() {
+impl<T: Config> BenchmarkHelper<BlockNumberFor<T>, T::AccountId, T::Balance> for BaseBenchmarkHelper<T> {
+	fn setup_bid() -> Option<(T::AccountId, T::Balance)> {
 		let end_block: BlockNumberFor<T> = frame_system::Pallet::<T>::block_number() + 10u32.into();
 		assert_ok!(Pallet::<T>::new_auction(
 			frame_system::Pallet::<T>::block_number(),
@@ -28,14 +30,19 @@ impl<T: Config> BenchmarkHelper<BlockNumberFor<T>> for BaseBenchmarkHelper<T> {
 		));
 
 		let auction_id: T::AuctionId = 0u32.into();
-		let bidder: T::AccountId = account("pre_bidder", 0, 0);
-		let bid_price: T::Balance = 10_000u32.into();
+		let pre_bidder: T::AccountId = account("pre_bidder", 0, 0);
+		let pre_bid_price: T::Balance = 10_000u32.into();
 
 		assert_ok!(Pallet::<T>::bid(
-			RawOrigin::Signed(bidder.clone()).into(),
+			RawOrigin::Signed(pre_bidder).into(),
 			auction_id,
-			bid_price
+			pre_bid_price
 		));
+
+		let bidder: T::AccountId = account("bidder", 0, 0);
+		let bid_price: T::Balance = 20_000u32.into();
+
+		Some((bidder, bid_price))
 	}
 
 	fn setup_on_finalize(rand: u32) -> Option<BlockNumberFor<T>> {
@@ -67,11 +74,8 @@ mod benchmarks {
 	// there's bidder before and bid price will exceed target amount
 	#[benchmark]
 	fn bid() {
-		T::BenchmarkHelper::setup_bid();
-
 		let auction_id: T::AuctionId = 0u32.into();
-		let bidder: T::AccountId = account("bidder", 0, 0);
-		let bid_price: T::Balance = 20_000u32.into();
+		let (bidder, bid_price) = T::BenchmarkHelper::setup_bid().unwrap();
 
 		#[extrinsic_call]
 		_(RawOrigin::Signed(bidder.clone()), auction_id, bid_price);

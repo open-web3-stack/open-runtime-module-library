@@ -67,7 +67,7 @@ pub mod module {
 		type WeightInfo: WeightInfo;
 
 		#[cfg(feature = "runtime-benchmarks")]
-		type BenchmarkHelper: BenchmarkHelper<BlockNumberFor<Self>>;
+		type BenchmarkHelper: BenchmarkHelper<BlockNumberFor<Self>, Self::AccountId, Self::Balance>;
 	}
 
 	#[pallet::error]
