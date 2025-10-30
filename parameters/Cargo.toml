@@ -8,8 +8,8 @@ authors = ["Acala Developers"]
 edition = "2021"
 
 [dependencies]
-parity-scale-codec = { workspace = true, default-features = false, features = ["max-encoded-len"] }
-scale-info = { version = "2.1.2", default-features = false, features = ["derive"] }
+parity-scale-codec = { workspace = true }
+scale-info = { workspace = true }
 serde = { workspace = true, optional = true }
 
 frame-support = { workspace = true }
