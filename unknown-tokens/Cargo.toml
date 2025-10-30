@@ -24,7 +24,7 @@ orml-xcm-support = { path = "../xcm-support", version = "1.5.0", default-feature
 sp-core = { workspace = true, features = ["std"] }
 sp-io = { workspace = true, features = ["std"] }
 sp-runtime = { workspace = true, features = ["std"] }
-hex-literal = "0.4.1"
+hex-literal = { workspace = true }
 
 [features]
 default = [ "std" ]

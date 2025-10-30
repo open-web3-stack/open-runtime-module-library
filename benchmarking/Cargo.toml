@@ -25,7 +25,7 @@ sp-std = { workspace = true }
 sp-storage = { workspace = true }
 
 [dev-dependencies]
-hex-literal = "1.0.0"
+hex-literal = { workspace = true }
 
 frame-system = { workspace = true, features = ["std"] }
 

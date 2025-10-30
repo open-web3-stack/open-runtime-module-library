@@ -375,6 +375,15 @@ where
 	type OnKilledTokenAccount = TrackKilledAccounts<T>;
 }
 
+#[cfg(feature = "runtime-benchmarks")]
+pub struct MockBenchmarkHelper;
+#[cfg(feature = "runtime-benchmarks")]
+impl BenchmarkHelper<CurrencyId, Balance> for MockBenchmarkHelper {
+	fn get_currency_id_and_amount() -> Option<(CurrencyId, Balance)> {
+		Some((DOT, 1000))
+	}
+}
+
 impl Config for Runtime {
 	type Balance = Balance;
 	type Amount = i64;
@@ -386,6 +395,8 @@ impl Config for Runtime {
 	type MaxReserves = ConstU32<2>;
 	type ReserveIdentifier = ReserveIdentifier;
 	type DustRemovalWhitelist = MockDustRemovalWhitelist;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = MockBenchmarkHelper;
 }
 pub type TreasuryCurrencyAdapter = <Runtime as pallet_treasury::Config>::Currency;
 

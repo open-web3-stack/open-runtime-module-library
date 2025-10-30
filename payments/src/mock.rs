@@ -74,6 +74,8 @@ impl orml_tokens::Config for Test {
 	type DustRemovalWhitelist = MockDustRemovalWhitelist;
 	type MaxReserves = ConstU32<2>;
 	type ReserveIdentifier = ReserveIdentifier;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = ();
 }
 
 pub struct MockDisputeResolver;
