@@ -30,13 +30,13 @@ use sp_std::marker::PhantomData;
 
 /// Weight functions needed for orml_auction.
 pub trait WeightInfo {
-	fn bid_collateral_auction() -> Weight;
+	fn bid() -> Weight;
 	fn on_finalize(c: u32, ) -> Weight;
 }
 
 /// Default weights.
 impl WeightInfo for () {
-	fn bid_collateral_auction() -> Weight {
+	fn bid() -> Weight {
 		Weight::from_parts(108_000_000, 0)
 			.saturating_add(RocksDbWeight::get().reads(8 as u64))
 			.saturating_add(RocksDbWeight::get().writes(9 as u64))

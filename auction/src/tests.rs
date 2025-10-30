@@ -93,8 +93,9 @@ fn bid_should_fail() {
 			AuctionModule::bid(RuntimeOrigin::signed(ALICE), 0, 20),
 			Error::<Runtime>::AuctionNotStarted
 		);
+		assert_ok!(AuctionModule::bid(RuntimeOrigin::signed(ALICE), 1, 20));
 		assert_noop!(
-			AuctionModule::bid(RuntimeOrigin::signed(BOB), 1, 20),
+			AuctionModule::bid(RuntimeOrigin::signed(ALICE), 1, 30),
 			Error::<Runtime>::BidNotAccepted,
 		);
 		assert_noop!(
