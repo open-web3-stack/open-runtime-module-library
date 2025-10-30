@@ -7,11 +7,11 @@ use sp_std::vec;
 
 /// Helper trait for benchmarking.
 pub trait BenchmarkHelper<AsOriginId> {
-	fn get_as_origin_id_root() -> Option<AsOriginId>;
+	fn get_as_origin_id() -> Option<AsOriginId>;
 }
 
 impl<AsOriginId> BenchmarkHelper<AsOriginId> for () {
-	fn get_as_origin_id_root() -> Option<AsOriginId> {
+	fn get_as_origin_id() -> Option<AsOriginId> {
 		None
 	}
 }
@@ -25,7 +25,7 @@ mod benchmarks {
 	// dispatch a dispatchable as other origin
 	#[benchmark]
 	fn dispatch_as() {
-		let as_origin = T::BenchmarkHelper::get_as_origin_id_root().unwrap();
+		let as_origin = T::BenchmarkHelper::get_as_origin_id().unwrap();
 
 		let call = frame_system::Call::remark { remark: vec![] }.into();
 
@@ -36,7 +36,7 @@ mod benchmarks {
 	// schedule a dispatchable to be dispatched at later block.
 	#[benchmark]
 	fn schedule_dispatch_without_delay() {
-		let as_origin = T::BenchmarkHelper::get_as_origin_id_root().unwrap();
+		let as_origin = T::BenchmarkHelper::get_as_origin_id().unwrap();
 
 		let sub_call = frame_system::Call::remark { remark: vec![] }.into();
 
@@ -56,7 +56,7 @@ mod benchmarks {
 	// ensure that the delay is reached when scheduling
 	#[benchmark]
 	fn schedule_dispatch_with_delay() {
-		let as_origin = T::BenchmarkHelper::get_as_origin_id_root().unwrap();
+		let as_origin = T::BenchmarkHelper::get_as_origin_id().unwrap();
 
 		let sub_call = frame_system::Call::remark { remark: vec![] }.into();
 
@@ -75,7 +75,7 @@ mod benchmarks {
 	// fast track a scheduled dispatchable.
 	#[benchmark]
 	fn fast_track_scheduled_dispatch() {
-		let as_origin = T::BenchmarkHelper::get_as_origin_id_root().unwrap();
+		let as_origin = T::BenchmarkHelper::get_as_origin_id().unwrap();
 
 		let sub_call = frame_system::Call::remark { remark: vec![] }.into();
 
@@ -120,7 +120,7 @@ mod benchmarks {
 	// delay a scheduled dispatchable.
 	#[benchmark]
 	fn delay_scheduled_dispatch() {
-		let as_origin = T::BenchmarkHelper::get_as_origin_id_root().unwrap();
+		let as_origin = T::BenchmarkHelper::get_as_origin_id().unwrap();
 
 		let sub_call = frame_system::Call::remark { remark: vec![] }.into();
 
@@ -160,7 +160,7 @@ mod benchmarks {
 	// cancel a scheduled dispatchable
 	#[benchmark]
 	fn cancel_scheduled_dispatch() {
-		let as_origin = T::BenchmarkHelper::get_as_origin_id_root().unwrap();
+		let as_origin = T::BenchmarkHelper::get_as_origin_id().unwrap();
 
 		let sub_call = frame_system::Call::remark { remark: vec![] }.into();
 

@@ -141,7 +141,7 @@ impl AsOriginId<RuntimeOrigin, OriginCaller> for MockAsOriginId {
 pub struct MockBenchmarkHelper;
 #[cfg(feature = "runtime-benchmarks")]
 impl BenchmarkHelper<MockAsOriginId> for MockBenchmarkHelper {
-	fn get_as_origin_id_root() -> Option<MockAsOriginId> {
+	fn get_as_origin_id() -> Option<MockAsOriginId> {
 		Some(MockAsOriginId::Root)
 	}
 }
