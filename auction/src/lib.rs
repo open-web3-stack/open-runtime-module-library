@@ -22,10 +22,14 @@ use sp_runtime::{
 	DispatchError, DispatchResult,
 };
 
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
 mod mock;
 mod tests;
 mod weights;
 
+#[cfg(feature = "runtime-benchmarks")]
+pub use benchmarking::{BaseBenchmarkHelper, BenchmarkHelper};
 pub use module::*;
 pub use weights::WeightInfo;
 
@@ -61,6 +65,9 @@ pub mod module {
 
 		/// Weight information for extrinsics in this module.
 		type WeightInfo: WeightInfo;
+
+		#[cfg(feature = "runtime-benchmarks")]
+		type BenchmarkHelper: BenchmarkHelper<BlockNumberFor<Self>, Self::AccountId, Self::Balance>;
 	}
 
 	#[pallet::error]
@@ -130,7 +137,7 @@ pub mod module {
 		/// The dispatch origin for this call must be `Signed` by the
 		/// transactor.
 		#[pallet::call_index(0)]
-		#[pallet::weight(T::WeightInfo::bid_collateral_auction())]
+		#[pallet::weight(T::WeightInfo::bid())]
 		pub fn bid(origin: OriginFor<T>, id: T::AuctionId, #[pallet::compact] value: T::Balance) -> DispatchResult {
 			let from = ensure_signed(origin)?;
 
