@@ -46,7 +46,7 @@ mod benchmarks {
 		set_balance::<T>(&from, schedule.total_amount().unwrap() + amount);
 
 		let to: T::AccountId = account("to", 0, 0);
-		let to_lookup = <T as frame_system::Config>::Lookup::unlookup(to.clone());
+		let to_lookup = T::Lookup::unlookup(to.clone());
 
 		#[extrinsic_call]
 		_(RawOrigin::Signed(from), to_lookup, schedule.clone());
@@ -71,7 +71,7 @@ mod benchmarks {
 		);
 
 		let to: T::AccountId = account("to", 0, 0);
-		let to_lookup = <T as frame_system::Config>::Lookup::unlookup(to.clone());
+		let to_lookup = T::Lookup::unlookup(to.clone());
 
 		for _ in 0..i {
 			schedule.start = i.into();
@@ -102,7 +102,7 @@ mod benchmarks {
 		};
 
 		let to: T::AccountId = account("to", 0, 0);
-		let to_lookup = <T as frame_system::Config>::Lookup::unlookup(to.clone());
+		let to_lookup = T::Lookup::unlookup(to.clone());
 
 		set_balance::<T>(&to, schedule.total_amount().unwrap().saturating_mul(i.into()));
 
