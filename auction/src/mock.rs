@@ -29,9 +29,9 @@ impl AuctionHandler<AccountId, Balance, BlockNumber, AuctionId> for Handler {
 		now: BlockNumber,
 		_id: AuctionId,
 		new_bid: (AccountId, Balance),
-		_last_bid: Option<(AccountId, Balance)>,
+		last_bid: Option<(AccountId, Balance)>,
 	) -> OnNewBidResult<BlockNumber> {
-		if new_bid.0 == ALICE {
+		if last_bid.is_none() || last_bid.unwrap().0 != new_bid.0 {
 			OnNewBidResult {
 				accept_bid: true,
 				auction_end_change: Change::NewValue(Some(now + BID_EXTEND_BLOCK)),
@@ -52,6 +52,8 @@ impl Config for Runtime {
 	type AuctionId = AuctionId;
 	type Handler = Handler;
 	type WeightInfo = ();
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = BaseBenchmarkHelper<Runtime>;
 }
 
 type Block = frame_system::mocking::MockBlock<Runtime>;
@@ -64,7 +66,6 @@ construct_runtime!(
 );
 
 pub const ALICE: AccountId = 1;
-pub const BOB: AccountId = 2;
 pub const BID_EXTEND_BLOCK: BlockNumber = 10;
 
 pub struct ExtBuilder;
