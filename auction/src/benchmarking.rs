@@ -58,10 +58,6 @@ impl<T: Config> BenchmarkHelper<BlockNumberFor<T>, T::AccountId, T::Balance> for
 	}
 }
 
-fn assert_last_event<T: Config>(generic_event: T::RuntimeEvent) {
-	frame_system::Pallet::<T>::assert_last_event(generic_event.into());
-}
-
 #[benchmarks]
 mod benchmarks {
 	use super::*;
@@ -76,7 +72,7 @@ mod benchmarks {
 		#[extrinsic_call]
 		_(RawOrigin::Signed(bidder.clone()), auction_id, bid_price);
 
-		assert_last_event::<T>(
+		frame_system::Pallet::<T>::assert_last_event(
 			Event::Bid {
 				auction_id,
 				bidder: bidder,
