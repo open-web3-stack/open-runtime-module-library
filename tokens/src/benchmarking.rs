@@ -34,7 +34,7 @@ mod benchmarks {
 		));
 
 		let to: T::AccountId = account("to", 0, 0);
-		let to_lookup = <T as frame_system::Config>::Lookup::unlookup(to.clone());
+		let to_lookup = T::Lookup::unlookup(to.clone());
 
 		#[extrinsic_call]
 		_(RawOrigin::Signed(from), to_lookup, currency_id, amount);
@@ -55,7 +55,7 @@ mod benchmarks {
 		));
 
 		let to: T::AccountId = account("to", 0, 0);
-		let to_lookup = <T as frame_system::Config>::Lookup::unlookup(to.clone());
+		let to_lookup = T::Lookup::unlookup(to.clone());
 
 		#[extrinsic_call]
 		_(RawOrigin::Signed(from.clone()), to_lookup, currency_id, false);
@@ -79,7 +79,7 @@ mod benchmarks {
 		));
 
 		let to: T::AccountId = account("to", 0, 0);
-		let to_lookup = <T as frame_system::Config>::Lookup::unlookup(to.clone());
+		let to_lookup = T::Lookup::unlookup(to.clone());
 
 		#[extrinsic_call]
 		_(RawOrigin::Signed(from), to_lookup, currency_id, amount);
@@ -93,7 +93,7 @@ mod benchmarks {
 	#[benchmark]
 	fn force_transfer() {
 		let from: T::AccountId = account("from", 0, 0);
-		let from_lookup = <T as frame_system::Config>::Lookup::unlookup(from.clone());
+		let from_lookup = T::Lookup::unlookup(from.clone());
 
 		let (currency_id, amount) = T::BenchmarkHelper::get_currency_id_and_amount().unwrap();
 
@@ -104,7 +104,7 @@ mod benchmarks {
 		));
 
 		let to: T::AccountId = account("to", 0, 0);
-		let to_lookup = <T as frame_system::Config>::Lookup::unlookup(to.clone());
+		let to_lookup = T::Lookup::unlookup(to.clone());
 
 		#[extrinsic_call]
 		_(RawOrigin::Root, from_lookup, to_lookup, currency_id, amount);
@@ -118,7 +118,7 @@ mod benchmarks {
 	#[benchmark]
 	fn set_balance() {
 		let who: T::AccountId = account("who", 0, 0);
-		let who_lookup = <T as frame_system::Config>::Lookup::unlookup(who.clone());
+		let who_lookup = T::Lookup::unlookup(who.clone());
 
 		let (currency_id, amount) = T::BenchmarkHelper::get_currency_id_and_amount().unwrap();
 
