@@ -2,7 +2,7 @@ pub use crate::*;
 
 use frame_benchmarking::v2::*;
 use frame_support::assert_ok;
-use frame_system::{EventRecord, RawOrigin};
+use frame_system::RawOrigin;
 
 /// Helper trait for benchmarking.
 pub trait BenchmarkHelper<BlockNumber, AccountId, Balance> {
@@ -58,14 +58,6 @@ impl<T: Config> BenchmarkHelper<BlockNumberFor<T>, T::AccountId, T::Balance> for
 	}
 }
 
-fn assert_last_event<T: Config>(generic_event: <T as frame_system::Config>::RuntimeEvent) {
-	let events = frame_system::Pallet::<T>::events();
-	let system_event: <T as frame_system::Config>::RuntimeEvent = generic_event.into();
-	// compare to the last event record
-	let EventRecord { event, .. } = &events[events.len() - 1];
-	assert_eq!(event, &system_event);
-}
-
 #[benchmarks]
 mod benchmarks {
 	use super::*;
@@ -80,7 +72,7 @@ mod benchmarks {
 		#[extrinsic_call]
 		_(RawOrigin::Signed(bidder.clone()), auction_id, bid_price);
 
-		assert_last_event::<T>(
+		frame_system::Pallet::<T>::assert_last_event(
 			Event::Bid {
 				auction_id,
 				bidder: bidder,
