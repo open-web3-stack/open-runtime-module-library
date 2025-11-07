@@ -161,7 +161,7 @@ impl<
 				&CheckingAccount::get(),
 				&who,
 				amount,
-				ExistenceRequirement::KeepAlive,
+				ExistenceRequirement::AllowDeath,
 			)
 			.or_else(|err| DepositFailureHandler::on_deposit_currency_fail(err, currency_id, &who, amount)),
 			// unknown asset
