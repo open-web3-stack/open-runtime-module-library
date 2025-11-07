@@ -111,6 +111,7 @@ pub struct MultiCurrencyAdapter<
 	CurrencyId,
 	CurrencyIdConvert,
 	DepositFailureHandler,
+	CheckingAccount,
 >(
 	PhantomData<(
 		MultiCurrency,
@@ -121,6 +122,7 @@ pub struct MultiCurrencyAdapter<
 		CurrencyId,
 		CurrencyIdConvert,
 		DepositFailureHandler,
+		CheckingAccount,
 	)>,
 );
 
@@ -133,6 +135,7 @@ impl<
 		CurrencyId: FullCodec + Eq + PartialEq + Copy + MaybeSerializeDeserialize + Debug,
 		CurrencyIdConvert: Convert<Asset, Option<CurrencyId>>,
 		DepositFailureHandler: OnDepositFail<CurrencyId, AccountId, MultiCurrency::Balance>,
+		CheckingAccount: Get<AccountId>,
 	> TransactAsset
 	for MultiCurrencyAdapter<
 		MultiCurrency,
@@ -143,6 +146,7 @@ impl<
 		CurrencyId,
 		CurrencyIdConvert,
 		DepositFailureHandler,
+		CheckingAccount,
 	>
 {
 	fn deposit_asset(asset: &Asset, location: &Location, _context: Option<&XcmContext>) -> Result {
@@ -152,8 +156,14 @@ impl<
 			Match::matches_fungible(asset),
 		) {
 			// known asset
-			(Some(who), Some(currency_id), Some(amount)) => MultiCurrency::deposit(currency_id, &who, amount)
-				.or_else(|err| DepositFailureHandler::on_deposit_currency_fail(err, currency_id, &who, amount)),
+			(Some(who), Some(currency_id), Some(amount)) => MultiCurrency::transfer(
+				currency_id,
+				&CheckingAccount::get(),
+				&who,
+				amount,
+				ExistenceRequirement::AllowDeath,
+			)
+			.or_else(|err| DepositFailureHandler::on_deposit_currency_fail(err, currency_id, &who, amount)),
 			// unknown asset
 			_ => UnknownAsset::deposit(asset, location)
 				.or_else(|err| DepositFailureHandler::on_deposit_unknown_asset_fail(err, asset, location)),
@@ -173,8 +183,14 @@ impl<
 			let amount: MultiCurrency::Balance = Match::matches_fungible(asset)
 				.ok_or_else(|| XcmError::from(Error::FailedToMatchFungible))?
 				.saturated_into();
-			MultiCurrency::withdraw(currency_id, &who, amount, ExistenceRequirement::AllowDeath)
-				.map_err(|e| XcmError::FailedToTransactAsset(e.into()))
+			MultiCurrency::transfer(
+				currency_id,
+				&who,
+				&CheckingAccount::get(),
+				amount,
+				ExistenceRequirement::AllowDeath,
+			)
+			.map_err(|e| XcmError::FailedToTransactAsset(e.into()))
 		})?;
 
 		Ok(asset.clone().into())
