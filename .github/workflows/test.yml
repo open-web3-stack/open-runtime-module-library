@@ -33,14 +33,6 @@ jobs:
       run: make dev-format-check
     - name: Install clippy
       run: rustup component add clippy
-    - name: Install solc and resolc
-      run: |
-        mkdir -p $HOME/.local/bin
-        curl -sL https://github.com/argotorg/solidity/releases/download/v0.8.30/solc-static-linux -o $HOME/.local/bin/solc
-        chmod 755 $HOME/.local/bin/solc
-        curl -sL https://github.com/paritytech/revive/releases/download/v0.4.1/resolc-x86_64-unknown-linux-musl -o $HOME/.local/bin/resolc
-        chmod 755 $HOME/.local/bin/resolc
-        echo "PATH=$PATH:$HOME/.local/bin" >> $GITHUB_ENV
     - name: Update
       run: |
         cargo update
